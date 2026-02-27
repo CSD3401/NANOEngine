@@ -3,7 +3,7 @@
 #define GLFW_DLL
 #include <glfw/glfw3.h>
 
-#include "../../src/Core/Logger.hpp"
+#include "Core/Logger.hpp"
 
 namespace NE::Graphics {
 

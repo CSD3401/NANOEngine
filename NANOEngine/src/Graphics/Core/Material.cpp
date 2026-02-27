@@ -80,8 +80,16 @@ namespace NE::Graphics {
         m_FloatUniforms[uName] = value;
     }
 
+    void Material::SetUniformVec2(const std::string& uName, const Vec2& value) {
+        m_Vec2Uniforms[uName] = value;
+    }
+
     void Material::SetUniformVec3(const std::string& uName, const Vec3& value) {
         m_Vec3Uniforms[uName] = value;
+    }
+
+    void Material::SetUniformVec4(const std::string& uName, const Vec4& value) {
+        m_Vec4Uniforms[uName] = value;
     }
 
     void Material::SetUniformMat4(const std::string& uName, const Mat4& value) {
@@ -103,6 +111,10 @@ namespace NE::Graphics {
         //    m_Textures[uName]->MakeResident();
     }
 
+    void Material::SetUniformHandle(const std::string& uName, uint64_t handle) {
+        m_HandleUniforms[uName] = handle;
+    }
+
     void Material::SetQueueBase(RenderQueue queue) {
 		m_BaseRQ = queue;
     }
@@ -116,8 +128,12 @@ namespace NE::Graphics {
 
         for (const auto& [uName, val] : m_FloatUniforms)
             shader->SetUniformFloat(uName, val);
+        for (const auto& [uName, val] : m_Vec2Uniforms)
+            shader->SetUniformVec2(uName, val);
         for (const auto& [uName, val] : m_Vec3Uniforms)
             shader->SetUniformVec3(uName, val);
+        for (const auto& [uName, val] : m_Vec4Uniforms)
+            shader->SetUniformVec4(uName, val);
         for (const auto& [uName, val] : m_Mat4Uniforms)
             shader->SetUniformMat4(uName, val);
         for (const auto& [uName, val] : m_IntUniforms)
@@ -127,6 +143,12 @@ namespace NE::Graphics {
         //    shader->SetUniformMat4Array(name, mats.data(), static_cast<int>(mats.size()));
         //}
 
+        // Bind bindless texture handles from m_HandleUniforms
+        for (const auto& [uName, handle] : m_HandleUniforms) {
+            shader->SetUniformHandle(uName, handle);
+        }
+
+        // Bind bindless texture handles from m_Textures
         for (auto& [uName, tex] : m_Textures) {
             if (!tex) continue;
             uint64_t h = tex->GetBindlessHandle();
@@ -146,14 +168,20 @@ namespace NE::Graphics {
 
         const auto oldInts = m_IntUniforms;
         const auto oldFloats = m_FloatUniforms;
+        const auto oldVec2s = m_Vec2Uniforms;
         const auto oldVec3s = m_Vec3Uniforms;
+        const auto oldVec4s = m_Vec4Uniforms;
         const auto oldMat4s = m_Mat4Uniforms;
+        const auto oldHandles = m_HandleUniforms;
         const auto oldTex = m_Textures;
 
         m_IntUniforms.clear();
         m_FloatUniforms.clear();
+        m_Vec2Uniforms.clear();
         m_Vec3Uniforms.clear();
+        m_Vec4Uniforms.clear();
         m_Mat4Uniforms.clear();
+        m_HandleUniforms.clear();
         m_Textures.clear();
 
         auto TryRestore = [&](const OpenGL::UniformDesc& u) {
@@ -186,9 +214,19 @@ namespace NE::Graphics {
                     m_FloatUniforms[name] = it->second;
                 break;
 
+            case GL_FLOAT_VEC2:
+                if (auto it = oldVec2s.find(name); it != oldVec2s.end())
+                    m_Vec2Uniforms[name] = it->second;
+                break;
+
             case GL_FLOAT_VEC3:
                 if (auto it = oldVec3s.find(name); it != oldVec3s.end())
                     m_Vec3Uniforms[name] = it->second;
+                break;
+
+            case GL_FLOAT_VEC4:
+                if (auto it = oldVec4s.find(name); it != oldVec4s.end())
+                    m_Vec4Uniforms[name] = it->second;
                 break;
 
             case GL_FLOAT_MAT4:
@@ -236,6 +274,10 @@ namespace NE::Graphics {
                 } else {
                     m_FloatUniforms.emplace(u.name, 0.0f);
                 }
+                break;
+
+            case GL_FLOAT_VEC2:
+                m_Vec2Uniforms.emplace(u.name, Vec2{ 0,0 });
                 break;
 
             case GL_FLOAT_VEC3:

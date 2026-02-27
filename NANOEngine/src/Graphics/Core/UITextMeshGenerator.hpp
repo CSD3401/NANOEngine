@@ -14,7 +14,7 @@ namespace NE::Graphics {
     class UITextMeshGenerator {
     public:
         struct TextMeshResult {
-            std::vector<UIVertex> vertices;
+            std::vector<UIVertex2> vertices;
             float totalWidth;
             float totalHeight;
         };
@@ -29,7 +29,20 @@ namespace NE::Graphics {
             NE::ECS::Component::UIText::Alignment horizontalAlign,
             NE::ECS::Component::UIText::VerticalAlignment verticalAlign,
             bool wordWrap,
-            float desiredFontSize = 0.0f  // If 0, use atlas font size; otherwise scale to this size
+            float desiredFontSize = 0.0f,  // If 0, use atlas font size; otherwise scale to this size
+            uint64_t bindlessHandle = 0
+        );
+
+        // Calculate font size to fit within bounds (for auto-scaling)
+        static float CalculateFitFontSize(
+            const std::string& text,
+            const FontAtlas& fontAtlas,
+            float maxWidth,
+            float maxHeight,
+            float baseFontSize,
+            float minFontSize,
+            float maxFontSize,
+            bool wordWrap
         );
 
     private:
@@ -53,18 +66,20 @@ namespace NE::Graphics {
         );
 
         static void GenerateLineVertices(
-            std::vector<UIVertex>& vertices,
+            std::vector<UIVertex2>& vertices,
             const std::string& line,
             const FontAtlas& fontAtlas,
             float startX, float startY, float z,
             const Math::Vec4& color,
-            float scaleFactor = 1.0f
+            float scaleFactor = 1.0f,
+            uint64_t bindlessHandle = 0
         );
 
-        static UIVertex CreateVertex(
+        static UIVertex2 CreateVertex(
             float x, float y, float z,
             float u, float v,
-            const Math::Vec4& color
+            const Math::Vec4& color,
+            uint64_t bindlessHandle = 0
         );
     };
 

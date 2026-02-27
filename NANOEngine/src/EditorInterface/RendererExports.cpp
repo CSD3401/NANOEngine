@@ -1,4 +1,5 @@
 #include "pch.h"
+#include <glad/glad.h>
 #include "RendererExports.hpp"
 #include "SceneManagement/Scene.hpp"
 
@@ -8,7 +9,6 @@
 #include "../../include/ScriptSDK/ScriptTypes.h"
 #include "Graphics/Core/GraphicsManager.hpp"
 #include "Graphics/Core/RenderGraph.hpp"
-#include <glad/glad.h>
 
 #include "ECS/Components/Renderer.hpp"
 #include "ECS/Components/DecalProjector.hpp"
@@ -176,6 +176,7 @@ namespace NE::Renderer {
 			if (!textureUUID.empty()) {
 				auto texture = Resource::ResourceManager::GetInstance().LoadResource<Graphics::OpenGL::GLTexture>(textureUUID);
 				if (texture) {
+					texture->MakeResident(); // CRITICAL: Make texture resident for bindless access
 					img.bindlessHandle = texture->GetBindlessHandle();
 				}
 			}

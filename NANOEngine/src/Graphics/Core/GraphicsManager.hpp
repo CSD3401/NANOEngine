@@ -118,7 +118,6 @@ namespace NE::Graphics {
         static void DrawAllDebugGeometry();
 
         // UI
-        static void DrawUI();
         static void SetSelectedEntities(const std::vector<uint32_t>& selectedIds);
         static void ClearSelectedEntities();
 
@@ -187,6 +186,9 @@ namespace NE::Graphics {
             const Math::Mat4& camProj,
             const Math::Mat4& camView,
             const std::vector<DrawCommand>& commands);
+
+        // UI Rendering
+        static void RenderUIOverlay();
 
     };
 }

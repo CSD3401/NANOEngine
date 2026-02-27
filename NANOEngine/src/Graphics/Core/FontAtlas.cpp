@@ -72,16 +72,18 @@ namespace NE::Graphics {
         m_descent = descent * scale;
         m_lineHeight = (ascent - descent + lineGap) * scale;
 
-        // Determine atlas size (start with a reasonable size and expand if needed)
-        m_atlasWidth = 512;
-        m_atlasHeight = 512;
+        // Determine atlas size (use larger size for SDF quality: 1024x1024)
+        // All buckets merged into one 64pt atlas, scaled at render time
+        m_atlasWidth = 1024;
+        m_atlasHeight = 1024;
 
-        // Allocate atlas bitmap
+        // Allocate atlas bitmap for SDF (GL_R8)
         std::vector<unsigned char> atlasBitmap(m_atlasWidth * m_atlasHeight, 0);
 
         // Pack glyphs into atlas
-        int packX = 1; // Start with 1 pixel padding
-        int packY = 1;
+        int padding = 4;  // SDF requires padding for falloff (was 1 for bitmap)
+        int packX = padding;
+        int packY = padding;
         int maxRowHeight = 0;
 
         for (int c = FIRST_CHAR; c <= LAST_CHAR; ++c) {
@@ -91,39 +93,62 @@ namespace NE::Graphics {
             int advanceWidth, leftSideBearing;
             stbtt_GetGlyphHMetrics(&fontInfo, glyphIndex, &advanceWidth, &leftSideBearing);
 
-            int x0, y0, x1, y1;
+            // For SDF: use SDF-specific sizing instead of bitmap box
+            int x0 = 0, y0 = 0, x1 = 0, y1 = 0;
             stbtt_GetGlyphBitmapBox(&fontInfo, glyphIndex, scale, scale, &x0, &y0, &x1, &y1);
+            int glyphWidth = std::max(0, x1 - x0);
+            int glyphHeight = std::max(0, y1 - y0);
 
-            int glyphWidth = x1 - x0;
-            int glyphHeight = y1 - y0;
+            // Add padding for SDF falloff
+            int sdfWidth = glyphWidth + padding * 2;
+            int sdfHeight = glyphHeight + padding * 2;
+
+            // Declare offset variables for SDF (used after glyph rendering)
+            int xOffset = 0, yOffset = 0;
 
             // Check if glyph fits in current row
-            if (packX + glyphWidth + 1 > m_atlasWidth) {
+            if (packX + sdfWidth + padding > m_atlasWidth) {
                 // Move to next row
-                packX = 1;
-                packY += maxRowHeight + 1;
+                packX = padding;
+                packY += maxRowHeight + padding;
                 maxRowHeight = 0;
             }
 
             // Check if atlas needs to be resized
-            if (packY + glyphHeight + 1 > m_atlasHeight) {
+            if (packY + sdfHeight + padding > m_atlasHeight) {
                 // Double atlas height and reallocate
                 m_atlasHeight *= 2;
                 atlasBitmap.resize(m_atlasWidth * m_atlasHeight, 0);
             }
 
-            // Render glyph to atlas
+            // Render glyph to atlas using SDF
             if (glyphWidth > 0 && glyphHeight > 0) {
-                stbtt_MakeGlyphBitmap(
+                unsigned char* sdfBitmap = stbtt_GetCodepointSDF(
                     &fontInfo,
-                    atlasBitmap.data() + packY * m_atlasWidth + packX,
-                    glyphWidth,
-                    glyphHeight,
-                    m_atlasWidth,
                     scale,
-                    scale,
-                    glyphIndex
+                    c,
+                    padding,
+                    180,      // onEdgeValue: SDF value at glyph edge (0-255)
+                    32.0f,    // pixelDistScale: falloff rate
+                    &sdfWidth,
+                    &sdfHeight,
+                    &xOffset,
+                    &yOffset
                 );
+
+                if (sdfBitmap) {
+                    // Copy SDF bitmap into atlas
+                    for (int y = 0; y < sdfHeight; ++y) {
+                        for (int x = 0; x < sdfWidth; ++x) {
+                            int atlasIdx = (packY + y) * m_atlasWidth + (packX + x);
+                            int sdfIdx = y * sdfWidth + x;
+                            if (atlasIdx < (int)atlasBitmap.size()) {
+                                atlasBitmap[atlasIdx] = sdfBitmap[sdfIdx];
+                            }
+                        }
+                    }
+                    stbtt_FreeSDF(sdfBitmap, nullptr);
+                }
             }
 
             // Store glyph info
@@ -131,17 +156,23 @@ namespace NE::Graphics {
             info.px = packX;
             info.py = packY;
 
-            info.width = static_cast<float>(glyphWidth);
-            info.height = static_cast<float>(glyphHeight);
-            info.xOffset = static_cast<float>(x0);
-            info.yOffset = static_cast<float>(y0);
+            // Use SDF dimensions (includes padding on all sides) so UVs cover the full
+            // SDF falloff region, not just the bitmap-box body. Without this the shader
+            // samples only the hard glyph body and never sees the smooth distance gradient
+            // in the border, which produces aliased edges instead of smooth SDF rendering.
+            info.width = static_cast<float>(sdfWidth);
+            info.height = static_cast<float>(sdfHeight);
+            // Use the bearing offsets returned by stbtt_GetCodepointSDF so that glyph
+            // placement accounts for the SDF padding offset, not the bitmap-box origin.
+            info.xOffset = static_cast<float>(xOffset);
+            info.yOffset = static_cast<float>(yOffset);
             info.xAdvance = advanceWidth * scale;
 
             m_glyphs[static_cast<char>(c)] = info;
 
             // Advance pack position
-            packX += glyphWidth + 1;
-            maxRowHeight = std::max(maxRowHeight, glyphHeight);
+            packX += sdfWidth + padding;
+            maxRowHeight = std::max(maxRowHeight, sdfHeight);
         }
 
         for (auto& [ch, g] : m_glyphs) {
@@ -196,7 +227,7 @@ namespace NE::Graphics {
         }
 
         if (m_textureID != 0) {
-            glDeleteTextures(1, &m_textureID);
+             glDeleteTextures(1, &m_textureID);
             m_textureID = 0;
         }
 
@@ -216,7 +247,9 @@ namespace NE::Graphics {
     float FontAtlas::QuantizeToFontBucket(float fontSize) {
         // Font size buckets for memory optimization
         // Requested sizes snap to nearest bucket, then scale at render time
-        static const float buckets[] = { 16.0f, 32.0f, 64.0f, 128.0f, 256.0f };
+        // Three buckets: 32pt (body text 8-32pt), 64pt (mid 32-96pt), 128pt (headers/large)
+        // Consolidating from 5 buckets reduces memory: 5 fonts × 3 buckets = 9MB vs 15MB
+        static const float buckets[] = { 32.0f, 64.0f, 128.0f };
         static const int bucketCount = sizeof(buckets) / sizeof(float);
 
         // Clamp to valid range

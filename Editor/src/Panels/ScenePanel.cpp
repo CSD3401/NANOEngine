@@ -18,7 +18,6 @@
 #include <ECS/Components/UICanvas.hpp>
 #include "../Command/EditorSetTransformCommand.hpp"
 #include "../Command/CommandHistory.hpp"
-#include "Graphics/Core/UIRenderer.hpp"
 #include "../UIGizmoHandler.hpp"
 #include <limits>
 #include <algorithm>
@@ -66,7 +65,7 @@ namespace Editor {
 			float worldY = rect.y;
 
 			// Walk up parent chain
-			uint32_t currentParent = rect.parent;
+			uint32_t currentParent = NE::ECS::Query::HasHierarchy(entity) ? NE::ECS::Query::GetEntityHierarchy(entity).parent : NE::ECS::NO_ENTITY;
 			while (currentParent != std::numeric_limits<uint32_t>::max()) {
 				if (!NE::ECS::Query::HasUIRectTransform(currentParent)) {
 					break;
@@ -76,7 +75,7 @@ namespace Editor {
 				worldX += parentRect.x;
 				worldY += parentRect.y;
 
-				currentParent = parentRect.parent;
+				currentParent = NE::ECS::Query::HasHierarchy(currentParent) ? NE::ECS::Query::GetEntityHierarchy(currentParent).parent : NE::ECS::NO_ENTITY;
 			}
 
 			return ImVec2(worldX, worldY);
@@ -792,7 +791,7 @@ namespace Editor {
 						}
 						if (NE::ECS::Query::HasUIRectTransform(current)) {
 							auto& rect = NE::ECS::Query::GetUIRectTransform(current);
-							current = rect.parent;
+							current = NE::ECS::Query::HasHierarchy(current) ? NE::ECS::Query::GetEntityHierarchy(current).parent : NE::ECS::NO_ENTITY;
 						} else {
 							break;
 						}

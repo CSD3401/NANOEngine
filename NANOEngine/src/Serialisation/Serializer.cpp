@@ -30,6 +30,13 @@
 #include "ECS/Components/CharacterController.hpp"
 #include "ECS/Components/Animator.hpp"
 #include "ECS/Components/DecalProjector.hpp"
+#include "ECS/Components/UILayoutGroup.hpp"
+#include "ECS/Components/UIGridLayoutGroup.hpp"
+#include "ECS/Components/UILayoutElement.hpp"
+#include "ECS/Components/UIScrollRect.hpp"
+#include "ECS/Components/UIAutoSize.hpp"
+#include "ECS/Components/UIInputField.hpp"
+#include "ECS/Components/UIDropdown.hpp"
 
 namespace NE {
 	namespace {
@@ -51,6 +58,14 @@ namespace NE {
 			ECS::Component::UIText,
 			ECS::Component::UIButton,
 			ECS::Component::UISlider,
+			ECS::Component::UIToggle,
+			ECS::Component::UILayoutGroup,
+			ECS::Component::UIGridLayoutGroup,
+			ECS::Component::UILayoutElement,
+			ECS::Component::UIScrollRect,
+			ECS::Component::UIAutoSize,
+			ECS::Component::UIInputField,
+			ECS::Component::UIDropdown,
 			ECS::Component::CharacterController,
 			ECS::Component::Animator,
             ECS::Component::DecalProjector

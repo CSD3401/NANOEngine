@@ -1,6 +1,6 @@
 #pragma once
-#include "../../../src/Math/Vec2.hpp"
-#include "../../../src/Math/Vec3.hpp"
+#include "Math/Vec2.hpp"
+#include "Math/Vec3.hpp"
 
 namespace NE::Graphics {
     using namespace NE::Math;

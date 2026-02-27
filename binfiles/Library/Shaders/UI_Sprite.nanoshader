@@ -1,23 +1,26 @@
 #type vertex
 #version 460 core
 
-layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec2 aUV;
-layout(location = 2) in vec4 aColor;
-layout (location = 3) in uint texHandleLo;
-layout (location = 4) in uint texHandleHi;
-
-uniform mat4 uModel;
-uniform mat4 uView;
-uniform mat4 uProj;
+// Per-vertex attributes (matches UIVertex2 layout)
+layout(location = 0) in vec3 aPos;      // Position (Vec3)
+layout(location = 1) in vec2 aTexCoord; // TexCoord (Vec2)
+layout(location = 2) in vec4 aColor;    // Color (Vec4)
+layout(location = 3) in uint texHandleLo; // Bindless texture handle low 32 bits
+layout(location = 4) in uint texHandleHi; // Bindless texture handle high 32 bits
 
 out vec2 vUV;
 out vec4 vColor;
 flat out uvec2 vTexHandle;
 
+uniform vec2 uScreenSize;
+
 void main() {
-    gl_Position = uProj * uView * uModel * vec4(aPos, 1.0);
-    vUV = aUV;
+    // Convert pixel coordinates to NDC (-1 to 1)
+    float ndcX = (aPos.x / uScreenSize.x) * 2.0 - 1.0;
+    float ndcY = 1.0 - (aPos.y / uScreenSize.y) * 2.0;
+
+    gl_Position = vec4(ndcX, ndcY, aPos.z, 1.0);
+    vUV = aTexCoord;
     vColor = aColor;
     vTexHandle = uvec2(texHandleLo, texHandleHi);
 }

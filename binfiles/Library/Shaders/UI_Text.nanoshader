@@ -1,0 +1,48 @@
+#type vertex
+#version 460 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec2 aTexCoord;
+layout(location = 2) in vec4 aColor;
+layout(location = 3) in uint texHandleLo;
+layout(location = 4) in uint texHandleHi;
+
+out vec2 TexCoord;
+out vec4 Color;
+flat out uvec2 vTexHandle;
+
+uniform vec2 uScreenSize;
+
+void main() {
+    vec2 ndc = (aPos.xy / uScreenSize) * 2.0 - 1.0;
+    ndc.y = -ndc.y;
+    gl_Position = vec4(ndc, 0.0, 1.0);
+    TexCoord = aTexCoord;
+    Color = aColor;
+    vTexHandle = uvec2(texHandleLo, texHandleHi);
+}
+
+#type fragment
+#version 460 core
+#extension GL_ARB_bindless_texture : require
+#extension GL_NV_gpu_shader5 : enable
+#extension GL_ARB_gpu_shader_int64 : enable
+
+in vec2 TexCoord;
+in vec4 Color;
+flat in uvec2 vTexHandle;
+out vec4 FragColor;
+
+uniform float uFontSmoothing = 0.07;  // Dynamic smoothing parameter
+
+void main() {
+    uint64_t handle = uint64_t(vTexHandle.y) << 32 | uint64_t(vTexHandle.x);
+    sampler2D fontAtlas = sampler2D(handle);
+
+    // SDF rendering: read distance field and use smoothstep for edge recovery
+    float dist = texture(fontAtlas, TexCoord).r;
+    float edgeCenter = 180.0 / 255.0;  // SDF edge is at 180/255
+    float alpha = smoothstep(edgeCenter - uFontSmoothing, edgeCenter + uFontSmoothing, dist);
+
+    FragColor = vec4(Color.rgb, alpha * Color.a);
+}

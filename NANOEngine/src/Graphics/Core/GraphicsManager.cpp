@@ -33,7 +33,7 @@
 #include "../OpenGL/GLTexture.hpp"
 #include "../OpenGL/GLStateCache.hpp"
 #include "../Core/Primitives.hpp"
-#include "UIRenderer.hpp"
+#include <glad/glad.h>
 #include "glfw/glfw3.h"
 #include "Core/SpdLogger.hpp"
 #include "InstanceData.hpp"
@@ -49,7 +49,6 @@
 #include "ResourceManagement/ResourceManager.hpp"
 #include "ECS/Core/Entity.hpp"
 
-#include <glad/glad.h>
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -825,11 +824,8 @@ namespace NE::Graphics {
         //skinned->LoadFromFile("Library/Shaders/Skinned.nanoshader");
         //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(skinned, "Skinned");
 
-        // initialize UI renderer
         s_ScreenWidth = static_cast<uint32_t>(1920);
         s_ScreenHeight = static_cast<uint32_t>(1080);
-
-        UIRenderer::Init(s_ScreenWidth, s_ScreenHeight, s_RenderViewManager.get());
 
         s_PostPipeline = std::make_unique<PostProcessPipeline>();
         s_PostPipeline->Init(s_RenderViewManager.get(), s_ScreenWidth, s_ScreenHeight);
@@ -1042,8 +1038,14 @@ namespace NE::Graphics {
                 };
 
             for (const auto& command : commands) {
-                if (!frustum.IntersectsSphere(command.boundsCenterWS, command.boundsRadiusWs))
+                // Skip OVERLAY commands during view rendering - they'll be rendered separately after post-processing
+                if (command.material && command.material->GetQueueBase() == RenderQueue::OVERLAY) {
                     continue;
+                }
+
+                if (!frustum.IntersectsSphere(command.boundsCenterWS, command.boundsRadiusWs)) {
+                    continue;
+                }
 
                 auto mesh = command.mesh;
                 auto material = command.material;
@@ -1153,6 +1155,9 @@ namespace NE::Graphics {
                 s_PostPipeline->Execute(s_GameViewHandle, s_FinalGameOutputHandle, gameInvProj, gameView, gameProj, false);
             }
         }
+
+        // Render UI (OVERLAY queue) after post-processing to final output framebuffers (Not sure if should be below or above post-processing? For now, render after so that UI is always crisp and unaffected by TAA)
+        RenderUIOverlay();
         ++s_TAAFrameIndex;
     }
 
@@ -1328,6 +1333,136 @@ namespace NE::Graphics {
 		s_RenderViewManager->Unbind();
     }
 
+    void GraphicsManager::RenderUIOverlay() {
+        const auto& commands = s_DrawQueue->GetCommands();
+
+        // Filter for OVERLAY commands
+        std::vector<const DrawCommand*> uiCommands;
+        for (const auto& cmd : commands) {
+            if (cmd.material && cmd.material->GetQueueBase() == RenderQueue::OVERLAY) {
+                uiCommands.push_back(&cmd);
+            }
+        }
+
+        if (uiCommands.empty()) {
+            return;
+        }
+
+        // Render UI to both final output views (editor scene view and game view)
+        std::vector<RenderViewHandle> outputViews = { s_FinalOutputViewHandle, s_FinalGameOutputHandle };
+
+        for (RenderViewHandle viewHandle : outputViews) {
+            // Get the view to check if it exists and is active
+            auto& views = s_RenderViewManager->GetAllRenderViews();
+            auto it = views.find(viewHandle);
+            if (it == views.end() || !it->second.framebuffer) {
+                continue;
+            }
+
+            // Bind the final output framebuffer
+            s_RenderViewManager->Bind(viewHandle);
+
+            // Start with depth disabled (screen-space UI default)
+            glDisable(GL_DEPTH_TEST);
+            glDepthMask(GL_FALSE);
+
+            // Prepare batching
+            std::vector<InstanceData> instanceData;
+            instanceData.reserve(32);
+            std::shared_ptr<IGeometryBuffer> currentMesh;
+            std::shared_ptr<Material> currentMaterial;
+            std::optional<ScissorRect> currentScissor;
+            bool currentDepthTest = false;
+
+            auto flushBatch = [&]() {
+                if (instanceData.empty() || !currentMesh || !currentMaterial || !currentMaterial->GetPipeline()->GetSpecification().shader)
+                    return;
+
+                // Apply scissor state before drawing this batch
+                if (currentScissor.has_value()) {
+                    glEnable(GL_SCISSOR_TEST);
+                    glScissor(currentScissor->x, currentScissor->y,
+                              currentScissor->width, currentScissor->height);
+                } else {
+                    glDisable(GL_SCISSOR_TEST);
+                }
+
+                // Apply depth test state for this batch
+                if (currentDepthTest) {
+                    glEnable(GL_DEPTH_TEST);
+                    glDepthFunc(GL_LEQUAL);
+                    glDepthMask(GL_FALSE);  // Read depth but don't write (UI doesn't occlude 3D)
+                } else {
+                    glDisable(GL_DEPTH_TEST);
+                    glDepthMask(GL_FALSE);
+                }
+
+                NE::Graphics::OpenGL::GLGeometryBuffer::UpdateInstanceBuffer(
+                    instanceData.data(),
+                    instanceData.size() * sizeof(InstanceData)
+                );
+
+                // Bind pipeline & GL state
+                auto pipeline = currentMaterial->GetPipeline();
+                s_StateCache->Bind(pipeline);
+                currentMaterial->Bind();
+                currentMesh->Bind();
+
+                // Draw mesh with instancing
+                currentMesh->DrawInstanced(instanceData.size());
+                currentMesh->Unbind();
+
+                instanceData.clear();
+            };
+
+            // Batch and render all UI commands
+            for (const DrawCommand* cmdPtr : uiCommands) {
+                const DrawCommand& command = *cmdPtr;
+
+                auto mesh = command.mesh;
+                auto material = command.material;
+
+                // Check compatibility with current batch (includes scissor rect and depth test)
+                bool compatible =
+                    (mesh == currentMesh) &&
+                    (material == currentMaterial) &&
+                    (command.scissorRect == currentScissor) &&
+                    (command.enableDepthTest == currentDepthTest);
+
+                // Flush current batch if not compatible
+                if (!compatible && !instanceData.empty()) {
+                    flushBatch();
+                }
+
+                // Prepare to create new batch if not compatible
+                if (!compatible) {
+                    currentMesh = mesh;
+                    currentMaterial = material;
+                    currentScissor = command.scissorRect;
+                    currentDepthTest = command.enableDepthTest;
+                }
+
+                NE::Graphics::InstanceData instance{};
+                instance.model = command.transform;
+                instance.idRGB = command.idRGB;
+
+                instanceData.push_back(instance);
+            }
+
+            if (!instanceData.empty()) {
+                flushBatch();
+            }
+
+            // Restore GL state
+            glDisable(GL_SCISSOR_TEST);
+            glEnable(GL_DEPTH_TEST);
+            glDepthMask(GL_TRUE);
+
+            // Unbind view after rendering UI
+            s_RenderViewManager->Unbind();
+        }
+    }
+
     void GraphicsManager::Clear() {
         s_DrawQueue->Clear();
         s_DecalQueue.clear();
@@ -1368,7 +1503,6 @@ namespace NE::Graphics {
         s_CommandBuffer.reset();
         DebugDrawSystem::Shutdown();
 
-        UIRenderer::Shutdown();
         NE::Graphics::GizmosRenderer::Cleanup();
         NE::Graphics::OpenGL::GLGeometryBuffer::ShutdownInstanceBuffer();
 
@@ -1644,16 +1778,4 @@ namespace NE::Graphics {
         DebugDrawSystem::DrawAll();
     }
 
-    void GraphicsManager::DrawUI() {
-        UIRenderer::BeginFrame();
-        UIRenderer::DrawUIFrame();
-        //UIRenderer::DrawTestQuad();
-        UIRenderer::EndFrame();
-        UIRenderer::Draw3DUIFrame(s_FinalOutputViewHandle);
-        
-        UIRenderer::Composite(s_FinalOutputViewHandle);
-        UIRenderer::Draw3DUIFrame(s_FinalGameOutputHandle);
-        UIRenderer::Composite(s_FinalGameOutputHandle);
-        UIRenderer::ClearCommands();
-    }
 }

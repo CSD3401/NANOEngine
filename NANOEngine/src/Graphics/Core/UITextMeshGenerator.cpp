@@ -14,7 +14,8 @@ namespace NE::Graphics {
         NE::ECS::Component::UIText::Alignment horizontalAlign,
         NE::ECS::Component::UIText::VerticalAlignment verticalAlign,
         bool wordWrap,
-        float desiredFontSize
+        float desiredFontSize,
+        uint64_t bindlessHandle
     )
     {
         TextMeshResult result;
@@ -81,7 +82,7 @@ namespace NE::Graphics {
                     break;
             }
 
-            GenerateLineVertices(result.vertices, line.text, fontAtlas, startX, currentY, z, color, scaleFactor);
+            GenerateLineVertices(result.vertices, line.text, fontAtlas, startX, currentY, z, color, scaleFactor, bindlessHandle);
             currentY += lineHeight;
         }
 
@@ -203,12 +204,13 @@ namespace NE::Graphics {
     }
 
     void UITextMeshGenerator::GenerateLineVertices(
-        std::vector<UIVertex>& vertices,
+        std::vector<UIVertex2>& vertices,
         const std::string& line,
         const FontAtlas& fontAtlas,
         float startX, float startY, float z,
         const Math::Vec4& color,
-        float scaleFactor
+        float scaleFactor,
+        uint64_t bindlessHandle
     )
     {
         float cursorX = startX;
@@ -230,36 +232,107 @@ namespace NE::Graphics {
 
             // Create two triangles (6 vertices) for the glyph quad
             // Triangle 1: top-left, bottom-left, bottom-right
-            vertices.push_back(CreateVertex(x0, y0, z, glyph->u0, glyph->v0, color)); // top-left
-            vertices.push_back(CreateVertex(x0, y1, z, glyph->u0, glyph->v1, color)); // bottom-left
-            vertices.push_back(CreateVertex(x1, y1, z, glyph->u1, glyph->v1, color)); // bottom-right
+            vertices.push_back(CreateVertex(x0, y0, z, glyph->u0, glyph->v0, color, bindlessHandle)); // top-left
+            vertices.push_back(CreateVertex(x0, y1, z, glyph->u0, glyph->v1, color, bindlessHandle)); // bottom-left
+            vertices.push_back(CreateVertex(x1, y1, z, glyph->u1, glyph->v1, color, bindlessHandle)); // bottom-right
 
             // Triangle 2: top-left, bottom-right, top-right
-            vertices.push_back(CreateVertex(x0, y0, z, glyph->u0, glyph->v0, color)); // top-left
-            vertices.push_back(CreateVertex(x1, y1, z, glyph->u1, glyph->v1, color)); // bottom-right
-            vertices.push_back(CreateVertex(x1, y0, z, glyph->u1, glyph->v0, color)); // top-right
+            vertices.push_back(CreateVertex(x0, y0, z, glyph->u0, glyph->v0, color, bindlessHandle)); // top-left
+            vertices.push_back(CreateVertex(x1, y1, z, glyph->u1, glyph->v1, color, bindlessHandle)); // bottom-right
+            vertices.push_back(CreateVertex(x1, y0, z, glyph->u1, glyph->v0, color, bindlessHandle)); // top-right
 
             cursorX += glyph->xAdvance * scaleFactor;
         }
     }
 
-    UIVertex UITextMeshGenerator::CreateVertex(
+    UIVertex2 UITextMeshGenerator::CreateVertex(
         float x, float y, float z,
         float u, float v,
-        const Math::Vec4& color
-    ) 
+        const Math::Vec4& color,
+        uint64_t bindlessHandle
+    )
     {
-        UIVertex vertex;
-        vertex.x = x;
-        vertex.y = y;
-        vertex.z = z;
-        vertex.u = u;
-        vertex.v = v;
-        vertex.r = color.x;
-        vertex.g = color.y;
-        vertex.b = color.z;
-        vertex.a = color.w;
+        uint32_t handleLo = static_cast<uint32_t>(bindlessHandle & 0xFFFFFFFF);
+        uint32_t handleHi = static_cast<uint32_t>(bindlessHandle >> 32);
+        UIVertex2 vertex;
+        vertex.Position = Math::Vec3(x, y, z);
+        vertex.TexCoord = Math::Vec2(u, v);
+        vertex.Color = color;
+        vertex.texHandleLo = handleLo;
+        vertex.texHandleHi = handleHi;
         return vertex;
+    }
+
+    float UITextMeshGenerator::CalculateFitFontSize(
+        const std::string& text,
+        const FontAtlas& fontAtlas,
+        float maxWidth,
+        float maxHeight,
+        float baseFontSize,
+        float minFontSize,
+        float maxFontSize,
+        bool wordWrap
+    )
+    {
+        if (text.empty() || maxWidth <= 0.0f || maxHeight <= 0.0f) {
+            return baseFontSize;
+        }
+
+        // Start with base font size clamped to range
+        float currentFontSize = std::clamp(baseFontSize, minFontSize, maxFontSize);
+
+        // Calculate scale factor relative to atlas font size
+        float atlasSize = fontAtlas.GetFontSize();
+        if (atlasSize <= 0.0f) {
+            return currentFontSize;
+        }
+
+        // Binary search for optimal font size
+        float low = minFontSize;
+        float high = maxFontSize;
+        float bestFit = currentFontSize;
+        const int maxIterations = 10; // Limit iterations for performance
+        const float tolerance = 0.5f; // Good enough if within 0.5 pixels
+
+        for (int i = 0; i < maxIterations; ++i) {
+            float testSize = (low + high) / 2.0f;
+            float scaleFactor = testSize / atlasSize;
+
+            // Calculate text dimensions at this size
+            std::vector<LineInfo> lines = CalculateLines(text, fontAtlas, maxWidth / scaleFactor, wordWrap);
+
+            if (lines.empty()) {
+                high = testSize;
+                continue;
+            }
+
+            // Calculate total text dimensions
+            float textHeight = lines.size() * fontAtlas.GetLineHeight() * scaleFactor;
+            float textWidth = 0.0f;
+            for (const auto& line : lines) {
+                textWidth = std::max(textWidth, line.width * scaleFactor);
+            }
+
+            // Check if text fits
+            bool fitsWidth = textWidth <= maxWidth + tolerance;
+            bool fitsHeight = textHeight <= maxHeight + tolerance;
+
+            if (fitsWidth && fitsHeight) {
+                // Text fits! Try larger
+                bestFit = testSize;
+                low = testSize;
+
+                // If we're very close to max size, stop
+                if (high - low < tolerance) {
+                    break;
+                }
+            } else {
+                // Text doesn't fit, try smaller
+                high = testSize;
+            }
+        }
+
+        return bestFit;
     }
 
 } // namespace NE::Graphics

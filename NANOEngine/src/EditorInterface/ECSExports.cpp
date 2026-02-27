@@ -20,6 +20,13 @@
 #include "../ECS/Components/PrefabInstance.hpp"
 #include "../ECS/Components/CharacterController.hpp"
 #include "../ECS/Components/DecalProjector.hpp"
+#include "../ECS/Components/UILayoutGroup.hpp"
+#include "../ECS/Components/UIGridLayoutGroup.hpp"
+#include "../ECS/Components/UILayoutElement.hpp"
+#include "../ECS/Components/UIScrollRect.hpp"
+#include "../ECS/Components/UIAutoSize.hpp"
+#include "../ECS/Components/UIInputField.hpp"
+#include "../ECS/Components/UIDropdown.hpp"
 #include "../ECS/Components/Camera.hpp"
 #include "../ECS/Systems/ScriptSystem.hpp"
 #include "../ECS/Systems/UIRenderSystem.hpp"
@@ -104,6 +111,34 @@ namespace NE::ECS {
 
 		const Component::UIToggle& GetUIToggle(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIToggle>(e);
+		}
+
+		const Component::UILayoutGroup& GetUILayoutGroup(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UILayoutGroup>(e);
+		}
+
+		const Component::UIGridLayoutGroup& GetUIGridLayoutGroup(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIGridLayoutGroup>(e);
+		}
+
+		const Component::UILayoutElement& GetUILayoutElement(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UILayoutElement>(e);
+		}
+
+		const Component::UIScrollRect& GetUIScrollRect(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIScrollRect>(e);
+		}
+
+		const Component::UIAutoSize& GetUIAutoSize(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIAutoSize>(e);
+		}
+
+		const Component::UIInputField& GetUIInputField(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIInputField>(e);
+		}
+
+		const Component::UIDropdown& GetUIDropdown(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIDropdown>(e);
 		}
 
 		bool HasEntityMeta(uint32_t e) {
@@ -193,6 +228,34 @@ namespace NE::ECS {
         bool HasDecalProjector(uint32_t e) {
             return GetScene().GetECSCoordinator().HasComponent<ECS::Component::DecalProjector>(e);
         }
+
+		bool HasUILayoutGroup(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UILayoutGroup>(e);
+		}
+
+		bool HasUIGridLayoutGroup(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIGridLayoutGroup>(e);
+		}
+
+		bool HasUILayoutElement(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UILayoutElement>(e);
+		}
+
+		bool HasUIScrollRect(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIScrollRect>(e);
+		}
+
+		bool HasUIAutoSize(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIAutoSize>(e);
+		}
+
+		bool HasUIInputField(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIInputField>(e);
+		}
+
+		bool HasUIDropdown(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIDropdown>(e);
+		}
 
 		const Component::Animator& GetEntityAnimator(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Animator>(e);
@@ -302,16 +365,39 @@ namespace NE::ECS {
             return GetScene().GetECSCoordinator().GetComponentType<Component::DecalProjector>();
         }
 
+		ComponentType GetUILayoutGroupComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UILayoutGroup>();
+		}
+
+		ComponentType GetUIGridLayoutGroupComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UIGridLayoutGroup>();
+		}
+
+		ComponentType GetUILayoutElementComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UILayoutElement>();
+		}
+
+		ComponentType GetUIScrollRectComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UIScrollRect>();
+		}
+
+		ComponentType GetUIAutoSizeComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UIAutoSize>();
+		}
+
+		ComponentType GetUIInputFieldComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UIInputField>();
+		}
+
+		ComponentType GetUIDropdownComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UIDropdown>();
+		}
+
 		uint32_t GetParent(uint32_t child) {
 			auto& ecs = NE::GetScene().GetECSCoordinator();
 
-			// Check for regular Transform first
+			// All entities use Hierarchy component for parent-child relationships
 			return ecs.GetComponent<NE::ECS::Component::Hierarchy>(child).parent;
-
-			// Check for UI RectTransform
-			if (ecs.HasComponent<NE::ECS::Component::UIRectTransform>(child)) {
-				return ecs.GetComponent<NE::ECS::Component::UIRectTransform>(child).parent;
-			}
 		}
 
 		const Core::LayerID GetLayer(Entity e) {
@@ -687,7 +773,9 @@ namespace NE::ECS {
 				Component::EntityMeta{ .name = "Canvas", .luid = Core::LUIDGenerator::Generate("cv") });
 
 			// Add Hierarchy component (required for parent-child relationships with UI children)
-			GetScene().GetECSCoordinator().AddComponent(newEntity, Component::Hierarchy{});
+			Component::Hierarchy hierarchy;
+			hierarchy.luid = Core::LUIDGenerator::Generate("cv");
+			GetScene().GetECSCoordinator().AddComponent(newEntity, hierarchy);
 
 			// set up canvas component
 			Component::UICanvas canvas;
@@ -696,14 +784,11 @@ namespace NE::ECS {
 
 			// setup RectTransform for canvas (fullscreen by default)
 			Component::UIRectTransform rectTransform;
-			rectTransform.luid = Core::LUIDGenerator::Generate("rt");
 			rectTransform.width = 1920.0f; // temp
 			rectTransform.height = 1080.0f;
 			rectTransform.x = 0.0f;
 			rectTransform.y = 0.0f;
 			rectTransform.z = 0.0f;
-			rectTransform.parent = NE::ECS::Component::INVALID_PARENT;
-			rectTransform.parentLuid = 0;  // No parent LUID for root canvas
 			GetScene().GetECSCoordinator().AddComponent(newEntity, rectTransform);
 
 			return newEntity;
@@ -717,24 +802,28 @@ namespace NE::ECS {
 				newEntity,
 				Component::EntityMeta{ .name = "Image", .luid = Core::LUIDGenerator::Generate("im") });
 
+			// Add Hierarchy component (required for parent-child relationships)
+			Component::Hierarchy hierarchy;
+			hierarchy.luid = Core::LUIDGenerator::Generate("im");
+			ecs.AddComponent(newEntity, hierarchy);
+
 			// setup RectTransform with parent linkage
 			Component::UIRectTransform rect;
-			rect.luid = Core::LUIDGenerator::Generate("rt");
 			rect.x = 0.0f;
 			rect.y = 0.0f;
 			rect.z = 0.0f;
 			rect.width = 100.0f;
 			rect.height = 100.0f;
-			rect.parent = parentCanvas;  // Link to parent canvas (runtime)
-
-			// set parent luid for serialization
-			if (parentCanvas != NE::ECS::NO_ENTITY && ecs.HasComponent<Component::UIRectTransform>(parentCanvas)) {
-				rect.parentLuid = ecs.GetComponent<Component::UIRectTransform>(parentCanvas).luid;
-			} else {
-				rect.parentLuid = 0;
-			}
 
 			ecs.AddComponent(newEntity, rect);
+
+			// Set parent via HierarchySystem (proper way)
+			if (parentCanvas != NE::ECS::NO_ENTITY) {
+				auto hierarchySystem = ecs.m_hierarchySystem;
+				if (hierarchySystem) {
+					hierarchySystem->SetParent(newEntity, parentCanvas);
+				}
+			}
 
 			// setup UIImage with default white color
 			Component::UIImage img;
@@ -877,6 +966,34 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent<Component::UIToggle>(e, c);
 		}
 
+		void AddUILayoutGroupComponent(uint32_t e, const Component::UILayoutGroup& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UILayoutGroup>(e, c);
+		}
+
+		void AddUIGridLayoutGroupComponent(uint32_t e, const Component::UIGridLayoutGroup& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UIGridLayoutGroup>(e, c);
+		}
+
+		void AddUILayoutElementComponent(uint32_t e, const Component::UILayoutElement& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UILayoutElement>(e, c);
+		}
+
+		void AddUIScrollRectComponent(uint32_t e, const Component::UIScrollRect& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UIScrollRect>(e, c);
+		}
+
+		void AddUIAutoSizeComponent(uint32_t e, const Component::UIAutoSize& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UIAutoSize>(e, c);
+		}
+
+		void AddUIInputFieldComponent(uint32_t e, const Component::UIInputField& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UIInputField>(e, c);
+		}
+
+		void AddUIDropdownComponent(uint32_t e, const Component::UIDropdown& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UIDropdown>(e, c);
+		}
+
 		void AddPrefabLinkComponent(uint32_t e, const Component::PrefabLink& c) {
 			GetScene().GetECSCoordinator().AddComponent<Component::PrefabLink>(e, c);
 		}
@@ -1008,6 +1125,34 @@ namespace NE::ECS {
         Component::DecalProjector& GetDecalProjector(uint32_t e) {
             return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::DecalProjector>(e);
         }
+
+		Component::UILayoutGroup& GetUILayoutGroup(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UILayoutGroup>(e);
+		}
+
+		Component::UIGridLayoutGroup& GetUIGridLayoutGroup(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIGridLayoutGroup>(e);
+		}
+
+		Component::UILayoutElement& GetUILayoutElement(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UILayoutElement>(e);
+		}
+
+		Component::UIScrollRect& GetUIScrollRect(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIScrollRect>(e);
+		}
+
+		Component::UIAutoSize& GetUIAutoSize(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIAutoSize>(e);
+		}
+
+		Component::UIInputField& GetUIInputField(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIInputField>(e);
+		}
+
+		Component::UIDropdown& GetUIDropdown(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIDropdown>(e);
+		}
 
 		//void SetParent(uint32_t child, uint32_t parent, bool worldPositionStays) {
 		//	NE::GetScene().GetECSCoordinator().m_transformSystem->SetParent(child, parent);

@@ -11,12 +11,8 @@ namespace NE::ECS::Component {
     //inline constexpr uint32_t INVALID_PARENT = UINT32_MAX;
 
     struct UIRectTransform {
-        // parent entity
-        uint32_t parent = UINT32_MAX;
-
-        // LUID for serialization
-        uint64_t luid = 0;
-        uint64_t parentLuid = 0;
+        // NOTE: Parent-child relationships managed by Hierarchy component
+        // luid stored in Hierarchy component, not here
 
         // position of pivot point
         float x = 0.0f;
@@ -56,9 +52,30 @@ namespace NE::ECS::Component {
         float pivotX = 0.5f;
         float pivotY = 0.5f;
 
-        // Reflection
+        // Mask clipping (folded from UIRectMask2D)
+        bool enableMask = false;
+        float maskPaddingLeft = 0.f;
+        float maskPaddingRight = 0.f;
+        float maskPaddingTop = 0.f;
+        float maskPaddingBottom = 0.f;
+
+        // Transform matrices (like Transform component)
+        NE::Math::Mat4 localMatrix;           // Local TRS matrix
+        NE::Math::Mat4 worldMatrix;           // World transform (accumulated from parent chain)
+        bool worldMatrixDirty = true;         // Needs recalculation
+
+        // Cached screen-space world rect (set by UIRenderSystem each frame)
+        float cachedWorldX = 0.f;
+        float cachedWorldY = 0.f;
+        float cachedWorldWidth = 0.f;
+        float cachedWorldHeight = 0.f;
+        float cachedWorldRotZ = 0.f;
+        float cachedWorldScaleX = 1.f;
+        float cachedWorldScaleY = 1.f;
+        bool  worldRectCached = false;   // true once UIRenderSystem has written values this frame
+
+        // Reflection (luid managed by Hierarchy component)
         NE_REFLECT_BEGIN(UIRectTransform)
-            NE_REFLECT_FIELD_HIDDEN(luid),
             NE_REFLECT_FIELD(x),
             NE_REFLECT_FIELD(y),
             NE_REFLECT_FIELD(z),
@@ -80,7 +97,11 @@ namespace NE::ECS::Component {
             NE_REFLECT_FIELD(anchorMaxY),
             NE_REFLECT_FIELD(pivotX),
             NE_REFLECT_FIELD(pivotY),
-            NE_REFLECT_FIELD_HIDDEN(parentLuid)
+            NE_REFLECT_FIELD(enableMask),
+            NE_REFLECT_FIELD(maskPaddingLeft),
+            NE_REFLECT_FIELD(maskPaddingRight),
+            NE_REFLECT_FIELD(maskPaddingTop),
+            NE_REFLECT_FIELD(maskPaddingBottom)
         NE_REFLECT_END()
 
         // Helper functions

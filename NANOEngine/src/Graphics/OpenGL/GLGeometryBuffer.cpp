@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "GLGeometryBuffer.hpp"
 #include <glad/glad.h>
+#include <iostream>
+#include <string>
 #include "../Core/Vertex.hpp"
 #include "../Core/InstanceData.hpp"
 #include "../Interfaces/IVertexBuffer.hpp"
@@ -127,6 +129,7 @@ namespace NE::Graphics::OpenGL {
     void GLGeometryBuffer::DrawInstanced(size_t instanceCount) const
     {
         glBindVertexArray(m_VAO);
+
         glDrawElementsInstanced(
             GL_TRIANGLES,
             static_cast<GLsizei>(m_IndexBuffer->GetCount()),
@@ -134,6 +137,7 @@ namespace NE::Graphics::OpenGL {
             nullptr,
             static_cast<GLsizei>(instanceCount)
         );
+
         glBindVertexArray(0);
     }
 
