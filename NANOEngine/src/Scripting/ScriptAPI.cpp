@@ -2484,7 +2484,6 @@ namespace NE {
 						if (!(iss >> len >> colon) || colon != ':') return false;
 
 						// Read the exact number of characters (including spaces)
-						iss.ignore(1); // Skip the space after colon
 						std::string str(len, '\0');
 						if (len > 0) {
 							iss.read(&str[0], len);
