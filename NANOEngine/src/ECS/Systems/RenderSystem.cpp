@@ -42,13 +42,32 @@ namespace NE::ECS::Systems {
         if (!renderer.materialUUID.empty()) {
             renderer.material = Resource::ResourceManager::GetInstance().
                 LoadResource<Graphics::Material>(renderer.materialUUID);
+            if (!renderer.material) {
+				renderer.materialUUID = "Lit";
+                renderer.material = Resource::ResourceManager::GetInstance().
+                    LoadResource<Graphics::Material>("nelitmat");
+            }
         } else {
+            renderer.materialUUID = "Lit";
             renderer.material = Resource::ResourceManager::GetInstance().
                 LoadResource<Graphics::Material>("nelitmat");
         }
-        if (!renderer.modelUUID.empty())
+
+        if (!renderer.modelUUID.empty()) {
             renderer.model = Resource::ResourceManager::GetInstance().
-            LoadResource<Graphics::Model>(renderer.modelUUID);
+                LoadResource<Graphics::Model>(renderer.modelUUID);
+            if (!renderer.model) {
+                renderer.modelUUID = "Cube";
+                renderer.model = Resource::ResourceManager::GetInstance().
+                    LoadResource<Graphics::Model>("builtin:model/cube");
+				renderer.subMeshIndex = 0;
+            }
+        } else {
+            renderer.modelUUID = "Cube";
+            renderer.material = Resource::ResourceManager::GetInstance().
+                LoadResource<Graphics::Material>("builtin:model/cube");
+            renderer.subMeshIndex = 0;
+        }
 
         if (renderer.luid == 0)
             renderer.luid = Core::LUIDGenerator::Generate("rd");
