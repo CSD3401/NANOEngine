@@ -1,5 +1,6 @@
 #pragma once
 #include "pch.h"
+#include "Listener_.hpp"
 #include "EngineAPI.hpp"
 
 /**
@@ -9,42 +10,37 @@
 
  // Slap this script onto the game object you want to move after something
 
-class Listener_StretchObject : public IScript {
+class Listener_StretchObject : public Listener_ {
 public:
     Listener_StretchObject() {
-        // Register any editable fields here
-        // Example: SCRIPT_FIELD(speed, float);
-        // Example: SCRIPT_FIELD_VECTOR(blingstring, String);;
         SCRIPT_FIELD(startingPos, Vec3);
         SCRIPT_FIELD(targetPos, Vec3);
         SCRIPT_FIELD(tweenDuration, Float);
-        SCRIPT_FIELD(listenToMessage, String);
     }
 
     ~Listener_StretchObject() override = default;
 
-    // === Lifecycle Methods ===
+    // === Custom Methods ===
+    void Solve() override {
+		StretchObject();
+    };
+    void Unsolve() override {
+        // Do nothing
+    };
 
-    void Awake() override {
-        // Called when the script component is first created
-    }
+    // === Lifecycle Methods ===
+    void Awake() override {}
 
     void Initialize(Entity entity) override {
-        // Called to initialize the script with its entity
+		Listener_::Initialize(entity);
     }
 
     void Start() override {
-        // Called when the script is enabled and play mode starts
-        //SetPosition(GetTransformRef(GetEntity()), startingPos);
+        Listener_::Start();
         startingPos = GetPosition(GetTransformRef(GetEntity()));
     }
 
     void Update(double deltaTime) override {
-        // Called every frame while the script is enabled
-        //if (Input::WasKeyReleased('/') && !listenToMessage.empty())
-        //{
-        //    StretchObject();
-        //}
         if (!destinationReached)
         {
             Vec3 currentPos = GetPosition(GetTransformRef(GetEntity()));
@@ -61,33 +57,18 @@ public:
         }
     }
 
-    void OnDestroy() override {
-        // Called when the script is about to be destroyed
-    }
+    void OnDestroy() override {}
 
     // === Optional Callbacks ===
-
     void OnEnable() override {
-        // Called when the script is enabled
-        if (!listenToMessage.empty())
-        {
-            //LOG_DEBUG("HELLO! I AM LISTENING FOR STRECTH: " + listenToMessage);
-            Events::Listen(listenToMessage.c_str(), [this](void* data) {
-                this->StretchObject();
-                });
-        }
+		Listener_::OnEnable();
     }
 
-    void OnDisable() override {
-        // Called when the script is disabled
-    }
-
-    void OnValidate() override {
-        // Called when a field value is changed in the editor
-    }
+    void OnDisable() override {}
+    void OnValidate() override {}
 
     const char* GetTypeName() const override {
-        return "Example_Template";
+        return "Listener_StretchObject";
     }
 
     // === Collision Callbacks ===
@@ -99,13 +80,8 @@ public:
     void OnTriggerExit(Entity other) override { (void)other; }
     void OnTriggerStay(Entity other) override { (void)other; }
 
-    // for stretching
     void StretchObject()
     {
-        //if (isMoving)
-        //    return;
-
-        LOG_DEBUG("hsiodshfodsjoifdjsiodf stetch");
         isMoving = true;
         destinationReached = false;
 
@@ -141,13 +117,9 @@ public:
     }
 
 private:
-    // Add your private member variables here
-    // Example: float speed = 5.0f;
     Vec3 startingPos;
     Vec3 targetPos;
     bool isMoving = false;
     bool destinationReached = false;
     float tweenDuration = 1.5f;
-
-    std::string listenToMessage;
 };

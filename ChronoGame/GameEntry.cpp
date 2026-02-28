@@ -10,23 +10,45 @@
 #include "Scripts/Player_Controller.hpp"
 #include "Scripts/Player_Raycast.hpp"
 #include "Scripts/Watch_Controller.hpp"
+#include "Scripts/NoteCollector_Controller.hpp"
 #include "Scripts/Puzzle_Wire.hpp"
 #include "Scripts/Puzzle_Mirror.hpp"
 #include "Scripts/Puzzle_Lever.hpp"
 #include "Scripts/Interactable_WireButton.hpp"
+#include "Scripts/Interactable_WireTether.hpp"
 #include "Scripts/Interactable_Grabbable.hpp"
 #include "Scripts/Interactable_OneWaySwitch.hpp"
 #include "Scripts/Interactable_TwoWaySwitch.hpp"
+#include "Scripts/Interactable_NoteCollector.hpp"
+#include "Scripts/Interactable_Gate.hpp"
+#include "Scripts/Interactable_DoorHinge.hpp"
 #include "Scripts/Misc_Manager.hpp"
 #include "Scripts/Misc_WireChild.hpp"
 #include "Scripts/Misc_Grabber.hpp"
 #include "Scripts/Misc_ICOSwitcher.hpp"
 #include "Scripts/Misc_TwoStateRotater.hpp"
 #include "Scripts/Misc_Sinkhole.hpp"
+#include "Scripts/Misc_MaterialSwitcher.hpp"
+#include "Scripts/Misc_PlayerRespawn.hpp"
+#include "Scripts/Misc_RespawnOnCollision.hpp"
+#include "Scripts/Misc_WallToggle.hpp"
 #include "Scripts/Listener_MoveObject.hpp"
 #include "Scripts/Listener_StretchObject.hpp"
 #include "Scripts/Interactable_SequencerPad.hpp"
 #include "Scripts/Puzzle_MultiLightSequencer.hpp"
+#include "Scripts/LaserListener.hpp"
+#include "Scripts/IntersectionListerner.hpp"
+#include "Scripts/Misc_Teleporter.hpp"
+#include "Scripts/UIButton_SwitchSceneThree.hpp"
+#include "Scripts/UIButton_SwitchSceneTwo.hpp"
+#include "Scripts/UIButton_SwitchScene.hpp"
+#include "Scripts/UI_MasterVolumeButtons.hpp"
+#include "Scripts/BackgroundAudio.hpp"
+#include "Scripts/Camera_FOVPulse.hpp"
+#include "Scripts/UI_Notes.hpp"
+#include "Scripts/PhoneBooth.hpp"
+#include "Scripts/Misc_TimeFogLighting.hpp"
+
 
 // extern "C" ensures C linkage so the Engine DLL can find this function
 extern "C" {
@@ -76,6 +98,9 @@ extern "C" {
         registrar->RegisterScript("Interactable_WireButton", []() -> NE::Scripting::IScript* {
             return new Interactable_WireButton();
             });
+        registrar->RegisterScript("Interactable_WireTether", []() -> NE::Scripting::IScript* {
+            return new Interactable_WireTether();
+            });
         registrar->RegisterScript("Interactable_Grabbable", []() -> NE::Scripting::IScript* {
             return new Interactable_Grabbable();
             });
@@ -94,8 +119,32 @@ extern "C" {
         registrar->RegisterScript("Interactable_TwoWaySwitch", []() -> NE::Scripting::IScript* {
             return new Interactable_TwoWaySwitch();
             });
+        registrar->RegisterScript("Interactable_NoteCollector", []() -> NE::Scripting::IScript* {
+            return new Interactable_NoteCollector();
+            });
+        registrar->RegisterScript("Interactable_Gate", []() -> NE::Scripting::IScript* {
+            return new Interactable_Gate();
+            });
+        registrar->RegisterScript("Interactable_DoorHinge", []() -> NE::Scripting::IScript* {
+            return new Interactable_DoorHinge();
+            });
+        registrar->RegisterScript("NoteCollector_Controller", []() -> NE::Scripting::IScript* {
+            return new NoteCollector_Controller();
+            });
         registrar->RegisterScript("Misc_Sinkhole", []() -> NE::Scripting::IScript* {
             return new Misc_Sinkhole();
+            });
+        registrar->RegisterScript("Misc_MaterialSwitcher", []() -> NE::Scripting::IScript* {
+            return new Misc_MaterialSwitcher();
+            });
+        registrar->RegisterScript("Misc_PlayerRespawn", []() -> NE::Scripting::IScript* {
+            return new Misc_PlayerRespawn();
+            });
+        registrar->RegisterScript("Misc_RespawnOnCollision", []() -> NE::Scripting::IScript* {
+            return new Misc_RespawnOnCollision();
+            });
+        registrar->RegisterScript("Misc_WallToggle", []() -> NE::Scripting::IScript* {
+            return new Misc_WallToggle();
             });
         registrar->RegisterScript("Listener_MoveObject", []() -> NE::Scripting::IScript* {
             return new Listener_MoveObject();
@@ -109,6 +158,41 @@ extern "C" {
         registrar->RegisterScript("Puzzle_MultiLightSequencer", []() -> NE::Scripting::IScript* {
             return new Puzzle_MultiLightSequencer();
             });
-
+        registrar->RegisterScript("LaserListener", []() -> NE::Scripting::IScript* {
+            return new LaserListener();
+            });
+        registrar->RegisterScript("IntersectionListener", []() -> NE::Scripting::IScript* {
+            return new IntersectionListener();
+            });
+        registrar->RegisterScript("Misc_Teleporter", []() -> NE::Scripting::IScript* {
+            return new Misc_Teleporter();
+            });
+        registrar->RegisterScript("UIButton_SwitchSceneThree", []() -> NE::Scripting::IScript* {
+            return new UIButton_SwitchSceneThree();
+            });
+        registrar->RegisterScript("UIButton_SwitchScene", []() -> NE::Scripting::IScript* {
+            return new UIButton_SwitchScene();
+            });
+        registrar->RegisterScript("UIButton_SwitchSceneTwo", []() -> NE::Scripting::IScript* {
+            return new UIButton_SwitchSceneTwo();
+            });
+        registrar->RegisterScript("UI_MasterVolumeButtons", []() -> NE::Scripting::IScript* {
+            return new UI_MasterVolumeButtons();
+            });
+        registrar->RegisterScript("BackgroundAudio", []() -> NE::Scripting::IScript* {
+            return new BackgroundAudio();
+            });
+        registrar->RegisterScript("Camera_FOVPulse", []() -> NE::Scripting::IScript* {
+            return new Camera_FOVPulse();
+            });
+        registrar->RegisterScript("UI_Notes", []() -> NE::Scripting::IScript* {
+            return new UI_Notes();
+            });
+        registrar->RegisterScript("PhoneBooth", []() -> NE::Scripting::IScript* {
+            return new PhoneBooth();
+            });
+        registrar->RegisterScript("Misc_TimeFogLighting", []() -> NE::Scripting::IScript* {
+            return new Misc_TimeFogLighting();
+            });
         }
 }

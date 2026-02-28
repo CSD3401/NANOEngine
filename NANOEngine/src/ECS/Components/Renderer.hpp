@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../../Graphics/Core/Material.hpp"
-#include "../../Graphics/Core/Model.hpp"
-#include "../../Core/Reflection.hpp"
+#include "Graphics/Core/Material.hpp"
+#include "Graphics/Core/Model.hpp"
+#include "Core/Reflection.hpp"
 
 
 namespace NE::ECS::Component {

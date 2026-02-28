@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "ECSExports.hpp"
 
 #include "../ECS/Components/EntityMeta.hpp"
@@ -11,12 +12,25 @@
 #include "../ECS/Components/UIRectTransform.hpp"
 #include "../ECS/Components/UIImage.hpp"
 #include "../ECS/Components/UICanvas.hpp"
+#include "../ECS/Components/UIText.hpp"
+#include "../ECS/Components/UIButton.hpp"
+#include "../ECS/Components/UISlider.hpp"
+#include "../ECS/Components/UIToggle.hpp"
 #include "../ECS/Components/PrefabLink.hpp"
 #include "../ECS/Components/PrefabInstance.hpp"
 #include "../ECS/Components/CharacterController.hpp"
+#include "../ECS/Components/DecalProjector.hpp"
+#include "../ECS/Components/UILayoutGroup.hpp"
+#include "../ECS/Components/UIGridLayoutGroup.hpp"
+#include "../ECS/Components/UILayoutElement.hpp"
+#include "../ECS/Components/UIScrollRect.hpp"
+#include "../ECS/Components/UIAutoSize.hpp"
+#include "../ECS/Components/UIInputField.hpp"
+#include "../ECS/Components/UIDropdown.hpp"
 #include "../ECS/Components/Camera.hpp"
 #include "../ECS/Systems/ScriptSystem.hpp"
 #include "../ECS/Systems/UIRenderSystem.hpp"
+#include "../ECS/Systems/UIEventSystem.hpp"
 #include "../SceneManagement/Scene.hpp"
 #include "../ECS/Components/Animator.hpp"
 #include "Scripting/ScriptingEngine.hpp"
@@ -26,6 +40,8 @@
 #include "ECS/Components/Hierarchy.hpp"
 #include "ECS/Systems/HierarchySystem.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
+#include "Graphics/OpenGL/GLTexture.hpp"
+#include "Graphics/Core/Material.hpp"
 
 namespace NE {
 	//SceneManagement::Scene& GetScene();
@@ -81,6 +97,50 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UICanvas>(e);
 		}
 
+		const Component::UIText& GetUIText(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIText>(e);
+		}
+
+		const Component::UIButton& GetUIButton(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIButton>(e);
+		}
+
+		const Component::UISlider& GetUISlider(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UISlider>(e);
+		}
+
+		const Component::UIToggle& GetUIToggle(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIToggle>(e);
+		}
+
+		const Component::UILayoutGroup& GetUILayoutGroup(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UILayoutGroup>(e);
+		}
+
+		const Component::UIGridLayoutGroup& GetUIGridLayoutGroup(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIGridLayoutGroup>(e);
+		}
+
+		const Component::UILayoutElement& GetUILayoutElement(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UILayoutElement>(e);
+		}
+
+		const Component::UIScrollRect& GetUIScrollRect(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIScrollRect>(e);
+		}
+
+		const Component::UIAutoSize& GetUIAutoSize(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIAutoSize>(e);
+		}
+
+		const Component::UIInputField& GetUIInputField(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIInputField>(e);
+		}
+
+		const Component::UIDropdown& GetUIDropdown(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIDropdown>(e);
+		}
+
 		bool HasEntityMeta(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::EntityMeta>(e);
 		}
@@ -103,6 +163,22 @@ namespace NE::ECS {
 
 		bool HasUIImage(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIImage>(e);
+		}
+
+		bool HasUIText(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIText>(e);
+		}
+
+		bool HasUIButton(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIButton>(e);
+		}
+
+		bool HasUISlider(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UISlider>(e);
+		}
+
+		bool HasUIToggle(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIToggle>(e);
 		}
 
 		bool HasPrefabLink(uint32_t e) {
@@ -149,6 +225,38 @@ namespace NE::ECS {
 			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::CharacterController>(e);
 		}
 
+        bool HasDecalProjector(uint32_t e) {
+            return GetScene().GetECSCoordinator().HasComponent<ECS::Component::DecalProjector>(e);
+        }
+
+		bool HasUILayoutGroup(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UILayoutGroup>(e);
+		}
+
+		bool HasUIGridLayoutGroup(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIGridLayoutGroup>(e);
+		}
+
+		bool HasUILayoutElement(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UILayoutElement>(e);
+		}
+
+		bool HasUIScrollRect(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIScrollRect>(e);
+		}
+
+		bool HasUIAutoSize(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIAutoSize>(e);
+		}
+
+		bool HasUIInputField(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIInputField>(e);
+		}
+
+		bool HasUIDropdown(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIDropdown>(e);
+		}
+
 		const Component::Animator& GetEntityAnimator(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Animator>(e);
 		}
@@ -168,6 +276,10 @@ namespace NE::ECS {
 		const Component::CharacterController& GetCharacterController(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::CharacterController>(e);
 		}
+
+        const Component::DecalProjector& GetDecalProjector(uint32_t e) {
+            return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::DecalProjector>(e);
+        }
 
 		const Component::Hierarchy& GetEntityHierarchy(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Hierarchy>(e);
@@ -217,6 +329,22 @@ namespace NE::ECS {
 			return GetScene().GetECSCoordinator().GetComponentType<Component::UICanvas>();
 		}
 
+		ComponentType GetUITextComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UIText>();
+		}
+
+		ComponentType GetUIButtonComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UIButton>();
+		}
+
+		ComponentType GetUISliderComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UISlider>();
+		}
+
+		ComponentType GetUIToggleComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UIToggle>();
+		}
+
 		ComponentType GetEntityAnimatorComponentType() {
 			return GetScene().GetECSCoordinator().GetComponentType<Component::Animator>();
 		}
@@ -233,16 +361,43 @@ namespace NE::ECS {
 			return GetScene().GetECSCoordinator().GetComponentType<Component::CharacterController>();
 		}
 
+        ComponentType GetDecalProjectorComponentType() {
+            return GetScene().GetECSCoordinator().GetComponentType<Component::DecalProjector>();
+        }
+
+		ComponentType GetUILayoutGroupComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UILayoutGroup>();
+		}
+
+		ComponentType GetUIGridLayoutGroupComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UIGridLayoutGroup>();
+		}
+
+		ComponentType GetUILayoutElementComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UILayoutElement>();
+		}
+
+		ComponentType GetUIScrollRectComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UIScrollRect>();
+		}
+
+		ComponentType GetUIAutoSizeComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UIAutoSize>();
+		}
+
+		ComponentType GetUIInputFieldComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UIInputField>();
+		}
+
+		ComponentType GetUIDropdownComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UIDropdown>();
+		}
+
 		uint32_t GetParent(uint32_t child) {
 			auto& ecs = NE::GetScene().GetECSCoordinator();
 
-			// Check for regular Transform first
+			// All entities use Hierarchy component for parent-child relationships
 			return ecs.GetComponent<NE::ECS::Component::Hierarchy>(child).parent;
-
-			// Check for UI RectTransform
-			if (ecs.HasComponent<NE::ECS::Component::UIRectTransform>(child)) {
-				return ecs.GetComponent<NE::ECS::Component::UIRectTransform>(child).parent;
-			}
 		}
 
 		const Core::LayerID GetLayer(Entity e) {
@@ -617,20 +772,23 @@ namespace NE::ECS {
 				newEntity,
 				Component::EntityMeta{ .name = "Canvas", .luid = Core::LUIDGenerator::Generate("cv") });
 
+			// Add Hierarchy component (required for parent-child relationships with UI children)
+			Component::Hierarchy hierarchy;
+			hierarchy.luid = Core::LUIDGenerator::Generate("cv");
+			GetScene().GetECSCoordinator().AddComponent(newEntity, hierarchy);
+
 			// set up canvas component
 			Component::UICanvas canvas;
+			canvas.luid = Core::LUIDGenerator::Generate("cv");
 			GetScene().GetECSCoordinator().AddComponent(newEntity, canvas);
 
 			// setup RectTransform for canvas (fullscreen by default)
 			Component::UIRectTransform rectTransform;
-			rectTransform.luid = Core::LUIDGenerator::Generate("rt");
 			rectTransform.width = 1920.0f; // temp
 			rectTransform.height = 1080.0f;
 			rectTransform.x = 0.0f;
 			rectTransform.y = 0.0f;
 			rectTransform.z = 0.0f;
-			rectTransform.parent = NE::ECS::Component::INVALID_PARENT;
-			rectTransform.parentLuid = 0;  // No parent LUID for root canvas
 			GetScene().GetECSCoordinator().AddComponent(newEntity, rectTransform);
 
 			return newEntity;
@@ -644,24 +802,28 @@ namespace NE::ECS {
 				newEntity,
 				Component::EntityMeta{ .name = "Image", .luid = Core::LUIDGenerator::Generate("im") });
 
+			// Add Hierarchy component (required for parent-child relationships)
+			Component::Hierarchy hierarchy;
+			hierarchy.luid = Core::LUIDGenerator::Generate("im");
+			ecs.AddComponent(newEntity, hierarchy);
+
 			// setup RectTransform with parent linkage
 			Component::UIRectTransform rect;
-			rect.luid = Core::LUIDGenerator::Generate("rt");
 			rect.x = 0.0f;
 			rect.y = 0.0f;
 			rect.z = 0.0f;
 			rect.width = 100.0f;
 			rect.height = 100.0f;
-			rect.parent = parentCanvas;  // Link to parent canvas (runtime)
-
-			// set parent luid for serialization
-			if (parentCanvas != NE::ECS::NO_ENTITY && ecs.HasComponent<Component::UIRectTransform>(parentCanvas)) {
-				rect.parentLuid = ecs.GetComponent<Component::UIRectTransform>(parentCanvas).luid;
-			} else {
-				rect.parentLuid = 0;
-			}
 
 			ecs.AddComponent(newEntity, rect);
+
+			// Set parent via HierarchySystem (proper way)
+			if (parentCanvas != NE::ECS::NO_ENTITY) {
+				auto hierarchySystem = ecs.m_hierarchySystem;
+				if (hierarchySystem) {
+					hierarchySystem->SetParent(newEntity, parentCanvas);
+				}
+			}
 
 			// setup UIImage with default white color
 			Component::UIImage img;
@@ -728,6 +890,10 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Camera{});
 		}
 
+		void AddDecalProjectorComponent(uint32_t e) {
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::DecalProjector{});
+		}
+
 		void AddEntityMetaComponent(uint32_t e, const Component::EntityMeta& c) {
 			GetScene().GetECSCoordinator().AddComponent<Component::EntityMeta>(e, c);
 		}
@@ -784,6 +950,50 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent<Component::UIImage>(e, c);
 		}
 
+		void AddUITextComponent(uint32_t e, const Component::UIText& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UIText>(e, c);
+		}
+
+		void AddUIButtonComponent(uint32_t e, const Component::UIButton& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UIButton>(e, c);
+		}
+
+		void AddUISliderComponent(uint32_t e, const Component::UISlider& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UISlider>(e, c);
+		}
+
+		void AddUIToggleComponent(uint32_t e, const Component::UIToggle& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UIToggle>(e, c);
+		}
+
+		void AddUILayoutGroupComponent(uint32_t e, const Component::UILayoutGroup& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UILayoutGroup>(e, c);
+		}
+
+		void AddUIGridLayoutGroupComponent(uint32_t e, const Component::UIGridLayoutGroup& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UIGridLayoutGroup>(e, c);
+		}
+
+		void AddUILayoutElementComponent(uint32_t e, const Component::UILayoutElement& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UILayoutElement>(e, c);
+		}
+
+		void AddUIScrollRectComponent(uint32_t e, const Component::UIScrollRect& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UIScrollRect>(e, c);
+		}
+
+		void AddUIAutoSizeComponent(uint32_t e, const Component::UIAutoSize& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UIAutoSize>(e, c);
+		}
+
+		void AddUIInputFieldComponent(uint32_t e, const Component::UIInputField& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UIInputField>(e, c);
+		}
+
+		void AddUIDropdownComponent(uint32_t e, const Component::UIDropdown& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UIDropdown>(e, c);
+		}
+
 		void AddPrefabLinkComponent(uint32_t e, const Component::PrefabLink& c) {
 			GetScene().GetECSCoordinator().AddComponent<Component::PrefabLink>(e, c);
 		}
@@ -795,6 +1005,10 @@ namespace NE::ECS {
 		void AddCharacterControllerComponent(uint32_t e, const Component::CharacterController& c) {
 			GetScene().GetECSCoordinator().AddComponent<Component::CharacterController>(e, c);
 		}
+
+        void AddDecalProjectorComponent(uint32_t e, const Component::DecalProjector& c) {
+            GetScene().GetECSCoordinator().AddComponent<Component::DecalProjector>(e, c);
+        }
 
 		void RemoveLightComponent(uint32_t e) {
 			GetScene().GetECSCoordinator().RemoveComponent<Component::Light>(e);
@@ -819,6 +1033,10 @@ namespace NE::ECS {
 		void RemoveCameraComponent(uint32_t e) {
 			GetScene().GetECSCoordinator().RemoveComponent<Component::Camera>(e);
 		}
+
+        void RemoveDecalProjectorComponent(uint32_t e) {
+            GetScene().GetECSCoordinator().RemoveComponent<Component::DecalProjector>(e);
+        }
 
 		Component::EntityMeta& GetEntityMeta(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::EntityMeta>(e);
@@ -864,6 +1082,22 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UICanvas>(e);
 		}
 
+		Component::UIText& GetUIText(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIText>(e);
+		}
+
+		Component::UIButton& GetUIButton(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIButton>(e);
+		}
+
+		Component::UISlider& GetUISlider(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UISlider>(e);
+		}
+
+		Component::UIToggle& GetUIToggle(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIToggle>(e);
+		}
+
 		Component::Hierarchy& GetEntityHierarchy(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Hierarchy>(e);
 		}
@@ -886,6 +1120,38 @@ namespace NE::ECS {
 
 		Component::CharacterController& GetCharacterController(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::CharacterController>(e);
+		}
+
+        Component::DecalProjector& GetDecalProjector(uint32_t e) {
+            return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::DecalProjector>(e);
+        }
+
+		Component::UILayoutGroup& GetUILayoutGroup(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UILayoutGroup>(e);
+		}
+
+		Component::UIGridLayoutGroup& GetUIGridLayoutGroup(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIGridLayoutGroup>(e);
+		}
+
+		Component::UILayoutElement& GetUILayoutElement(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UILayoutElement>(e);
+		}
+
+		Component::UIScrollRect& GetUIScrollRect(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIScrollRect>(e);
+		}
+
+		Component::UIAutoSize& GetUIAutoSize(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIAutoSize>(e);
+		}
+
+		Component::UIInputField& GetUIInputField(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIInputField>(e);
+		}
+
+		Component::UIDropdown& GetUIDropdown(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIDropdown>(e);
 		}
 
 		//void SetParent(uint32_t child, uint32_t parent, bool worldPositionStays) {
@@ -1027,6 +1293,91 @@ namespace NE::ECS {
 			auto& animator = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Animator>(e);
 			animator.animClipUUID = uuid;
 			animator.clip = Resource::ResourceManager::GetInstance().LoadResource<Animation::AnimationClip>(uuid);
+		}
+
+		//=========================================================================
+		// UI IMAGE UTILITIES
+		//=========================================================================
+
+		bool SetUIImageTexture(uint32_t imageEntity, const char* textureUUID) {
+			return SetUIImageTextureAndMaterial(imageEntity, textureUUID, "");
+		}
+
+		bool SetUIImageTextureAndMaterial(uint32_t imageEntity, const char* textureUUID, const char* materialUUID) {
+			auto& ecs = GetScene().GetECSCoordinator();
+
+			// Safety check - entity must have UIImage component
+			if (!ecs.HasComponent<Component::UIImage>(imageEntity)) {
+				return false;
+			}
+
+			auto& img = ecs.GetComponent<Component::UIImage>(imageEntity);
+
+			// Update texture UUID and load the texture
+			if (textureUUID && textureUUID[0] != '\0') {
+				img.textureUUID = textureUUID;
+				auto texture = Resource::ResourceManager::GetInstance()
+					.LoadResource<Graphics::OpenGL::GLTexture>(textureUUID);
+
+				if (texture) {
+					img.bindlessHandle = texture->GetBindlessHandle();
+				} else {
+					img.bindlessHandle = 0;  // Texture load failed, fallback to solid color
+					return false;
+				}
+			} else {
+				img.textureUUID.clear();
+				img.bindlessHandle = 0;  // No texture, solid color only
+			}
+
+			// Update material if provided
+			if (materialUUID && materialUUID[0] != '\0') {
+				img.materialUUID = materialUUID;
+				img.material = Resource::ResourceManager::GetInstance()
+					.LoadResource<Graphics::Material>(materialUUID);
+			}
+
+			img.isDirty = true;  // Signal refresh
+			return true;
+		}
+
+		void SetUIImageColor(uint32_t imageEntity, float r, float g, float b, float a) {
+			auto& ecs = GetScene().GetECSCoordinator();
+
+			if (!ecs.HasComponent<Component::UIImage>(imageEntity)) {
+				return;
+			}
+
+			auto& img = ecs.GetComponent<Component::UIImage>(imageEntity);
+			img.color = Math::Vec4(r, g, b, a);
+			img.isDirty = true;
+		}
+
+		void SetUIImageFillAmount(uint32_t imageEntity, float fillAmount) {
+			auto& ecs = GetScene().GetECSCoordinator();
+
+			if (!ecs.HasComponent<Component::UIImage>(imageEntity)) {
+				return;
+			}
+
+			auto& img = ecs.GetComponent<Component::UIImage>(imageEntity);
+
+			// Clamp to valid range
+			if (fillAmount < 0.0f) fillAmount = 0.0f;
+			if (fillAmount > 1.0f) fillAmount = 1.0f;
+
+			img.fillAmount = fillAmount;
+			img.isDirty = true;
+		}
+	}
+
+	namespace Command {
+		void SetUIViewportBounds(float offsetX, float offsetY, float width, float height, float uiWidth, float uiHeight) {
+			Systems::UIEventSystem::SetViewportBounds(offsetX, offsetY, width, height, uiWidth, uiHeight);
+		}
+
+		void ClearUIViewportBounds() {
+			Systems::UIEventSystem::ClearViewportBounds();
 		}
 	}
 }

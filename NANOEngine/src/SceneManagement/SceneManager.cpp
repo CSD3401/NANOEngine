@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "SceneManager.hpp"
 
 #include "Scripting/ScriptingEngine.hpp"
@@ -7,18 +8,45 @@
 #include "PrefabManagement/PrefabManager.hpp"
 #include "Serialisation/Serializer.hpp"
 #include "Physics/PhysicsManager.hpp"
+#include "ResourceManagement/ResourcePaths.hpp"
 
 namespace NE::SceneManagement {
 
-	bool SceneManager::LoadScene(const std::string& path) {
-		m_loadedPath = path;
+	bool SceneManager::LoadScene(const std::string& uuid) {
+		if (m_mode == SceneManagerMode::RuntimeOnly) {
+			m_loadedPath = Resource::ComputeArtifactPathFromUUID(uuid, Resource::ResourceType::Scene);
+
+			m_editor.reset();
+			m_prefabScene.reset();
+			m_isEditingPrefab = false;
+			m_prefabPath.clear();
+
+			m_runtime = std::make_unique<Scene>();
+			Prefab::PrefabManager::Init(this);
+			Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
+			Physics::PhysicsManager::GetInstance().
+				SetManagers(&m_runtime->GetECSCoordinator().GetComponentManager(),
+					&m_runtime->GetECSCoordinator().GetLUIDRegistry());
+			if (!NE::Deserialization::DeserializeScene(m_runtime->GetECSCoordinator(), m_loadedPath)) {
+				m_runtime.reset();
+				Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
+				return false;
+			}
+			m_runtime->InitRuntime();
+			Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
+			m_isPlaying = true;
+			m_runtime->ScriptStart();
+			return true;
+		}
+
+		m_loadedPath = Resource::ComputeArtifactPathFromUUID(uuid, Resource::ResourceType::Scene);
 		m_editor = std::make_unique<Scene>();
 		Prefab::PrefabManager::Init(this);
 		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
 		Physics::PhysicsManager::GetInstance().
 			SetManagers(&m_editor->GetECSCoordinator().GetComponentManager(), 
 				&m_editor->GetECSCoordinator().GetLUIDRegistry());
-		if (!NE::Deserialization::DeserializeScene(m_editor->GetECSCoordinator(), path)) {
+		if (!NE::Deserialization::DeserializeScene(m_editor->GetECSCoordinator(), m_loadedPath)) {
 			m_editor.reset();
 			Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
 			return false;
@@ -30,7 +58,7 @@ namespace NE::SceneManagement {
 		return true;
 	}
 
-	void SceneManager::CreateSceneFallback(const std::string& scenePath) {
+	void SceneManager::CreateSceneFallback(const std::string& uuid) {
 		if (m_editor) {
 			m_editor->ExitEdit();
 			m_editor.reset();
@@ -42,7 +70,7 @@ namespace NE::SceneManagement {
 			m_isPlaying = false;
 		}
 
-		m_loadedPath = scenePath;
+		m_loadedPath = Resource::ComputeArtifactPathFromUUID(uuid, Resource::ResourceType::Scene);
 		m_editor = std::make_unique<Scene>();
 		Prefab::PrefabManager::Init(this);
 		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
@@ -58,6 +86,7 @@ namespace NE::SceneManagement {
 	}
 
 	void SceneManager::LoadRuntime() {
+		if (m_mode == SceneManagerMode::RuntimeOnly) return;
 		if (!m_editor || m_isPlaying) return;
 
 		// Save editor script field values and transfer to runtime
@@ -92,6 +121,7 @@ namespace NE::SceneManagement {
 	}
 
 	void SceneManager::StopRuntime() {
+		if (m_mode == SceneManagerMode::RuntimeOnly) return;
 		if (!m_isPlaying) return;
 
 		if (m_runtime) {
@@ -119,26 +149,63 @@ namespace NE::SceneManagement {
 	}
 
 	bool SceneManager::IsPlaying() const {
+		if (m_mode == SceneManagerMode::RuntimeOnly) return (m_runtime != nullptr);
 		return m_isPlaying;
 	}
 
 	Scene* SceneManager::GetActive() {
+		if (m_mode == SceneManagerMode::RuntimeOnly) return m_runtime.get();
 		if (m_isPlaying)          return m_runtime.get();
 		if (m_isEditingPrefab)    return m_prefabScene.get();
 		return m_editor.get();
 	}
 
 	void SceneManager::Update(double dt) {
-		if (m_isPlaying) {
+		if (m_mode == SceneManagerMode::RuntimeOnly) {
+			if (m_runtime) m_runtime->UpdateRuntime(dt);
+		} else if (m_isPlaying) {
 			if (m_runtime) m_runtime->UpdateRuntime(dt);
 		} else if (m_isEditingPrefab) {
 			if (m_prefabScene) m_prefabScene->UpdateEdit(dt);
 		} else {
 			if (m_editor) m_editor->UpdateEdit(dt);
 		}
+
+		// Process queued scene switch at end of frame (after all scripts have updated)
+		if (m_hasQueuedSceneSwitch) {
+			m_hasQueuedSceneSwitch = false;
+
+			bool wasPlaying = IsPlaying();
+
+			// Stop runtime if currently playing
+			if (wasPlaying) {
+				StopRuntime();
+			}
+
+			// Exit current scene and load new one
+			ExitScene();
+			LoadScene(m_queuedScenePath);
+
+			// Resume playing if we were in play mode
+			if (wasPlaying) {
+				LoadRuntime();
+			}
+
+			m_queuedScenePath.clear();
+		}
+	}
+
+	void SceneManager::QueueSceneSwitch(const std::string& scenePath) {
+		// Queue the scene switch to happen at the end of the current frame
+		m_queuedScenePath = scenePath;
+		m_hasQueuedSceneSwitch = true;
 	}
 
 	void SceneManager::Render() {
+		if (m_mode == SceneManagerMode::RuntimeOnly) {
+			if (m_runtime) m_runtime->Render();
+			return;
+		}
 		if (m_isPlaying) {
 			if (m_runtime) m_runtime->Render();
 		} else if (m_isEditingPrefab) {
@@ -149,6 +216,7 @@ namespace NE::SceneManagement {
 	}
 
 	bool SceneManager::LoadPrefabScene(const std::string& path) {
+		if (m_mode == SceneManagerMode::RuntimeOnly) return false;
 		if (m_prefabScene) {
 			m_prefabScene->ExitEdit();
 			m_prefabScene.reset();
@@ -170,6 +238,7 @@ namespace NE::SceneManagement {
 	}
 
 	void SceneManager::ClosePrefabScene() {
+		if (m_mode == SceneManagerMode::RuntimeOnly) return;
 		if (m_prefabScene) {
 			m_prefabScene->ExitEdit();
 			m_prefabScene.reset();
@@ -179,6 +248,11 @@ namespace NE::SceneManagement {
 	}
 
 	void SceneManager::ExitScene() {
+		if (m_mode == SceneManagerMode::RuntimeOnly) {
+			if (m_runtime) m_runtime->ExitRuntime();
+			m_runtime.reset();
+			return;
+		}
 		if (m_isPlaying && m_runtime) m_runtime->ExitRuntime();
 		if (m_editor) m_editor->ExitEdit();
 	}

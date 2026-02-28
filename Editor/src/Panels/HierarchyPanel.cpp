@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "HierarchyPanel.hpp"
 
 #include <imgui/imgui.h>
@@ -64,7 +65,7 @@ namespace Editor {
 			return false;
 		}
 
-		std::vector<uint32_t> BuildDeleteList(const std::vector<uint32_t>& selection) {
+		std::vector<uint32_t> BuildDeleteRoots(const std::vector<uint32_t>& selection) {
 			std::unordered_set<uint32_t> selected;
 			selected.reserve(selection.size() * 2);
 			for (auto e : selection) selected.insert(e);
@@ -75,29 +76,7 @@ namespace Editor {
 				if (!Utility::IsDescendantOfSelected(e, selected))
 					roots.push_back(e);
 			}
-
-			std::vector<uint32_t> out;
-			std::unordered_set<uint32_t> visited;
-			visited.reserve(roots.size() * 8);
-
-			std::vector<uint32_t> stack;
-			for (auto r : roots) stack.push_back(r);
-
-			while (!stack.empty()) {
-				uint32_t e = stack.back();
-				stack.pop_back();
-
-				if (!visited.insert(e).second)
-					continue;
-
-				out.push_back(e);
-
-				auto& children = NE::ECS::Query::GetEntityHierarchy(e).children;
-				for (uint32_t c : children)
-					stack.push_back(c);
-			}
-
-			return out;
+			return roots;
 		}
 	}
 
@@ -180,6 +159,14 @@ namespace Editor {
 			selectionChanged = true;
 
 			if (anchor != NE::ECS::NO_ENTITY) {
+				m_scrollToEntity = anchor;
+				m_scrollToEntityPending = true;
+			} else {
+				m_scrollToEntity = NE::ECS::NO_ENTITY;
+				m_scrollToEntityPending = false;
+			}
+
+			if (anchor != NE::ECS::NO_ENTITY) {
 				using NE::ECS::Entity;
 				using NE::ECS::Component::INVALID_PARENT;
 
@@ -249,15 +236,13 @@ namespace Editor {
 			}
 
 			if (ImGui::IsKeyPressed(ImGuiKey_Delete, false) && !EditorScene::s_selection.Empty()) {
-				//std::vector<uint32_t> toDelete = BuildDeleteList(EditorScene::s_selection.GetSelection());
-				std::vector<uint32_t> toDelete{ EditorScene::s_selection.GetSelection()[0] };
-
-				auto& h = NE::ECS::Query::GetEntityHierarchy(toDelete[0]);
-
-				NANOEngine::Events::EventBus::Get().Dispatch(
-					NANOEngine::Events::EventDomain::Editor,
-					Events::DeleteEntityEvent{ toDelete, h.parent }
-				);
+				std::vector<uint32_t> toDelete = BuildDeleteRoots(EditorScene::s_selection.GetSelection());
+				if (!toDelete.empty()) {
+					NANOEngine::Events::EventBus::Get().Dispatch(
+						NANOEngine::Events::EventDomain::Editor,
+						Events::DeleteEntityEvent{ toDelete }
+					);
+				}
 			}
 
 			if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
@@ -273,7 +258,7 @@ namespace Editor {
 			if (hierHovered && !m_draggedEntities.empty()) {
 				if (EditorScene::selectedPrefab.empty()) {
 					for (auto child : m_draggedEntities) {
-						if (NE::ECS::Query::HasPrefabLink(child)) {
+						if (!NE::ECS::Query::HasPrefabInstance(child) && NE::ECS::Query::HasPrefabLink(child)) {
 							m_dragRep = NE::ECS::NO_ENTITY;
 							m_draggedEntities.clear();
 							m_previewAsChild = false;
@@ -400,6 +385,8 @@ namespace Editor {
 		m_previewParentForInsert = NE::ECS::NO_ENTITY;
 		m_clickCandidate = NE::ECS::NO_ENTITY;
 		m_previewAsChild = false;
+		m_scrollToEntity = NE::ECS::NO_ENTITY;
+		m_scrollToEntityPending = false;
 
 		m_filtering = false;
 		m_visible.clear();
@@ -470,6 +457,11 @@ namespace Editor {
 			ImGui::SetNextItemOpen(true, ImGuiCond_Always);
 		}
 		bool open = ImGui::TreeNodeEx((void*)(intptr_t)e, flags, "%s", name);
+
+		if (m_scrollToEntityPending && e == m_scrollToEntity) {
+			ImGui::SetScrollHereY(0.5f);
+			m_scrollToEntityPending = false;
+		}
 
 		const bool toggledOpen = ImGui::IsItemToggledOpen();
 
@@ -622,15 +614,13 @@ namespace Editor {
 			//		DeleteEntityEvent{ idToDelete }
 			//	);
 			//}
-			//std::vector<uint32_t> toDelete = BuildDeleteList(EditorScene::s_selection.GetSelection());
-			std::vector<uint32_t> toDelete{ EditorScene::s_selection.GetSelection()[0] }; // just delete the first selected for now
-
-			auto& h = NE::ECS::Query::GetEntityHierarchy(toDelete[0]);
-
-			NANOEngine::Events::EventBus::Get().Dispatch(
-				NANOEngine::Events::EventDomain::Editor,
-				Events::DeleteEntityEvent{ toDelete, h.parent }
-			);
+			std::vector<uint32_t> toDelete = BuildDeleteRoots(EditorScene::s_selection.GetSelection());
+			if (!toDelete.empty()) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::DeleteEntityEvent{ toDelete }
+				);
+			}
 		}
 
 		ImGui::Separator();
@@ -734,6 +724,55 @@ namespace Editor {
 			if (ImGui::MenuItem("Audio Source", "", false, false)) {
 
 			}
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("UI")) {
+			if (ImGui::MenuItem("Canvas")) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateUICanvasEvent{}
+				);
+			}
+			if (ImGui::MenuItem("Text")) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateUITextEvent{ parentEntityId }
+				);
+			}
+			if (ImGui::MenuItem("Image")) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateUIImageEvent{ parentEntityId }
+				);
+			}
+			if (ImGui::MenuItem("Button")) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateUIButtonEvent{ parentEntityId }
+				);
+			}
+			if (ImGui::MenuItem("Panel")) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateUIPanelEvent{ parentEntityId }
+				);
+			}
+			ImGui::Separator();
+			if (ImGui::MenuItem("Slider")) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateUISliderEvent{ parentEntityId }
+				);
+			}
+			if (ImGui::MenuItem("Toggle")) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateUIToggleEvent{ parentEntityId }
+				);
+			}
+			ImGui::MenuItem("Input Field", "", false, false); // Phase 3
+			ImGui::MenuItem("Scroll View", "", false, false); // Phase 3
 			ImGui::EndMenu();
 		}
 

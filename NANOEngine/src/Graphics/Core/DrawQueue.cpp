@@ -1,6 +1,8 @@
+#include "pch.h"
 #include <algorithm>
 #include "DrawQueue.hpp"
 #include "EditorCamera.hpp"
+#include "Core/Profiler.hpp"
 
 namespace NE::Graphics {
 
@@ -70,6 +72,10 @@ namespace NE::Graphics {
 	}
 
 	void DrawQueue::Sort(const Vec3& camPos) {
+#ifndef PRODUCTION_BUILD
+		NE_PROFILE_FUNCTION();
+#endif
+
 		if (m_Commands.size() < 2) return;
 
 		// Step 1: Sort by Render Queue Order (base + offset)

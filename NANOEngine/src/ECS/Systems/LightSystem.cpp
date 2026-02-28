@@ -1,12 +1,22 @@
+#include "pch.h"
 #include "LightSystem.hpp"
 #include "../../Core/Profiler.hpp"
 #include "../../Graphics/Core/GraphicsManager.hpp"
+#include "../../Graphics/Core/LightGizmoCommand.hpp"
 #include "../../ECS/Components/Transform.hpp"
 #include "../../ECS/Components/EntityMeta.hpp"
 #include "../Components/Light.hpp"
 #include "Core/SpdLogger.hpp"
 
 namespace NE::ECS::Systems {
+    namespace {
+        inline NE::Math::Vec3 EncodeEntityIdRGB(Entity entity) {
+            float r = static_cast<float>(entity & 0xFF) / 255.0f;
+            float g = static_cast<float>((entity >> 8) & 0xFF) / 255.0f;
+            float b = static_cast<float>((entity >> 16) & 0xFF) / 255.0f;
+            return { r, g, b };
+        }
+    }
 
     LightSystem::LightSystem(NE::ECS::ComponentManager* cm)
         : m_componentManager(cm) {}
@@ -35,18 +45,28 @@ namespace NE::ECS::Systems {
     }
 
     void LightSystem::Update(double) {
+#ifndef PRODUCTION_BUILD
         NE_PROFILE_FUNCTION();
+#endif
         Graphics::GraphicsManager::m_lights.clear();
 
-        const auto& entities = GetEntities();
+        const auto& entities = m_entities.GetDenseContainer();
         for (Entity entity : entities) {
             auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(entity);
             if (meta.isActive) {
                 auto& t = m_componentManager->GetComponent<Component::Transform>(entity);
                 auto& light = m_componentManager->GetComponent<Component::Light>(entity);
                 light.position = t.worldMatrix.GetTranslation();
-                light.direction = t.worldMatrix.Forward();                
+                light.direction = t.worldMatrix.Forward();
                 Graphics::GraphicsManager::m_lights.push_back(&light);
+
+#ifndef PRODUCTION_BUILD
+                Graphics::LightGizmoCommand gizmoCommand{};
+                gizmoCommand.position = light.position;
+                gizmoCommand.idRGB = EncodeEntityIdRGB(entity);
+                gizmoCommand.lightType = light.type;
+                Graphics::GraphicsManager::SubmitLightGizmo(gizmoCommand);
+#endif // !PRODUCTION_BUILD
             }
         }
     }

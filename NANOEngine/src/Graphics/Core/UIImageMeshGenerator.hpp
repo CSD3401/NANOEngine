@@ -5,86 +5,94 @@
 #include <cmath>
 #include "ECS/Components/UIImage.hpp"
 #include "../../Math/Vec2.hpp"
+#include "../../Math/Vec3.hpp"
 #include "../../Math/Vec4.hpp"
 
 namespace NE::Graphics {
 
-    // Vertex structure for UI rendering
-    struct UIVertex {
-        float x, y, z;           // Position
-        float u, v;              // UV coordinates
-        float r, g, b, a;        // Color
+    // UI vertex format using engine math types
+    // NO NORMALS - UI is always unlit/emissive even in world space (Unity approach)
+    // For lit panels, use actual 3D geometry with standard Vertex
+    struct UIVertex2 {
+        Math::Vec3 Position;    // 12 bytes — location 0
+        Math::Vec2 TexCoord;    //  8 bytes — location 1
+        Math::Vec4 Color;       // 16 bytes — location 2 (now per-vertex, no uColor uniform)
+        uint32_t texHandleLo;   //  4 bytes — location 3 (low 32 bits of ARB bindless handle)
+        uint32_t texHandleHi;   //  4 bytes — location 4 (high 32 bits of ARB bindless handle)
+        // Total: 44 bytes (up from 36)
     };
 
     class UIImageMeshGenerator {
     public:
-        // Generate vertices based on image type
-        static std::vector<UIVertex> GenerateVertices(
+        static std::vector<UIVertex2> GenerateVertices2(
             const NE::ECS::Component::UIImage& image,
             float x, float y, float z,
             float width, float height,
-            const Math::Vec4& color
+            const Math::Vec4& color,
+            uint64_t bindlessHandle = 0
         );
 
     private:
-        // Simple quad (no special processing)
-        static std::vector<UIVertex> GenerateSimple(
-            float x, float y, float z,
-            float width, float height,
-            const Math::Vec4& color
-        );
-
-        // 9-slice scaling
-        static std::vector<UIVertex> GenerateSliced(
-            const NE::ECS::Component::UIImage& image,
-            float x, float y, float z,
-            float width, float height,
-            const Math::Vec4& color
-        );
-
-        // Tiled texture
-        static std::vector<UIVertex> GenerateTiled(
-            const NE::ECS::Component::UIImage& image,
-            float x, float y, float z,
-            float width, float height,
-            const Math::Vec4& color
-        );
-
-        // Filled images
-        static std::vector<UIVertex> GenerateFilled(
-            const NE::ECS::Component::UIImage& image,
-            float x, float y, float z,
-            float width, float height,
-            const Math::Vec4& color
-        );
-
-        // Specific fill methods
-        static std::vector<UIVertex> GenerateHorizontalFill(
-            const NE::ECS::Component::UIImage& image,
-            float x, float y, float z,
-            float width, float height,
-            const Math::Vec4& color
-        );
-
-        static std::vector<UIVertex> GenerateVerticalFill(
-            const NE::ECS::Component::UIImage& image,
-            float x, float y, float z,
-            float width, float height,
-            const Math::Vec4& color
-        );
-
-        static std::vector<UIVertex> GenerateRadialFill(
-            const NE::ECS::Component::UIImage& image,
-            float x, float y, float z,
-            float width, float height,
-            const Math::Vec4& color
-        );
-
-        // Helper to create a single vertex
-        static UIVertex CreateVertex(
+        static UIVertex2 CreateVertex2(
             float x, float y, float z,
             float u, float v,
-            const Math::Vec4& color
+            const Math::Vec4& color,
+            uint64_t bindlessHandle = 0
+        );
+
+        static std::vector<UIVertex2> GenerateSimple2(
+            float x, float y, float z,
+            float width, float height,
+            const Math::Vec4& color,
+            uint64_t bindlessHandle = 0
+        );
+
+        static std::vector<UIVertex2> GenerateSliced2(
+            const NE::ECS::Component::UIImage& image,
+            float x, float y, float z,
+            float width, float height,
+            const Math::Vec4& color,
+            uint64_t bindlessHandle = 0
+        );
+
+        static std::vector<UIVertex2> GenerateTiled2(
+            const NE::ECS::Component::UIImage& image,
+            float x, float y, float z,
+            float width, float height,
+            const Math::Vec4& color,
+            uint64_t bindlessHandle = 0
+        );
+
+        static std::vector<UIVertex2> GenerateFilled2(
+            const NE::ECS::Component::UIImage& image,
+            float x, float y, float z,
+            float width, float height,
+            const Math::Vec4& color,
+            uint64_t bindlessHandle = 0
+        );
+
+        static std::vector<UIVertex2> GenerateHorizontalFill2(
+            const NE::ECS::Component::UIImage& image,
+            float x, float y, float z,
+            float width, float height,
+            const Math::Vec4& color,
+            uint64_t bindlessHandle = 0
+        );
+
+        static std::vector<UIVertex2> GenerateVerticalFill2(
+            const NE::ECS::Component::UIImage& image,
+            float x, float y, float z,
+            float width, float height,
+            const Math::Vec4& color,
+            uint64_t bindlessHandle = 0
+        );
+
+        static std::vector<UIVertex2> GenerateRadialFill2(
+            const NE::ECS::Component::UIImage& image,
+            float x, float y, float z,
+            float width, float height,
+            const Math::Vec4& color,
+            uint64_t bindlessHandle = 0
         );
     };
 

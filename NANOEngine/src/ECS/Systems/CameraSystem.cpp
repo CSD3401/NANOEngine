@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "CameraSystem.hpp"
 #include "../Components/Camera.hpp"
 #include "../Components/Transform.hpp"

@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "PrefabSystem.hpp"
 
 #include "../Core/ComponentManager.hpp"

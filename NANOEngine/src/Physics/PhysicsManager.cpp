@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "PhysicsManager.hpp"
 
 #include <Jolt/RegisterTypes.h>
@@ -41,6 +42,7 @@
 #include "ECS/Components/Rigidbody.hpp"
 #include "ECS/Components/CharacterController.hpp"
 #include "ECS/Components/Transform.hpp"
+#include "ECS/Components/Hierarchy.hpp"
 #include "ECS/Components/Renderer.hpp"
 #include "ECS/Core/ComponentManager.hpp"
 #include "ECS/Components/NativeScript.hpp"
@@ -109,6 +111,11 @@ namespace NE::Physics {
 
 		JPH::Quat ToJPHQuat(const NE::Math::Quat& q) {
 			return JPH::Quat(q.x, q.y, q.z, q.w);
+		}
+
+		NE::Math::Quat WorldQuatFromMat4(const NE::Math::Mat4& m) {
+			const NE::Math::Vec3 rotRad = m.GetRotation();
+			return NE::Math::Quat::FromEulerRadians(rotRad.x, rotRad.y, rotRad.z);
 		}
 
 		inline uint32_t FloatBits(float f) {
@@ -582,6 +589,28 @@ namespace NE::Physics {
 		return { n.GetX(), n.GetY(), n.GetZ() };
 	}
 
+	void PhysicsManager::CharacterSetPosition(uint64_t entityLUID, const Math::Vec3& position) {
+		auto it = m_characters.find(entityLUID);
+		if (it == m_characters.end()) return;
+
+		auto& runtime = it->second;
+		runtime.velocity = JPH::Vec3::sZero();
+		runtime.pendingDelta = JPH::Vec3::sZero();
+		runtime.hasPendingDelta = false;
+		runtime.controller->SetPosition(JPH::RVec3(position.x, position.y, position.z));
+	}
+
+	void PhysicsManager::UpdateBodyState(uint64_t entityLUID, bool isActive) {
+		auto it = m_bodies.find(entityLUID);
+		if (it == m_bodies.end()) return;
+		JPH::BodyID id = it->second;
+		JPH::BodyInterface& bi = m_physicsSystem->GetBodyInterface();
+		if (isActive)
+			bi.AddBody(id, JPH::EActivation::Activate);
+		else
+			bi.RemoveBody(id);
+	}
+
 	void PhysicsManager::CreateBody(uint32_t entity, uint64_t luid, const ECS::Component::Transform& t,
 		const ECS::Component::Rigidbody& rb, const ECS::Component::Collider& col, uint8_t layerID) {
 		auto itShape = m_shapes.find(luid);
@@ -591,8 +620,9 @@ namespace NE::Physics {
 		const JPH::ShapeRefC& shape = itShape->second.shape;
 
 		const Math::Vec3 pos = t.worldMatrix.GetTranslation();
-		const JPH::RVec3 jPos(pos.x, pos.y, pos.z);
-		const JPH::Quat jRot = ToJPHQuat(t.localRotationQuat);
+		const JPH::RVec3 jPos((double)pos.x, (double)pos.y, (double)pos.z);
+		const Math::Quat worldRot = WorldQuatFromMat4(t.worldMatrix);
+		const JPH::Quat jRot = ToJPHQuat(worldRot);
 
 		const JPH::EMotionType motion = ToMotionType(rb);
 		const JPH::ObjectLayer objLayer = ToObjectLayer(layerID, motion);
@@ -648,12 +678,9 @@ namespace NE::Physics {
 		const JPH::ShapeRefC& shape = itShape->second.shape;
 
 		const Math::Vec3 pos = t.worldMatrix.GetTranslation();
-		const JPH::RVec3 jPos(pos.x, pos.y, pos.z);
-		const JPH::Quat jRot = JPH::Quat::sEulerAngles({
-			JPH::DegreesToRadians(t.localRotationEuler.x),
-			JPH::DegreesToRadians(t.localRotationEuler.y),
-			JPH::DegreesToRadians(t.localRotationEuler.z) }
-			);
+		const JPH::RVec3 jPos((double)pos.x, (double)pos.y, (double)pos.z);
+		const Math::Quat worldRot = WorldQuatFromMat4(t.worldMatrix);
+		const JPH::Quat jRot = ToJPHQuat(worldRot);
 
 		const JPH::EMotionType motion = JPH::EMotionType::Static;
 		const JPH::ObjectLayer objLayer = ToObjectLayer(layerID, motion);
@@ -709,9 +736,32 @@ namespace NE::Physics {
 		JPH::BodyInterface& bi = m_physicsSystem->GetBodyInterface();
 
 		auto& bodyID = m_bodies.at(luid);
-		t.localPosition = ToEngineVec3(bi.GetPosition(bodyID));
-		t.localRotationEuler = JQuatToDegreeEuler(bi.GetRotation(bodyID));
-		t.localRotationQuat = ToEngineQuat(bi.GetRotation(bodyID));
+		const Math::Vec3 worldPos = ToEngineVec3(bi.GetPosition(bodyID));
+		const Math::Quat worldRot = ToEngineQuat(bi.GetRotation(bodyID));
+
+		Math::Vec3 localPos = worldPos;
+		Math::Quat localRot = worldRot;
+
+		if (m_luidRegistry && m_componentManager) {
+			const Core::LuidRecord* rec = m_luidRegistry->Find(luid);
+			if (rec && m_componentManager->HasComponent<ECS::Component::Hierarchy>(rec->m_entityOwner)) {
+				const auto& h = m_componentManager->GetComponent<ECS::Component::Hierarchy>(rec->m_entityOwner);
+				if (h.parent != ECS::Component::INVALID_PARENT &&
+					m_componentManager->HasComponent<ECS::Component::Transform>(h.parent)) {
+					const auto& parentT = m_componentManager->GetComponent<ECS::Component::Transform>(h.parent);
+					const Math::Mat4 invParent = parentT.worldMatrix.Inverse();
+					localPos = invParent * worldPos;
+
+					const Math::Quat parentWorldRot = WorldQuatFromMat4(parentT.worldMatrix);
+					localRot = parentWorldRot.InverseFast() * worldRot;
+					localRot.Normalize();
+				}
+			}
+		}
+
+		t.localPosition = localPos;
+		t.localRotationQuat = localRot;
+		t.localRotationEuler = localRot.ToEulerDegrees();
 
 		t.isDirty = true;
 	}
@@ -963,6 +1013,25 @@ namespace NE::Physics {
 		}
 	}
 
+	void PhysicsManager::SetIsTrigger(uint64_t entityLUID, bool isTrigger) {
+		auto it = m_bodies.find(entityLUID);
+		if (it != m_bodies.end()) {
+			JPH::BodyInterface& bi = m_physicsSystem->GetBodyInterface();
+			JPH::BodyID bodyID = it->second;
+			bi.SetIsSensor(bodyID, isTrigger);
+		}
+	}
+
+	void PhysicsManager::SetIsKinematic(uint64_t entityLUID, bool isKinematic) {
+		//auto it = m_bodies.find(entityLUID);
+		//if (it != m_bodies.end()) {
+		//	JPH::BodyInterface& bi = m_physicsSystem->GetBodyInterface();
+		//	JPH::BodyID bodyID = it->second;
+		//	JPH::EMotionType newMotion = isKinematic ? JPH::EMotionType::Kinematic : JPH::EMotionType::Dynamic;
+		//	bi.SetMotionType(bodyID, newMotion);
+		//}
+	}
+
 	bool PhysicsManager::CookMeshCollider(const std::vector<Math::Vec3>& vertices,
 		const std::vector<uint32_t>& indices, std::vector<uint8_t>& outBlob) {
 		if (!m_physicsSystem)
@@ -1108,8 +1177,10 @@ namespace NE::Physics {
 		JPH::BodyInterface& bi = m_physicsSystem->GetBodyInterface();
 
 		for (auto& [luid, id] : m_bodies) {
-			bi.RemoveBody(id);
-			bi.DestroyBody(id);
+			if (bi.IsAdded(id)) {
+				bi.RemoveBody(id);
+				bi.DestroyBody(id);
+			}
 		}
 		m_bodies.clear();
 		m_bodyToLuid.clear();

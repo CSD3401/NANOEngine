@@ -8,11 +8,14 @@
 #include "../Interfaces/IStateCache.hpp"
 #include "Material.hpp"
 #include "DrawCommand.hpp"
+#include "DecalCommand.hpp"
+#include "DecalGizmoCommand.hpp"
 #include "DrawQueue.hpp"
 #include "RenderViewManager.hpp"
 #include "RenderSettings.hpp"
 #include "PostProcessingSettings.hpp"
 #include <vector>
+#include <unordered_set>
 
 // Forward declarations
 namespace NE {
@@ -25,15 +28,26 @@ namespace NE {
         class ICommandBuffer;
         class DrawQueue;
         class RenderViewManager;
+        class RenderGraph;
+        class TexturePool;
+        class PostProcessPipeline;
         struct DrawCommand;
+        struct LightGizmoCommand;
         struct RenderView;
         struct RenderSettings;
 
         using RenderViewHandle = std::uint32_t;
+
+        class ShadowRenderer;
+        namespace OpenGL {
+            class GLShader;
+        }
 	}
     namespace ECS {
         namespace Component {
             struct Light;
+            struct DecalProjector;
+			struct Transform;
         }
 	}
     namespace Math {
@@ -43,28 +57,16 @@ namespace NE {
 }
 
 namespace NE::Graphics {
-
-    // Debug needs to be moved
-    struct DebugLine {
-        Math::Vec3 from;
-        Math::Vec3 to;
-        Math::Vec3 color;
-    };
-    struct DebugTriangle {
-        Math::Vec3 v0;
-        Math::Vec3 v1;
-        Math::Vec3 v2;
-        Math::Vec3 color;
-    };
-
     class GraphicsManager {
     public:
         static void Init();
 
         static void BeginFrame();
-        static void SubmitSkybox();
 		static void DrawFrame();
         static void Submit(const DrawCommand& command);
+        static void SubmitDecal(const DecalCommand& command);
+        static void SubmitDecalGizmo(const DecalGizmoCommand& command);
+        static void SubmitLightGizmo(const LightGizmoCommand& command);
         static void EndFrame();
         static void Clear();
         static void Shutdown();
@@ -106,13 +108,18 @@ namespace NE::Graphics {
         static void AddDebugTriangle(const Math::Vec3& v0, const Math::Vec3& v1, const Math::Vec3& v2, const Math::Vec3& color);
         static void DrawDebugTriangles(); // drawing solid triangles
 
+		static void DrawSelectedLightGizmos(const ECS::Component::Light& light);
+		static void DrawSelectedDecalGizmos(const ECS::Component::DecalProjector& decal, 
+            const ECS::Component::Transform& transform);
+
         // batch functions
         static void AddDebugLinesBatch(const std::vector<Math::Vec3>& positions, const Math::Vec3& color);
         static void AddDebugTrianglesBatch(const std::vector<Math::Vec3>& positions, const Math::Vec3& color);
         static void DrawAllDebugGeometry();
 
         // UI
-        static void DrawUI();
+        static void SetSelectedEntities(const std::vector<uint32_t>& selectedIds);
+        static void ClearSelectedEntities();
 
         // lights
         static std::vector<ECS::Component::Light*> m_lights;
@@ -133,10 +140,10 @@ namespace NE::Graphics {
         // Experimental here for now
         static PostProcessingSettings postProcessingSettings;
 
-        static void UpdateShadowMaps();
+        // Render Graph
+        static RenderGraph* GetRenderGraph();
+        static TexturePool* GetTexturePool();
 
-        static void UpdateShadowMapsForView(const RenderView& view);
-        static void RenderShadowMapForLight(ECS::Component::Light& light, const std::vector<DrawCommand>& commands);
     private:
         static uint32_t s_ScreenWidth;
         static uint32_t s_ScreenHeight;
@@ -150,27 +157,38 @@ namespace NE::Graphics {
 		// Editor Camera
         static EditorCamera* s_EditorCamera;
 
-        // Gizmo and jolt Drawing
-        static std::vector<DebugLine> s_DebugLines;
-        static std::vector<DebugTriangle> s_DebugTriangles;
-
 		// Pipeline state cache
 		static std::unique_ptr<IStateCache> s_StateCache;
 
 		// Draw Queue
 		static std::unique_ptr<DrawQueue> s_DrawQueue;
+        static std::vector<DecalCommand> s_DecalQueue;
 
 		// Framebuffer Manager
 		static std::unique_ptr<RenderViewManager> s_RenderViewManager;
-		static RenderViewHandle s_ActiveViewHandle;
+		//static RenderViewHandle s_ActiveViewHandle;
 
 		// Clustered Lighting System for forward+ rendering
         static std::shared_ptr<IClusteredLighting> s_clusteredLighting;
 
-        // Debug
-        static std::vector<float> s_DebugVertexBuffer; // pre-allocated buffer to avoid reallocations
-        static int s_DebugViewLoc; // cached uniform locations (avoid glGetUniformLocation every frame)
-        static int s_DebugProjLoc;
-        static constexpr size_t INITIAL_DEBUG_BUFFER_SIZE = 10000;
+        // Post-processing
+        static std::unique_ptr<PostProcessPipeline> s_PostPipeline;
+        static std::shared_ptr<OpenGL::GLShader> s_NormalPrepassShader;
+        static std::shared_ptr<OpenGL::GLShader> s_SelectionOutlineProgram;
+        static std::unordered_set<uint32_t> s_SelectedEntityIds;
+        
+        static std::unique_ptr<ShadowRenderer> s_shadowRenderer;
+        static uint32_t DecodeEntityIdFromRGB(const Math::Vec3& idRGB);
+        static bool IsSelectedDrawCommand(const DrawCommand& command);
+        static void RenderSelectionHighlightForView(
+            RenderViewHandle handle,
+            const RenderView& view,
+            const Math::Mat4& camProj,
+            const Math::Mat4& camView,
+            const std::vector<DrawCommand>& commands);
+
+        // UI Rendering
+        static void RenderUIOverlay();
+
     };
 }

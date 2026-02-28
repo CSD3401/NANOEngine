@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "ScriptingEngine.hpp"
 #include <stdexcept>
 #include <algorithm>

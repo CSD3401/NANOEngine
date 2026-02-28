@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "AssetBrowserPanel.hpp"
 #include <fstream>
 #include <vector>
@@ -27,7 +28,10 @@ namespace Editor {
 		for (const auto& entry : std::filesystem::recursive_directory_iterator(root)) {
 			std::filesystem::path filePath = entry.path();
 
-			if (filePath.extension() == ".meta") continue;
+			std::string ext = filePath.extension().string();
+			std::transform(ext.begin(), ext.end(), ext.begin(),
+				[](unsigned char c) { return std::tolower(c); });
+			if (ext == ".meta") continue;
 
 			Assets::AssetManager::GetInstance().GenerateMetadata(entry.path().string());
 			Assets::ThumbnailManager::GetInstance().GenerateThumbnail(
@@ -201,6 +205,7 @@ namespace Editor {
 				if (!payload) payload = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH");
 				if (!payload) payload = ImGui::AcceptDragDropPayload("MATERIAL_PATH");
 				if (!payload) payload = ImGui::AcceptDragDropPayload("TEXTURE_ASSET_PATH");
+				if (!payload) payload = ImGui::AcceptDragDropPayload("FONT_ASSET_PATH");
 
 				if (payload) {
 					const char* pathStr = static_cast<const char*>(payload->Data);
@@ -270,6 +275,7 @@ namespace Editor {
 					if (!payload) payload = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH");
 					if (!payload) payload = ImGui::AcceptDragDropPayload("MATERIAL_PATH");
 					if (!payload) payload = ImGui::AcceptDragDropPayload("TEXTURE_ASSET_PATH");
+					if (!payload) payload = ImGui::AcceptDragDropPayload("FONT_ASSET_PATH");
 
 					if (payload) {
 						const char* pathStr = static_cast<const char*>(payload->Data);
@@ -311,7 +317,10 @@ namespace Editor {
 		for (auto& entry : std::filesystem::directory_iterator(path)) {
 			const auto& name = entry.path().filename().string();
 
-			if (entry.path().extension() == ".meta") continue;
+			std::string ext = entry.path().extension().string();
+			std::transform(ext.begin(), ext.end(), ext.begin(),
+				[](unsigned char c) { return std::tolower(c); });
+			if (ext == ".meta") continue;
 
 			// Search filter
 			if (strlen(m_searchBuffer) > 0) {
@@ -353,17 +362,25 @@ namespace Editor {
 				bool hasSpecialPayload = false;
 
 				if (!entry.is_directory()) {
-					if (entryPath.extension() == ".obj" || entryPath.extension() == ".fbx") {
+					// Get lowercase extension for case-insensitive comparison
+					std::string ext = entryPath.extension().string();
+					std::transform(ext.begin(), ext.end(), ext.begin(),
+						[](unsigned char c) { return std::tolower(c); });
+
+					if (ext == ".obj" || ext == ".fbx") {
 						ImGui::SetDragDropPayload("ASSET_MESH_PATH", dragPathStr.c_str(), dragPathStr.size() + 1);
 						hasSpecialPayload = true;
-					} else if (entryPath.extension() == ".nanomat") {
+					} else if (ext == ".nanomat") {
 						ImGui::SetDragDropPayload("MATERIAL_PATH", dragPathStr.c_str(), dragPathStr.size() + 1);
 						hasSpecialPayload = true;
-					} else if (entryPath.extension() == ".jpg" || entryPath.extension() == ".png") {
+					} else if (ext == ".jpg" || ext == ".png") {
 						ImGui::SetDragDropPayload("TEXTURE_ASSET_PATH", dragPathStr.c_str(), dragPathStr.size() + 1);
 						hasSpecialPayload = true;
-					} else if (entryPath.extension() == ".nfab") {
+					} else if (ext == ".nfab") {
 						ImGui::SetDragDropPayload("PREFAB_ASSET_PATH", dragPathStr.c_str(), dragPathStr.size() + 1);
+						hasSpecialPayload = true;
+					} else if (ext == ".ttf" || ext == ".otf") {
+						ImGui::SetDragDropPayload("FONT_ASSET_PATH", dragPathStr.c_str(), dragPathStr.size() + 1);
 						hasSpecialPayload = true;
 					}
 				}
@@ -384,15 +401,19 @@ namespace Editor {
 					} else {
 						const auto& entryPath = entry.path();
 						if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-							if (entryPath.extension() == ".obj" || entryPath.extension() == ".fbx" ||
-								entryPath.extension() == ".nanomat" ||
-								entryPath.extension() == ".jpg" || entryPath.extension() == ".png") {
+							std::string ext = entryPath.extension().string();
+							std::transform(ext.begin(), ext.end(), ext.begin(),
+								[](unsigned char c) { return std::tolower(c); });
+
+							if (ext == ".obj" || ext == ".fbx" ||
+								ext == ".nanomat" ||
+								ext == ".jpg" || ext == ".png") {
 								EditorScene::s_selection.Clear();
 								EditorScene::selectedAsset = entryPath.string();
-							} else if (entryPath.extension() == ".scene") {
+							} else if (ext == ".scene") {
 								m_selectedPath = entryPath;
 								m_confirmChangeScenePopupOpen = true;
-							} else if (entryPath.extension() == ".nfab") {
+							} else if (ext == ".nfab") {
 								EditorScene::s_selection.Clear();
 								EditorScene::selectedAsset = "";
 								std::string prefabUUID = Assets::AssetManager::GetInstance().RetrieveUUID(entryPath.string());
@@ -400,7 +421,7 @@ namespace Editor {
 									EditorScene::BuildRoot();
 									Editor::EditorScene::selectedPrefab = prefabUUID;
 								}
-							} else if (entryPath.extension() == ".nanim") {
+							} else if (ext == ".nanim") {
 								EditorScene::s_selection.Clear();
 								EditorScene::selectedAsset = entryPath.string();
 							}
@@ -421,6 +442,7 @@ namespace Editor {
 					if (!payload) payload = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH");
 					if (!payload) payload = ImGui::AcceptDragDropPayload("MATERIAL_PATH");
 					if (!payload) payload = ImGui::AcceptDragDropPayload("TEXTURE_ASSET_PATH");
+					if (!payload) payload = ImGui::AcceptDragDropPayload("FONT_ASSET_PATH");
 
 					if (payload) {
 						const char* pathStr = static_cast<const char*>(payload->Data);
@@ -604,6 +626,7 @@ namespace Editor {
 				if (!payload) payload = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH");
 				if (!payload) payload = ImGui::AcceptDragDropPayload("MATERIAL_PATH");
 				if (!payload) payload = ImGui::AcceptDragDropPayload("TEXTURE_ASSET_PATH");
+				if (!payload) payload = ImGui::AcceptDragDropPayload("FONT_ASSET_PATH");
 
 				if (payload) {
 					const char* pathStr = static_cast<const char*>(payload->Data);

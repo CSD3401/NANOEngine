@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -168,6 +168,8 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(SolutionDir)NANOEngine\src;$(SolutionDir)NANOEngine\vendor\include;$(ProjectDir)vendor\include</AdditionalIncludeDirectories>
       <AdditionalOptions>/w34996 %(AdditionalOptions)</AdditionalOptions>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -197,6 +199,8 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(SolutionDir)NANOEngine\src;$(SolutionDir)NANOEngine\vendor\include;$(ProjectDir)vendor\include</AdditionalIncludeDirectories>
       <AdditionalOptions>/w34996 %(AdditionalOptions)</AdditionalOptions>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -227,6 +231,8 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(SolutionDir)NANOEngine\src;$(SolutionDir)NANOEngine\vendor\include;$(ProjectDir)vendor\include</AdditionalIncludeDirectories>
       <AdditionalOptions>/w34996 %(AdditionalOptions)</AdditionalOptions>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -245,9 +251,15 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Production|x64'">Create</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\Panels\AnimatorPanel.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\AnimationClipAsset.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\AnimationControllerAsset.cpp" />
+    <ClCompile Include="src\AssetManagement\Assets\FontAsset.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\PrefabAsset.cpp" />
     <ClCompile Include="src\Layers\LayerDatabase.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\SceneAsset.cpp" />
@@ -277,6 +289,7 @@
     <ClCompile Include="src\Panels\LightingPanel.cpp" />
     <ClCompile Include="src\Panels\LoggerPanel.cpp" />
     <ClCompile Include="src\Panels\ProfilerPanel.cpp" />
+    <ClCompile Include="src\Panels\RenderGraphPanel.cpp" />
     <ClCompile Include="src\Panels\SceneCameraTweener.cpp" />
     <ClCompile Include="src\Panels\ScenePanel.cpp" />
     <ClCompile Include="src\Application.cpp" />
@@ -288,23 +301,71 @@
     <ClCompile Include="src\UIGizmoHandler.cpp" />
     <ClCompile Include="src\AssetManagement\Interfaces\TextureSettingsEditor.cpp" />
     <ClCompile Include="src\TagDatabase.cpp" />
-    <ClCompile Include="vendor\include\imgui\imgui.cpp" />
-    <ClCompile Include="vendor\include\imgui\imgui_draw.cpp" />
-    <ClCompile Include="vendor\include\imgui\imgui_impl_glfw.cpp" />
-    <ClCompile Include="vendor\include\imgui\imgui_impl_opengl3.cpp" />
-    <ClCompile Include="vendor\include\imgui\imgui_tables.cpp" />
-    <ClCompile Include="vendor\include\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="vendor\include\imgui\misc\cpp\imgui_stdlib.cpp" />
-    <ClCompile Include="vendor\include\imgui\widgets\imguizmo\ImGuizmo.cpp" />
-    <ClCompile Include="vendor\include\imgui\widgets\imgui_widget_flamegraph\imgui_widget_flamegraph.cpp" />
-    <ClCompile Include="vendor\include\imgui\widgets\imsearch\imsearch.cpp" />
-    <ClCompile Include="vendor\include\imgui\widgets\imsearch\imsearch_demo.cpp" />
+    <ClCompile Include="vendor\include\imgui\imgui.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Production|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="vendor\include\imgui\imgui_draw.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Production|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="vendor\include\imgui\imgui_impl_glfw.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Production|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="vendor\include\imgui\imgui_impl_opengl3.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Production|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="vendor\include\imgui\imgui_tables.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Production|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="vendor\include\imgui\imgui_widgets.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Production|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="vendor\include\imgui\misc\cpp\imgui_stdlib.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Production|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="vendor\include\imgui\widgets\imguizmo\ImGuizmo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Production|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="vendor\include\imgui\widgets\imgui_widget_flamegraph\imgui_widget_flamegraph.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Production|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="vendor\include\imgui\widgets\imsearch\imsearch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Production|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="vendor\include\imgui\widgets\imsearch\imsearch_demo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Production|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\pch.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\AssetManagement\Settings\AnimClipImportSettings.hpp" />
     <ClInclude Include="src\Panels\AnimatorPanel.hpp" />
     <ClInclude Include="src\AssetManagement\Assets\AnimationClipAsset.hpp" />
     <ClInclude Include="src\AssetManagement\Assets\AnimationControllerAsset.hpp" />
+    <ClInclude Include="src\AssetManagement\Assets\FontAsset.hpp" />
     <ClInclude Include="src\Layers\LayerDatabase.hpp" />
     <ClInclude Include="src\AssetManagement\AssetRecord.hpp" />
     <ClInclude Include="src\AssetManagement\Interfaces\ModelSettingsEditor.hpp" />
@@ -344,6 +405,7 @@
     <ClInclude Include="src\Panels\LightingPanel.hpp" />
     <ClInclude Include="src\Panels\LoggerPanel.hpp" />
     <ClInclude Include="src\Panels\ProfilerPanel.hpp" />
+    <ClInclude Include="src\Panels\RenderGraphPanel.hpp" />
     <ClInclude Include="src\Panels\SceneCameraTweener.hpp" />
     <ClInclude Include="src\Panels\ScenePanel.hpp" />
     <ClInclude Include="src\Application.hpp" />
@@ -355,7 +417,6 @@
     <ClInclude Include="src\Panels\IPanel.hpp" />
     <ClInclude Include="src\ThumbnailManager.hpp" />
     <ClInclude Include="src\UIGizmoHandler.hpp" />
-    <ClInclude Include="src\Util\DrawSelectedCollider.hpp" />
     <ClInclude Include="src\AssetManagement\Interfaces\TextureSettingsEditor.hpp" />
     <ClInclude Include="src\Util\HierarchyUtils.hpp" />
     <ClInclude Include="src\TagDatabase.hpp" />

@@ -27,10 +27,12 @@ public:
         SCRIPT_GAMEOBJECT_REF(connectedHolderObject);
         SCRIPT_FIELD_VECTOR(wireColours, Int);
         SCRIPT_FIELD_VECTOR(correctColours, Int);
+        SCRIPT_FIELD_VECTOR(wirePath, Int);
         SCRIPT_FIELD(wirePuzzleIndex, Int);
         SCRIPT_COMPONENT_REF(finishedWireColour, MaterialRef);
         SCRIPT_FIELD(changeTimer, Float);
 
+        SCRIPT_FIELD(eventName, String);
     }
 
     ~Puzzle_Wire() override = default;
@@ -60,7 +62,8 @@ public:
         if (buttonPressed)
         {
             buttonPressed = false;
-            SwapWireColours(indexToSwap);
+            //SwapWireColours(indexToSwap);
+            UpdatePuzzleVars();
         }
     }
 
@@ -137,57 +140,116 @@ public:
 
     void RecieveIndexData(void* indexData)
     {
-        indexToSwap = *reinterpret_cast<int*>(indexData);
+        //indexToSwap = *reinterpret_cast<int*>(indexData);
+        wireDataRecieved = *reinterpret_cast<std::string*>(indexData);
         buttonPressed = true;
     }
 
-    void SwapWireColours(int lIndex)
+    //void SwapWireColours(int lIndex)
+    //{
+    //    int leftIndex = lIndex;
+    //    int rightIndex = leftIndex + 1;
+    //    // Update the colours in the vector
+    //    std::swap(wireColours[leftIndex], wireColours[rightIndex]);
+
+    //    // update the wire gameobjects to their new colour
+    //    //std::string message = "UpdateWireColour" + std::to_string(wirePuzzleIndex);
+    //    //LOG_DEBUG(message.c_str());
+    //    //Events::Send((message + std::to_string(leftIndex)).c_str(), &wireColours[leftIndex]);
+    //    //Events::Send((message + std::to_string(rightIndex)).c_str(), &wireColours[rightIndex]);
+    //    //LOG_DEBUG(message.c_str());
+
+    //    GameObject child1(wireChildren[leftIndex]);
+    //    child1.GetComponent<Misc_WireChild>()->UpdateWireColour(wireColours[leftIndex]);
+    //    GameObject child2(wireChildren[rightIndex]);
+    //    child2.GetComponent<Misc_WireChild>()->UpdateWireColour(wireColours[rightIndex]);
+
+    //    // Check if the puzzle is solved
+    //    if (CheckWireColours())
+    //    {
+    //        // Send message that puzzle is solved
+    //        //Solve();
+
+    //        // Current Fix until solve is able to be used
+    //        LOG_DEBUG("PUZZLE SOLVED!");
+    //        std::string message = "PuzzleSolved1";
+    //        Events::Send(message.c_str());
+
+    //        //for (int i = 0; i < numWires; ++i)
+    //        //{
+    //        //    SetActive(true, connectedWires[i]);
+    //        //}
+    //    }
+    //}
+
+    //bool CheckWireColours()
+    //{
+    //    for (int i = 0; i < wireColours.size(); ++i)
+    //    {
+    //        //if (wireColours[i] != correctColours[i])
+    //        if (wireColours[i] != correctColours[wirePath[i]])
+    //        {
+    //            return false;
+    //        }
+    //    }
+    //    return true;
+    //}
+
+    void UpdatePuzzleVars()
     {
-        int leftIndex = lIndex;
-        int rightIndex = leftIndex + 1;
-        // Update the colours in the vector
-        std::swap(wireColours[leftIndex], wireColours[rightIndex]);
-
-        // update the wire gameobjects to their new colour
-        //std::string message = "UpdateWireColour" + std::to_string(wirePuzzleIndex);
-        //LOG_DEBUG(message.c_str());
-        //Events::Send((message + std::to_string(leftIndex)).c_str(), &wireColours[leftIndex]);
-        //Events::Send((message + std::to_string(rightIndex)).c_str(), &wireColours[rightIndex]);
-        //LOG_DEBUG(message.c_str());
-
-        GameObject child1(wireChildren[leftIndex]);
-        child1.GetComponent<Misc_WireChild>()->UpdateWireColour(wireColours[leftIndex]);
-        GameObject child2(wireChildren[rightIndex]);
-        child2.GetComponent<Misc_WireChild>()->UpdateWireColour(wireColours[rightIndex]);
-
-        // Check if the puzzle is solved
-        if (CheckWireColours())
+        int side = std::stoi(wireDataRecieved.substr(0,1));
+        int index = std::stoi(wireDataRecieved.substr(1));
+        if (side == 0)
         {
-            // Send message that puzzle is solved
-            //Solve();
+            currentSelectedLeftIndex = index;
+        }
+        else
+        {
+            currentSelectedRightIndex = index;
+        }
 
-            // Current Fix until solve is able to be used
-            LOG_DEBUG("PUZZLE SOLVED!");
-            std::string message = "PuzzleSolved1";
-            Events::Send(message.c_str());
+        std::string message = "SIDE: ";
+        message += side == 0 ? "TOP" : "BOTTOM";
+        message += ", INDEX: ";
+        message += std::to_string(index);
+        LOG_DEBUG(message);
 
-            for (int i = 0; i < numWires; ++i)
+        if (currentSelectedLeftIndex != 9999 && currentSelectedRightIndex != 9999)
+        {
+            if (CheckWirePair()) // if all 4 are correct
             {
-                SetActive(true, connectedWires[i]);
+                LOG_DEBUG("PUZZLE SOLVED!");
+                std::string message = wirePuzzleIndex == 0 ? "PuzzleSolved1" : "PuzzleSolved2";
+                Events::Send(eventName.c_str());
+                PlayAudio("event:/SOLVE_WIRE_PUZZLE");
             }
+
         }
     }
 
-    bool CheckWireColours()
+    bool CheckWirePair()
     {
-        for (int i = 0; i < wireColours.size(); ++i)
+        if (wireColours[currentSelectedLeftIndex] == correctColours[currentSelectedRightIndex])
         {
-            if (wireColours[i] != correctColours[i])
+            PlayAudio("event:/CONNECT_WIRE");
+
+            // if true turn on the wire connecting them
+            SetActive(true, connectedWires[currentSelectedRightIndex]);
+            // then reset
+            currentSelectedLeftIndex = 9999;
+            currentSelectedRightIndex = 9999;
+
+            // Increment number of correct pairs
+            ++correctPairs;
+            if (correctPairs == numWires)
             {
-                return false;
+                return true;
             }
         }
-        return true;
+        // fail then reset pair
+        currentSelectedLeftIndex = 9999;
+        currentSelectedRightIndex = 9999;
+        return false;
     }
 
 private:
@@ -199,6 +261,7 @@ private:
     int numWires = 3;
     std::vector<int> wireColours;
     std::vector<int> correctColours;
+    std::vector<int> wirePath;
     int wirePuzzleIndex;
     bool buttonPressed = false;
     int indexToSwap = 0;
@@ -209,4 +272,25 @@ private:
     std::vector<Entity> wireChildren;
     std::vector<Entity> correctChildren;
     std::vector<Entity> connectedWires;
+
+    int currentSelectedLeftIndex = 9999; // left -> top row
+    int currentSelectedRightIndex = 9999; // right -> bottom row
+    int correctPairs = 0;
+    std::string wireDataRecieved;
+
+    // RF Added
+    // PuzzleSolved1 - at the left and right
+    // PuzzleSolved2 - right b4 catwalk
+
+    std::string eventName = "PuzzleSolved1"; 
+
+    // Connected wires and correct children are teh colours the player needs to line up
+    // correct[0, 2, 1] -> blue red green
+    // connected are coloured the same as correct
+    // wireChildren [1, 0, 2] -> red green blue 
+    // wirepaths -> map where [x][y]
+    // x: the index of the wirechild
+    // y: what colour it connects to
+    // must match wirechildren to correct wire paths
+    // the value inside wirechild[x] must be == to correctWire[wirepath[x]]
 };

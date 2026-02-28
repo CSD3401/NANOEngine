@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "LightingPanel.hpp"
 #include <imgui/imgui.h>
 #include "Engine.hpp"
@@ -5,6 +6,7 @@
 #include <Graphics/Core/PostProcessingSettings.hpp>
 #include <EditorInterface/RendererExports.hpp>
 #include "../EditorUI.hpp"
+#include <algorithm>
 
 
 namespace Editor {
@@ -12,8 +14,7 @@ namespace Editor {
     // Call this every frame where you want the panel:
 
 	void LightingPanel::OnImGuiRender() {
-		ImGui::Begin("Lighting", nullptr,
-			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+		ImGui::Begin("Lighting", nullptr);
 
 		NE::Graphics::RenderSettings& renderSettings = NE::Renderer::Command::GetRenderSettings();
 
@@ -143,18 +144,26 @@ namespace Editor {
 		case 2: {
 			NE::Graphics::PostProcessingSettings& postProcessingSettings = NE::Renderer::Command::GetPostProcessingSettings();
 
+			ImGui::PushID("BloomSettings");
 			if (ImGui::CollapsingHeader("Bloom##Header", ImGuiTreeNodeFlags_DefaultOpen)) {
 				ImGui::TextUnformatted("Bloom Tint");
 				ImGui::SameLine();
 				ImGui::ColorEdit3("##BloomTint", postProcessingSettings.bloomSettings.tint.Data());
-				Editor::DrawFloatField("Bright Threshold", postProcessingSettings.bloomSettings.brightThreshold, 0.1f, true);
-				Editor::DrawFloatField("Bright Scale", postProcessingSettings.bloomSettings.brightScale, 0.1f, true);
-				Editor::DrawFloatField("Bright Soft Knee", postProcessingSettings.bloomSettings.softKnee, 0.1f, true);
-				Editor::DrawFloatField("Up Sample Intensity", postProcessingSettings.bloomSettings.bloomRadius, 0.1f, true);
-				Editor::DrawFloatField("Bloom Strength", postProcessingSettings.bloomSettings.bloomIntensity, 0.1f, true);
+				Editor::ToolTip("(Default: [1.0, 1.0, 1.0]) Tints the bloom contribution. Keep near white for natural glow; use subtle color for stylized lighting.");
+				Editor::DrawFloatField("Threshold", postProcessingSettings.bloomSettings.brightThreshold, 0.05f, true);
+				Editor::ToolTip("(Default: 1.0) Minimum brightness before pixels contribute to bloom. Lower = more bloom everywhere; higher = only very bright highlights.");
+				Editor::DrawFloatField("Prefilter Gain", postProcessingSettings.bloomSettings.brightScale, 0.01f, true);
+				Editor::ToolTip("(Default: 1.0) Scales the extracted highlights before blur. Use to boost bloom without lowering the threshold.");
+				Editor::DrawFloatField("Soft Knee", postProcessingSettings.bloomSettings.softKnee, 0.01f, true);
+				Editor::ToolTip("(Default: 0.5) Softens the threshold transition. 0 = hard cutoff, higher values reduce popping and flicker.");
+				Editor::DrawFloatField("Radius", postProcessingSettings.bloomSettings.bloomRadius, 0.05f, true);
+				Editor::ToolTip("(Default: 1.0) Controls bloom spread/blur radius across the mip chain. Higher = wider, softer glow (more expensive).");
+				Editor::DrawFloatField("Intensity", postProcessingSettings.bloomSettings.bloomIntensity, 0.01f, true);
+				Editor::ToolTip("(Default: 0.06) Final bloom strength added back into the scene after blur.");
 			}
+			ImGui::PopID();
 
-			const char* toneMapTypeItems[] = { "Reinhard", "ReinhardExtended", "ACESApproximation", "FilmicACES" };
+			const char* toneMapTypeItems[] = { "Reinhard", "ReinhardExtended", "ACESApproximation", "FilmicACES", "ACESFitted"};
 			int toneMapType = static_cast<int>(postProcessingSettings.bloomSettings.toneMapType);
 
 			if (ImGui::CollapsingHeader("Tone-Mapping##Header", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -169,13 +178,33 @@ namespace Editor {
 				Editor::DrawFloatField("Tonemap Exposure", postProcessingSettings.bloomSettings.exposure, 0.1f, true);
 			}
 
-			if (ImGui::CollapsingHeader("SSAO##Header", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::PushID("SSAO");
+			if (ImGui::CollapsingHeader("Ambient Occlusion##Header", ImGuiTreeNodeFlags_DefaultOpen)) {
 				Editor::DrawCheckbox("Enabled", postProcessingSettings.ssaoSettings.enabled);
 				Editor::DrawFloatField("Radius", postProcessingSettings.ssaoSettings.radius, 0.1f, true);
 				Editor::DrawFloatField("Bias", postProcessingSettings.ssaoSettings.bias, 0.1f, true);
 				Editor::DrawFloatField("Intensity", postProcessingSettings.ssaoSettings.intensity, 0.1f, true);
 				Editor::DrawFloatField("Power", postProcessingSettings.ssaoSettings.power, 0.1f, true);
 			}
+			ImGui::PopID();
+
+			ImGui::PushID("SSR");
+			if (ImGui::CollapsingHeader("Screen Space Reflections##Header", ImGuiTreeNodeFlags_DefaultOpen)) {
+				Editor::DrawCheckbox("Enabled", postProcessingSettings.ssrSettings.enabled);
+				Editor::DrawFloatField("Intensity", postProcessingSettings.ssrSettings.intensity, 0.05f, true);
+				Editor::DrawFloatField("Max Distance", postProcessingSettings.ssrSettings.maxDistance, 0.5f, true);
+				Editor::DrawFloatField("Thickness", postProcessingSettings.ssrSettings.thickness, 0.01f, true);
+				Editor::DrawFloatField("Stride", postProcessingSettings.ssrSettings.stride, 0.01f, true);
+				Editor::DrawFloatField("Roughness Cutoff", postProcessingSettings.ssrSettings.roughnessCutoff, 0.01f, true);
+				Editor::DrawFloatField("Fresnel Power", postProcessingSettings.ssrSettings.fresnelPower, 0.1f, true);
+				Editor::DrawFloatField("Edge Fade", postProcessingSettings.ssrSettings.edgeFade, 0.01f, true);
+				Editor::DrawFloatField("Half Res Scale", postProcessingSettings.ssrSettings.halfResScale, 0.01f, true);
+				ImGui::SliderInt("Tap Counts", &postProcessingSettings.ssrSettings.resolveTapCount, 0, 12);
+				ImGui::SliderInt("Max Steps", &postProcessingSettings.ssrSettings.maxSteps, 8, 128);
+				ImGui::SliderInt("Binary Search Steps", &postProcessingSettings.ssrSettings.binarySearchSteps, 0, 10);
+				postProcessingSettings.ssrSettings.thickness = std::max(0.0f, postProcessingSettings.ssrSettings.thickness);
+			}
+			ImGui::PopID();
 
 		} break;
 		case 3: {

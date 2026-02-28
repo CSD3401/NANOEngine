@@ -22,19 +22,12 @@ namespace Editor {
 	void Application::Init() {
 		timer.Start();
 
-		// Enable logging BEFORE engine initialization
 		SpdLogger::GetInstance().EnableFileLogging("logs/session.log");
 		SpdLogger::GetInstance().EnableCrashOnlyLogging("crash_logs/");
 
 		// Now initialize engine (logs will be captured)
 		NE::Initialize();
-
-		// Testing the SpdLogger with some demo messages
-		SPD_INFO("=== NANOEngine Application Started ===");
-		SPD_DEBUG("Initialization in progress...");
-		SPD_INFO("Graphics API: OpenGL");
-		SPD_DEBUG("Window creation completed");
-		SPD_INFO("ImGui integration active");
+		NE::UseProductionSceneManager();
 
 		GLFWwindow* window = static_cast<GLFWwindow*>(NE::GetNativeWindowHandle());
 
@@ -72,9 +65,7 @@ namespace Editor {
 			NE::InputManager::OnCharInput((uint32_t)c);
 			});
 
-		SPD_INFO("=== Application initialization complete ===");
-		SPD_DEBUG("All panels loaded successfully");
-		SPD_INFO("Ready for user interaction");
+		NE::LoadScene("e17cc794-74d9-40ee-9c9e-efaa829ab09a");
 	}
 
 	void Application::Run() {

@@ -63,7 +63,43 @@ public:
     ~Puzzle_MultiLightSequencer() override = default;
 
     // === Lifecycle ===
-    void Awake() override {}
+    void Awake() override {
+        Events::Listen("TimePastEnabled", [this](void*) {
+            LOG_INFO("[Sequencer] TimePastEnabled received -> starting sequence");
+
+            m_pastActive = true;
+
+            // HARD RESET on entering the past
+            m_state = State::Idle;
+            m_sequence.clear();
+            m_inputIndex = 0;
+            m_showIndex = 0;
+            m_timer = 0.0f;
+
+            SetAllValidLights(false);
+
+            if (autoStart) {
+                BeginNewRound(true);
+            }
+            });
+
+
+
+
+        Events::Listen("TimePastDisabled", [this](void*) {
+            m_pastActive = false;
+
+            m_state = State::Idle;
+            m_sequence.clear();
+            m_inputIndex = 0;
+            m_showIndex = 0;
+            m_timer = 0.0f;
+
+            SetAllValidLights(false);
+            });
+
+    }
+
     void Initialize(Entity entity) override { (void)entity; }
 
     void Start() override {
@@ -86,13 +122,12 @@ public:
         if (solvedEventName.empty()) solvedEventName = "PuzzleSolved";
 
         SetAllValidLights(false);
-
-        if (autoStart) {
-            BeginNewRound(true);
-        }
     }
 
     void Update(double deltaTime) override {
+        if (!m_pastActive) {
+            return; // Sequencer frozen in the present
+        }
         const float dt = static_cast<float>(deltaTime);
 
         // --- Show sequence (state machine) ---
@@ -173,13 +208,18 @@ public:
 
     // Click-pads can call this to start the puzzle if autoStart=false.
     void StartPuzzleIfIdle(bool reseed) {
+        if (!m_pastActive) return;   // REQUIRED
         if (m_state != State::Idle) return;
         if (m_numValidSlots < 2) return;
+
         BeginNewRound(reseed);
     }
 
+
     // Accepts either slotNumber 1..9 (recommended) or 0..8.
     void ReceiveInput(int input) {
+        PlayAudio("event:/COLOR_CLICK");
+
         if (m_state != State::WaitingInput) return;
         if (m_sequence.empty()) return;
 
@@ -226,6 +266,8 @@ private:
         void* payload = reinterpret_cast<void*>(static_cast<std::uintptr_t>(puzzleKeyId));
         //Events::Send(evt, payload); // this crashes - RF
         Events::Send(evt, &puzzleKeyId);
+        Events::Send("RaziPuzzle");
+        PlayAudio("event:/DOOR_OPEN"); // REPLACE THIS - RF
     }
 
     void BeginNewRound(bool reseed) {
@@ -329,6 +371,7 @@ private:
         Coroutines::AddWait(handle, 0.08f);
         Coroutines::AddAction(handle, [this, slotIndex]() {
             if (m_state == State::WaitingInput) SetSlotLightState(slotIndex, false);
+            PlayAudio("event:/BUTTON_CLICK");
             });
         Coroutines::Start(handle);
     }
@@ -348,7 +391,7 @@ private:
     int sequenceLength = 3;
     bool autoStart = true;
     bool logSequence = false;
-
+    bool m_pastActive = false;
     int puzzleKeyId = 1;
     std::string solvedEventName = "PuzzleSolved";
 

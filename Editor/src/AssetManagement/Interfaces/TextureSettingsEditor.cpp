@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "TextureSettingsEditor.hpp"
 
 #include <imgui/imgui.h>

@@ -1,8 +1,6 @@
 #pragma once
 
 #include "../Core/System.hpp"
-#include <vector>
-#include <unordered_map>
 #include "../Core/ComponentManager.hpp"
 
 namespace NE::Core {

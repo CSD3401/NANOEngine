@@ -89,13 +89,17 @@ public:
         //     std::to_string(afterPos.x) + ", " +
         //     std::to_string(afterPos.y) + ", " +
         //     std::to_string(afterPos.z) + ")").c_str());
+        PlayAudio("event:/ELECTRIC_SHOCK"); // REPLACE THIS - RF
+
     }
 
     // === Collision Callbacks ===
     void OnCollisionEnter(Entity other) override { HandlePlayerEnter(other); }
-    void OnCollisionExit(Entity other) override {}
+    void OnCollisionExit(Entity other) override { (void)other; }
+    void OnCollisionStay(Entity other) override { (void)other; }
     void OnTriggerEnter(Entity other) override { HandlePlayerEnter(other); }
-    void OnTriggerExit(Entity other) override {}
+    void OnTriggerExit(Entity other) override { (void)other; }
+    void OnTriggerStay(Entity other) override { (void)other; }
 
 private:
     GameObjectRef playerRef;

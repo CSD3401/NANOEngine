@@ -1,4 +1,6 @@
-﻿#include "EditorLayer.hpp"
+#include "pch.h"
+#include "EditorLayer.hpp"
+#include "ImGuiLayer.hpp"
 #include "imgui/imgui.h"
 #include <imgui/imgui_internal.h>
 #include <wtypes.h>
@@ -10,6 +12,7 @@
 #include "Panels/InspectorPanel.hpp"
 #include "Panels/ProfilerPanel.hpp"
 #include "Panels/LightingPanel.hpp"
+#include "Panels/RenderGraphPanel.hpp"
 #include <Core/SpdLogger.hpp>
 #include "Serialization/Serializer.hpp"
 #include "AssetManagement/AssetManager.hpp"
@@ -18,6 +21,7 @@
 #include "ThumbnailManager.hpp"
 #include <Events/EventBus.hpp>
 #include "EditorEvents.hpp"
+#include "Panels/AnimationPanel.hpp"
 
 namespace Editor {
 	void EditorLayer::Init() {
@@ -58,7 +62,12 @@ namespace Editor {
 		ImGui::DockSpace(dockspace_id, ImGui::GetContentRegionAvail(), dockspace_flags);
 
 		if ((ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyShift && !ImGui::GetIO().KeyAlt)) {
-			if (ImGui::IsKeyPressed(ImGuiKey_S, false)) {
+			if (ImGui::IsKeyPressed(ImGuiKey_Equal, false)) {
+				RebuildFonts(GetFontSize() + 1.0f);
+			} else if (ImGui::IsKeyPressed(ImGuiKey_Minus, false)) {
+				float newSize = GetFontSize() - 1.0f;
+				if (newSize >= 8.0f) RebuildFonts(newSize);
+			} else if (ImGui::IsKeyPressed(ImGuiKey_S, false)) {
 				auto sceneAsset = dynamic_cast<Assets::SceneAsset*>(Assets::AssetManager::GetInstance().GetRecord(EditorScene::s_currentSceneUUID)->asset.get());
 				sceneAsset->SaveScene(EditorScene::s_currentScenePath);
 				EditorScene::isDirty = false;
@@ -223,18 +232,21 @@ namespace Editor {
 				if (ImGui::MenuItem("Lighting", nullptr, false)) {
 					AddPanel<LightingPanel>();
 				}
+				if (ImGui::MenuItem("Render Graph", nullptr, false)) {
+					AddPanel<RenderGraphPanel>();
+				}
 				ImGui::EndMenu();
 			}
 			if (ImGui::BeginMenu("Animation")) {
 				if (ImGui::MenuItem("Animation", nullptr, false)) {
-					//AddPanel<AnimationPanel>();
+					AddPanel<AnimationPanel>();
 				}
-				if (ImGui::MenuItem("Animator", nullptr, false)) {
-					//AddPanel<AnimatorGraphPanel>();
-				}
-				if (ImGui::MenuItem("Animation Runtime", nullptr, false)) {
-					//AddPanel<AnimatorRuntimePanel>();
-				}
+				//if (ImGui::MenuItem("Animator", nullptr, false)) {
+				//	//AddPanel<AnimatorGraphPanel>();
+				//}
+				//if (ImGui::MenuItem("Animation Runtime", nullptr, false)) {
+				//	//AddPanel<AnimatorRuntimePanel>();
+				//}
 				ImGui::EndMenu();
 			}
 			ImGui::EndPopup();

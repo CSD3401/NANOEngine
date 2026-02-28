@@ -39,6 +39,15 @@ namespace Editor::Events {
 		uint32_t parentEntity;
 	};
 
+	// UI Creation Events (Unity-like workflow)
+	struct CreateUICanvasEvent {};
+	struct CreateUITextEvent { uint32_t parentEntity; };
+	struct CreateUIImageEvent { uint32_t parentEntity; };
+	struct CreateUIButtonEvent { uint32_t parentEntity; };
+	struct CreateUIPanelEvent { uint32_t parentEntity; };
+	struct CreateUISliderEvent { uint32_t parentEntity; };
+	struct CreateUIToggleEvent { uint32_t parentEntity; };
+
 	struct HierarchyChangeEvent {
 		uint32_t childEntity;
 		uint32_t newParentEntity;
@@ -46,18 +55,13 @@ namespace Editor::Events {
 	};
 
 	struct DeleteEntityEvent {
-		std::vector<uint32_t> entitiesToBeDeleted;
-		uint32_t oldParentEntity;
+		std::vector<uint32_t> rootEntitiesToDelete;
 	};
 
 	struct HideCursorEvent {};
 	struct ShowCursorEvent {};
 
 
-	struct CreateUICanvasEntityEvent {};
-	struct CreateUIImageEntityEvent {
-		uint32_t parentCanvas;  // Which canvas to parent to
-	};
 	struct SelectEntityEvent {
 		uint32_t selectedEntity;
 	};

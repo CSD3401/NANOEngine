@@ -12,11 +12,15 @@ namespace NE::ECS::Component {
 	struct UIRectTransform;
 	struct UICanvas;
 	struct UIImage;
+	struct UIText;
+	struct UIButton;
+	struct UISlider;
 	struct Hierarchy;
 	struct PrefabLink;
 	struct PrefabInstance;
 	struct CharacterController;
 	struct Animator;
+    struct DecalProjector;
 }
 
 template <typename T> struct ComponentKey;
@@ -36,7 +40,11 @@ NE_COMPONENT_KEY(NE::ECS::Component::Camera, "Camera")
 NE_COMPONENT_KEY(NE::ECS::Component::UIRectTransform, "UIRectTransform")
 NE_COMPONENT_KEY(NE::ECS::Component::UICanvas, "UICanvas")
 NE_COMPONENT_KEY(NE::ECS::Component::UIImage, "UIImage")
+NE_COMPONENT_KEY(NE::ECS::Component::UIText, "UIText")
+NE_COMPONENT_KEY(NE::ECS::Component::UIButton, "UIButton")
+NE_COMPONENT_KEY(NE::ECS::Component::UISlider, "UISlider")
 NE_COMPONENT_KEY(NE::ECS::Component::PrefabLink, "PrefabLink")
 NE_COMPONENT_KEY(NE::ECS::Component::PrefabInstance, "PrefabInstance")
 NE_COMPONENT_KEY(NE::ECS::Component::CharacterController, "CharacterController")
 NE_COMPONENT_KEY(NE::ECS::Component::Animator, "Animator")
+NE_COMPONENT_KEY(NE::ECS::Component::DecalProjector, "DecalProjector")

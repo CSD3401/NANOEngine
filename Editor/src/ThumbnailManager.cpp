@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "ThumbnailManager.hpp"
 
 #include <compressonator/cmp_compressonatorlib/compressonator.h>

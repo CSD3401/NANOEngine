@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "EventBus.hpp"
 
 namespace NANOEngine::Events {
@@ -5,6 +6,20 @@ namespace NANOEngine::Events {
     EventBus& EventBus::Get() {
         static EventBus instance;
         return instance;
+    }
+
+    void EventBus::DispatchQueued() {
+        std::queue<std::shared_ptr<IQueuedEvent>> toProcess;
+        {
+            std::scoped_lock lock(mutex_);
+            std::swap(toProcess, queuedEvents_);
+        }
+
+        while (!toProcess.empty()) {
+            auto e = toProcess.front();
+            toProcess.pop();
+            e->Dispatch(*this);
+        }
     }
 
     void EventBus::ClearDomain(EventDomain domain)

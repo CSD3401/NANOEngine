@@ -7,9 +7,10 @@
 * It simply provides a virtual function Interact that can be overridden by child classes.
 */
 
+// Legacy class
 class Interactable_WireButton : public Interactable_ {
 public:
-    Interactable_WireButton() 
+    Interactable_WireButton()
     {
         SCRIPT_FIELD(leftWireIndex, Int);
         SCRIPT_FIELD(wirePuzzleIndex, Int);
@@ -17,46 +18,48 @@ public:
     ~Interactable_WireButton() override = default;
 
     // == Custom Methods ==
-    virtual void Interact() 
+    virtual void Interact()
     {
         if (puzzleSolved)
             return;
 
-        //std::string message = "WireButtonPressed" + std::to_string(wirePuzzleIndex);
-        //LOG_DEBUG("BUTTON PRESSED:" + message);
-        //Events::Send(message.c_str(), &leftWireIndex);
+        std::string message = "WireButtonPressed" + std::to_string(wirePuzzleIndex);
+        LOG_DEBUG("BUTTON PRESSED:" + message);
+        Events::Send(message.c_str(), &leftWireIndex);
+        PlayAudio("event:/CLICK_WIRE_BUTTON");
+
     }
 
     // === Lifecycle Methods ===
     void Awake() override {}
     void Initialize(Entity entity) override {}
     void Start() override {}
-    void Update(double deltaTime) override 
+    void Update(double deltaTime) override
     {
-        if (Input::WasKeyReleased('N') && leftWireIndex == 0)
-        {
-            std::string message = "WireButtonPressed" + std::to_string(wirePuzzleIndex);
-            LOG_DEBUG("BUTTON PRESSED:" + message);
-            Events::Send(message.c_str(), &leftWireIndex);
-        }
-        if (Input::WasKeyReleased('M') && leftWireIndex == 1)
-        {
-            std::string message = "WireButtonPressed" + std::to_string(wirePuzzleIndex);
-            LOG_DEBUG("BUTTON PRESSED:" + message);
-            Events::Send(message.c_str(), &leftWireIndex);
+        //if (Input::WasKeyReleased('N') && leftWireIndex == 0)
+        //{
+        //    std::string message = "WireButtonPressed" + std::to_string(wirePuzzleIndex);
+        //    LOG_DEBUG("BUTTON PRESSED:" + message);
+        //    Events::Send(message.c_str(), &leftWireIndex);
+        //}
+        //if (Input::WasKeyReleased('M') && leftWireIndex == 1)
+        //{
+        //    std::string message = "WireButtonPressed" + std::to_string(wirePuzzleIndex);
+        //    LOG_DEBUG("BUTTON PRESSED:" + message);
+        //    Events::Send(message.c_str(), &leftWireIndex);
 
-        }
-        if (Input::WasKeyReleased(',') && leftWireIndex == 2)
-        {
-            std::string message = "WireButtonPressed" + std::to_string(wirePuzzleIndex);
-            LOG_DEBUG("BUTTON PRESSED:" + message);
-            Events::Send(message.c_str(), &leftWireIndex);
+        //}
+        //if (Input::WasKeyReleased(',') && leftWireIndex == 2)
+        //{
+        //    std::string message = "WireButtonPressed" + std::to_string(wirePuzzleIndex);
+        //    LOG_DEBUG("BUTTON PRESSED:" + message);
+        //    Events::Send(message.c_str(), &leftWireIndex);
 
-        }
-        if (Input::WasKeyReleased('B'))
-        {
-            Events::Send("MOVE");
-        }
+        //}
+        //if (Input::WasKeyReleased('B'))
+        //{
+        //    Events::Send("MOVE");
+        //}
 
     }
     void OnDestroy() override {}

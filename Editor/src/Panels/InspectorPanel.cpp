@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "InspectorPanel.hpp"
 #include <imgui/imgui.h>
 #include <imgui/misc/cpp/imgui_stdlib.h>
@@ -17,7 +18,21 @@
 #include <ECS/Components/UIRectTransform.hpp>
 #include <ECS/Components/UICanvas.hpp>
 #include <ECS/Components/UIImage.hpp>
+#include <ECS/Components/Hierarchy.hpp>
+#include <ECS/Components/UIText.hpp>
+#include <ECS/Components/UIButton.hpp>
+#include <ECS/Components/UISlider.hpp>
+#include <ECS/Components/UIToggle.hpp>
+#include <ECS/Components/UILayoutGroup.hpp>
+#include <ECS/Components/UIGridLayoutGroup.hpp>
+#include <ECS/Components/UILayoutElement.hpp>
+#include <ECS/Components/UIScrollRect.hpp>
+#include <ECS/Components/UIAutoSize.hpp>
+#include <ECS/Components/UIInputField.hpp>
+#include <ECS/Components/UIDropdown.hpp>
+#include <Core/LUIDGenerator.hpp>
 #include <ECS/Components/Animator.hpp>
+#include <ECS/Components/DecalProjector.hpp>
 #include <ECS/Components/Camera.hpp>
 #include <ECS/Components/PrefabInstance.hpp>
 #include <ECS/Components/CharacterController.hpp>
@@ -39,13 +54,13 @@
 #include <sstream>
 #include <vector>
 #include "../AssetManagement/AssetManager.hpp"
-#include "../AssetManagement/Settings/TextureImportSettings.hpp"
-#include "../AssetManagement/Settings/ModelImportSettings.hpp"
+//#include "../AssetManagement/Settings/TextureImportSettings.hpp"
+//#include "../AssetManagement/Settings/ModelImportSettings.hpp"
 #include <Core/SpdLogger.hpp>
-#include <fstream>
-#include <rapidjson/document.h>
-#include "../Serialization/JSONReflection.hpp"
-#include <rapidjson/istreamwrapper.h>
+//#include <fstream>
+//#include <rapidjson/document.h>
+//#include "../Serialization/JSONReflection.hpp"
+//#include <rapidjson/istreamwrapper.h>
 #include "../Command/EditorCommands.hpp"
 #include "../Layers/LayerDatabase.hpp"
 #include "../Layers/LayerModal.hpp"
@@ -75,7 +90,12 @@ namespace {
 			return ImGui::DragFloat(desc.name.data(), &value, 0.1f);
 		} else if constexpr (std::is_same_v<T, NE::Math::Vec3>) {
 			ImGui::BeginGroup();
-			bool changed = Editor::DrawVec3Control(desc.name.data(), value, 0.0f, 75.0f);
+			bool changed = Editor::DrawVec3Control(desc.name.data(), value, 0.0f);
+			ImGui::EndGroup();
+			return changed;
+		} else if constexpr (std::is_same_v<T, NE::Math::Vec2>) {
+			ImGui::BeginGroup();
+			bool changed = Editor::DrawVec2Control(desc.name.data(), value, 0.0f);
 			ImGui::EndGroup();
 			return changed;
 		} else if constexpr (std::is_same_v<T, std::string>) {
@@ -131,6 +151,8 @@ namespace {
 				return NE::ECS::Command::GetCharacterController(e);
 			} else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Animator>) {
 				return NE::ECS::Command::GetEntityAnimator(e);
+			} else if constexpr (std::is_same_v<Owner, NE::ECS::Component::DecalProjector>) {
+				return NE::ECS::Command::GetDecalProjector(e);
 			} else {
 				static_assert(sizeof(Owner) == 0, "No getter defined for this component type.");
 			}
@@ -350,21 +372,21 @@ namespace {
 
 	// check if an entity is a child of a specific canvas
 	bool IsChildOfCanvas(uint32_t entity, uint32_t canvasEntity) {
-		if (!NE::ECS::Query::HasUIRectTransform(entity)) return false;
+		if (!NE::ECS::Query::HasHierarchy(entity)) return false;
 
-		auto& rect = NE::ECS::Query::GetUIRectTransform(entity);
-		uint32_t current = rect.parent;
+		uint32_t current = NE::ECS::Query::GetEntityHierarchy(entity).parent;
 
 		// Walk up hierarchy
 		while (current != NE::ECS::NO_ENTITY) {
 			if (current == canvasEntity) return true;
 
-			if (!NE::ECS::Query::HasUIRectTransform(current)) break;
-			current = NE::ECS::Query::GetUIRectTransform(current).parent;
+			if (!NE::ECS::Query::HasHierarchy(current)) break;
+			current = NE::ECS::Query::GetEntityHierarchy(current).parent;
 		}
 
 		// Direct child check
-		return (rect.parent == canvasEntity);
+		uint32_t parent = NE::ECS::Query::GetEntityHierarchy(entity).parent;
+		return (parent == canvasEntity);
 	}
 
 	// rebuild materials for all children of a canvas
@@ -420,6 +442,7 @@ namespace Editor {
 			{ NE::ECS::Query::GetPrefabInstanceComponentType(),		"PrefabInstance",		&InspectorPanel::DrawPrefabInstanceComponent		},
 			{ NE::ECS::Query::GetTransformComponentType(),			"Transform",			&InspectorPanel::DrawTransformComponent				},
 			{ NE::ECS::Query::GetRendererComponentType(),			"Renderer",				&InspectorPanel::DrawRendererComponent				},
+			{ NE::ECS::Query::GetDecalProjectorComponentType(),		"Decal Projector",		&InspectorPanel::DrawDecalProjectorComponent		},
 			{ NE::ECS::Query::GetLightComponentType(),				"Light",				&InspectorPanel::DrawLightComponent					},
 			{ NE::ECS::Query::GetColliderComponentType(),			"Collider",				&InspectorPanel::DrawColliderComponent				},
 			{ NE::ECS::Query::GetRigidbodyComponentType(),			"Rigidbody",			&InspectorPanel::DrawRigidbodyComponent				},
@@ -430,6 +453,17 @@ namespace Editor {
 			{ NE::ECS::Query::GetUIRectTransformComponentType(),	"Rect Transform",		&InspectorPanel::DrawRectTransformComponent			},
 			{ NE::ECS::Query::GetUICanvasComponentType(),			"Canvas",				&InspectorPanel::DrawCanvasComponent				},
 			{ NE::ECS::Query::GetUIImageComponentType(),			"Image",				&InspectorPanel::DrawImageComponent					},
+			{ NE::ECS::Query::GetUITextComponentType(),				"Text",					&InspectorPanel::DrawTextComponent					},
+			{ NE::ECS::Query::GetUIButtonComponentType(),			"Button",				&InspectorPanel::DrawButtonComponent				},
+			{ NE::ECS::Query::GetUISliderComponentType(),			"Slider",				&InspectorPanel::DrawSliderComponent				},
+			{ NE::ECS::Query::GetUIToggleComponentType(),			"Toggle",				&InspectorPanel::DrawToggleComponent				},
+			{ NE::ECS::Query::GetUILayoutGroupComponentType(),           "Layout Group",            &InspectorPanel::DrawLayoutGroupComponent           },
+			{ NE::ECS::Query::GetUIGridLayoutGroupComponentType(),       "Grid Layout Group",       &InspectorPanel::DrawGridLayoutGroupComponent       },
+			{ NE::ECS::Query::GetUILayoutElementComponentType(),         "Layout Element",          &InspectorPanel::DrawLayoutElementComponent         },
+			{ NE::ECS::Query::GetUIScrollRectComponentType(),            "Scroll Rect",             &InspectorPanel::DrawScrollRectComponent            },
+			{ NE::ECS::Query::GetUIAutoSizeComponentType(),              "Auto Size",               &InspectorPanel::DrawAutoSizeComponent              },
+			{ NE::ECS::Query::GetUIInputFieldComponentType(),            "Input Field",             &InspectorPanel::DrawInputFieldComponent             },
+			{ NE::ECS::Query::GetUIDropdownComponentType(),              "Dropdown",                &InspectorPanel::DrawDropdownComponent               },
 			{ NE::ECS::Query::GetScriptComponentType(),				"Script",				&InspectorPanel::DrawScriptComponent				}
 		};
 	}
@@ -486,6 +520,307 @@ namespace Editor {
 				}
 				if (ImGui::MenuItem("Animator")) {
 					NE::ECS::Command::AddAnimatorComponent(EditorScene::s_selection.GetLastClicked());
+				}
+				if (ImGui::MenuItem("Decal Projector")) {
+					NE::ECS::Command::AddDecalProjectorComponent(EditorScene::s_selection.GetLastClicked());
+				}
+
+				ImGui::Separator();
+				ImGui::TextDisabled("UI");
+
+				if (ImGui::MenuItem("UI Canvas")) {
+					uint32_t entity = EditorScene::s_selection.GetLastClicked();
+					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
+						NE::ECS::Component::UIRectTransform rect{};
+						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
+					}
+					NE::ECS::Component::UICanvas canvas{};
+					NE::ECS::Command::AddUICanvasComponent(entity, canvas);
+				}
+				if (ImGui::MenuItem("UI Image")) {
+					uint32_t entity = EditorScene::s_selection.GetLastClicked();
+					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
+						NE::ECS::Component::UIRectTransform rect{};
+						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
+					}
+					NE::ECS::Component::UIImage img{};
+					NE::ECS::Command::AddUIImageComponent(entity, img);
+				}
+				if (ImGui::MenuItem("UI Text")) {
+					uint32_t entity = EditorScene::s_selection.GetLastClicked();
+					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
+						NE::ECS::Component::UIRectTransform rect{};
+						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
+					}
+					NE::ECS::Component::UIText text{};
+					NE::ECS::Command::AddUITextComponent(entity, text);
+				}
+				if (ImGui::MenuItem("UI Button")) {
+					uint32_t entity = EditorScene::s_selection.GetLastClicked();
+					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
+						NE::ECS::Component::UIRectTransform rect{};
+						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
+					}
+					if (!NE::ECS::Query::HasUIImage(entity)) {
+						NE::ECS::Component::UIImage img{};
+						NE::ECS::Command::AddUIImageComponent(entity, img);
+					}
+					NE::ECS::Component::UIButton button{};
+					NE::ECS::Command::AddUIButtonComponent(entity, button);
+				}
+				if (ImGui::MenuItem("UI Slider")) {
+					uint32_t entity = EditorScene::s_selection.GetLastClicked();
+					// Slider entity: track background (grey bar)
+					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
+						NE::ECS::Component::UIRectTransform rect{};
+						rect.width = 200.0f;
+						rect.height = 20.0f;
+						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
+					}
+					if (!NE::ECS::Query::HasUIImage(entity)) {
+						NE::ECS::Component::UIImage img{};
+						img.color = NE::Math::Vec4{ 0.7f, 0.7f, 0.7f, 1.0f }; // Grey track
+						NE::ECS::Command::AddUIImageComponent(entity, img);
+					}
+
+					NE::ECS::Component::UISlider slider{};
+					slider.luid = NE::Core::LUIDGenerator::Generate("sl");
+
+					// Create Fill child entity
+					uint32_t fillEnt = NE::ECS::Command::CreateEntityNoComponents();
+					{
+						NE::ECS::Component::EntityMeta meta{};
+						meta.name = "Fill";
+						meta.luid = NE::Core::LUIDGenerator::Generate("em");
+						NE::ECS::Command::AddEntityMetaComponent(fillEnt, meta);
+						NE::ECS::Component::Hierarchy hr{};
+						hr.luid = NE::Core::LUIDGenerator::Generate("hr");
+						NE::ECS::Command::AddHierarchyComponent(fillEnt, hr);
+						NE::ECS::Component::UIRectTransform fillRect{};
+						fillRect.width = 0.0f;   // Starts empty
+						fillRect.height = 20.0f;
+						NE::ECS::Command::AddUIRectTransformComponent(fillEnt, fillRect);
+						NE::ECS::Component::UIImage fillImg{};
+						fillImg.color = NE::Math::Vec4{ 0.2f, 0.6f, 1.0f, 1.0f }; // Blue fill
+						NE::ECS::Command::AddUIImageComponent(fillEnt, fillImg);
+						NE::ECS::Command::SetParent(fillEnt, entity, -1, false);
+					}
+					slider.fillRect = fillEnt;
+
+					// Create Handle child entity
+					uint32_t handleEnt = NE::ECS::Command::CreateEntityNoComponents();
+					{
+						NE::ECS::Component::EntityMeta meta{};
+						meta.name = "Handle";
+						meta.luid = NE::Core::LUIDGenerator::Generate("em");
+						NE::ECS::Command::AddEntityMetaComponent(handleEnt, meta);
+						NE::ECS::Component::Hierarchy hr{};
+						hr.luid = NE::Core::LUIDGenerator::Generate("hr");
+						NE::ECS::Command::AddHierarchyComponent(handleEnt, hr);
+						NE::ECS::Component::UIRectTransform handleRect{};
+						handleRect.width = 20.0f;
+						handleRect.height = 20.0f;
+						NE::ECS::Command::AddUIRectTransformComponent(handleEnt, handleRect);
+						NE::ECS::Component::UIImage handleImg{};
+						handleImg.color = NE::Math::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f }; // White handle
+						NE::ECS::Command::AddUIImageComponent(handleEnt, handleImg);
+						NE::ECS::Command::SetParent(handleEnt, entity, -1, false);
+					}
+					slider.handleRect = handleEnt;
+
+					NE::ECS::Command::AddUISliderComponent(entity, slider);
+				}
+				if (ImGui::MenuItem("UI Toggle")) {
+					uint32_t entity = EditorScene::s_selection.GetLastClicked();
+					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
+						NE::ECS::Component::UIRectTransform rect{};
+						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
+					}
+					NE::ECS::Component::UIToggle toggle{};
+					toggle.luid = NE::Core::LUIDGenerator::Generate("tg");
+					NE::ECS::Command::AddUIToggleComponent(entity, toggle);
+				}
+
+				ImGui::Separator();
+				ImGui::TextDisabled("UI Layout");
+
+				if (ImGui::MenuItem("UI Horizontal Layout Group")) {
+					uint32_t entity = EditorScene::s_selection.GetLastClicked();
+					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
+						NE::ECS::Component::UIRectTransform rect{};
+						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
+					}
+					NE::ECS::Component::UILayoutGroup comp{};
+					comp.isHorizontal = true;
+					comp.childAlignment = 3; // MiddleLeft
+					NE::ECS::Command::AddUILayoutGroupComponent(entity, comp);
+				}
+				if (ImGui::MenuItem("UI Vertical Layout Group")) {
+					uint32_t entity = EditorScene::s_selection.GetLastClicked();
+					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
+						NE::ECS::Component::UIRectTransform rect{};
+						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
+					}
+					NE::ECS::Component::UILayoutGroup comp{};
+					comp.isHorizontal = false;
+					comp.childAlignment = 1; // UpperCenter
+					NE::ECS::Command::AddUILayoutGroupComponent(entity, comp);
+				}
+				if (ImGui::MenuItem("UI Grid Layout Group")) {
+					uint32_t entity = EditorScene::s_selection.GetLastClicked();
+					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
+						NE::ECS::Component::UIRectTransform rect{};
+						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
+					}
+					NE::ECS::Component::UIGridLayoutGroup comp{};
+					NE::ECS::Command::AddUIGridLayoutGroupComponent(entity, comp);
+				}
+				if (ImGui::MenuItem("UI Layout Element")) {
+					uint32_t entity = EditorScene::s_selection.GetLastClicked();
+					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
+						NE::ECS::Component::UIRectTransform rect{};
+						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
+					}
+					NE::ECS::Component::UILayoutElement comp{};
+					NE::ECS::Command::AddUILayoutElementComponent(entity, comp);
+				}
+				if (ImGui::MenuItem("UI Scroll Rect")) {
+					uint32_t entity = EditorScene::s_selection.GetLastClicked();
+					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
+						NE::ECS::Component::UIRectTransform rect{};
+						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
+					}
+					NE::ECS::Component::UIScrollRect comp{};
+					NE::ECS::Command::AddUIScrollRectComponent(entity, comp);
+				}
+				if (ImGui::MenuItem("UI Auto Size")) {
+					uint32_t entity = EditorScene::s_selection.GetLastClicked();
+					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
+						NE::ECS::Component::UIRectTransform rect{};
+						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
+					}
+					NE::ECS::Component::UIAutoSize comp{};
+					NE::ECS::Command::AddUIAutoSizeComponent(entity, comp);
+				}
+				if (ImGui::MenuItem("UI Dropdown")) {
+					uint32_t entity = EditorScene::s_selection.GetLastClicked();
+					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
+						NE::ECS::Component::UIRectTransform rect{};
+						rect.width = 200.0f;
+						rect.height = 30.0f;
+						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
+					}
+					if (!NE::ECS::Query::HasUIImage(entity)) {
+						NE::ECS::Component::UIImage img{};
+						img.color = NE::Math::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+						NE::ECS::Command::AddUIImageComponent(entity, img);
+					}
+					NE::ECS::Component::UIDropdown comp{};
+
+					// Create caption text child
+					uint32_t captionEnt = NE::ECS::Command::CreateEntityNoComponents();
+					{
+						NE::ECS::Component::EntityMeta meta{};
+						meta.name = "Caption";
+						meta.luid = NE::Core::LUIDGenerator::Generate("em");
+						NE::ECS::Command::AddEntityMetaComponent(captionEnt, meta);
+						NE::ECS::Component::Hierarchy hr{};
+						hr.luid = NE::Core::LUIDGenerator::Generate("hr");
+						NE::ECS::Command::AddHierarchyComponent(captionEnt, hr);
+						NE::ECS::Component::UIRectTransform captRect{};
+						captRect.width = 200.0f;
+						captRect.height = 30.0f;
+						NE::ECS::Command::AddUIRectTransformComponent(captionEnt, captRect);
+						NE::ECS::Component::UIText txt{};
+						txt.text = comp.options.empty() ? "Option A" : comp.options[0];
+						txt.color = NE::Math::Vec4{ 0.0f, 0.0f, 0.0f, 1.0f };
+						txt.horizontalAlign = NE::ECS::Component::UIText::Alignment::CENTER;
+						txt.verticalAlign = NE::ECS::Component::UIText::VerticalAlignment::MIDDLE;
+						NE::ECS::Command::AddUITextComponent(captionEnt, txt);
+						NE::ECS::Command::SetParent(captionEnt, entity, -1, false);
+					}
+					comp.captionTextEntity = captionEnt;
+
+					// Create options panel child (initially inactive)
+					uint32_t panelEnt = NE::ECS::Command::CreateEntityNoComponents();
+					{
+						NE::ECS::Component::EntityMeta meta{};
+						meta.name = "Options Panel";
+						meta.luid = NE::Core::LUIDGenerator::Generate("em");
+						meta.isActive = false;
+						NE::ECS::Command::AddEntityMetaComponent(panelEnt, meta);
+						NE::ECS::Component::Hierarchy hr{};
+						hr.luid = NE::Core::LUIDGenerator::Generate("hr");
+						NE::ECS::Command::AddHierarchyComponent(panelEnt, hr);
+						NE::ECS::Component::UIRectTransform panelRect{};
+						panelRect.width = 200.0f;
+						panelRect.height = 90.0f;
+						panelRect.y = -60.0f;  // below the dropdown button
+						NE::ECS::Command::AddUIRectTransformComponent(panelEnt, panelRect);
+						NE::ECS::Component::UIImage panelImg{};
+						panelImg.color = NE::Math::Vec4{ 0.95f, 0.95f, 0.95f, 1.0f };
+						NE::ECS::Command::AddUIImageComponent(panelEnt, panelImg);
+						NE::ECS::Component::UILayoutGroup layout{};
+						layout.isHorizontal = false;
+						layout.spacing = 0.0f;
+						NE::ECS::Command::AddUILayoutGroupComponent(panelEnt, layout);
+						NE::ECS::Command::SetParent(panelEnt, entity, -1, false);
+					}
+					comp.optionsPanelEntity = panelEnt;
+
+					// Create 3 default option items inside the panel
+					const std::vector<std::string>& opts = comp.options;
+					for (size_t i = 0; i < opts.size(); ++i) {
+						uint32_t optEnt = NE::ECS::Command::CreateEntityNoComponents();
+						NE::ECS::Component::EntityMeta meta{};
+						meta.name = std::string("Option ") + std::to_string(i);
+						meta.luid = NE::Core::LUIDGenerator::Generate("em");
+						NE::ECS::Command::AddEntityMetaComponent(optEnt, meta);
+						NE::ECS::Component::Hierarchy hr{};
+						hr.luid = NE::Core::LUIDGenerator::Generate("hr");
+						NE::ECS::Command::AddHierarchyComponent(optEnt, hr);
+						NE::ECS::Component::UIRectTransform optRect{};
+						optRect.width = 200.0f;
+						optRect.height = 30.0f;
+						NE::ECS::Command::AddUIRectTransformComponent(optEnt, optRect);
+						NE::ECS::Component::UIImage optImg{};
+						optImg.color = NE::Math::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+						optImg.raycastTarget = true;
+						NE::ECS::Command::AddUIImageComponent(optEnt, optImg);
+						NE::ECS::Component::UIText optTxt{};
+						optTxt.text = opts[i];
+						optTxt.color = NE::Math::Vec4{ 0.0f, 0.0f, 0.0f, 1.0f };
+						optTxt.horizontalAlign = NE::ECS::Component::UIText::Alignment::LEFT;
+						optTxt.verticalAlign = NE::ECS::Component::UIText::VerticalAlignment::MIDDLE;
+						NE::ECS::Command::AddUITextComponent(optEnt, optTxt);
+						NE::ECS::Command::SetParent(optEnt, panelEnt, -1, false);
+					}
+
+					NE::ECS::Command::AddUIDropdownComponent(entity, comp);
+				}
+				if (ImGui::MenuItem("UI Input Field")) {
+					uint32_t entity = EditorScene::s_selection.GetLastClicked();
+					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
+						NE::ECS::Component::UIRectTransform rect{};
+						rect.width = 200.0f;
+						rect.height = 30.0f;
+						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
+					}
+					if (!NE::ECS::Query::HasUIImage(entity)) {
+						NE::ECS::Component::UIImage img{};
+						img.color = NE::Math::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+						NE::ECS::Command::AddUIImageComponent(entity, img);
+					}
+					if (!NE::ECS::Query::HasUIText(entity)) {
+						NE::ECS::Component::UIText txt{};
+						txt.text = "";
+						txt.color = NE::Math::Vec4{ 0.0f, 0.0f, 0.0f, 1.0f };
+						txt.horizontalAlign = NE::ECS::Component::UIText::Alignment::LEFT;
+						txt.verticalAlign = NE::ECS::Component::UIText::VerticalAlignment::MIDDLE;
+						NE::ECS::Command::AddUITextComponent(entity, txt);
+					}
+					NE::ECS::Component::UIInputField comp{};
+					NE::ECS::Command::AddUIInputFieldComponent(entity, comp);
 				}
 
 				ImGui::EndPopup();
@@ -911,6 +1246,92 @@ namespace Editor {
 		ImGui::TreePop();
 	}
 
+	void InspectorPanel::DrawDecalProjectorComponent(uint32_t entity) {
+		auto& comp = NE::ECS::Query::GetDecalProjector(entity);
+
+		bool copyComp = false;
+		bool deleteComp = false;
+
+		const bool open = DrawComponentHeaderWithMenu(
+			"Decal Projector",
+			true,
+			&copyComp,
+			&deleteComp
+		);
+
+		NE::Renderer::Command::DrawSelectedDecalGizmos(comp, NE::ECS::Query::GetEntityTransform(entity));
+
+		if (!open)
+			return;
+
+		bool openMaterialPopup = false;
+		DrawAssetField(
+			"Material",
+			Assets::AssetManager::GetInstance().RetrieveFilename(comp.materialUUID),
+			true,
+			&openMaterialPopup,
+			ImVec2(0, 0),
+			28.0f,
+			"MATERIAL_PATH",
+			[&](const ImGuiPayload* p) {
+				std::string dropped((const char*)p->Data, p->DataSize ? p->DataSize - 1 : 0);
+				auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
+				NE::Renderer::Command::AssignMaterial(entity, uuid);
+			}
+		);
+
+		if (openMaterialPopup) ImGui::OpenPopup("AssetPicker_Material");
+
+		ImGui::SetNextWindowSizeConstraints(
+			ImVec2(0.f, 0.f),
+			ImVec2(350.f, 500.f)
+		);
+
+		if (ImGui::BeginPopup("AssetPicker_Material")) {
+			ImGui::Text("Select a Material");
+			ImGui::Separator();
+			auto& materialList = Assets::AssetManager::GetInstance().GetAssetsOfType(Assets::AssetType::Material);
+
+			if (ImSearch::BeginSearch()) {
+				ImSearch::SearchBar();
+				for (const auto& [materialName, uuid] : materialList) {
+					ImSearch::SearchableItem(materialName.c_str(), [&, materialName](const char*) {
+						if (ImGui::Selectable(materialName.c_str())) {
+							NE::Renderer::Command::AssignMaterial(entity, uuid);
+							ImGui::CloseCurrentPopup();
+						}
+						});
+				}
+
+				ImSearch::EndSearch();
+			}
+			ImGui::EndPopup();
+		}
+
+		NE::Core::ForEachFieldView<NE::ECS::Component::DecalProjector>(comp,
+			[&](auto const& desc, auto const& currentValue) {
+				using FieldT = std::decay_t<decltype(currentValue)>;
+
+				FieldT edited = currentValue;
+
+				if (DrawField(desc, edited)) {
+					SubmitSetFieldCommand<NE::ECS::Component::DecalProjector, FieldT>(
+						entity, desc, currentValue, edited
+					);
+				}
+			}
+		);
+
+		if (copyComp) {
+
+		}
+		if (deleteComp) {
+			NE::ECS::Command::RemoveDecalProjectorComponent(entity);
+		}
+
+		ImGui::TreePop();
+	}
+
 	void InspectorPanel::DrawRigidbodyComponent(uint32_t entity) {
 		auto& comp = NE::ECS::Command::GetEntityRigidbody(entity);
 
@@ -1081,6 +1502,8 @@ namespace Editor {
 			&copyComp,
 			&deleteComp
 		);
+
+		NE::Renderer::Command::DrawSelectedLightGizmos(comp);
 
 		if (!open)
 			return;
@@ -2455,15 +2878,15 @@ namespace Editor {
 					auto& compCanvas = NE::ECS::Command::GetUICanvas(entity);
 					isOverlay = (compCanvas.renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY);
 				} else {
-					uint32_t currentParent = comp.parent;
+					uint32_t currentParent = NE::ECS::Query::HasHierarchy(entity) ? NE::ECS::Query::GetEntityHierarchy(entity).parent : NE::ECS::NO_ENTITY;
 					while (currentParent != NE::ECS::NO_ENTITY) {
 						if (NE::ECS::Query::HasUICanvas(currentParent)) {
 							auto& parentCanvas = NE::ECS::Query::GetUICanvas(currentParent);
 							isOverlay = (parentCanvas.renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY);
 							break;
 						}
-						if (!NE::ECS::Query::HasUIRectTransform(currentParent)) break;
-						currentParent = NE::ECS::Query::GetUIRectTransform(currentParent).parent;
+						if (!NE::ECS::Query::HasHierarchy(currentParent)) break;
+						currentParent = NE::ECS::Query::GetEntityHierarchy(currentParent).parent;
 					}
 				}
 			}
@@ -2718,20 +3141,64 @@ namespace Editor {
 
 				ImGui::Text("X");
 				ImGui::SameLine();
-				UI_RECT_DRAG("##ScaleX", &NE::ECS::Component::UIRectTransform::scaleX, 0.01f, 0.01f, 10.0f, "%.2f");
+				UI_RECT_DRAG("##ScaleX", &NE::ECS::Component::UIRectTransform::scaleX, 0.01f, 0.01f, FLT_MAX, "%.2f");
 				ImGui::SameLine();
 				ImGui::Text("Y");
 				ImGui::SameLine();
-				UI_RECT_DRAG("##ScaleY", &NE::ECS::Component::UIRectTransform::scaleY, 0.01f, 0.01f, 10.0f, "%.2f");
+				UI_RECT_DRAG("##ScaleY", &NE::ECS::Component::UIRectTransform::scaleY, 0.01f, 0.01f, FLT_MAX, "%.2f");
 
 				if (!isOverlay) {
 					ImGui::SameLine();
 					ImGui::Text("Z");
 					ImGui::SameLine();
-					UI_RECT_DRAG("##ScaleZ", &NE::ECS::Component::UIRectTransform::scaleZ, 0.01f, 0.01f, 10.0f, "%.2f");
+					UI_RECT_DRAG("##ScaleZ", &NE::ECS::Component::UIRectTransform::scaleZ, 0.01f, 0.01f, FLT_MAX, "%.2f");
 				}
 
 				ImGui::PopItemWidth();
+			}
+
+			// Mask Clipping section
+			ImGui::Separator();
+			if (ImGui::TreeNode("Mask Clipping")) {
+				float lw = 150.0f;
+				{
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("Enable Mask");
+					ImGui::SameLine(lw);
+					ImGui::SetNextItemWidth(-1);
+					ImGui::Checkbox("##EnableMask", &comp.enableMask);
+				}
+				if (comp.enableMask) {
+					{
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Mask Pad Left");
+						ImGui::SameLine(lw);
+						ImGui::SetNextItemWidth(-1);
+						ImGui::DragFloat("##MaskPadLeft", &comp.maskPaddingLeft, 0.5f);
+					}
+					{
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Mask Pad Right");
+						ImGui::SameLine(lw);
+						ImGui::SetNextItemWidth(-1);
+						ImGui::DragFloat("##MaskPadRight", &comp.maskPaddingRight, 0.5f);
+					}
+					{
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Mask Pad Top");
+						ImGui::SameLine(lw);
+						ImGui::SetNextItemWidth(-1);
+						ImGui::DragFloat("##MaskPadTop", &comp.maskPaddingTop, 0.5f);
+					}
+					{
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Mask Pad Bottom");
+						ImGui::SameLine(lw);
+						ImGui::SetNextItemWidth(-1);
+						ImGui::DragFloat("##MaskPadBottom", &comp.maskPaddingBottom, 0.5f);
+					}
+				}
+				ImGui::TreePop();
 			}
 
 #undef UI_RECT_DRAG
@@ -2945,7 +3412,7 @@ namespace Editor {
 						// find parent canvas to determine render mode
 						auto& rectTransform = NE::ECS::Command::GetUIRectTransform(entity);
 						uint32_t canvasEntity = entity;
-						uint32_t current = rectTransform.parent;
+						uint32_t current = NE::ECS::Query::HasHierarchy(entity) ? NE::ECS::Query::GetEntityHierarchy(entity).parent : NE::ECS::NO_ENTITY;
 
 						// walk up hierarchy to find canvas
 						while (current != NE::ECS::NO_ENTITY) {
@@ -2953,8 +3420,8 @@ namespace Editor {
 								canvasEntity = current;
 								break;
 							}
-							if (NE::ECS::Query::HasUIRectTransform(current)) {
-								current = NE::ECS::Query::GetUIRectTransform(current).parent;
+							if (NE::ECS::Query::HasHierarchy(current)) {
+								current = NE::ECS::Query::GetEntityHierarchy(current).parent;
 							} else {
 								break;
 							}
@@ -3245,6 +3712,1381 @@ namespace Editor {
 			//NE::ECS::Command::RemoveRigidbodyComponent(entity);
 		}
 
+		ImGui::TreePop();
+	}
+
+	void InspectorPanel::DrawTextComponent(uint32_t entity) {
+		auto& comp = NE::ECS::Command::GetUIText(entity);
+
+		bool copyComp = false;
+		bool deleteComp = false;
+
+		const bool open = DrawComponentHeaderWithMenu(
+			"Text",
+			true,
+			&copyComp,
+			&deleteComp
+		);
+
+		if (!open)
+			return;
+
+		float labelWidth = 120.0f;
+		ImGui::Indent();
+
+		// Text content
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Text");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+
+			char buffer[1024];
+			strncpy_s(buffer, comp.text.c_str(), sizeof(buffer));
+			if (ImGui::InputTextMultiline("##Text", buffer, sizeof(buffer), ImVec2(-1, 60))) {
+				comp.text = buffer;
+				comp.isDirty = true;
+			}
+		}
+
+		// Font Size
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Font Size");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::DragFloat("##FontSize", &comp.fontSize, 1.0f, 1.0f, 200.0f)) {
+				comp.isDirty = true;
+			}
+		}
+
+		// Color
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Color");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			float color[4] = { comp.color.x, comp.color.y, comp.color.z, comp.color.w };
+			if (ImGui::ColorEdit4("##TextColor", color, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
+				comp.color.x = color[0];
+				comp.color.y = color[1];
+				comp.color.z = color[2];
+				comp.color.w = color[3];
+				comp.isDirty = true;
+			}
+		}
+
+		// Horizontal Alignment
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Horizontal Align");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+
+			static const char* HAlignOptions[] = { "Left", "Center", "Right" };
+			int currentHAlign = static_cast<int>(comp.horizontalAlign);
+			if (ImGui::Combo("##HAlign", &currentHAlign, HAlignOptions, IM_ARRAYSIZE(HAlignOptions))) {
+				comp.horizontalAlign = static_cast<NE::ECS::Component::UIText::Alignment>(currentHAlign);
+				comp.isDirty = true;
+			}
+		}
+
+		// Vertical Alignment
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Vertical Align");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+
+			static const char* VAlignOptions[] = { "Top", "Middle", "Bottom" };
+			int currentVAlign = static_cast<int>(comp.verticalAlign);
+			if (ImGui::Combo("##VAlign", &currentVAlign, VAlignOptions, IM_ARRAYSIZE(VAlignOptions))) {
+				comp.verticalAlign = static_cast<NE::ECS::Component::UIText::VerticalAlignment>(currentVAlign);
+				comp.isDirty = true;
+			}
+		}
+
+		// Word Wrap
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Word Wrap");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::Checkbox("##WordWrap", &comp.wordWrap)) {
+				comp.isDirty = true;
+			}
+		}
+
+		// Auto Scale (Best Fit)
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Auto Scale");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::Checkbox("##AutoScale", &comp.autoScale)) {
+				comp.isDirty = true;
+			}
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Automatically scale font size to fit within bounds");
+			}
+		}
+
+		// Min/Max Font Size (only show if auto-scale is enabled)
+		if (comp.autoScale) {
+			// Min Font Size
+			{
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Min Font Size");
+				ImGui::SameLine(labelWidth);
+				ImGui::SetNextItemWidth(-1);
+				if (ImGui::DragFloat("##MinFontSize", &comp.minFontSize, 1.0f, 1.0f, comp.maxFontSize)) {
+					comp.isDirty = true;
+				}
+			}
+
+			// Max Font Size
+			{
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Max Font Size");
+				ImGui::SameLine(labelWidth);
+				ImGui::SetNextItemWidth(-1);
+				if (ImGui::DragFloat("##MaxFontSize", &comp.maxFontSize, 1.0f, comp.minFontSize, 500.0f)) {
+					comp.isDirty = true;
+				}
+			}
+		}
+
+		// Font (drag-drop area for .ttf/.otf files)
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Font");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+
+			std::string fontLabel = comp.fontUUID.empty()
+				? "(none)"
+				: Assets::AssetManager::GetInstance().RetrieveFilename(comp.fontUUID);
+
+			char bufFont[256];
+			strncpy_s(bufFont, fontLabel.c_str(), sizeof(bufFont));
+			ImGui::InputText("##Font", bufFont, sizeof(bufFont), ImGuiInputTextFlags_ReadOnly);
+
+			if (ImGui::BeginDragDropTarget()) {
+				if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("FONT_ASSET_PATH")) {
+					std::string dropped((const char*)p->Data, p->DataSize - 1);
+					auto fontUUID = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
+
+					// Validate that the asset is actually a Font type
+					if (!fontUUID.empty()) {
+						auto* record = Assets::AssetManager::GetInstance().GetRecord(fontUUID);
+						if (record && record->type == Assets::AssetType::Font) {
+							comp.fontUUID = fontUUID;
+							comp.isDirty = true;
+						}
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+		}
+
+		if (deleteComp) {
+			// TODO: implement remove UIText component
+		}
+
+		ImGui::Unindent();
+		ImGui::TreePop();
+	}
+
+	void InspectorPanel::DrawButtonComponent(uint32_t entity) {
+		auto& comp = NE::ECS::Command::GetUIButton(entity);
+
+		bool copyComp = false;
+		bool deleteComp = false;
+
+		const bool open = DrawComponentHeaderWithMenu(
+			"Button",
+			true,
+			&copyComp,
+			&deleteComp
+		);
+
+		if (!open)
+			return;
+
+		float labelWidth = 120.0f;
+		ImGui::Indent();
+
+		// Interactable
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Interactable");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::Checkbox("##Interactable", &comp.interactable);
+		}
+
+		// Normal Color
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Normal Color");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			float color[4] = { comp.normalColor.x, comp.normalColor.y, comp.normalColor.z, comp.normalColor.w };
+			if (ImGui::ColorEdit4("##NormalColor", color, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
+				comp.normalColor.x = color[0];
+				comp.normalColor.y = color[1];
+				comp.normalColor.z = color[2];
+				comp.normalColor.w = color[3];
+			}
+		}
+
+		// Hovered Color
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Hovered Color");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			float color[4] = { comp.hoverColor.x, comp.hoverColor.y, comp.hoverColor.z, comp.hoverColor.w };
+			if (ImGui::ColorEdit4("##HoveredColor", color, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
+				comp.hoverColor.x = color[0];
+				comp.hoverColor.y = color[1];
+				comp.hoverColor.z = color[2];
+				comp.hoverColor.w = color[3];
+			}
+		}
+
+		// Pressed Color
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Pressed Color");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			float color[4] = { comp.pressedColor.x, comp.pressedColor.y, comp.pressedColor.z, comp.pressedColor.w };
+			if (ImGui::ColorEdit4("##PressedColor", color, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
+				comp.pressedColor.x = color[0];
+				comp.pressedColor.y = color[1];
+				comp.pressedColor.z = color[2];
+				comp.pressedColor.w = color[3];
+			}
+		}
+
+		// Disabled Color
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Disabled Color");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			float color[4] = { comp.disabledColor.x, comp.disabledColor.y, comp.disabledColor.z, comp.disabledColor.w };
+			if (ImGui::ColorEdit4("##DisabledColor", color, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
+				comp.disabledColor.x = color[0];
+				comp.disabledColor.y = color[1];
+				comp.disabledColor.z = color[2];
+				comp.disabledColor.w = color[3];
+			}
+		}
+
+		// Current State (read-only, for debugging)
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Current State");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+
+			const char* stateNames[] = { "Normal", "Hovered", "Pressed", "Disabled" };
+			int currentState = static_cast<int>(comp.currentState);
+			ImGui::TextDisabled("%s", stateNames[currentState]);
+		}
+
+		if (deleteComp) {
+			// TODO: implement remove UIButton component
+		}
+
+		ImGui::Unindent();
+		ImGui::TreePop();
+	}
+
+	void InspectorPanel::DrawSliderComponent(uint32_t entity) {
+		auto& comp = NE::ECS::Command::GetUISlider(entity);
+
+		bool copyComp = false;
+		bool deleteComp = false;
+
+		const bool open = DrawComponentHeaderWithMenu(
+			"Slider",
+			true,
+			&copyComp,
+			&deleteComp
+		);
+
+		if (!open)
+			return;
+
+		float labelWidth = 120.0f;
+		ImGui::Indent();
+
+		// Interactable
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Interactable");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::Checkbox("##Interactable", &comp.interactable);
+		}
+
+		// Value
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Value");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::SliderFloat("##Value", &comp.value, comp.minValue, comp.maxValue)) {
+				if (comp.wholeNumbers) {
+					comp.value = static_cast<float>(static_cast<int>(comp.value + 0.5f));
+				}
+				comp.ClampValue();
+			}
+		}
+
+		// Min Value
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Min Value");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::DragFloat("##MinValue", &comp.minValue, 0.1f)) {
+				if (comp.minValue > comp.maxValue) comp.minValue = comp.maxValue;
+				comp.ClampValue();
+			}
+		}
+
+		// Max Value
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Max Value");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::DragFloat("##MaxValue", &comp.maxValue, 0.1f)) {
+				if (comp.maxValue < comp.minValue) comp.maxValue = comp.minValue;
+				comp.ClampValue();
+			}
+		}
+
+		// Whole Numbers
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Whole Numbers");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::Checkbox("##WholeNumbers", &comp.wholeNumbers)) {
+				if (comp.wholeNumbers) {
+					comp.value = static_cast<float>(static_cast<int>(comp.value + 0.5f));
+				}
+			}
+		}
+
+		// Direction
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Direction");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+
+			static const char* DirectionNames[] = { "Left To Right", "Right To Left", "Bottom To Top", "Top To Bottom" };
+			int currentDirection = static_cast<int>(comp.direction);
+			if (ImGui::Combo("##Direction", &currentDirection, DirectionNames, IM_ARRAYSIZE(DirectionNames))) {
+				comp.direction = static_cast<NE::ECS::Component::UISlider::Direction>(currentDirection);
+			}
+		}
+
+		// Fill Rect (entity reference - read only for now)
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Fill Rect");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::TextDisabled("Entity %u", comp.fillRect);
+		}
+
+		// Handle Rect (entity reference - read only for now)
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Handle Rect");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::TextDisabled("Entity %u", comp.handleRect);
+		}
+
+		if (deleteComp) {
+			// TODO: implement remove UISlider component
+		}
+
+		ImGui::Unindent();
+		ImGui::TreePop();
+	}
+
+	void InspectorPanel::DrawToggleComponent(uint32_t entity) {
+		auto& comp = NE::ECS::Command::GetUIToggle(entity);
+
+		bool copyComp = false;
+		bool deleteComp = false;
+
+		const bool open = DrawComponentHeaderWithMenu(
+			"Toggle",
+			true,
+			&copyComp,
+			&deleteComp
+		);
+
+		if (!open)
+			return;
+
+		float labelWidth = 120.0f;
+		ImGui::Indent();
+
+		// Interactable
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Interactable");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::Checkbox("##Interactable", &comp.interactable);
+		}
+
+		// Is On
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Is On");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::Checkbox("##IsOn", &comp.isOn);
+		}
+
+		// Toggle Group
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Toggle Group");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			int group = static_cast<int>(comp.toggleGroup);
+			if (ImGui::InputInt("##ToggleGroup", &group)) {
+				comp.toggleGroup = static_cast<uint32_t>(group < 0 ? 0 : group);
+			}
+		}
+
+		// Graphic (checkmark entity reference - read only for now)
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Graphic");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::TextDisabled("Entity %u", comp.graphic);
+		}
+
+		// Background (entity reference - read only for now)
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Background");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::TextDisabled("Entity %u", comp.background);
+		}
+
+		if (deleteComp) {
+			// TODO: implement remove UIToggle component
+		}
+
+		ImGui::Unindent();
+		ImGui::TreePop();
+	}
+
+	void InspectorPanel::DrawLayoutGroupComponent(uint32_t entity) {
+		auto& comp = NE::ECS::Command::GetUILayoutGroup(entity);
+
+		bool copyComp = false;
+		bool deleteComp = false;
+
+		const char* title = comp.isHorizontal ? "Horizontal Layout Group" : "Vertical Layout Group";
+		const bool open = DrawComponentHeaderWithMenu(
+			title,
+			true,
+			&copyComp,
+			&deleteComp
+		);
+
+		if (!open)
+			return;
+
+		float labelWidth = 150.0f;
+		ImGui::Indent();
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Direction");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			static const char* DirNames[] = { "Vertical", "Horizontal" };
+			int dirIdx = comp.isHorizontal ? 1 : 0;
+			if (ImGui::Combo("##Direction", &dirIdx, DirNames, IM_ARRAYSIZE(DirNames))) {
+				comp.isHorizontal = (dirIdx == 1);
+			}
+		}
+
+		ImGui::Separator();
+		ImGui::TextDisabled("Padding");
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Left");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragFloat("##PaddingLeft", &comp.paddingLeft, 0.5f);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Right");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragFloat("##PaddingRight", &comp.paddingRight, 0.5f);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Top");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragFloat("##PaddingTop", &comp.paddingTop, 0.5f);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Bottom");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragFloat("##PaddingBottom", &comp.paddingBottom, 0.5f);
+		}
+
+		ImGui::Separator();
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Spacing");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragFloat("##Spacing", &comp.spacing, 0.5f);
+		}
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Child Alignment");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			static const char* AlignNames[] = { "Upper Left", "Upper Center", "Upper Right", "Middle Left", "Middle Center", "Middle Right", "Lower Left", "Lower Center", "Lower Right" };
+			ImGui::Combo("##ChildAlignment", &comp.childAlignment, AlignNames, IM_ARRAYSIZE(AlignNames));
+		}
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Reverse Arrangement");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::Checkbox("##ReverseArrangement", &comp.reverseArrangement);
+		}
+
+		ImGui::Separator();
+		ImGui::TextDisabled("Child Controls");
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Control Width");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::Checkbox("##ControlChildWidth", &comp.controlChildWidth);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Control Height");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::Checkbox("##ControlChildHeight", &comp.controlChildHeight);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Force Expand Width");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::Checkbox("##ForceExpandWidth", &comp.childForceExpandWidth);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Force Expand Height");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::Checkbox("##ForceExpandHeight", &comp.childForceExpandHeight);
+		}
+
+		if (deleteComp) {
+			// TODO: implement remove
+		}
+
+		ImGui::Unindent();
+		ImGui::TreePop();
+	}
+
+	void InspectorPanel::DrawGridLayoutGroupComponent(uint32_t entity) {
+		auto& comp = NE::ECS::Command::GetUIGridLayoutGroup(entity);
+
+		bool copyComp = false;
+		bool deleteComp = false;
+
+		const bool open = DrawComponentHeaderWithMenu(
+			"Grid Layout Group",
+			true,
+			&copyComp,
+			&deleteComp
+		);
+
+		if (!open)
+			return;
+
+		float labelWidth = 150.0f;
+		ImGui::Indent();
+
+		// Padding
+		ImGui::TextDisabled("Padding");
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Left");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragFloat("##PaddingLeft", &comp.paddingLeft, 0.5f);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Right");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragFloat("##PaddingRight", &comp.paddingRight, 0.5f);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Top");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragFloat("##PaddingTop", &comp.paddingTop, 0.5f);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Bottom");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragFloat("##PaddingBottom", &comp.paddingBottom, 0.5f);
+		}
+
+		ImGui::Separator();
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Cell Size X");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragFloat("##CellWidth", &comp.cellWidth, 0.5f, 1.0f, 10000.0f);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Cell Size Y");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragFloat("##CellHeight", &comp.cellHeight, 0.5f, 1.0f, 10000.0f);
+		}
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Spacing X");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragFloat("##SpacingX", &comp.spacingX, 0.5f);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Spacing Y");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragFloat("##SpacingY", &comp.spacingY, 0.5f);
+		}
+
+		ImGui::Separator();
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Start Corner");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			static const char* CornerNames[] = { "Upper Left", "Upper Right", "Lower Left", "Lower Right" };
+			ImGui::Combo("##StartCorner", &comp.startCorner, CornerNames, IM_ARRAYSIZE(CornerNames));
+		}
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Start Axis");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			static const char* AxisNames[] = { "Horizontal", "Vertical" };
+			ImGui::Combo("##StartAxis", &comp.startAxis, AxisNames, IM_ARRAYSIZE(AxisNames));
+		}
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Child Alignment");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			static const char* AlignNames[] = { "Upper Left", "Upper Center", "Upper Right", "Middle Left", "Middle Center", "Middle Right", "Lower Left", "Lower Center", "Lower Right" };
+			ImGui::Combo("##ChildAlignment", &comp.childAlignment, AlignNames, IM_ARRAYSIZE(AlignNames));
+		}
+
+		ImGui::Separator();
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Constraint");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			static const char* ConstraintNames[] = { "Flexible", "Fixed Column Count", "Fixed Row Count" };
+			ImGui::Combo("##Constraint", &comp.constraint, ConstraintNames, IM_ARRAYSIZE(ConstraintNames));
+		}
+
+		if (comp.constraint != 0) {
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Constraint Count");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::InputInt("##ConstraintCount", &comp.constraintCount);
+			if (comp.constraintCount < 1) comp.constraintCount = 1;
+		}
+
+		if (deleteComp) {
+			// TODO: implement remove
+		}
+
+		ImGui::Unindent();
+		ImGui::TreePop();
+	}
+
+	void InspectorPanel::DrawLayoutElementComponent(uint32_t entity) {
+		auto& comp = NE::ECS::Command::GetUILayoutElement(entity);
+
+		bool copyComp = false;
+		bool deleteComp = false;
+
+		const bool open = DrawComponentHeaderWithMenu(
+			"Layout Element",
+			true,
+			&copyComp,
+			&deleteComp
+		);
+
+		if (!open)
+			return;
+
+		float labelWidth = 150.0f;
+		ImGui::Indent();
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Ignore Layout");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::Checkbox("##IgnoreLayout", &comp.ignoreLayout);
+		}
+
+		ImGui::Separator();
+		ImGui::TextDisabled("Size (-1 = use rect)");
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Min Width");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragFloat("##MinWidth", &comp.minWidth, 0.5f, -1.0f, 10000.0f);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Min Height");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragFloat("##MinHeight", &comp.minHeight, 0.5f, -1.0f, 10000.0f);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Preferred Width");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragFloat("##PreferredWidth", &comp.preferredWidth, 0.5f, -1.0f, 10000.0f);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Preferred Height");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragFloat("##PreferredHeight", &comp.preferredHeight, 0.5f, -1.0f, 10000.0f);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Flexible Width");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragFloat("##FlexibleWidth", &comp.flexibleWidth, 0.1f, -1.0f, 100.0f);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Flexible Height");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragFloat("##FlexibleHeight", &comp.flexibleHeight, 0.1f, -1.0f, 100.0f);
+		}
+
+		if (deleteComp) {
+			// TODO: implement remove
+		}
+
+		ImGui::Unindent();
+		ImGui::TreePop();
+	}
+
+	void InspectorPanel::DrawScrollRectComponent(uint32_t entity) {
+		auto& comp = NE::ECS::Command::GetUIScrollRect(entity);
+
+		bool copyComp = false;
+		bool deleteComp = false;
+
+		const bool open = DrawComponentHeaderWithMenu(
+			"Scroll Rect",
+			true,
+			&copyComp,
+			&deleteComp
+		);
+
+		if (!open)
+			return;
+
+		float labelWidth = 150.0f;
+		ImGui::Indent();
+
+		// Entity references
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Content");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			int val = static_cast<int>(comp.contentEntity);
+			if (ImGui::InputInt("##ContentEntity", &val)) {
+				comp.contentEntity = static_cast<uint32_t>(val < 0 ? UINT32_MAX : val);
+			}
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Viewport");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			int val = static_cast<int>(comp.viewportEntity);
+			if (ImGui::InputInt("##ViewportEntity", &val)) {
+				comp.viewportEntity = static_cast<uint32_t>(val < 0 ? UINT32_MAX : val);
+			}
+		}
+
+		ImGui::Separator();
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Horizontal");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::Checkbox("##Horizontal", &comp.horizontal);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Vertical");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::Checkbox("##Vertical", &comp.vertical);
+		}
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Movement Type");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			static const char* MovementNames[] = { "Unrestricted", "Elastic", "Clamped" };
+			ImGui::Combo("##MovementType", &comp.movementType, MovementNames, IM_ARRAYSIZE(MovementNames));
+		}
+
+		if (comp.movementType == 1) {
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Elasticity");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragFloat("##Elasticity", &comp.elasticity, 0.01f, 0.0f, 1.0f);
+		}
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Inertia");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::Checkbox("##Inertia", &comp.inertia);
+		}
+
+		if (comp.inertia) {
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Deceleration Rate");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragFloat("##DecelerationRate", &comp.decelerationRate, 0.01f, 0.0f, 1.0f);
+		}
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Scroll Sensitivity");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragFloat("##ScrollSensitivity", &comp.scrollSensitivity, 0.1f, 0.0f, 100.0f);
+		}
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Interactable");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::Checkbox("##Interactable", &comp.interactable);
+		}
+
+		ImGui::Separator();
+
+		// Scrollbar entity references
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("H Scrollbar");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::TextDisabled("Entity %u", comp.horizontalScrollbar);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("V Scrollbar");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::TextDisabled("Entity %u", comp.verticalScrollbar);
+		}
+
+		if (deleteComp) {
+			// TODO: implement remove
+		}
+
+		ImGui::Unindent();
+		ImGui::TreePop();
+	}
+
+	void InspectorPanel::DrawAutoSizeComponent(uint32_t entity) {
+		auto& comp = NE::ECS::Command::GetUIAutoSize(entity);
+
+		bool copyComp = false;
+		bool deleteComp = false;
+
+		const bool open = DrawComponentHeaderWithMenu(
+			"Auto Size",
+			true,
+			&copyComp,
+			&deleteComp
+		);
+
+		if (!open)
+			return;
+
+		float labelWidth = 150.0f;
+		ImGui::Indent();
+
+		// Content Size Fitter section
+		ImGui::TextDisabled("Content Size Fitter");
+		const char* fitModes[] = { "Unconstrained", "Min Size", "Preferred Size" };
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Horizontal Fit");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::Combo("##HorizontalFit", &comp.horizontalFit, fitModes, IM_ARRAYSIZE(fitModes));
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Vertical Fit");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::Combo("##VerticalFit", &comp.verticalFit, fitModes, IM_ARRAYSIZE(fitModes));
+		}
+
+		ImGui::Separator();
+
+		// Aspect Ratio Fitter section
+		ImGui::TextDisabled("Aspect Ratio Fitter");
+		const char* aspectModes[] = { "None", "Width Controls Height", "Height Controls Width", "Fit In Parent", "Envelope Parent" };
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Aspect Mode");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::Combo("##AspectMode", &comp.aspectMode, aspectModes, IM_ARRAYSIZE(aspectModes));
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Aspect Ratio");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragFloat("##AspectRatio", &comp.aspectRatio, 0.01f, 0.001f, 100.0f);
+		}
+
+		if (deleteComp) {
+			// TODO: implement remove
+		}
+
+		ImGui::Unindent();
+		ImGui::TreePop();
+	}
+
+	void InspectorPanel::DrawDropdownComponent(uint32_t entity) {
+		auto& comp = NE::ECS::Command::GetUIDropdown(entity);
+
+		bool copyComp = false;
+		bool deleteComp = false;
+
+		const bool open = DrawComponentHeaderWithMenu(
+			"Dropdown",
+			true,
+			&copyComp,
+			&deleteComp
+		);
+
+		if (!open)
+			return;
+
+		float labelWidth = 150.0f;
+		ImGui::Indent();
+
+		// Options list
+		ImGui::Separator();
+		ImGui::TextDisabled("Options");
+		{
+			for (int i = 0; i < static_cast<int>(comp.options.size()); ++i) {
+				char label[32];
+				snprintf(label, sizeof(label), "Option %d", i);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("%s", label);
+				ImGui::SameLine(labelWidth);
+				ImGui::SetNextItemWidth(-40.0f);
+				char id[64]; snprintf(id, sizeof(id), "##DropOpt%d", i);
+				char buf[256];
+				strncpy(buf, comp.options[i].c_str(), sizeof(buf) - 1);
+				buf[sizeof(buf) - 1] = '\0';
+				if (ImGui::InputText(id, buf, sizeof(buf))) {
+					comp.options[i] = buf;
+				}
+				ImGui::SameLine();
+				char rmId[64]; snprintf(rmId, sizeof(rmId), "X##DropRm%d", i);
+				if (ImGui::SmallButton(rmId)) {
+					comp.options.erase(comp.options.begin() + i);
+					if (comp.selectedIndex >= static_cast<int>(comp.options.size()))
+						comp.selectedIndex = static_cast<int>(comp.options.size()) - 1;
+					break;
+				}
+			}
+			if (ImGui::SmallButton("+ Add Option")) {
+				comp.options.push_back("New Option");
+			}
+		}
+
+		ImGui::Separator();
+		ImGui::TextDisabled("State");
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Selected Index");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragInt("##SelectedIdx", &comp.selectedIndex, 1.0f, 0,
+				static_cast<int>(comp.options.size()) - 1);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Interactable");
+			ImGui::SameLine(labelWidth);
+			ImGui::Checkbox("##DropInteractable", &comp.interactable);
+		}
+
+		ImGui::Separator();
+		ImGui::TextDisabled("Entity References");
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Caption Text");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			int cEnt = static_cast<int>(comp.captionTextEntity == UINT32_MAX ? -1 : comp.captionTextEntity);
+			if (ImGui::DragInt("##DropCaption", &cEnt, 1.0f, -1, 99999)) {
+				comp.captionTextEntity = cEnt < 0 ? UINT32_MAX : static_cast<uint32_t>(cEnt);
+			}
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Options Panel");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			int pEnt = static_cast<int>(comp.optionsPanelEntity == UINT32_MAX ? -1 : comp.optionsPanelEntity);
+			if (ImGui::DragInt("##DropPanel", &pEnt, 1.0f, -1, 99999)) {
+				comp.optionsPanelEntity = pEnt < 0 ? UINT32_MAX : static_cast<uint32_t>(pEnt);
+			}
+		}
+
+		ImGui::Separator();
+		ImGui::TextDisabled("Colors");
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Normal");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::ColorEdit4("##DropNormal", &comp.normalColor.r);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Highlighted");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::ColorEdit4("##DropHighlight", &comp.highlightedColor.r);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Pressed");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::ColorEdit4("##DropPressed", &comp.pressedColor.r);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Disabled");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::ColorEdit4("##DropDisabled", &comp.disabledColor.r);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Option Normal");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::ColorEdit4("##DropOptNormal", &comp.optionNormalColor.r);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Option Highlight");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::ColorEdit4("##DropOptHighlight", &comp.optionHighlightedColor.r);
+		}
+
+		ImGui::Separator();
+		ImGui::TextDisabled("Events");
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("On Changed ID");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			int val = static_cast<int>(comp.onValueChangedEventId);
+			if (ImGui::DragInt("##DropOnChangedID", &val, 1.0f, 0, 99999)) {
+				comp.onValueChangedEventId = static_cast<uint32_t>(val);
+			}
+		}
+
+		// Runtime info (read-only)
+		if (comp.isExpanded) {
+			ImGui::Separator();
+			ImGui::TextDisabled("Runtime");
+			ImGui::Text("Expanded: true");
+			if (comp.hoveredOptionIndex >= 0)
+				ImGui::Text("Hovered Option: %d", comp.hoveredOptionIndex);
+		}
+
+		if (deleteComp) {
+			// TODO: implement remove
+		}
+
+		ImGui::Unindent();
+		ImGui::TreePop();
+	}
+
+	void InspectorPanel::DrawInputFieldComponent(uint32_t entity) {
+		auto& comp = NE::ECS::Command::GetUIInputField(entity);
+
+		bool copyComp = false;
+		bool deleteComp = false;
+
+		const bool open = DrawComponentHeaderWithMenu(
+			"Input Field",
+			true,
+			&copyComp,
+			&deleteComp
+		);
+
+		if (!open)
+			return;
+
+		float labelWidth = 150.0f;
+		ImGui::Indent();
+
+		// Text content
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Text");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			char buf[1024];
+			strncpy(buf, comp.text.c_str(), sizeof(buf) - 1);
+			buf[sizeof(buf) - 1] = '\0';
+			if (ImGui::InputText("##InputFieldText", buf, sizeof(buf))) {
+				comp.text = buf;
+			}
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Placeholder");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			char buf[512];
+			strncpy(buf, comp.placeholderText.c_str(), sizeof(buf) - 1);
+			buf[sizeof(buf) - 1] = '\0';
+			if (ImGui::InputText("##Placeholder", buf, sizeof(buf))) {
+				comp.placeholderText = buf;
+			}
+		}
+
+		ImGui::Separator();
+		ImGui::TextDisabled("Configuration");
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Content Type");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			const char* contentTypes[] = { "Standard", "Integer", "Decimal", "Alpha Numeric", "Password" };
+			int ct = static_cast<int>(comp.contentType);
+			if (ImGui::Combo("##ContentType", &ct, contentTypes, IM_ARRAYSIZE(contentTypes))) {
+				comp.contentType = static_cast<NE::ECS::Component::UIInputField::ContentType>(ct);
+			}
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Line Type");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			const char* lineTypes[] = { "Single Line", "Multi Line" };
+			int lt = static_cast<int>(comp.lineType);
+			if (ImGui::Combo("##LineType", &lt, lineTypes, IM_ARRAYSIZE(lineTypes))) {
+				comp.lineType = static_cast<NE::ECS::Component::UIInputField::LineType>(lt);
+			}
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Character Limit");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragInt("##CharLimit", &comp.characterLimit, 1.0f, 0, 10000);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Interactable");
+			ImGui::SameLine(labelWidth);
+			ImGui::Checkbox("##Interactable", &comp.interactable);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Read Only");
+			ImGui::SameLine(labelWidth);
+			ImGui::Checkbox("##ReadOnly", &comp.readOnly);
+		}
+
+		ImGui::Separator();
+		ImGui::TextDisabled("Colors");
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Normal");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::ColorEdit4("##NormalColor", &comp.normalColor.r);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Selected");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::ColorEdit4("##SelectedColor", &comp.selectedColor.r);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Disabled");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::ColorEdit4("##DisabledColor", &comp.disabledColor.r);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Text Color");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::ColorEdit4("##TextColor", &comp.textColor.r);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Placeholder Color");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::ColorEdit4("##PlaceholderColor", &comp.placeholderColor.r);
+		}
+
+		ImGui::Separator();
+		ImGui::TextDisabled("Events");
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("On Changed ID");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			int val = static_cast<int>(comp.onValueChangedEventId);
+			if (ImGui::DragInt("##OnChangedID", &val, 1.0f, 0, 99999)) {
+				comp.onValueChangedEventId = static_cast<uint32_t>(val);
+			}
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("On Submit ID");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			int val = static_cast<int>(comp.onSubmitEventId);
+			if (ImGui::DragInt("##OnSubmitID", &val, 1.0f, 0, 99999)) {
+				comp.onSubmitEventId = static_cast<uint32_t>(val);
+			}
+		}
+
+		// Runtime info (read-only)
+		if (comp.isFocused) {
+			ImGui::Separator();
+			ImGui::TextDisabled("Runtime");
+			ImGui::Text("Cursor: %d", comp.cursorPosition);
+			if (comp.selectionStart >= 0 && comp.selectionStart != comp.selectionEnd) {
+				ImGui::Text("Selection: %d - %d", comp.selectionStart, comp.selectionEnd);
+			}
+		}
+
+		if (deleteComp) {
+			// TODO: implement remove
+		}
+
+		ImGui::Unindent();
 		ImGui::TreePop();
 	}
 }

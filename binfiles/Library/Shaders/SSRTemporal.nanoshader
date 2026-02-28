@@ -1,0 +1,136 @@
+#type vertex
+#version 460 core
+
+layout(location = 0) in vec2 aPos;
+layout(location = 1) in vec2 aUV;
+
+out vec2 vUV;
+
+void main() {
+    vUV = aUV;
+    gl_Position = vec4(aPos, 0.0, 1.0);
+}
+
+#type fragment
+#version 460 core
+
+in vec2 vUV;
+out vec4 FragColor;
+
+uniform sampler2D u_CurrentSSR;
+uniform sampler2D u_HistorySSR;
+uniform sampler2D u_Depth;
+uniform sampler2D u_Normal;
+uniform sampler2D u_Roughness;
+uniform sampler2D u_PrevDepth;
+uniform sampler2D u_PrevNormal;
+uniform sampler2D u_PrevRoughness;
+
+uniform int u_HasHistory;
+uniform mat4 u_CurrViewProjInv;
+uniform mat4 u_PrevViewProj;
+uniform vec2 u_TexelSize;
+
+uniform float u_RoughnessCutoff;
+uniform float u_HistoryBlendMin;
+uniform float u_HistoryBlendMax;
+uniform float u_NormalRejectDot;
+uniform float u_RoughnessReject;
+uniform float u_DepthReject;
+
+vec3 DecodeNormal(vec2 uv) {
+    return normalize(texture(u_Normal, uv).xyz * 2.0 - 1.0);
+}
+
+vec3 ReconstructWorldPos(vec2 uv, float depth) {
+    float z = depth * 2.0 - 1.0;
+    vec4 clip = vec4(uv * 2.0 - 1.0, z, 1.0);
+    vec4 world = u_CurrViewProjInv * clip;
+    return world.xyz / max(world.w, 1e-6);
+}
+
+vec2 ProjectPrevUV(vec3 worldPos) {
+    vec4 prevClip = u_PrevViewProj * vec4(worldPos, 1.0);
+    vec2 prevNdc = prevClip.xy / max(prevClip.w, 1e-6);
+    return prevNdc * 0.5 + 0.5;
+}
+
+float ProjectPrevDepth(vec3 worldPos) {
+    vec4 prevClip = u_PrevViewProj * vec4(worldPos, 1.0);
+    float prevNdcZ = prevClip.z / max(prevClip.w, 1e-6);
+    return prevNdcZ * 0.5 + 0.5;
+}
+
+void main() {
+    vec4 curr = texture(u_CurrentSSR, vUV);
+    float depth = texture(u_Depth, vUV).r;
+    if (depth >= 1.0 || u_HasHistory == 0) {
+        FragColor = curr;
+        return;
+    }
+
+    float roughness = clamp(texture(u_Roughness, vUV).r, 0.0, 1.0);
+    if (roughness >= u_RoughnessCutoff) {
+        FragColor = curr;
+        return;
+    }
+
+    vec3 worldPos = ReconstructWorldPos(vUV, depth);
+    vec2 prevUV = ProjectPrevUV(worldPos);
+    if (prevUV.x <= 0.0 || prevUV.x >= 1.0 || prevUV.y <= 0.0 || prevUV.y >= 1.0) {
+        FragColor = curr;
+        return;
+    }
+
+    vec4 hist = texture(u_HistorySSR, prevUV);
+    if (hist.a <= 1e-4) {
+        FragColor = curr;
+        return;
+    }
+
+    float prevDepth = texture(u_PrevDepth, prevUV).r;
+    if (prevDepth >= 1.0) {
+        FragColor = curr;
+        return;
+    }
+
+    float projectedPrevDepth = ProjectPrevDepth(worldPos);
+    float depthAgreement = abs(projectedPrevDepth - prevDepth);
+    float depthThresh = u_DepthReject * (1.0 + 4.0 * projectedPrevDepth) + 2.0 * fwidth(projectedPrevDepth);
+    float depthOk = 1.0 - smoothstep(depthThresh, max(depthThresh * 2.0, depthThresh + 1e-5), depthAgreement);
+
+    vec3 currNormal = DecodeNormal(vUV);
+    vec3 prevNormal = normalize(texture(u_PrevNormal, prevUV).xyz * 2.0 - 1.0);
+    float normalAgreement = dot(currNormal, prevNormal);
+    float normalReject = smoothstep(u_NormalRejectDot, min(u_NormalRejectDot + 0.1, 1.0), normalAgreement);
+
+    float prevRoughness = clamp(texture(u_PrevRoughness, prevUV).r, 0.0, 1.0);
+    float roughnessDelta = abs(prevRoughness - roughness);
+    float roughnessReject = 1.0 - smoothstep(u_RoughnessReject, u_RoughnessReject + 0.08, roughnessDelta);
+    float rejectWeight = normalReject * roughnessReject;
+
+    vec3 minCurr = vec3(1e20);
+    vec3 maxCurr = vec3(-1e20);
+    for (int y = -2; y <= 2; ++y) {
+        for (int x = -2; x <= 2; ++x) {
+            vec2 uv = clamp(vUV + vec2(x, y) * u_TexelSize, vec2(0.0), vec2(1.0));
+            vec3 c = texture(u_CurrentSSR, uv).rgb;
+            minCurr = min(minCurr, c);
+            maxCurr = max(maxCurr, c);
+        }
+    }
+    vec3 pad = 0.05 * max(vec3(1.0), abs(curr.rgb));
+    hist.rgb = clamp(hist.rgb, minCurr - pad, maxCurr + pad);
+
+    float roughnessFactor = clamp(roughness / max(u_RoughnessCutoff, 1e-4), 0.0, 1.0);
+    float baseHistory = mix(u_HistoryBlendMin, u_HistoryBlendMax, roughnessFactor);
+    float currStable = smoothstep(0.2, 0.9, curr.a);
+    float useHistory = mix(1.0, 0.2, currStable);
+    float historyWeight = baseHistory * useHistory * rejectWeight * depthOk;
+    historyWeight *= hist.a;
+    historyWeight = clamp(historyWeight, 0.0, 0.98);
+
+    vec3 outColor = mix(curr.rgb, hist.rgb, historyWeight);
+    float outConfidence = max(curr.a, mix(curr.a, hist.a, historyWeight));
+    FragColor = vec4(outColor, outConfidence);
+}

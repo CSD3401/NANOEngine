@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "CommandHistory.hpp"
 
 #include <memory>
@@ -84,24 +85,60 @@ namespace Editor {
             }
         );
 
-        NANOEngine::Events::EventBus::Get().Subscribe<Events::CreateUICanvasEntityEvent>(
+        // UI Creation Events (Unity-like workflow)
+        NANOEngine::Events::EventBus::Get().Subscribe<Events::CreateUICanvasEvent>(
             NANOEngine::Events::EventDomain::Editor,
-            [&](const Events::CreateUICanvasEntityEvent&) {
-                ExecuteCommand(std::make_unique<CreateUICanvasEntityCommand>());
+            [&](const Events::CreateUICanvasEvent&) {
+                ExecuteCommand(std::make_unique<CreateUICanvasCommand>());
             }
         );
 
-        NANOEngine::Events::EventBus::Get().Subscribe<Events::CreateUIImageEntityEvent>(
+        NANOEngine::Events::EventBus::Get().Subscribe<Events::CreateUITextEvent>(
             NANOEngine::Events::EventDomain::Editor,
-            [&](const Events::CreateUIImageEntityEvent& e) {
-                ExecuteCommand(std::make_unique<CreateUIImageEntityCommand>(e.parentCanvas));
+            [&](const Events::CreateUITextEvent& e) {
+                ExecuteCommand(std::make_unique<CreateUITextCommand>(e.parentEntity));
+            }
+        );
+
+        NANOEngine::Events::EventBus::Get().Subscribe<Events::CreateUIImageEvent>(
+            NANOEngine::Events::EventDomain::Editor,
+            [&](const Events::CreateUIImageEvent& e) {
+                ExecuteCommand(std::make_unique<CreateUIImageCommand>(e.parentEntity));
+            }
+        );
+
+        NANOEngine::Events::EventBus::Get().Subscribe<Events::CreateUIButtonEvent>(
+            NANOEngine::Events::EventDomain::Editor,
+            [&](const Events::CreateUIButtonEvent& e) {
+                ExecuteCommand(std::make_unique<CreateUIButtonCommand>(e.parentEntity));
+            }
+        );
+
+        NANOEngine::Events::EventBus::Get().Subscribe<Events::CreateUIPanelEvent>(
+            NANOEngine::Events::EventDomain::Editor,
+            [&](const Events::CreateUIPanelEvent& e) {
+                ExecuteCommand(std::make_unique<CreateUIPanelCommand>(e.parentEntity));
+            }
+        );
+
+        NANOEngine::Events::EventBus::Get().Subscribe<Events::CreateUISliderEvent>(
+            NANOEngine::Events::EventDomain::Editor,
+            [&](const Events::CreateUISliderEvent& e) {
+                ExecuteCommand(std::make_unique<CreateUISliderCommand>(e.parentEntity));
+            }
+        );
+
+        NANOEngine::Events::EventBus::Get().Subscribe<Events::CreateUIToggleEvent>(
+            NANOEngine::Events::EventDomain::Editor,
+            [&](const Events::CreateUIToggleEvent& e) {
+                ExecuteCommand(std::make_unique<CreateUIToggleCommand>(e.parentEntity));
             }
         );
 
         NANOEngine::Events::EventBus::Get().Subscribe<Events::DeleteEntityEvent>(
             NANOEngine::Events::EventDomain::Editor,
             [&](const Events::DeleteEntityEvent& e) {
-                ExecuteCommand(std::make_unique<DeleteEntityCommand>(e.entitiesToBeDeleted, e.oldParentEntity));
+                ExecuteCommand(std::make_unique<DeleteEntityCommand>(e.rootEntitiesToDelete));
             }
         );
 

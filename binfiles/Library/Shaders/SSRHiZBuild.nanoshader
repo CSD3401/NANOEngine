@@ -1,0 +1,41 @@
+#type compute
+#version 460 core
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+uniform int u_Mode;
+uniform int u_SrcMip;
+
+uniform sampler2D u_Depth;
+uniform sampler2D u_HiZSampler;
+
+layout(r32f, binding = 0) uniform image2D u_OutHiZ;
+
+void main() {
+    ivec2 dstCoord = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 dstSize = imageSize(u_OutHiZ);
+    if (dstCoord.x >= dstSize.x || dstCoord.y >= dstSize.y) return;
+
+    if (u_Mode == 0) {
+        float d = texelFetch(u_Depth, dstCoord, 0).r;
+        imageStore(u_OutHiZ, dstCoord, vec4(d, 0.0, 0.0, 0.0));
+        return;
+    }
+
+    // Downsample from previous mip (u_SrcMip).
+    ivec2 srcSize = textureSize(u_HiZSampler, u_SrcMip);
+    ivec2 base = dstCoord * 2;
+    ivec2 p0 = clamp(base + ivec2(0, 0), ivec2(0), srcSize - ivec2(1));
+    ivec2 p1 = clamp(base + ivec2(1, 0), ivec2(0), srcSize - ivec2(1));
+    ivec2 p2 = clamp(base + ivec2(0, 1), ivec2(0), srcSize - ivec2(1));
+    ivec2 p3 = clamp(base + ivec2(1, 1), ivec2(0), srcSize - ivec2(1));
+
+    float d0 = texelFetch(u_HiZSampler, p0, u_SrcMip).r;
+    float d1 = texelFetch(u_HiZSampler, p1, u_SrcMip).r;
+    float d2 = texelFetch(u_HiZSampler, p2, u_SrcMip).r;
+    float d3 = texelFetch(u_HiZSampler, p3, u_SrcMip).r;
+
+    float d = min(min(d0, d1), min(d2, d3));
+    imageStore(u_OutHiZ, dstCoord, vec4(d, 0.0, 0.0, 0.0));
+}
+

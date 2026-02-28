@@ -1,18 +1,23 @@
+#include "pch.h"
 #include "GraphicsManager.hpp"
+#include "PostProcessPipeline.hpp"
 
 #include "EditorCamera.hpp"
 #include "Skybox.hpp"
 #include "Material.hpp"
+#include "Model.hpp"
 #include "DrawCommand.hpp"
+#include "DecalCommand.hpp"
+#include "DecalGizmoCommand.hpp"
+#include "LightGizmoCommand.hpp"
 #include "DrawQueue.hpp"
 #include "RenderViewManager.hpp"
 #include "RenderSettings.hpp"
-#include "InstanceData.hpp"
-#include "Primitives.hpp"
-#include "ResourceManagement/ResourceManager.hpp"
+#include "ECS/Components/DecalProjector.hpp"
+#include "ECS/Components/Transform.hpp"
 
-#include "../../Math/Mat4.hpp"
-#include "../../Math/Vec3.hpp"
+#include "Math/Mat4.hpp"
+#include "Math/Vec3.hpp"
 
 #include "../Interfaces/IFrameBuffer.hpp"
 #include "../Interfaces/IShader.hpp"
@@ -28,175 +33,705 @@
 #include "../OpenGL/GLTexture.hpp"
 #include "../OpenGL/GLStateCache.hpp"
 #include "../Core/Primitives.hpp"
-#include "GizmosRenderer.hpp"
-#include "UIRenderer.hpp"
-#include "../OpenGL/GLStateCache.hpp"
+#include <glad/glad.h>
 #include "glfw/glfw3.h"
-#include "Graphics/OpenGL/GLFrameBuffer.hpp"
-#include "../../SceneManagement/Scene.hpp"
 #include "Core/SpdLogger.hpp"
 #include "InstanceData.hpp"
 #include "../OpenGL/GLGeometryBuffer.hpp"
 #include "../OpenGL/GLFrameBuffer.hpp"
 #include "../OpenGL/GLClusteredLighting.hpp"
 
-#include "Core/SpdLogger.hpp"
 #include "GizmosRenderer.hpp"
-#include "../../Core/Logger.hpp"
-#include "../../Core/Profiler.hpp"
-#include "../../ECS/Components/Light.hpp"
-#include "../../SceneManagement/Scene.hpp"
+#include "Graphics/DebugRenderer/DebugDrawSystem.hpp"
+#include "Core/Profiler.hpp"
+#include "ECS/Components/Light.hpp"
+#include "SceneManagement/Scene.hpp"
+#include "ResourceManagement/ResourceManager.hpp"
+#include "ECS/Core/Entity.hpp"
 
-#include <glad/glad.h>
-#include <GL/gl.h> // Add this include for OpenGL functions like glBegin, glEnd, etc.
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <cmath>
+#include <variant>
+#include <string>
+#include <unordered_map>
 
 #include "Input/InputManager.hpp"
+#include "ShadowRenderer.hpp"
 #include "Frustum.hpp"
 
 
 namespace NE::Graphics {
     namespace {
-        float Radians(float deg) {
-            return deg * 3.14159265358979323846f / 180.0f;
+        constexpr float SELECTION_OUTLINE_SCALE = 1.05f;
+        constexpr Math::Vec4 SELECTION_OUTLINE_COLOR = { 0.89f, 0.61f, 0.06f, 1.0f };
+
+        constexpr float ICON_GIZMO_PIXEL_SIZE = 128.f;
+        constexpr uint32_t TAA_HALTON_PERIOD = 8;
+
+        constexpr std::array<const char*, 4> LIGHT_GIZMO_ICON_UUIDS = {
+            "nedirlight", // Directional
+            "nepointlight", // Point
+            "nespotlight", // Spot
+            "nedirlight"  // Area
+        };
+
+        std::vector<LightGizmoCommand> s_LightGizmoQueue;
+        std::vector<DecalGizmoCommand> s_DecalGizmoQueue;
+        std::shared_ptr<IGeometryBuffer> s_LightGizmoMesh;
+        std::array<std::shared_ptr<Material>, 4> s_LightGizmoMaterials;
+        std::shared_ptr<Material> s_DecalGizmoMaterial;
+        std::shared_ptr<IGeometryBuffer> s_DecalCubeMesh;
+
+        inline Math::Vec3 TransformPoint(const Math::Mat4& M, const Math::Vec3& p) {
+            Math::Vec4 v = M * Math::Vec4(p.x, p.y, p.z, 1.0f);
+            return { v.x, v.y, v.z };
         }
 
-        static inline Math::Vec3 TransformPoint(const Math::Mat4& m, const Math::Vec3& p, float w = 1.0f)
-        {
-            // Replace this with your own Mat4 * Vec4 if you already have it.
-            // Assuming Mat4::Data() is column-major float[16] like GL.
-            const float* a = m.Data();
+        inline size_t ToLightTypeIndex(ECS::Component::Light::Type type) {
+            const uint8_t raw = static_cast<uint8_t>(type);
+            return (raw < s_LightGizmoMaterials.size()) ? static_cast<size_t>(raw) : static_cast<size_t>(0);
+        }
 
-            float x = a[0] * p.x + a[4] * p.y + a[8] * p.z + a[12] * w;
-            float y = a[1] * p.x + a[5] * p.y + a[9] * p.z + a[13] * w;
-            float z = a[2] * p.x + a[6] * p.y + a[10] * p.z + a[14] * w;
-            float ww = a[3] * p.x + a[7] * p.y + a[11] * p.z + a[15] * w;
+        inline bool IsPerspectiveProjection(const Mat4& projection) {
+            return std::abs(projection.GetElement(3, 3)) < 0.5f;
+        }
 
-            if (std::abs(ww) > 1e-6f) {
-                float invW = 1.0f / ww;
-                x *= invW; y *= invW; z *= invW;
+        inline float Halton(uint32_t index, uint32_t base) {
+            float f = 1.0f;
+            float r = 0.0f;
+            uint32_t i = index;
+            while (i > 0) {
+                f /= static_cast<float>(base);
+                r += f * static_cast<float>(i % base);
+                i /= base;
             }
-            return { x, y, z };
+            return r;
         }
 
-        static inline Math::Vec3 TransformVector(const Math::Mat4& m, const Math::Vec3& v)
-        {
-            // w=0 for direction vectors
-            return TransformPoint(m, v, 0.0f);
+        inline std::array<float, 2> ComputeTAAJitterNDC(uint64_t frameIndex, RenderViewHandle handle, float width, float height) {
+            if (width <= 0.0f || height <= 0.0f) {
+                return { 0.0f, 0.0f };
+            }
+
+            const uint32_t sequenceIndex = static_cast<uint32_t>((frameIndex + static_cast<uint64_t>(handle)) % TAA_HALTON_PERIOD) + 1;
+            const float haltonX = Halton(sequenceIndex, 2);
+            const float haltonY = Halton(sequenceIndex, 3);
+
+            const float jitterX = (haltonX - 0.5f) * 2.0f / width;
+            const float jitterY = (haltonY - 0.5f) * 2.0f / height;
+            return { jitterX, jitterY };
         }
 
-        static inline void BuildStableBasisFromDir(const Math::Vec3& dirN, Math::Vec3& outRight, Math::Vec3& outUp)
-        {
-            // Avoid hard flipping based on thresholds if you can
-            Math::Vec3 worldUp = { 0.f, 1.f, 0.f };
+        inline float ComputeWorldSizeForPixels(float pixelSize, float distanceToCamera, const Mat4& projection, float viewportHeight) {
+            float projY = std::abs(projection.GetElement(1, 1));
+            if (projY < 1e-4f) projY = 1.0f;
 
-            float d = std::abs(dirN.Dot(worldUp));
-            if (d > 0.99f) worldUp = { 0.f, 0.f, 1.f };
+            if (IsPerspectiveProjection(projection)) {
+                const float safeDistance = std::max(distanceToCamera, 0.001f);
+                return pixelSize * (2.0f * safeDistance) / (projY * viewportHeight);
+            }
 
-            outRight = worldUp.Cross(dirN).Normalized();
-            outUp = dirN.Cross(outRight).Normalized();
+            return pixelSize * (2.0f) / (projY * viewportHeight);
         }
 
-        Math::Mat4 BuildDirectionalLightVP_FitToView(const RenderView& view, Math::Vec3 lightDirWorld, int shadowRes)
+        inline Mat4 BuildBillboardMatrix(const Vec3& position, const Vec3& right, const Vec3& up, float size) {
+            Vec3 forward = right.Cross(up).Normalized();
+
+            Mat4 model;
+            model.SetToIdentity();
+
+            model.GetElement(0, 0) = right.x * size;
+            model.GetElement(1, 0) = right.y * size;
+            model.GetElement(2, 0) = right.z * size;
+
+            model.GetElement(0, 1) = up.x * size;
+            model.GetElement(1, 1) = up.y * size;
+            model.GetElement(2, 1) = up.z * size;
+
+            model.GetElement(0, 2) = forward.x * size;
+            model.GetElement(1, 2) = forward.y * size;
+            model.GetElement(2, 2) = forward.z * size;
+
+            model.SetTranslation(position);
+            return model;
+        }
+
+        constexpr int LIGHT_DEBUG_CIRCLE_SEGMENTS = 48;
+        constexpr int LIGHT_DEBUG_CONE_RAYS = 8;
+        constexpr float LIGHT_DEBUG_MIN_RANGE = 0.05f;
+        constexpr float LIGHT_DEBUG_MIN_ANGLE_DEG = 0.1f;
+        constexpr float LIGHT_DEBUG_MAX_ANGLE_DEG = 89.0f;
+
+        inline Vec3 BuildPerpendicular(const Vec3& direction) {
+            Vec3 reference = (std::abs(direction.y) < 0.99f) ? Vec3{ 0.0f, 1.0f, 0.0f } : Vec3{ 1.0f, 0.0f, 0.0f };
+            Vec3 perpendicular = direction.Cross(reference);
+            if (perpendicular.LengthSquared() < 1e-6f) {
+                reference = { 0.0f, 0.0f, 1.0f };
+                perpendicular = direction.Cross(reference);
+            }
+            if (perpendicular.LengthSquared() < 1e-6f) {
+                return { 1.0f, 0.0f, 0.0f };
+            }
+            perpendicular.Normalize();
+            return perpendicular;
+        }
+
+        inline void AppendWireCircle(
+            std::vector<Vec3>& vertices,
+            const Vec3& center,
+            const Vec3& axisX,
+            const Vec3& axisY,
+            float radius,
+            int segments)
         {
-            using Math::Vec3;
-            using Math::Mat4;
+            if (radius <= 0.0f || segments < 3) return;
 
-            Vec3 dir = lightDirWorld.Normalized();
+            Vec3 prev = center + axisX * radius;
+            for (int i = 1; i <= segments; ++i) {
+                const float angle = (2.0f * Math::PI * static_cast<float>(i)) / static_cast<float>(segments);
+                const float c = std::cos(angle);
+                const float s = std::sin(angle);
+                const Vec3 curr = center + (axisX * c + axisY * s) * radius;
+                vertices.push_back(prev);
+                vertices.push_back(curr);
+                prev = curr;
+            }
+        }
 
-            // 1) Get 8 frustum corners in WORLD space
-            Mat4 viewProj = view.projection * view.view;
-            Mat4 invViewProj = viewProj.Inverse();
+        inline void AppendWireCone(
+            std::vector<Vec3>& vertices,
+            const Vec3& apex,
+            const Vec3& direction,
+            float range,
+            float angleDeg,
+            int segments,
+            int rayCount)
+        {
+            const float clampedRange = std::max(range, LIGHT_DEBUG_MIN_RANGE);
+            const float clampedAngleDeg = std::clamp(angleDeg, LIGHT_DEBUG_MIN_ANGLE_DEG, LIGHT_DEBUG_MAX_ANGLE_DEG);
+            const float angleRad = clampedAngleDeg * (Math::PI / 180.0f);
 
-            const Vec3 ndcCorners[8] = {
-                { -1, -1, -1 }, {  1, -1, -1 }, {  1,  1, -1 }, { -1,  1, -1 },
-                { -1, -1,  1 }, {  1, -1,  1 }, {  1,  1,  1 }, { -1,  1,  1 }
+            Vec3 forward = direction;
+            if (forward.LengthSquared() < 1e-6f) {
+                forward = { 0.0f, -1.0f, 0.0f };
+            }
+            forward.Normalize();
+
+            Vec3 right = BuildPerpendicular(forward);
+            Vec3 up = right.Cross(forward).Normalized();
+
+            const float radius = std::tan(angleRad) * clampedRange;
+            const Vec3 baseCenter = apex + forward * clampedRange;
+
+            AppendWireCircle(vertices, baseCenter, right, up, radius, segments);
+
+            const int step = std::max(1, segments / std::max(1, rayCount));
+            for (int i = 0; i < segments; i += step) {
+                const float angle = (2.0f * Math::PI * static_cast<float>(i)) / static_cast<float>(segments);
+                const float c = std::cos(angle);
+                const float s = std::sin(angle);
+                const Vec3 rimPoint = baseCenter + (right * c + up * s) * radius;
+                vertices.push_back(apex);
+                vertices.push_back(rimPoint);
+            }
+        }
+
+        //inline void QueueLightDebugGeometryForView(
+        //    RenderViewHandle handle,
+        //    RenderViewHandle sceneViewHandle,
+        //    const std::vector<ECS::Component::Light*>& lights)
+        //{
+        //    if (handle != sceneViewHandle || lights.empty()) return;
+
+        //    std::vector<Vec3> vertices;
+        //    vertices.reserve(256);
+
+        //    for (const ECS::Component::Light* light : lights) {
+        //        if (!light) continue;
+
+
+        //    }
+        //}
+
+        void InitializeLightGizmoResources() {
+            auto quadModel = Resource::ResourceManager::GetInstance().LoadResource<Model>("builtin:model/quad");
+            if (quadModel && !quadModel->meshes.empty()) {
+                s_LightGizmoMesh = quadModel->meshes[0].buffer;
+            } else {
+                SPD_WARNING("Light gizmo mesh initialization failed: builtin quad model not available.");
+                return;
+            }
+
+            auto baseMaterial = Resource::ResourceManager::GetInstance().LoadResource<Material>("neunlitmat");
+            if (!baseMaterial) {
+                SPD_WARNING("Light gizmo material initialization failed: neunlitmat not available.");
+                return;
+            }
+
+            for (size_t i = 0; i < s_LightGizmoMaterials.size(); ++i) {
+                auto material = std::make_shared<Material>(*baseMaterial);
+
+                if (material->GetPipeline()) {
+                    auto spec = material->GetPipeline()->GetSpecification();
+                    spec.EnableBlending = true;
+                    spec.EnableDepthTest = true;
+                    spec.DepthWrite = false;
+                    spec.CullMode = GL_NONE;
+                    spec.PolygonMode = GL_FILL;
+                    material->ApplyPipelineSpec(spec);
+                }
+
+                material->SetQueueBase(RenderQueue::OVERLAY);
+                material->SetQueueOffset(0);
+                material->SetUniformVec3("u_BaseColor", { 1.0f, 1.0f, 1.0f });
+                material->SetUniformFloat("u_Opacity", 1.0f);
+                material->SetUniformInt("u_AlphaClip", 1);
+                material->SetUniformFloat("u_AlphaCutoff", 0.1f);
+
+                material->SetUniformInt("h_HasAlbedoMap", 0);
+                material->SetUniformInt("u_HasAlbedoMap", 0);
+                material->SetUniformInt("h_HasOpacityMap", 0);
+                material->SetUniformInt("u_HasOpacityMap", 0);
+                material->m_Textures["u_AlbedoMap"] = nullptr;
+                material->m_Textures["u_OpacityMap"] = nullptr;
+
+                const char* iconUuid = LIGHT_GIZMO_ICON_UUIDS[i];
+                if (iconUuid && iconUuid[0] != '\0') {
+                    auto texture = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLTexture>(iconUuid);
+                    if (texture) {
+                        texture->MakeResident();
+                        material->m_Textures["u_AlbedoMap"] = texture;
+                        material->m_Textures["u_OpacityMap"] = texture;
+                        material->SetUniformInt("h_HasAlbedoMap", 1);
+                        material->SetUniformInt("u_HasAlbedoMap", 1);
+                        material->SetUniformInt("h_HasOpacityMap", 1);
+                        material->SetUniformInt("u_HasOpacityMap", 1);
+                    } else {
+                        SPD_WARNING("Light gizmo icon texture load failed for UUID: " << iconUuid);
+                    }
+                }
+
+                s_LightGizmoMaterials[i] = std::move(material);
+            }
+        }
+
+        void InitializeDecalGizmoResources() {
+            if (!s_LightGizmoMesh) {
+                auto quadModel = Resource::ResourceManager::GetInstance().LoadResource<Model>("builtin:model/quad");
+                if (quadModel && !quadModel->meshes.empty()) {
+                    s_LightGizmoMesh = quadModel->meshes[0].buffer;
+                } else {
+                    SPD_WARNING("Decal gizmo mesh initialization failed: builtin quad model not available.");
+                    return;
+                }
+            }
+
+            auto baseMaterial = Resource::ResourceManager::GetInstance().LoadResource<Material>("neunlitmat");
+            if (!baseMaterial) {
+                SPD_WARNING("Decal gizmo material initialization failed: neunlitmat not available.");
+                return;
+            }
+
+            auto material = std::make_shared<Material>(*baseMaterial);
+            if (!material->GetPipeline()) {
+                SPD_WARNING("Decal gizmo material initialization failed: invalid pipeline.");
+                return;
+            }
+
+            auto spec = material->GetPipeline()->GetSpecification();
+            spec.EnableBlending = true;
+            spec.EnableDepthTest = true;
+            spec.DepthWrite = false;
+            spec.CullMode = GL_NONE;
+            spec.PolygonMode = GL_FILL;
+            material->ApplyPipelineSpec(spec);
+
+            material->SetQueueBase(RenderQueue::OVERLAY);
+            material->SetQueueOffset(1);
+            material->SetUniformVec3("u_BaseColor", { 1.0f, 1.0f, 1.0f });
+            material->SetUniformFloat("u_Opacity", 1.0f);
+            material->SetUniformInt("u_AlphaClip", 1);
+            material->SetUniformFloat("u_AlphaCutoff", 0.1f);
+
+            material->SetUniformInt("h_HasAlbedoMap", 0);
+            material->SetUniformInt("u_HasAlbedoMap", 0);
+            material->SetUniformInt("h_HasOpacityMap", 0);
+            material->SetUniformInt("u_HasOpacityMap", 0);
+            material->m_Textures["u_AlbedoMap"] = nullptr;
+            material->m_Textures["u_OpacityMap"] = nullptr;
+
+            auto texture = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLTexture>("nedecal");
+
+            texture->MakeResident();
+            material->m_Textures["u_AlbedoMap"] = texture;
+            material->m_Textures["u_OpacityMap"] = texture;
+            material->SetUniformInt("h_HasAlbedoMap", 1);
+            material->SetUniformInt("u_HasAlbedoMap", 1);
+            material->SetUniformInt("h_HasOpacityMap", 1);
+            material->SetUniformInt("u_HasOpacityMap", 1);
+
+            s_DecalGizmoMaterial = std::move(material);
+        }
+
+        void RenderLightGizmosForView(
+            RenderViewHandle handle,
+            const RenderView& view,
+            const Mat4& camProj,
+            const Mat4& camView,
+            const Vec3& camPos,
+            IStateCache* stateCache,
+            RenderViewHandle sceneViewHandle)
+        {
+            if (handle != sceneViewHandle) return;
+            if (s_LightGizmoQueue.empty() || !s_LightGizmoMesh || !stateCache) return;
+
+            const float viewportHeight = static_cast<float>(view.framebuffer ? view.framebuffer->GetHeight() : GraphicsManager::GetScreenHeight());
+            if (viewportHeight <= 0.0f) return;
+
+            Vec3 camRight{
+                camView.GetElement(0, 0),
+                camView.GetElement(0, 1),
+                camView.GetElement(0, 2)
+            };
+            Vec3 camUp{
+                camView.GetElement(1, 0),
+                camView.GetElement(1, 1),
+                camView.GetElement(1, 2)
             };
 
-            Vec3 frustumWS[8];
-            for (int i = 0; i < 8; ++i)
-                frustumWS[i] = TransformPoint(invViewProj, ndcCorners[i], 1.0f);
+            if (camRight.LengthSquared() < 1e-6f) camRight = { 1.0f, 0.0f, 0.0f };
+            if (camUp.LengthSquared() < 1e-6f) camUp = { 0.0f, 1.0f, 0.0f };
+            camRight.Normalize();
+            camUp.Normalize();
 
-            // 2) Compute frustum center
-            Vec3 center = { 0, 0, 0 };
-            for (auto& p : frustumWS) center += p;
-            center *= (1.0f / 8.0f);
-
-            // 3) Build light view matrix
-            Vec3 right, up;
-            BuildStableBasisFromDir(dir, right, up);
-
-            // Calculate frustum radius for stable pullback
-            float radius = 0.0f;
-            for (auto& p : frustumWS) {
-                float dist = (p - center).Length();
-                radius = std::max(radius, dist);
+            std::array<std::vector<InstanceData>, 4> batchedInstances;
+            for (auto& batch : batchedInstances) {
+                batch.reserve(s_LightGizmoQueue.size());
             }
 
-            Vec3 eye = center - dir * (radius + 50.0f);  // Dynamic pullback based on frustum size
-            Mat4 lightView = Mat4::BuildViewMtx(eye, center, up);
+            for (const auto& command : s_LightGizmoQueue) {
+                const auto index = ToLightTypeIndex(command.lightType);
 
-            // 4) Transform corners to light space and compute bounds
-            float minX = +FLT_MAX, minY = +FLT_MAX, minZ = +FLT_MAX;
-            float maxX = -FLT_MAX, maxY = -FLT_MAX, maxZ = -FLT_MAX;
+                const float distance = (command.position - camPos).Length();
+                const float worldSize = ComputeWorldSizeForPixels(ICON_GIZMO_PIXEL_SIZE, distance, camProj, viewportHeight);
+                if (!std::isfinite(worldSize) || worldSize <= 0.0f) continue;
 
-            for (auto& pWS : frustumWS) {
-                Vec3 pLS = TransformPoint(lightView, pWS, 1.0f);
-                minX = std::min(minX, pLS.x); maxX = std::max(maxX, pLS.x);
-                minY = std::min(minY, pLS.y); maxY = std::max(maxY, pLS.y);
-                minZ = std::min(minZ, pLS.z); maxZ = std::max(maxZ, pLS.z);
+                InstanceData instance{};
+                instance.model = BuildBillboardMatrix(command.position, camRight, camUp, worldSize);
+                instance.idRGB = command.idRGB;
+                batchedInstances[index].push_back(instance);
             }
 
-            // 5) TEXEL SNAPPING - snap both extent AND center
-            float extentX = maxX - minX;
-            float extentY = maxY - minY;
+            for (size_t i = 0; i < batchedInstances.size(); ++i) {
+                auto& instances = batchedInstances[i];
+                if (instances.empty()) continue;
 
-            // Round extent up to be a multiple of (2 * texel size) for stability
-            float unitsPerTexelX = extentX / float(shadowRes);
-            float unitsPerTexelY = extentY / float(shadowRes);
+                auto material = s_LightGizmoMaterials[i];
+                if (!material || !material->GetPipeline() || !material->GetPipeline()->GetSpecification().shader) continue;
 
-            // Snap extents to texel boundaries
-            extentX = std::ceil(extentX / unitsPerTexelX) * unitsPerTexelX;
-            extentY = std::ceil(extentY / unitsPerTexelY) * unitsPerTexelY;
+                auto pipeline = material->GetPipeline();
+                auto shader = pipeline->GetSpecification().shader;
 
-            // Recalculate units per texel with snapped extents
-            unitsPerTexelX = extentX / float(shadowRes);
-            unitsPerTexelY = extentY / float(shadowRes);
+                stateCache->Bind(pipeline);
+                material->SetUniformInt("i_FogEnabled", 0);
+                material->Bind();
 
-            // Snap center to texel grid
-            float cx = 0.5f * (minX + maxX);
-            float cy = 0.5f * (minY + maxY);
-            cx = std::floor(cx / unitsPerTexelX) * unitsPerTexelX;
-            cy = std::floor(cy / unitsPerTexelY) * unitsPerTexelY;
+                shader->SetUniformMat4("u_View", camView);
+                shader->SetUniformMat4("u_Projection", camProj);
+                shader->SetUniformVec3("u_CameraPos", camPos);
+                shader->SetUniformInt("i_FogEnabled", 0);
 
-            minX = cx - 0.5f * extentX;
-            maxX = cx + 0.5f * extentX;
-            minY = cy - 0.5f * extentY;
-            maxY = cy + 0.5f * extentY;
+                OpenGL::GLGeometryBuffer::UpdateInstanceBuffer(
+                    instances.data(),
+                    instances.size() * sizeof(InstanceData)
+                );
 
-            // 6) Near/Far - extend behind for shadow casters outside view frustum
-            const float padZ = 100.0f;  // Increased to catch shadow casters behind camera
-            float nearP = -maxZ - padZ;
-            float farP = -minZ + padZ;
-
-            // Ensure valid range
-            if (nearP < 0.1f) nearP = 0.1f;
-            if (farP <= nearP) farP = nearP + 1.0f;
-
-            Mat4 lightProj = Mat4::BuildOrtho(minX, maxX, minY, maxY, nearP, farP);
-            return lightProj * lightView;
+                s_LightGizmoMesh->Bind();
+                s_LightGizmoMesh->DrawInstanced(instances.size());
+                s_LightGizmoMesh->Unbind();
+            }
         }
 
-        inline bool SphereInFrustum(const NE::Graphics::Frustum& f,
-            const NE::Math::Vec3& c,
-            float r)
+        void RenderDecalGizmosForView(
+            RenderViewHandle handle,
+            const RenderView& view,
+            const Mat4& camProj,
+            const Mat4& camView,
+            const Vec3& camPos,
+            IStateCache* stateCache,
+            RenderViewHandle sceneViewHandle)
         {
-            for (int i = 0; i < 6; ++i) {
-                const auto& p = f.planes[i];
-                float dist = p.n.x * c.x + p.n.y * c.y + p.n.z * c.z + p.d;
-                //float dist = p.n.Dot(c) + p.d;
-                if (dist < -r) return false;
+            if (handle != sceneViewHandle) return;
+            if (s_DecalGizmoQueue.empty() || !s_LightGizmoMesh || !s_DecalGizmoMaterial || !stateCache) return;
+            if (!s_DecalGizmoMaterial->GetPipeline() || !s_DecalGizmoMaterial->GetPipeline()->GetSpecification().shader) return;
+
+            const float viewportHeight = static_cast<float>(view.framebuffer ? view.framebuffer->GetHeight() : GraphicsManager::GetScreenHeight());
+            if (viewportHeight <= 0.0f) return;
+
+            Vec3 camRight{
+                camView.GetElement(0, 0),
+                camView.GetElement(0, 1),
+                camView.GetElement(0, 2)
+            };
+            Vec3 camUp{
+                camView.GetElement(1, 0),
+                camView.GetElement(1, 1),
+                camView.GetElement(1, 2)
+            };
+
+            if (camRight.LengthSquared() < 1e-6f) camRight = { 1.0f, 0.0f, 0.0f };
+            if (camUp.LengthSquared() < 1e-6f) camUp = { 0.0f, 1.0f, 0.0f };
+            camRight.Normalize();
+            camUp.Normalize();
+
+            std::vector<InstanceData> instances;
+            instances.reserve(s_DecalGizmoQueue.size());
+            for (const auto& command : s_DecalGizmoQueue) {
+                const float distance = (command.position - camPos).Length();
+                const float worldSize = ComputeWorldSizeForPixels(ICON_GIZMO_PIXEL_SIZE, distance, camProj, viewportHeight);
+                if (!std::isfinite(worldSize) || worldSize <= 0.0f) continue;
+
+                InstanceData instance{};
+                instance.model = BuildBillboardMatrix(command.position, camRight, camUp, worldSize);
+                instance.idRGB = command.idRGB;
+                instances.push_back(instance);
             }
+            if (instances.empty()) return;
+
+            auto pipeline = s_DecalGizmoMaterial->GetPipeline();
+            auto shader = pipeline->GetSpecification().shader;
+            stateCache->Bind(pipeline);
+            s_DecalGizmoMaterial->Bind();
+            shader->SetUniformMat4("u_View", camView);
+            shader->SetUniformMat4("u_Projection", camProj);
+            shader->SetUniformVec3("u_CameraPos", camPos);
+            shader->SetUniformInt("i_FogEnabled", 0);
+
+            OpenGL::GLGeometryBuffer::UpdateInstanceBuffer(
+                instances.data(),
+                instances.size() * sizeof(InstanceData)
+            );
+
+            s_LightGizmoMesh->Bind();
+            s_LightGizmoMesh->DrawInstanced(instances.size());
+            s_LightGizmoMesh->Unbind();
+        }
+
+        bool RenderNormalPrepassForView(
+            const RenderView& view,
+            const std::vector<DrawCommand>& commands,
+            const Frustum& frustum,
+            const Mat4& camProj,
+            const Mat4& camView,
+            const std::shared_ptr<OpenGL::GLShader>& normalPrepassShader,
+            IStateCache* stateCache)
+        {
+            if (!view.framebuffer || !view.framebuffer->HasMiniGBuffer() || !normalPrepassShader) {
+                return false;
+            }
+
+            // Prepass must not inherit decal/gizmo state from previous draws.
+            glDisable(GL_BLEND);
+            glEnable(GL_DEPTH_TEST);
+            glDepthMask(GL_TRUE);
+            glEnable(GL_CULL_FACE);
+            glCullFace(GL_BACK);
+
+            const GLenum gbufferAttachments[2] = { GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
+            glDrawBuffers(2, gbufferAttachments);
+            glClear(GL_DEPTH_BUFFER_BIT);
+            const float normalClear[4] = { 0.5f, 0.5f, 1.0f, 1.0f };
+            glClearBufferfv(GL_COLOR, 0, normalClear);
+            const float roughnessClear[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
+            glClearBufferfv(GL_COLOR, 1, roughnessClear);
+
+            normalPrepassShader->Bind();
+            normalPrepassShader->SetUniformMat4("u_View", camView);
+            normalPrepassShader->SetUniformMat4("u_Projection", camProj);
+
+            std::vector<InstanceData> instanceData;
+            instanceData.reserve(64);
+            std::shared_ptr<IGeometryBuffer> currentMesh;
+            std::shared_ptr<Material> currentMaterial;
+
+            auto flushBatch = [&]() {
+                if (instanceData.empty() || !currentMesh) return;
+
+                float roughness = 1.0f;
+                float opacity = 1.0f;
+                int hasRoughnessMap = 0;
+                int hasOpacityMap = 0;
+                int alphaClip = 0;
+                float alphaCutoff = 0.5f;
+
+                if (currentMaterial) {
+                    auto& floatUniforms = currentMaterial->GetFloatUniforms();
+                    auto getFloat = [&floatUniforms](const char* key, float defaultValue) {
+                        auto it = floatUniforms.find(key);
+                        return it != floatUniforms.end() ? it->second : defaultValue;
+                    };
+
+                    roughness = getFloat("u_Roughness", roughness);
+                    opacity = getFloat("u_Opacity", opacity);
+                    alphaCutoff = getFloat("u_AlphaCutoff", alphaCutoff);
+
+                    const auto& intUniforms = currentMaterial->m_IntUniforms;
+                    auto getInt = [&intUniforms](const char* key, int defaultValue) {
+                        auto it = intUniforms.find(key);
+                        return it != intUniforms.end() ? it->second : defaultValue;
+                    };
+
+                    hasRoughnessMap = getInt("h_HasRoughnessMap", 0);
+                    hasOpacityMap = getInt("h_HasOpacityMap", 0);
+                    alphaClip = getInt("u_AlphaClip", 0);
+
+                    const auto& textures = currentMaterial->GetTextures();
+                    auto bindTextureIfPresent = [&](const char* name, int unit) -> bool {
+                        auto texIt = textures.find(name);
+                        if (texIt == textures.end() || !texIt->second) return false;
+                        glActiveTexture(GL_TEXTURE0 + unit);
+                        glBindTexture(GL_TEXTURE_2D, texIt->second->GLName());
+                        return true;
+                    };
+
+                    if (!bindTextureIfPresent("u_RoughnessMap", 0)) {
+                        hasRoughnessMap = 0;
+                    }
+                    if (!bindTextureIfPresent("u_OpacityMap", 1)) {
+                        hasOpacityMap = 0;
+                    }
+                }
+
+                normalPrepassShader->SetUniformFloat("u_Roughness", roughness);
+                normalPrepassShader->SetUniformInt("u_RoughnessMap", 0);
+                normalPrepassShader->SetUniformInt("h_HasRoughnessMap", hasRoughnessMap);
+                normalPrepassShader->SetUniformFloat("u_Opacity", opacity);
+                normalPrepassShader->SetUniformInt("u_OpacityMap", 1);
+                normalPrepassShader->SetUniformInt("h_HasOpacityMap", hasOpacityMap);
+                normalPrepassShader->SetUniformInt("u_AlphaClip", alphaClip);
+                normalPrepassShader->SetUniformFloat("u_AlphaCutoff", alphaCutoff);
+
+                OpenGL::GLGeometryBuffer::UpdateInstanceBuffer(
+                    instanceData.data(),
+                    instanceData.size() * sizeof(InstanceData)
+                );
+
+                currentMesh->Bind();
+                currentMesh->DrawInstanced(instanceData.size());
+                currentMesh->Unbind();
+
+                instanceData.clear();
+            };
+
+            for (const auto& command : commands) {
+                if (!frustum.IntersectsSphere(command.boundsCenterWS, command.boundsRadiusWs))
+                    continue;
+                if (!command.mesh) continue;
+                if ((command.mesh != currentMesh || command.material != currentMaterial) && !instanceData.empty()) {
+                    flushBatch();
+                }
+
+                if (command.mesh != currentMesh || command.material != currentMaterial) {
+                    currentMesh = command.mesh;
+                    currentMaterial = command.material;
+                }
+
+                InstanceData instance{};
+                instance.model = command.transform;
+                instance.idRGB = { 0.0f, 0.0f, 0.0f };
+                instanceData.push_back(instance);
+            }
+
+            flushBatch();
+
+            if (stateCache) {
+                stateCache->InvalidateAll();
+            }
+
+            view.framebuffer->SetPickingWrite(view.framebuffer->HasPickingAttachment());
             return true;
+        }
+
+        void RenderDecalsForView(
+            const RenderView& view,
+            const Mat4& camProj,
+            const Mat4& camView,
+            const Vec3& camPos,
+            const std::vector<DecalCommand>& decals,
+            IStateCache* stateCache)
+        {
+            if (decals.empty() || !stateCache || !s_DecalCubeMesh || !view.framebuffer) return;
+            if (!view.framebuffer->HasMiniGBuffer()) return;
+
+            const uint32_t sceneDepth = view.framebuffer->GetDepthAttachment();
+            const uint32_t sceneNormal = view.framebuffer->GetNormalAttachment();
+            if (sceneDepth == 0 || sceneNormal == 0) return;
+
+            const Mat4 invViewProj = (camProj * camView).Inverse();
+
+            const GLenum colorAttachment = GL_COLOR_ATTACHMENT0;
+            glDrawBuffers(1, &colorAttachment);
+
+            const GLboolean wasBlend = glIsEnabled(GL_BLEND);
+            const GLboolean wasDepthTest = glIsEnabled(GL_DEPTH_TEST);
+            GLint depthMask = GL_TRUE;
+            glGetIntegerv(GL_DEPTH_WRITEMASK, &depthMask);
+
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glDisable(GL_DEPTH_TEST);
+            glDepthMask(GL_FALSE);
+
+            for (const auto& decal : decals) {
+                if (!decal.material || !decal.material->GetPipeline()) continue;
+
+                const float maxDistance = std::max(0.0f, decal.drawDistance);
+                const float distanceToCamera = (decal.positionWS - camPos).Length();
+                if (maxDistance > 0.0f && distanceToCamera > maxDistance) continue;
+
+                float fade = 1.0f;
+                const float fadeStart = std::clamp(decal.startFadeDistance, 0.0f, maxDistance);
+                if (maxDistance > fadeStart && distanceToCamera > fadeStart) {
+                    fade = 1.0f - ((distanceToCamera - fadeStart) / (maxDistance - fadeStart));
+                    fade = std::clamp(fade, 0.0f, 1.0f);
+                }
+                if (fade <= 0.001f) continue;
+
+                auto pipeline = decal.material->GetPipeline();
+                auto shader = pipeline->GetSpecification().shader;
+                if (!shader) continue;
+
+                stateCache->Bind(pipeline);
+                decal.material->SetUniformFloat("u_DecalDistanceFade", fade);
+                decal.material->Bind();
+
+                shader->SetUniformMat4("u_View", camView);
+                shader->SetUniformMat4("u_Projection", camProj);
+                shader->SetUniformMat4("u_ViewProjInv", invViewProj);
+                shader->SetUniformMat4("u_DecalModel", decal.model);
+                shader->SetUniformMat4("u_DecalInvModel", decal.invModel);
+                shader->SetUniformVec3("u_CameraPos", camPos);
+
+                shader->SetUniformInt("u_SceneDepthTex", 12);
+                glActiveTexture(GL_TEXTURE12);
+                glBindTexture(GL_TEXTURE_2D, sceneDepth);
+
+                shader->SetUniformInt("u_SceneNormalTex", 13);
+                glActiveTexture(GL_TEXTURE13);
+                glBindTexture(GL_TEXTURE_2D, sceneNormal);
+
+                s_DecalCubeMesh->Bind();
+                s_DecalCubeMesh->Draw();
+                s_DecalCubeMesh->Unbind();
+            }
+
+            if (!wasBlend) glDisable(GL_BLEND);
+            if (wasDepthTest) glEnable(GL_DEPTH_TEST);
+            glDepthMask(depthMask == GL_TRUE ? GL_TRUE : GL_FALSE);
+
+            view.framebuffer->SetPickingWrite(view.framebuffer->HasPickingAttachment());
         }
     }
 
@@ -211,301 +746,23 @@ namespace NE::Graphics {
     EditorCamera* GraphicsManager::s_EditorCamera;
 	std::unique_ptr<IStateCache> GraphicsManager::s_StateCache;
 	std::unique_ptr<DrawQueue> GraphicsManager::s_DrawQueue;
+    std::vector<DecalCommand> GraphicsManager::s_DecalQueue;
 	std::unique_ptr<RenderViewManager> GraphicsManager::s_RenderViewManager;
-    RenderViewHandle GraphicsManager::s_ActiveViewHandle;
     RenderViewHandle GraphicsManager::s_SceneViewHandle;
     RenderViewHandle GraphicsManager::s_GameViewHandle;
     RenderViewHandle GraphicsManager::s_FinalOutputViewHandle;
     RenderViewHandle GraphicsManager::s_FinalGameOutputHandle;
-	std::shared_ptr<IClusteredLighting> GraphicsManager::s_clusteredLighting;
+    std::shared_ptr<IClusteredLighting> GraphicsManager::s_clusteredLighting;
+    std::unique_ptr<PostProcessPipeline> GraphicsManager::s_PostPipeline;
+    std::shared_ptr<OpenGL::GLShader> GraphicsManager::s_NormalPrepassShader;
+    std::shared_ptr<OpenGL::GLShader> GraphicsManager::s_SelectionOutlineProgram;
+    std::unordered_set<uint32_t> GraphicsManager::s_SelectedEntityIds;
 
-    std::vector<DebugLine> GraphicsManager::s_DebugLines;
-    std::vector<DebugTriangle> GraphicsManager::s_DebugTriangles;
-    std::vector<float> GraphicsManager::s_DebugVertexBuffer; // pre-allocated buffer to avoid reallocations
-    int GraphicsManager::s_DebugViewLoc; // cached uniform locations (avoid glGetUniformLocation every frame)
-    int GraphicsManager::s_DebugProjLoc;
+	std::unique_ptr<ShadowRenderer> GraphicsManager::s_shadowRenderer;
 
     RenderSettings GraphicsManager::renderSettings;
 
-    GLuint debugShaderProgram, debugVAO, debugVBO;
-#pragma region EXPERIMENTAL
     PostProcessingSettings GraphicsManager::postProcessingSettings;
-    // Experimental
-    static GLuint s_QuadVAO = 0, s_QuadVBO = 0;
-    static std::shared_ptr<NE::Graphics::OpenGL::GLShader> s_BrightPassShader;
-    static uint32_t s_BrightPassTex = 0;
-    static uint32_t s_BrightPassFBO = 0;
-    static bool showBright = false;
-
-    static const int BLOOM_LEVELS = 5;
-    static GLuint s_BloomFBO[BLOOM_LEVELS];
-    static GLuint s_BloomTex[BLOOM_LEVELS];
-    static int s_BloomWidth[BLOOM_LEVELS];
-    static int s_BloomHeight[BLOOM_LEVELS];
-
-    // temp ping-pong target for blur & upsample
-    static GLuint s_BloomTempFBO[BLOOM_LEVELS];
-    static GLuint s_BloomTempTex[BLOOM_LEVELS];
-
-    static std::shared_ptr<NE::Graphics::OpenGL::GLShader> s_DownSampleShader;
-    static std::shared_ptr<NE::Graphics::OpenGL::GLShader> s_BlurShader;
-    static std::shared_ptr<NE::Graphics::OpenGL::GLShader> s_UpSampleShader;
-    static std::shared_ptr<NE::Graphics::OpenGL::GLShader> s_CompositeShader;
-    // Shadow
-    static std::shared_ptr<OpenGL::GLShader> s_ShadowShader;
-    const int SHADOW_RES = 2048;
-
-    // SSAO
-    static GLuint s_SSAOFBO = 0;
-    static GLuint s_SSAOTex = 0;
-    static std::shared_ptr<NE::Graphics::OpenGL::GLShader> s_SSAOShader;
-
-    void GraphicsManager::UpdateShadowMaps()
-    {
-        // No lights or no draw commands? Nothing to do.
-        const auto& commands = s_DrawQueue->GetCommands();
-        if (m_lights.empty() || commands.empty())
-            return;
-
-        if (!s_ShadowShader) {
-            s_ShadowShader = Resource::ResourceManager::GetInstance()
-                .LoadResource<OpenGL::GLShader>("neshadowdepth");
-        }
-
-        for (auto* light : m_lights) {
-            if (!light) continue;
-
-            if (light->shadowType == ECS::Component::Light::ShadowType::None)
-                continue;
-
-            switch (light->shadowUpdateMode) {
-            case ECS::Component::Light::ShadowUpdateMode::NoneUpdate:
-                continue;
-
-            case ECS::Component::Light::ShadowUpdateMode::StaticBake:
-                if (light->shadowBaked)
-                    continue;
-
-            case ECS::Component::Light::ShadowUpdateMode::Realtime:
-                RenderShadowMapForLight(*light, commands);
-                break;
-            }
-        }
-    }
-
-    void GraphicsManager::UpdateShadowMapsForView(const RenderView& view) {
-        const auto& commands = s_DrawQueue->GetCommands();
-        if (m_lights.empty() || commands.empty())
-            return;
-
-        if (!s_ShadowShader) {
-            s_ShadowShader = Resource::ResourceManager::GetInstance()
-                .LoadResource<OpenGL::GLShader>("neshadowdepth");
-        }
-
-        for (auto* light : m_lights) {
-            if (!light) continue;
-
-            if (light->shadowType == ECS::Component::Light::ShadowType::None)
-                continue;
-
-            switch (light->shadowUpdateMode) {
-            case ECS::Component::Light::ShadowUpdateMode::NoneUpdate:
-                continue;
-
-            case ECS::Component::Light::ShadowUpdateMode::StaticBake:
-                if (light->shadowBaked)
-                    continue;
-
-            case ECS::Component::Light::ShadowUpdateMode::Realtime:
-                RenderShadowMapForLight(*light, commands);
-                break;
-            }
-        }
-    }
-
-    void GraphicsManager::RenderShadowMapForLight(ECS::Component::Light& light,
-        const std::vector<DrawCommand>& commands)
-    {
-        if (light.type == ECS::Component::Light::Type::Directional || light.type == ECS::Component::Light::Type::Spot) {
-            if (light.shadowMapTex == 0) {
-                glGenTextures(1, &light.shadowMapTex);
-                glBindTexture(GL_TEXTURE_2D, light.shadowMapTex);
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24,
-                    SHADOW_RES, SHADOW_RES, 0,
-                    GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-                //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-                float border[4] = { 1,1,1,1 };
-                glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border);
-
-                glGenFramebuffers(1, &light.shadowMapFBO);
-                glBindFramebuffer(GL_FRAMEBUFFER, light.shadowMapFBO);
-                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-                    GL_TEXTURE_2D, light.shadowMapTex, 0);
-                glDrawBuffer(GL_NONE);
-                glReadBuffer(GL_NONE);
-            }
-
-            Math::Mat4 lightView;
-            Math::Mat4 lightProj;
-
-            Math::Vec3 dir = light.direction.Normalized();
-            Math::Vec3 up = (std::abs(dir.y) > 0.99f) ? Math::Vec3{ 0.f, 0.f, 1.f } : Math::Vec3{ 0.f, 1.f, 0.f };
-
-            if (light.type == ECS::Component::Light::Type::Directional) {
-                lightView = Math::Mat4::BuildViewMtx(
-                    light.position,
-                    light.position + dir,
-                    up
-                );
-                float size = 20.f;
-
-                lightProj = Math::Mat4::BuildOrtho(-size, size, -size, size, 0.1f, 100.f);
-                //light.lightViewProj = BuildDirectionalLightVP_FitToView(view, dir, SHADOW_RES);
-            } else if (light.type == ECS::Component::Light::Type::Spot) {
-                lightView = Math::Mat4::BuildViewMtx(
-                    light.position,
-                    light.position + dir,
-                    up
-                );
-
-                const auto* spot = std::get_if<ECS::Component::Light::SpotLightData>(&light.data);
-
-                float outerDeg = spot->outerConeAngleDeg;
-
-                outerDeg = std::clamp(outerDeg, 0.5f, 89.0f);
-
-                float fov = Radians(outerDeg) * 2.0f;
-                float nearP = 0.1f;
-
-                float farP = std::max(spot->range, nearP + 0.01f);
-
-                lightProj = Math::Mat4::BuildSymPerspective(fov, 1.0f, nearP, farP);
-                light.lightViewProj = lightProj * lightView;
-            }
-
-
-            glBindFramebuffer(GL_FRAMEBUFFER, light.shadowMapFBO);
-            glViewport(0, 0, SHADOW_RES, SHADOW_RES);
-            glClear(GL_DEPTH_BUFFER_BIT);
-
-            s_ShadowShader->Bind();
-            s_ShadowShader->SetUniformMat4("u_LightVP", light.lightViewProj);
-
-            for (const auto& cmd : commands) {
-                if (!cmd.castsShadow) continue;
-
-                s_ShadowShader->SetUniformMat4("u_Model", cmd.transform);
-                cmd.mesh->Bind();
-                cmd.mesh->Draw();
-            }
-
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        } else if (light.type == ECS::Component::Light::Type::Point) {
-            //if (light.shadowMapTex == 0) {
-            //    glGenTextures(1, &light.shadowMapTex);
-            //    glBindTexture(GL_TEXTURE_CUBE_MAP, light.shadowMapTex);
-            //    for (int face = 0; face < 6; ++face) {
-            //        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, 0,
-            //            GL_DEPTH_COMPONENT24, SHADOW_RES, SHADOW_RES, 0,
-            //            GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-            //    }
-            //    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            //    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            //    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            //    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            //    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-            //    glGenFramebuffers(1, &light.shadowMapFBO);
-            //}
-
-            //float nearP = 0.1f;
-            //float farP = light.radius > 0.f ? light.radius : 50.f;
-            //float aspect = 1.0f;
-            //float fov = Radians(90.0f);
-
-            //Math::Mat4 shadowProj = Math::Mat4::BuildSymPerspective(fov, aspect, nearP, farP);
-
-            //Vec3 pos = light.position;
-
-            //Math::Mat4 views[6] = {
-            //    Math::Mat4::BuildViewMtx(pos, pos + Vec3{ 1, 0, 0}, Vec3{0,-1,0}),
-            //    Math::Mat4::BuildViewMtx(pos, pos + Vec3{-1, 0, 0}, Vec3{0,-1,0}),
-            //    Math::Mat4::BuildViewMtx(pos, pos + Vec3{ 0, 1, 0}, Vec3{0, 0,1}),
-            //    Math::Mat4::BuildViewMtx(pos, pos + Vec3{ 0,-1, 0}, Vec3{0, 0,-1}),
-            //    Math::Mat4::BuildViewMtx(pos, pos + Vec3{ 0, 0, 1}, Vec3{0,-1,0}),
-            //    Math::Mat4::BuildViewMtx(pos, pos + Vec3{ 0, 0,-1}, Vec3{0,-1,0})
-            //};
-
-        }
-
-        if (light.shadowUpdateMode == ECS::Component::Light::ShadowUpdateMode::StaticBake)
-            light.shadowBaked = true;
-    }
-
-    // Here for now i will shift it all to rendergraph next time
-    void InitFullscreenQuadAndBrightpass()
-    {
-        if (s_QuadVAO == 0) {
-            float quadVerts[] = {
-                // pos      // uv
-                -1.f, -1.f, 0.f, 0.f,
-                 1.f, -1.f, 1.f, 0.f,
-                -1.f,  1.f, 0.f, 1.f,
-                 1.f,  1.f, 1.f, 1.f,
-            };
-
-            glGenVertexArrays(1, &s_QuadVAO);
-            glGenBuffers(1, &s_QuadVBO);
-            glBindVertexArray(s_QuadVAO);
-            glBindBuffer(GL_ARRAY_BUFFER, s_QuadVBO);
-            glBufferData(GL_ARRAY_BUFFER, sizeof(quadVerts), quadVerts, GL_STATIC_DRAW);
-
-            glEnableVertexAttribArray(0);
-            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-
-            glEnableVertexAttribArray(1);
-            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-
-            glBindVertexArray(0);
-        }
-
-        if (s_BrightPassFBO == 0) {
-            glGenFramebuffers(1, &s_BrightPassFBO);
-            glBindFramebuffer(GL_FRAMEBUFFER, s_BrightPassFBO);
-
-            glGenTextures(1, &s_BrightPassTex);
-            glBindTexture(GL_TEXTURE_2D, s_BrightPassTex);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F,
-                1920, 1080, 0,
-                GL_RGBA, GL_FLOAT, nullptr);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                GL_TEXTURE_2D, s_BrightPassTex, 0);
-
-            GLenum att = GL_COLOR_ATTACHMENT0;
-            glDrawBuffers(1, &att);
-
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        }
-
-        // load the bright-pass nanoshader
-        if (!s_BrightPassShader) {
-            s_BrightPassShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("nebrightpass");
-        }
-
-
-    }
-#pragma endregion
 
     void GraphicsManager::Init() {
         s_CommandBuffer = std::make_unique<OpenGL::GLCommandBuffer>();
@@ -514,116 +771,52 @@ namespace NE::Graphics {
         s_DrawQueue = std::make_unique<DrawQueue>();
 		s_RenderViewManager = std::make_unique<RenderViewManager>();
 
-        s_SceneViewHandle = s_RenderViewManager->CreateHDR(1920, 1080, true);
-        s_FinalOutputViewHandle = s_RenderViewManager->Create(1920, 1080, false);
-        s_FinalGameOutputHandle = s_RenderViewManager->Create(1920, 1080, false);
+        s_shadowRenderer = std::make_unique<ShadowRenderer>();
+        s_shadowRenderer->Init();
+
+#ifndef PRODUCTION_BUILD
+        {
+            RenderViewCreateDesc desc;
+            desc.width = 1920;
+            desc.height = 1080;
+            desc.enablePicking = true;
+            desc.enableMiniGBuffer = true;
+            desc.enableDepth = true;
+            desc.enableStencil = true;
+            desc.format = RenderViewFormat::HDR;
+            s_SceneViewHandle = s_RenderViewManager->Create(desc);
+        }
+#endif // !PRODUCTION_BUILD
+        {
+            RenderViewCreateDesc desc;
+            desc.width = 1920;
+            desc.height = 1080;
+            desc.enablePicking = false;
+            desc.enableMiniGBuffer = false;
+            desc.enableDepth = false;
+            desc.enableStencil = false;
+            desc.format = RenderViewFormat::Standard;
+            s_FinalOutputViewHandle = s_RenderViewManager->Create(desc);
+            s_FinalGameOutputHandle = s_RenderViewManager->Create(desc);
+        }
 
         s_clusteredLighting = std::make_shared<OpenGL::GLClusteredLighting>();
 
         InitDebugPrimitives();
+        DebugDrawSystem::SetStateCache(s_StateCache.get());
         NE::Graphics::OpenGL::GLGeometryBuffer::InitInstanceBuffer();
+        InitializeLightGizmoResources();
+        InitializeDecalGizmoResources();
+        s_NormalPrepassShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("nenormalprepass");
+        s_SelectionOutlineProgram = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("neselectionoutline");
 
-#pragma region EXPERIMENTAL
-        InitFullscreenQuadAndBrightpass();
-
-        int baseW = 1920;
-        int baseH = 1080;
-
-        int w = baseW;
-        int h = baseH;
-
-        for (int i = 0; i < BLOOM_LEVELS; ++i) {
-            s_BloomWidth[i] = w;
-            s_BloomHeight[i] = h;
-
-            // main bloom level
-            glGenFramebuffers(1, &s_BloomFBO[i]);
-            glBindFramebuffer(GL_FRAMEBUFFER, s_BloomFBO[i]);
-
-            glGenTextures(1, &s_BloomTex[i]);
-            glBindTexture(GL_TEXTURE_2D, s_BloomTex[i]);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F,
-                w, h, 0,
-                GL_RGBA, GL_FLOAT, nullptr);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                GL_TEXTURE_2D, s_BloomTex[i], 0);
-
-            GLenum att = GL_COLOR_ATTACHMENT0;
-            glDrawBuffers(1, &att);
-
-            // temp blur/upsample target
-            glGenFramebuffers(1, &s_BloomTempFBO[i]);
-            glBindFramebuffer(GL_FRAMEBUFFER, s_BloomTempFBO[i]);
-
-            glGenTextures(1, &s_BloomTempTex[i]);
-            glBindTexture(GL_TEXTURE_2D, s_BloomTempTex[i]);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F,
-                w, h, 0,
-                GL_RGBA, GL_FLOAT, nullptr);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                GL_TEXTURE_2D, s_BloomTempTex[i], 0);
-
-            glDrawBuffers(1, &att);
-
-            w = std::max(1, w / 2);
-            h = std::max(1, h / 2);
+        auto decalCubeModel = Resource::ResourceManager::GetInstance().LoadResource<Model>("builtin:model/cube");
+        if (decalCubeModel && !decalCubeModel->meshes.empty()) {
+            s_DecalCubeMesh = decalCubeModel->meshes[0].buffer;
+        } else {
+            SPD_WARNING("Decal cube mesh initialization failed: builtin cube model not available.");
         }
 
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        if (!s_DownSampleShader) {
-            s_DownSampleShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("nebloomdownsample");
-        }
-        if (!s_BlurShader) {
-            s_BlurShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("nebloomblur");
-        }
-        if (!s_UpSampleShader) {
-            s_UpSampleShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("nebloomupsample");
-        }
-        if (!s_CompositeShader) {
-            s_CompositeShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("nebloomcomposite");
-        }
-
-        // SAAO
-        if (s_SSAOFBO == 0) {
-            glGenFramebuffers(1, &s_SSAOFBO);
-            glBindFramebuffer(GL_FRAMEBUFFER, s_SSAOFBO);
-
-            glGenTextures(1, &s_SSAOTex);
-            glBindTexture(GL_TEXTURE_2D, s_SSAOTex);
-            //glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 1920, 1080, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1920, 1080, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, s_SSAOTex, 0);
-            GLenum att = GL_COLOR_ATTACHMENT0;
-            glDrawBuffers(1, &att);
-
-            if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-                LOG_ERROR("SSAO FBO incomplete!");
-
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        }
-
-        if (!s_SSAOShader) {
-            //s_SSAOShader = Resource::ResourceManager::GetInstance()
-            //    .LoadResource<OpenGL::GLShader>("nessao");
-            s_SSAOShader = Resource::ResourceManager::GetInstance()
-                .LoadResource<OpenGL::GLShader>("nessao");
-        }
-
-#pragma endregion
 
         //// Load Primitives
         //auto skinned = std::make_shared<OpenGL::GLShader>();
@@ -631,42 +824,83 @@ namespace NE::Graphics {
         //skinned->LoadFromFile("Library/Shaders/Skinned.nanoshader");
         //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(skinned, "Skinned");
 
-        // initialize UI renderer
         s_ScreenWidth = static_cast<uint32_t>(1920);
         s_ScreenHeight = static_cast<uint32_t>(1080);
-        
-        UIRenderer::Init(s_ScreenWidth, s_ScreenHeight, s_RenderViewManager.get());
+
+        s_PostPipeline = std::make_unique<PostProcessPipeline>();
+        s_PostPipeline->Init(s_RenderViewManager.get(), s_ScreenWidth, s_ScreenHeight);
+        s_PostPipeline->SetSettings(&postProcessingSettings);
     }
 
-    void GraphicsManager::BeginFrame() 
-    {
+    void GraphicsManager::BeginFrame() {
 		s_StateCache->InvalidateAll();
-        
-        //s_CommandBuffer->BeginRenderPass();
-
         drawCount = 0;
     }
 
-    void GraphicsManager::SubmitSkybox() 
-    {
-        if (s_skybox) s_skybox->Submit();
-    }
-
     void GraphicsManager::DrawFrame() {
+#ifndef PRODUCTION_BUILD
         NE_PROFILE_FUNCTION();
+#endif // !PRODUCTION_BUILD
 
-        UpdateShadowMaps();
+        static uint64_t s_TAAFrameIndex = 0;
+        const auto& allViews = s_RenderViewManager->GetAllRenderViews();
+        const auto orderedViewHandles = s_RenderViewManager->GetOrderedActiveViews();
+        std::unordered_map<RenderViewHandle, Mat4> frameViewMatrices;
+        std::unordered_map<RenderViewHandle, Mat4> frameProjMatrices;
 
-        for (auto& [handle, view] : s_RenderViewManager->GetAllRenderViews()) {
-            if (!view.isActive) continue;
-            if (view.isMain && view.order == 0) s_GameViewHandle = handle;
+        s_GameViewHandle = InvalidRenderView;
+        for (const RenderViewHandle handle : orderedViewHandles) {
+            auto it = allViews.find(handle);
+            if (it == allViews.end()) continue;
+            const auto& view = it->second;
+            if (view.isMain && view.order == 0) {
+                s_GameViewHandle = handle;
+                break;
+            }
+        }
+
+        for (const RenderViewHandle handle : orderedViewHandles) {
+            auto it = allViews.find(handle);
+            if (it == allViews.end()) continue;
+            const auto& view = it->second;
+
+            const auto& commands = s_DrawQueue->GetCommands();
+            s_shadowRenderer->Update(view, m_lights, commands);
 
             s_RenderViewManager->Bind(handle);
             s_CommandBuffer->Begin();
 
-            const Mat4& camProj = view.projection;
+			// Invalidate cached state per view
+			s_StateCache->InvalidateAll();
+
+            Mat4 camProj = view.projection;
             const Mat4& camView = view.view;
             const Vec3& camPos = view.position;
+
+            if (postProcessingSettings.taaSettings.enabled && IsPerspectiveProjection(camProj)) {
+                const float width = view.framebuffer ? static_cast<float>(view.framebuffer->GetWidth()) : static_cast<float>(s_ScreenWidth);
+                const float height = view.framebuffer ? static_cast<float>(view.framebuffer->GetHeight()) : static_cast<float>(s_ScreenHeight);
+                const auto jitterNdc = ComputeTAAJitterNDC(s_TAAFrameIndex, handle, width, height);
+                camProj.GetElement(0, 2) += jitterNdc[0];
+                camProj.GetElement(1, 2) += jitterNdc[1];
+            }
+
+            frameViewMatrices[handle] = camView;
+            frameProjMatrices[handle] = camProj;
+            const Frustum frustum = Frustum::ExtractPlanesFromVP(camProj * camView);
+
+            const bool ranPrepass = RenderNormalPrepassForView(
+                view,
+                commands,
+                frustum,
+                camProj,
+                camView,
+                s_NormalPrepassShader,
+                s_StateCache.get()
+            );
+            if (ranPrepass) {
+                glDepthFunc(GL_LEQUAL);
+            }
 
             // Sort by RenderQueue -> Material -> Mesh
             if (enableSorting)
@@ -677,28 +911,45 @@ namespace NE::Graphics {
             std::vector<GLuint>     shadowTextures;
             shadowVPs.reserve(MAX_SHADOWS);
             shadowTextures.reserve(MAX_SHADOWS);
+            ECS::Component::Light* dirForSplits = nullptr;
 
             int shadowCount = 0;
             for (auto* l : m_lights) {
                 if (!l) continue;
-
                 l->shadowIndex = -1;
 
-                if (l->shadowType == ECS::Component::Light::ShadowType::None)
-                    continue;
-                if (l->shadowMapTex == 0)
-                    continue;
+                if (l->shadowType == NE::ECS::Component::Light::None) continue;
 
-                if (shadowCount >= MAX_SHADOWS)
-                    continue;
+                // Directional CSM
+                if (l->type == NE::ECS::Component::Light::Directional && 
+                    l->shadowCascadeCount == NE::ECS::Component::Light::DIR_CASCADES) 
+                {
+                    if (shadowCount + NE::ECS::Component::Light::DIR_CASCADES > MAX_SHADOWS) continue;
 
-                l->shadowIndex = shadowCount;
-                shadowVPs.push_back(l->lightViewProj);
-                shadowTextures.push_back(l->shadowMapTex);
-                ++shadowCount;
+                    if (!dirForSplits) dirForSplits = l;
+
+                    l->shadowIndex = shadowCount;
+                    for (int c = 0; c < NE::ECS::Component::Light::DIR_CASCADES; ++c) {
+                        shadowVPs.push_back(l->dirLightVP[c]);
+                        shadowTextures.push_back(l->dirShadowTex[c]);
+                        ++shadowCount;
+                    }
+                    continue;
+                }
+
+                // Single-map (Spot)
+                if (l->shadowMapTex != 0 && l->shadowCascadeCount == 1) {
+                    if (shadowCount >= MAX_SHADOWS) continue;
+                    l->shadowIndex = shadowCount;
+                    shadowVPs.push_back(l->lightViewProj);
+                    shadowTextures.push_back(l->shadowMapTex);
+                    ++shadowCount;
+                }
             }
 
-            s_clusteredLighting->BuildForView(view, m_lights);
+            RenderView viewForLighting = view;
+            viewForLighting.projection = camProj;
+            s_clusteredLighting->BuildForView(viewForLighting, m_lights);
 
             // Prepare instance data buffer and batching variables
             std::vector<InstanceData> instanceData;
@@ -738,18 +989,32 @@ namespace NE::Graphics {
                 shader->SetUniformFloat("i_FogStart", renderSettings.fogStart);
                 shader->SetUniformFloat("i_FogEnd", renderSettings.fogEnd);
 
-                shader->SetUniformInt("h_ReceiveShadows", currentReceiveShadows ? 1 : 0);
 
-                // Shadow arrays
                 int numShadows = static_cast<int>(shadowVPs.size());
                 if (numShadows > 16) numShadows = 16;
 
-                // Only set if the shader actually has these uniforms (PBR)
-                shader->SetUniformInt("h_NumShadowMaps", numShadows);
+                shader->SetUniformInt("i_NumShadowMaps", numShadows);
+                shader->SetUniformInt("i_ReceiveShadows", currentReceiveShadows ? 1 : 0);
+
+                int dirCascadeCount = 0;
+                float dirSplits[NE::ECS::Component::Light::DIR_CASCADES] = {};
+
+                if (dirForSplits) {
+                    dirCascadeCount = dirForSplits->shadowCascadeCount;
+                    for (int c = 0; c < NE::ECS::Component::Light::DIR_CASCADES; ++c)
+                        dirSplits[c] = dirForSplits->dirCascadeSplitsVS[c];
+                }
+
+                shader->SetUniformInt("i_DirCascadeCount", ECS::Component::Light::DIR_CASCADES);
+
+                for (int c = 0; c < NE::ECS::Component::Light::DIR_CASCADES; ++c) {
+                    std::string splitName = "i_DirCascadeSplitsVS[" + std::to_string(c) + "]";
+                    shader->SetUniformFloat(splitName.c_str(), dirSplits[c]);
+                }
 
                 for (int i = 0; i < numShadows; ++i) {
-                    std::string vpName = "h_ShadowVP[" + std::to_string(i) + "]";
-                    std::string texName = "h_ShadowMaps[" + std::to_string(i) + "]";
+                    std::string vpName = "i_ShadowVP[" + std::to_string(i) + "]";
+                    std::string texName = "i_ShadowMaps[" + std::to_string(i) + "]";
 
                     shader->SetUniformMat4(vpName.c_str(), shadowVPs[i]);
 
@@ -770,14 +1035,15 @@ namespace NE::Graphics {
 
                 if (view.isMain && view.order == 0)
                     ++drawCount;
-
                 };
 
-            const Frustum frustum = Frustum::ExtractPlanesFromVP(camProj * camView);
-            const auto& commands = s_DrawQueue->GetCommands();
-
             for (const auto& command : commands) {
-                if (!SphereInFrustum(frustum, command.boundsCenterWS, command.boundsRadiusWs)) {
+                // Skip OVERLAY commands during view rendering - they'll be rendered separately after post-processing
+                if (command.material && command.material->GetQueueBase() == RenderQueue::OVERLAY) {
+                    continue;
+                }
+
+                if (!frustum.IntersectsSphere(command.boundsCenterWS, command.boundsRadiusWs)) {
                     continue;
                 }
 
@@ -814,515 +1080,452 @@ namespace NE::Graphics {
                 flushBatch();
             }
 
+            RenderDecalsForView(view, camProj, camView, camPos, s_DecalQueue, s_StateCache.get());
+
             if (s_skybox) {
                 s_StateCache->Bind(s_skybox->GetSkyboxPipeline());
-                s_skybox->Draw(view);
+                RenderView skyboxView = view;
+                skyboxView.projection = camProj;
+                s_skybox->Draw(skyboxView);
             }
 
-            if (handle == 1) // Assuming editor camera handle will always be 1
+            RenderSelectionHighlightForView(handle, view, camProj, camView, commands);
+
+            RenderLightGizmosForView(handle, view, camProj, camView, camPos, s_StateCache.get(), s_SceneViewHandle);
+            RenderDecalGizmosForView(handle, view, camProj, camView, camPos, s_StateCache.get(), s_SceneViewHandle);
+
+            if (handle == s_SceneViewHandle)
                 DrawAllDebugGeometry();
 
             s_RenderViewManager->Unbind();
+            if (ranPrepass) {
+                glDepthFunc(GL_LESS);
+            }
         }
 
-		// Note: Reset should be called right before any post-processing
         s_StateCache->Reset();
 
-#pragma region EXPERIMENTAL
-        {
-            uint32_t sceneTex = 0;
-            auto fb = s_RenderViewManager->GetFramebuffer(s_SceneViewHandle);
-            if (fb) {
-                sceneTex = fb->GetColorAttachment();  // bypass GetSceneColorAttachment()
+        if (s_PostPipeline) {
+            // Scene View
+            const auto sceneSourceFramebuffer = s_RenderViewManager->GetFramebuffer(s_SceneViewHandle);
+            const auto sceneDestFramebuffer = s_RenderViewManager->GetFramebuffer(s_FinalOutputViewHandle);
+            if (sceneSourceFramebuffer && sceneDestFramebuffer) {
+                Math::Mat4 sceneView;
+                Math::Mat4 sceneProj;
+                auto viewIt = frameViewMatrices.find(s_SceneViewHandle);
+                auto projIt = frameProjMatrices.find(s_SceneViewHandle);
+                if (viewIt != frameViewMatrices.end()) {
+                    sceneView = viewIt->second;
+                } else if (s_EditorCamera) {
+                    sceneView = s_EditorCamera->GetViewMatrix();
+                } else {
+                    sceneView.SetToIdentity();
+                }
+
+                if (projIt != frameProjMatrices.end()) {
+                    sceneProj = projIt->second;
+                } else if (s_EditorCamera) {
+                    sceneProj = s_EditorCamera->GetProjectionMatrix();
+                } else {
+                    sceneProj.SetToIdentity();
+                }
+
+                Math::Mat4 invProj = sceneProj.Inverse();
+                s_PostPipeline->Execute(s_SceneViewHandle, s_FinalOutputViewHandle, invProj, sceneView, sceneProj, true);
             }
 
-            if (postProcessingSettings.ssaoSettings.enabled && s_SSAOShader && fb) {
-                GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
-                glDisable(GL_DEPTH_TEST);
+            // Game View
+            auto it = allViews.find(s_GameViewHandle);
+            const auto gameSourceFramebuffer = s_RenderViewManager->GetFramebuffer(s_GameViewHandle);
+            const auto gameDestFramebuffer = s_RenderViewManager->GetFramebuffer(s_FinalGameOutputHandle);
+            if (it != allViews.end() && gameSourceFramebuffer && gameDestFramebuffer) {
+                Math::Mat4 gameView = it->second.view;
+                Math::Mat4 gameProj = it->second.projection;
 
-                glBindFramebuffer(GL_FRAMEBUFFER, s_SSAOFBO);
+                auto gameViewIt = frameViewMatrices.find(s_GameViewHandle);
+                auto gameProjIt = frameProjMatrices.find(s_GameViewHandle);
+                if (gameViewIt != frameViewMatrices.end()) {
+                    gameView = gameViewIt->second;
+                }
+                if (gameProjIt != frameProjMatrices.end()) {
+                    gameProj = gameProjIt->second;
+                }
 
-                uint32_t w = fb->GetWidth();
-                uint32_t h = fb->GetHeight();
-
-                glViewport(0, 0, w, h);
-                glClearColor(0, 0, 0, 1);
-                glClear(GL_COLOR_BUFFER_BIT);
-
-                s_SSAOShader->Bind();
-
-                // depth texture from HDR framebuffer (you may need to expose this)
-                GLuint depthTex = fb->GetDepthAttachment(); // implement this if needed
-
-                s_SSAOShader->SetUniformInt("u_Depth", 0);
-                s_SSAOShader->SetUniformFloat("u_Radius", postProcessingSettings.ssaoSettings.radius);
-                s_SSAOShader->SetUniformFloat("u_Bias", postProcessingSettings.ssaoSettings.bias);
-                s_SSAOShader->SetUniformFloat("u_Intensity", postProcessingSettings.ssaoSettings.intensity);
-                s_SSAOShader->SetUniformFloat("u_Power", postProcessingSettings.ssaoSettings.power);
-
-                // pass inverse projection for scene view
-                // (you already store projection in RenderViewManager)
-                //auto& views = s_RenderViewManager->GetAllRenderViews();
-                //auto it = views.find(s_SceneViewHandle);
-                //if (it != views.end()) {
-                //    Math::Mat4 invProj = it->second.projection.Inverse();
-                //}
-                Math::Mat4 invProj = s_EditorCamera->GetProjectionMatrix().Inverse();
-                s_SSAOShader->SetUniformMat4("u_InvProj", invProj);
-
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, depthTex);
-
-                glBindVertexArray(s_QuadVAO);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-                glBindVertexArray(0);
-
-                glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-                if (depthWasEnabled) glEnable(GL_DEPTH_TEST);
-            }
-
-            if (sceneTex != 0 && s_BrightPassShader) {
-                glBindFramebuffer(GL_FRAMEBUFFER, s_BrightPassFBO);
-
-                uint32_t w = fb ? fb->GetWidth() : 1920;
-                uint32_t h = fb ? fb->GetHeight() : 1080;
-
-                glViewport(0, 0, w, h);
-                glClearColor(0, 0, 0, 1);
-                glClear(GL_COLOR_BUFFER_BIT);
-
-                s_BrightPassShader->Bind();
-                s_BrightPassShader->SetUniformInt("u_SceneTex", 0);
-                s_BrightPassShader->SetUniformFloat("u_Threshold", postProcessingSettings.bloomSettings.brightThreshold);
-                s_BrightPassShader->SetUniformFloat("u_Scale", postProcessingSettings.bloomSettings.brightScale);
-                s_BrightPassShader->SetUniformFloat("u_SoftKnee", postProcessingSettings.bloomSettings.softKnee);
-
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, sceneTex);
-
-                glBindVertexArray(s_QuadVAO);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-                glBindVertexArray(0);
-
-                glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            }
-
-            GLuint srcTex = s_BrightPassTex;
-            int srcW = fb ? fb->GetWidth() : 1920;
-            int srcH = fb ? fb->GetHeight() : 1080;
-
-            for (int level = 0; level < BLOOM_LEVELS; ++level) {
-                int dstW = s_BloomWidth[level];
-                int dstH = s_BloomHeight[level];
-
-                glBindFramebuffer(GL_FRAMEBUFFER, s_BloomFBO[level]);
-                glViewport(0, 0, dstW, dstH);
-                glClearColor(0, 0, 0, 1);
-                glClear(GL_COLOR_BUFFER_BIT);
-
-                s_DownSampleShader->Bind();
-                s_DownSampleShader->SetUniformInt("u_Source", 0);
-                s_DownSampleShader->SetUniformVec2("u_TexelSize", { 1.0f / srcW, 1.0f / srcH });
-
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, srcTex);
-
-                glBindVertexArray(s_QuadVAO);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-                srcTex = s_BloomTex[level];
-                srcW = dstW;
-                srcH = dstH;
-            }
-
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-            for (int level = 0; level < BLOOM_LEVELS; ++level) {
-                int w = s_BloomWidth[level];
-                int h = s_BloomHeight[level];
-
-                glBindFramebuffer(GL_FRAMEBUFFER, s_BloomTempFBO[level]);
-                glViewport(0, 0, w, h);
-                glClearColor(0, 0, 0, 1);
-                glClear(GL_COLOR_BUFFER_BIT);
-
-                s_BlurShader->Bind();
-                s_BlurShader->SetUniformInt("u_Source", 0);
-                s_BlurShader->SetUniformVec2("u_TexelSize", { 1.0f / w, 1.0f / h });
-                s_BlurShader->SetUniformVec2("u_Direction", { 1.0f, 0.0f });
-
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, s_BloomTex[level]);
-
-                glBindVertexArray(s_QuadVAO);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-                glBindFramebuffer(GL_FRAMEBUFFER, s_BloomFBO[level]);
-                glViewport(0, 0, w, h);
-                glClearColor(0, 0, 0, 1);
-                glClear(GL_COLOR_BUFFER_BIT);
-
-                s_BlurShader->Bind();
-                s_BlurShader->SetUniformInt("u_Source", 0);
-                s_BlurShader->SetUniformVec2("u_TexelSize", { 1.0f / w, 1.0f / h });
-                s_BlurShader->SetUniformVec2("u_Direction", { 0.0f, 1.0f });
-
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, s_BloomTempTex[level]);
-
-                glBindVertexArray(s_QuadVAO);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            }
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-            for (int level = BLOOM_LEVELS - 1; level > 0; --level) {
-                int hi = level - 1;
-                int w = s_BloomWidth[hi];
-                int h = s_BloomHeight[hi];
-
-                glBindFramebuffer(GL_FRAMEBUFFER, s_BloomFBO[hi]);
-                glViewport(0, 0, w, h);
-                glClearColor(0, 0, 0, 1);
-                glClear(GL_COLOR_BUFFER_BIT);
-
-                s_UpSampleShader->Bind();
-                s_UpSampleShader->SetUniformInt("u_LowRes", 0);
-                s_UpSampleShader->SetUniformInt("u_HighRes", 1);
-                s_UpSampleShader->SetUniformFloat("u_Intensity", postProcessingSettings.bloomSettings.bloomRadius);
-
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, s_BloomTex[level]);
-                glActiveTexture(GL_TEXTURE1);
-                glBindTexture(GL_TEXTURE_2D, s_BloomTex[hi]);
-
-                glBindVertexArray(s_QuadVAO);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            }
-
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-            auto finalFBO = s_RenderViewManager->GetFramebuffer(s_FinalOutputViewHandle);
-            if (fb && s_CompositeShader && finalFBO->GetColorAttachment() != 0) {
-                uint32_t sceneTexHDR = fb->GetColorAttachment();
-                GLuint bloomTex = s_BloomTex[0];
-
-                uint32_t w = fb->GetWidth();
-                uint32_t h = fb->GetHeight();
-
-                finalFBO->Bind();
-
-                glViewport(0, 0, w, h);
-                glClearColor(0, 0, 0, 1);
-                glClear(GL_COLOR_BUFFER_BIT);
-
-                glDisable(GL_DEPTH_TEST);
-                glDepthMask(GL_FALSE);
-
-                s_CompositeShader->Bind();
-                s_CompositeShader->SetUniformInt("u_SceneHDR", 0);
-                s_CompositeShader->SetUniformInt("u_Bloom", 1);
-                s_CompositeShader->SetUniformInt("u_ToneMapType", static_cast<int>(postProcessingSettings.bloomSettings.toneMapType));
-                s_CompositeShader->SetUniformFloat("u_BloomStrength", postProcessingSettings.bloomSettings.bloomIntensity);
-                s_CompositeShader->SetUniformFloat("u_Exposure", postProcessingSettings.bloomSettings.exposure);
-
-                s_CompositeShader->SetUniformInt("u_SSAO", 2);
-                s_CompositeShader->SetUniformInt("u_UseSSAO", postProcessingSettings.ssaoSettings.enabled ? 1 : 0);
-                s_CompositeShader->SetUniformFloat("u_AOIntensity", postProcessingSettings.ssaoSettings.intensity);
-
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, sceneTexHDR);
-
-                glActiveTexture(GL_TEXTURE1);
-                glBindTexture(GL_TEXTURE_2D, bloomTex);
-
-                glActiveTexture(GL_TEXTURE2);
-                glBindTexture(GL_TEXTURE_2D, s_SSAOTex);
-
-                glBindVertexArray(s_QuadVAO);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-                glBindVertexArray(0);
-
-                glDepthMask(GL_TRUE);
-                glEnable(GL_DEPTH_TEST);
-
-                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                Math::Mat4 gameInvProj = gameProj.Inverse();
+                s_PostPipeline->Execute(s_GameViewHandle, s_FinalGameOutputHandle, gameInvProj, gameView, gameProj, false);
             }
         }
 
-#pragma endregion
+        // Render UI (OVERLAY queue) after post-processing to final output framebuffers (Not sure if should be below or above post-processing? For now, render after so that UI is always crisp and unaffected by TAA)
+        RenderUIOverlay();
+        ++s_TAAFrameIndex;
+    }
 
+    uint32_t GraphicsManager::DecodeEntityIdFromRGB(const Math::Vec3& idRGB) {
+        if (idRGB.x < 0.0f || idRGB.y < 0.0f || idRGB.z < 0.0f) {
+            return ECS::NO_ENTITY;
+        }
 
-#pragma region EXPERIMENTAL
-        uint32_t gameSceneTex = 0;
-        auto gamefb = s_RenderViewManager->GetFramebuffer(s_GameViewHandle);
-        if (gamefb) {
-            gameSceneTex = gamefb->GetColorAttachment();
-        } else return;
+        auto channelToByte = [](float channel) -> uint32_t {
+            const float scaled = std::round(channel * 255.0f);
+            return static_cast<uint32_t>(std::clamp(scaled, 0.0f, 255.0f));
+        };
 
-        if (postProcessingSettings.ssaoSettings.enabled && s_SSAOShader && gamefb) {
-            GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
-            glDisable(GL_DEPTH_TEST);
+        const uint32_t r = channelToByte(idRGB.x);
+        const uint32_t g = channelToByte(idRGB.y);
+        const uint32_t b = channelToByte(idRGB.z);
+        return r | (g << 8) | (b << 16);
+    }
 
-            glBindFramebuffer(GL_FRAMEBUFFER, s_SSAOFBO);
+    bool GraphicsManager::IsSelectedDrawCommand(const DrawCommand& command) {
+        if (!command.mesh) return false;
+        const uint32_t entityId = DecodeEntityIdFromRGB(command.idRGB);
+        if (entityId == ECS::NO_ENTITY) return false;
+        return s_SelectedEntityIds.find(entityId) != s_SelectedEntityIds.end();
+    }
 
-            uint32_t w = gamefb->GetWidth();
-            uint32_t h = gamefb->GetHeight();
+    void GraphicsManager::RenderSelectionHighlightForView(
+        RenderViewHandle handle,
+        const RenderView& view,
+        const Math::Mat4& camProj,
+        const Math::Mat4& camView,
+        const std::vector<DrawCommand>& commands)
+    {
+        if (handle != s_SceneViewHandle) return;
+        if (s_SelectedEntityIds.empty()) return;
+        if (s_SelectionOutlineProgram == 0) return;
+        if (!view.framebuffer || !view.framebuffer->HasStencil()) return;
 
-            glViewport(0, 0, w, h);
-            glClearColor(0, 0, 0, 1);
-            glClear(GL_COLOR_BUFFER_BIT);
-
-            s_SSAOShader->Bind();
-
-            // depth texture from HDR framebuffer (you may need to expose this)
-            GLuint depthTex = gamefb->GetDepthAttachment(); // implement this if needed
-
-            s_SSAOShader->SetUniformInt("u_Depth", 0);
-            s_SSAOShader->SetUniformFloat("u_Radius", postProcessingSettings.ssaoSettings.radius);
-            s_SSAOShader->SetUniformFloat("u_Bias", postProcessingSettings.ssaoSettings.bias);
-            s_SSAOShader->SetUniformFloat("u_Power", postProcessingSettings.ssaoSettings.power);
-
-            // pass inverse projection for scene view
-            // (you already store projection in RenderViewManager)
-            auto& views = s_RenderViewManager->GetAllRenderViews();
-            auto it = views.find(s_GameViewHandle);
-            if (it != views.end()) {
-                Math::Mat4 invProj = it->second.projection.Inverse();
-                s_SSAOShader->SetUniformMat4("u_InvProj", invProj);
+        std::vector<const DrawCommand*> selectedCommands;
+        selectedCommands.reserve(s_SelectedEntityIds.size());
+        for (const auto& command : commands) {
+            if (IsSelectedDrawCommand(command)) {
+                selectedCommands.push_back(&command);
             }
+        }
+        if (selectedCommands.empty()) return;
 
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, depthTex);
+        const GLboolean stencilWasEnabled = glIsEnabled(GL_STENCIL_TEST);
+        const GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+        const GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
+        const GLboolean cullWasEnabled = glIsEnabled(GL_CULL_FACE);
+        GLboolean colorMask[4] = { GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE };
+        glGetBooleanv(GL_COLOR_WRITEMASK, colorMask);
+        GLboolean depthWriteWasEnabled = GL_TRUE;
+        glGetBooleanv(GL_DEPTH_WRITEMASK, &depthWriteWasEnabled);
 
-            glBindVertexArray(s_QuadVAO);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            glBindVertexArray(0);
-
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-            if (depthWasEnabled) glEnable(GL_DEPTH_TEST);
+        GLint depthFunc = GL_LESS;
+        GLint previousProgram = 0;
+        GLint stencilFunc = GL_ALWAYS;
+        GLint stencilRef = 0;
+        GLint stencilValueMask = 0xFF;
+        GLint stencilWriteMask = 0xFF;
+        GLint stencilFail = GL_KEEP;
+        GLint stencilPassDepthFail = GL_KEEP;
+        GLint stencilPassDepthPass = GL_KEEP;
+        GLint cullFaceMode = GL_BACK;
+        glGetIntegerv(GL_DEPTH_FUNC, &depthFunc);
+        glGetIntegerv(GL_CURRENT_PROGRAM, &previousProgram);
+        glGetIntegerv(GL_STENCIL_FUNC, &stencilFunc);
+        glGetIntegerv(GL_STENCIL_REF, &stencilRef);
+        glGetIntegerv(GL_STENCIL_VALUE_MASK, &stencilValueMask);
+        glGetIntegerv(GL_STENCIL_WRITEMASK, &stencilWriteMask);
+        glGetIntegerv(GL_STENCIL_FAIL, &stencilFail);
+        glGetIntegerv(GL_STENCIL_PASS_DEPTH_FAIL, &stencilPassDepthFail);
+        glGetIntegerv(GL_STENCIL_PASS_DEPTH_PASS, &stencilPassDepthPass);
+        if (cullWasEnabled) {
+            glGetIntegerv(GL_CULL_FACE_MODE, &cullFaceMode);
         }
 
-        if (gameSceneTex != 0 && s_BrightPassShader) {
-            glBindFramebuffer(GL_FRAMEBUFFER, s_BrightPassFBO);
+        glEnable(GL_STENCIL_TEST);
+        glClearStencil(0);
+        glClear(GL_STENCIL_BUFFER_BIT);
+        glStencilMask(0xFF);
+        glStencilFunc(GL_ALWAYS, 1, 0xFF);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-            uint32_t w = gamefb ? gamefb->GetWidth() : 1920;
-            uint32_t h = gamefb ? gamefb->GetHeight() : 1080;
+        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+        //glEnable(GL_DEPTH_TEST);
+        //glDepthMask(GL_FALSE);
+        glDisable(GL_DEPTH_TEST);
+        glDepthMask(GL_FALSE);
+        glDisable(GL_BLEND);
+        glDisable(GL_CULL_FACE);
+        glUseProgram(s_SelectionOutlineProgram->GetProgramID());
 
-            glViewport(0, 0, w, h);
-            glClearColor(0, 0, 0, 1);
-            glClear(GL_COLOR_BUFFER_BIT);
+        const GLint viewLocation = glGetUniformLocation(s_SelectionOutlineProgram->GetProgramID(), "u_View");
+        const GLint projLocation = glGetUniformLocation(s_SelectionOutlineProgram->GetProgramID(), "u_Projection");
+        const GLint modelLocation = glGetUniformLocation(s_SelectionOutlineProgram->GetProgramID(), "u_Model");
+        const GLint colorLocation = glGetUniformLocation(s_SelectionOutlineProgram->GetProgramID(), "u_Color");
+        glUniformMatrix4fv(viewLocation, 1, GL_FALSE, camView.Data());
+        glUniformMatrix4fv(projLocation, 1, GL_FALSE, camProj.Data());
+        glUniform4f(colorLocation, SELECTION_OUTLINE_COLOR.x, SELECTION_OUTLINE_COLOR.y, SELECTION_OUTLINE_COLOR.z, SELECTION_OUTLINE_COLOR.w);
 
-            s_BrightPassShader->Bind();
-            s_BrightPassShader->SetUniformInt("u_SceneTex", 0);
-            s_BrightPassShader->SetUniformFloat("u_Threshold", postProcessingSettings.bloomSettings.brightThreshold);
-            s_BrightPassShader->SetUniformFloat("u_Scale", postProcessingSettings.bloomSettings.brightScale);
-            s_BrightPassShader->SetUniformFloat("u_SoftKnee", postProcessingSettings.bloomSettings.softKnee);
-
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, gameSceneTex);
-
-            glBindVertexArray(s_QuadVAO);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            glBindVertexArray(0);
-
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        for (const DrawCommand* command : selectedCommands) {
+            glUniformMatrix4fv(modelLocation, 1, GL_FALSE, command->transform.Data());
+            command->mesh->Bind();
+            command->mesh->Draw();
+            command->mesh->Unbind();
         }
 
-        GLuint srcTex = s_BrightPassTex;
-        int srcW = gamefb ? gamefb->GetWidth() : 1920;
-        int srcH = gamefb ? gamefb->GetHeight() : 1080;
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        glStencilMask(0x00);
+        glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+        //glDisable(GL_DEPTH_TEST);
+        //glDisable(GL_BLEND);
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
 
-        for (int level = 0; level < BLOOM_LEVELS; ++level) {
-            int dstW = s_BloomWidth[level];
-            int dstH = s_BloomHeight[level];
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_FRONT);
 
-            glBindFramebuffer(GL_FRAMEBUFFER, s_BloomFBO[level]);
-            glViewport(0, 0, dstW, dstH);
-            glClearColor(0, 0, 0, 1);
-            glClear(GL_COLOR_BUFFER_BIT);
 
-            s_DownSampleShader->Bind();
-            s_DownSampleShader->SetUniformInt("u_Source", 0);
-            s_DownSampleShader->SetUniformVec2("u_TexelSize", { 1.0f / srcW, 1.0f / srcH });
-
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, srcTex);
-
-            glBindVertexArray(s_QuadVAO);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-            srcTex = s_BloomTex[level];
-            srcW = dstW;
-            srcH = dstH;
+        for (const DrawCommand* command : selectedCommands) {
+            const Math::Mat4 scaledTransform = command->transform * Math::Mat4::BuildScaling(
+                SELECTION_OUTLINE_SCALE,
+                SELECTION_OUTLINE_SCALE,
+                SELECTION_OUTLINE_SCALE
+            );
+            glUniformMatrix4fv(modelLocation, 1, GL_FALSE, scaledTransform.Data());
+            command->mesh->Bind();
+            command->mesh->Draw();
+            command->mesh->Unbind();
         }
 
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        for (int level = 0; level < BLOOM_LEVELS; ++level) {
-            int w = s_BloomWidth[level];
-            int h = s_BloomHeight[level];
-
-            glBindFramebuffer(GL_FRAMEBUFFER, s_BloomTempFBO[level]);
-            glViewport(0, 0, w, h);
-            glClearColor(0, 0, 0, 1);
-            glClear(GL_COLOR_BUFFER_BIT);
-
-            s_BlurShader->Bind();
-            s_BlurShader->SetUniformInt("u_Source", 0);
-            s_BlurShader->SetUniformVec2("u_TexelSize", { 1.0f / w, 1.0f / h });
-            s_BlurShader->SetUniformVec2("u_Direction", { 1.0f, 0.0f });
-
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, s_BloomTex[level]);
-
-            glBindVertexArray(s_QuadVAO);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-            glBindFramebuffer(GL_FRAMEBUFFER, s_BloomFBO[level]);
-            glViewport(0, 0, w, h);
-            glClearColor(0, 0, 0, 1);
-            glClear(GL_COLOR_BUFFER_BIT);
-
-            s_BlurShader->Bind();
-            s_BlurShader->SetUniformInt("u_Source", 0);
-            s_BlurShader->SetUniformVec2("u_TexelSize", { 1.0f / w, 1.0f / h });
-            s_BlurShader->SetUniformVec2("u_Direction", { 0.0f, 1.0f });
-
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, s_BloomTempTex[level]);
-
-            glBindVertexArray(s_QuadVAO);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        if (stencilWasEnabled) glEnable(GL_STENCIL_TEST); else glDisable(GL_STENCIL_TEST);
+        if (depthWasEnabled) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
+        if (blendWasEnabled) glEnable(GL_BLEND); else glDisable(GL_BLEND);
+        if (cullWasEnabled) {
+            glEnable(GL_CULL_FACE);
+            glCullFace(cullFaceMode);
         }
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        for (int level = BLOOM_LEVELS - 1; level > 0; --level) {
-            int hi = level - 1;
-            int w = s_BloomWidth[hi];
-            int h = s_BloomHeight[hi];
-
-            glBindFramebuffer(GL_FRAMEBUFFER, s_BloomFBO[hi]);
-            glViewport(0, 0, w, h);
-            glClearColor(0, 0, 0, 1);
-            glClear(GL_COLOR_BUFFER_BIT);
-
-            s_UpSampleShader->Bind();
-            s_UpSampleShader->SetUniformInt("u_LowRes", 0);
-            s_UpSampleShader->SetUniformInt("u_HighRes", 1);
-            s_UpSampleShader->SetUniformFloat("u_Intensity", postProcessingSettings.bloomSettings.bloomRadius);
-
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, s_BloomTex[level]);
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, s_BloomTex[hi]);
-
-            glBindVertexArray(s_QuadVAO);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        else {
+            glDisable(GL_CULL_FACE);
         }
 
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        auto finalFBO = s_RenderViewManager->GetFramebuffer(s_FinalGameOutputHandle);
-        if (gamefb && s_CompositeShader && finalFBO->GetColorAttachment() != 0) {
-            uint32_t sceneTexHDR = gamefb->GetColorAttachment();
-            GLuint bloomTex = s_BloomTex[0];
-
-            uint32_t w = gamefb->GetWidth();
-            uint32_t h = gamefb->GetHeight();
-
-            finalFBO->Bind();
-
-            glViewport(0, 0, w, h);
-            glClearColor(0, 0, 0, 1);
-            glClear(GL_COLOR_BUFFER_BIT);
-
-            glDisable(GL_DEPTH_TEST);
-            glDepthMask(GL_FALSE);
-
-            s_CompositeShader->Bind();
-            s_CompositeShader->SetUniformInt("u_SceneHDR", 0);
-            s_CompositeShader->SetUniformInt("u_Bloom", 1);
-            s_CompositeShader->SetUniformInt("u_ToneMapType", static_cast<int>(postProcessingSettings.bloomSettings.toneMapType));
-            s_CompositeShader->SetUniformFloat("u_BloomStrength", postProcessingSettings.bloomSettings.bloomIntensity);
-            s_CompositeShader->SetUniformFloat("u_Exposure", postProcessingSettings.bloomSettings.exposure);
-
-            s_CompositeShader->SetUniformInt("u_SSAO", 2);
-            s_CompositeShader->SetUniformInt("u_UseSSAO", postProcessingSettings.ssaoSettings.enabled ? 1 : 0);
-            s_CompositeShader->SetUniformFloat("u_AOIntensity", postProcessingSettings.ssaoSettings.intensity);
-
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, sceneTexHDR);
-
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, bloomTex);
-
-            glActiveTexture(GL_TEXTURE2);
-            glBindTexture(GL_TEXTURE_2D, s_SSAOTex);
-
-            glBindVertexArray(s_QuadVAO);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            glBindVertexArray(0);
-
-            glDepthMask(GL_TRUE);
-            glEnable(GL_DEPTH_TEST);
-
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        }
-
-#pragma endregion
+        glColorMask(colorMask[0], colorMask[1], colorMask[2], colorMask[3]);
+        glDepthMask(depthWriteWasEnabled);
+        glDepthFunc(depthFunc);
+        glStencilMask(stencilWriteMask);
+        glStencilFunc(stencilFunc, stencilRef, stencilValueMask);
+        glStencilOp(stencilFail, stencilPassDepthFail, stencilPassDepthPass);
+        glUseProgram(previousProgram);
     }
 
     void GraphicsManager::Submit(const DrawCommand& command) {
 		s_DrawQueue->Submit(command);
     }
 
+    void GraphicsManager::SubmitDecal(const DecalCommand& command) {
+        s_DecalQueue.push_back(command);
+    }
+
+    void GraphicsManager::SubmitDecalGizmo(const DecalGizmoCommand& command) {
+        s_DecalGizmoQueue.push_back(command);
+    }
+
+    void GraphicsManager::SubmitLightGizmo(const LightGizmoCommand& command) {
+        s_LightGizmoQueue.push_back(command);
+    }
+
     void GraphicsManager::EndFrame() {
 		s_RenderViewManager->Unbind();
-        //s_CommandBuffer->EndRenderPass();
-        //s_CommandBuffer->End();
+    }
+
+    void GraphicsManager::RenderUIOverlay() {
+        const auto& commands = s_DrawQueue->GetCommands();
+
+        // Filter for OVERLAY commands
+        std::vector<const DrawCommand*> uiCommands;
+        for (const auto& cmd : commands) {
+            if (cmd.material && cmd.material->GetQueueBase() == RenderQueue::OVERLAY) {
+                uiCommands.push_back(&cmd);
+            }
+        }
+
+        if (uiCommands.empty()) {
+            return;
+        }
+
+        // Render UI to both final output views (editor scene view and game view)
+        std::vector<RenderViewHandle> outputViews = { s_FinalOutputViewHandle, s_FinalGameOutputHandle };
+
+        for (RenderViewHandle viewHandle : outputViews) {
+            // Get the view to check if it exists and is active
+            auto& views = s_RenderViewManager->GetAllRenderViews();
+            auto it = views.find(viewHandle);
+            if (it == views.end() || !it->second.framebuffer) {
+                continue;
+            }
+
+            // Bind the final output framebuffer
+            s_RenderViewManager->Bind(viewHandle);
+
+            // Start with depth disabled (screen-space UI default)
+            glDisable(GL_DEPTH_TEST);
+            glDepthMask(GL_FALSE);
+
+            // Prepare batching
+            std::vector<InstanceData> instanceData;
+            instanceData.reserve(32);
+            std::shared_ptr<IGeometryBuffer> currentMesh;
+            std::shared_ptr<Material> currentMaterial;
+            std::optional<ScissorRect> currentScissor;
+            bool currentDepthTest = false;
+
+            auto flushBatch = [&]() {
+                if (instanceData.empty() || !currentMesh || !currentMaterial || !currentMaterial->GetPipeline()->GetSpecification().shader)
+                    return;
+
+                // Apply scissor state before drawing this batch
+                if (currentScissor.has_value()) {
+                    glEnable(GL_SCISSOR_TEST);
+                    glScissor(currentScissor->x, currentScissor->y,
+                              currentScissor->width, currentScissor->height);
+                } else {
+                    glDisable(GL_SCISSOR_TEST);
+                }
+
+                // Apply depth test state for this batch
+                if (currentDepthTest) {
+                    glEnable(GL_DEPTH_TEST);
+                    glDepthFunc(GL_LEQUAL);
+                    glDepthMask(GL_FALSE);  // Read depth but don't write (UI doesn't occlude 3D)
+                } else {
+                    glDisable(GL_DEPTH_TEST);
+                    glDepthMask(GL_FALSE);
+                }
+
+                NE::Graphics::OpenGL::GLGeometryBuffer::UpdateInstanceBuffer(
+                    instanceData.data(),
+                    instanceData.size() * sizeof(InstanceData)
+                );
+
+                // Bind pipeline & GL state
+                auto pipeline = currentMaterial->GetPipeline();
+                s_StateCache->Bind(pipeline);
+                currentMaterial->Bind();
+                currentMesh->Bind();
+
+                // Draw mesh with instancing
+                currentMesh->DrawInstanced(instanceData.size());
+                currentMesh->Unbind();
+
+                instanceData.clear();
+            };
+
+            // Batch and render all UI commands
+            for (const DrawCommand* cmdPtr : uiCommands) {
+                const DrawCommand& command = *cmdPtr;
+
+                auto mesh = command.mesh;
+                auto material = command.material;
+
+                // Check compatibility with current batch (includes scissor rect and depth test)
+                bool compatible =
+                    (mesh == currentMesh) &&
+                    (material == currentMaterial) &&
+                    (command.scissorRect == currentScissor) &&
+                    (command.enableDepthTest == currentDepthTest);
+
+                // Flush current batch if not compatible
+                if (!compatible && !instanceData.empty()) {
+                    flushBatch();
+                }
+
+                // Prepare to create new batch if not compatible
+                if (!compatible) {
+                    currentMesh = mesh;
+                    currentMaterial = material;
+                    currentScissor = command.scissorRect;
+                    currentDepthTest = command.enableDepthTest;
+                }
+
+                NE::Graphics::InstanceData instance{};
+                instance.model = command.transform;
+                instance.idRGB = command.idRGB;
+
+                instanceData.push_back(instance);
+            }
+
+            if (!instanceData.empty()) {
+                flushBatch();
+            }
+
+            // Restore GL state
+            glDisable(GL_SCISSOR_TEST);
+            glEnable(GL_DEPTH_TEST);
+            glDepthMask(GL_TRUE);
+
+            // Unbind view after rendering UI
+            s_RenderViewManager->Unbind();
+        }
     }
 
     void GraphicsManager::Clear() {
         s_DrawQueue->Clear();
+        s_DecalQueue.clear();
+        s_DecalGizmoQueue.clear();
+        s_LightGizmoQueue.clear();
 	}
 
-    void GraphicsManager::Shutdown() {
+    void GraphicsManager::SetSelectedEntities(const std::vector<uint32_t>& selectedIds) {
+        s_SelectedEntityIds.clear();
+        s_SelectedEntityIds.reserve(selectedIds.size());
+        for (uint32_t id : selectedIds) {
+            if (id != ECS::NO_ENTITY) {
+                s_SelectedEntityIds.insert(id);
+            }
+        }
+    }
+
+    void GraphicsManager::ClearSelectedEntities() {
+        s_SelectedEntityIds.clear();
+    }
+
+    RenderGraph* GraphicsManager::GetRenderGraph() {
+        return s_PostPipeline ? s_PostPipeline->GetRenderGraph() : nullptr;
+    }
+
+    TexturePool* GraphicsManager::GetTexturePool() {
+        return s_PostPipeline ? s_PostPipeline->GetTexturePool() : nullptr;
+    }
+
+    void GraphicsManager::Shutdown()
+    {
+        if (s_PostPipeline) {
+            s_PostPipeline->Shutdown();
+            s_PostPipeline.reset();
+        }
 		s_RenderViewManager->Shutdown();
         s_skybox.reset();
         s_CommandBuffer.reset();
+        DebugDrawSystem::Shutdown();
 
-        if (debugVBO) {
-            glDeleteBuffers(1, &debugVBO);
-            debugVBO = 0;
-        }
-
-        if (debugVAO) {
-            glDeleteVertexArrays(1, &debugVAO);
-            debugVAO = 0;
-        }
-
-        if (debugShaderProgram) {
-            glDeleteProgram(debugShaderProgram);
-            debugShaderProgram = 0;
-        }
-
-        s_DebugLines.clear();
-        s_DebugTriangles.clear();
-        s_DebugVertexBuffer.clear();
-
-        s_DebugLines.shrink_to_fit();
-        s_DebugTriangles.shrink_to_fit();
-        s_DebugVertexBuffer.shrink_to_fit();
-
-        UIRenderer::Shutdown();
         NE::Graphics::GizmosRenderer::Cleanup();
         NE::Graphics::OpenGL::GLGeometryBuffer::ShutdownInstanceBuffer();
+
+        s_LightGizmoQueue.clear();
+        s_DecalGizmoQueue.clear();
+        s_LightGizmoMesh.reset();
+        s_DecalGizmoMaterial.reset();
+        s_DecalCubeMesh.reset();
+        s_DecalQueue.clear();
+        s_NormalPrepassShader.reset();
+        //if (s_SelectionOutlineProgram != 0) {
+        //    glDeleteProgram(s_SelectionOutlineProgram);
+        //    s_SelectionOutlineProgram = 0;
+        //}
+        s_SelectedEntityIds.clear();
+        for (auto& material : s_LightGizmoMaterials) {
+            material.reset();
+        }
     }
 
     void GraphicsManager::SetEditorCamera(EditorCamera* cam) {
         s_EditorCamera = cam;
+        DebugDrawSystem::SetEditorCamera(cam);
     }
 
     EditorCamera* GraphicsManager::GetEditorCamera() {
@@ -1344,7 +1547,15 @@ namespace NE::Graphics {
 
     RenderViewHandle GraphicsManager::CreateRenderView(uint32_t width, uint32_t height, bool enablePicking) 
     {
-        return s_RenderViewManager->CreateHDR(width, height, enablePicking);
+        RenderViewCreateDesc desc;
+        desc.width = width;
+        desc.height = height;
+        desc.enablePicking = enablePicking;
+        desc.enableMiniGBuffer = true;
+        desc.enableDepth = true;
+        desc.enableStencil = false;
+        desc.format = RenderViewFormat::HDR;
+        return s_RenderViewManager->Create(desc);
 	}
 
     void GraphicsManager::DestroyRenderView(RenderViewHandle handle) {
@@ -1367,37 +1578,31 @@ namespace NE::Graphics {
     }
 
     uint32_t GraphicsManager::ReadPixel(uint32_t x, uint32_t y) {
-		return s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->ReadPixel(x, y);
+        auto framebuffer = s_RenderViewManager->GetFramebuffer(s_SceneViewHandle);
+        if (!framebuffer) return 0;
+		return framebuffer->ReadPixel(x, y);
     }
 
     void GraphicsManager::ReadPixelRect(uint32_t x, uint32_t y, uint32_t width, uint32_t height, std::vector<uint32_t>& outIds) {
-        s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->ReadPixelRect(x, y, width, height, outIds);
+        auto framebuffer = s_RenderViewManager->GetFramebuffer(s_SceneViewHandle);
+        if (!framebuffer) {
+            outIds.clear();
+            return;
+        }
+
+        framebuffer->ReadPixelRect(x, y, width, height, outIds);
     }
 
-    uint32_t GraphicsManager::GetSceneColorAttachment() 
-    {
-        //if (InputManager::IsKeyDown('4')) return s_FinalColorTex;
-        if (InputManager::IsKeyDown('8')) return s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->GetDepthAttachment();
-        if (InputManager::IsKeyDown('9')) return s_SSAOTex;
-        if (InputManager::IsKeyDown('0')) return s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->GetColorAttachment();
-
+    uint32_t GraphicsManager::GetSceneColorAttachment()  {
         auto framebuffer = s_RenderViewManager->GetFramebuffer(s_FinalOutputViewHandle);
         if (framebuffer) {
-          return framebuffer->GetColorAttachment();
+            return framebuffer->GetColorAttachment();
         }
 
         return 0;
-
-		//auto framebuffer = s_RenderViewManager->GetFramebuffer(s_SceneViewHandle);
-        //  if (framebuffer) {
-        //  return framebuffer->GetColorAttachment();
-		//}
-
-		//return 0;
 	}
 
-    uint32_t GraphicsManager::GetGameColorAttachment()
-    {
+    uint32_t GraphicsManager::GetGameColorAttachment() {
 		auto framebuffer = s_RenderViewManager->GetFramebuffer(s_FinalGameOutputHandle);
         if (framebuffer) {
             return framebuffer->GetColorAttachment();
@@ -1405,8 +1610,7 @@ namespace NE::Graphics {
 		return 0;
     }
 
-    uint32_t GraphicsManager::GetFinalOutputColorAttachment()
-    {
+    uint32_t GraphicsManager::GetFinalOutputColorAttachment() {
         auto framebuffer = s_RenderViewManager->GetFramebuffer(s_FinalOutputViewHandle);
         if (framebuffer) {
             return framebuffer->GetColorAttachment();
@@ -1416,11 +1620,21 @@ namespace NE::Graphics {
 
     void GraphicsManager::DisplayFinalOutput(int windowWidth, int windowHeight)
     {
-		// Note: Game view handle should be replaced with final output view handle when post-processing is added
-		s_RenderViewManager->BlitToScreen(s_FinalOutputViewHandle, windowWidth, windowHeight);
+        //bool hasActiveMainView = false;
+        //const auto& views = s_RenderViewManager->GetAllRenderViews();
+        //for (const auto& [handle, view] : views) {
+        //    if (view.isActive && view.isMain) {
+        //        hasActiveMainView = true;
+        //        break;
+        //    }
+        //}
 
-		//s_RenderViewManager->BlitToScreen(s_SceneViewHandle, windowWidth, windowHeight);
-	}
+        //if (hasActiveMainView) {
+            s_RenderViewManager->BlitToScreen(s_FinalGameOutputHandle, windowWidth, windowHeight);
+        //} else {
+        //    s_RenderViewManager->BlitToScreen(s_FinalOutputViewHandle, windowWidth, windowHeight);
+        //}
+    }
 
     IStateCache* GraphicsManager::GetStateCache() {
         return s_StateCache.get();
@@ -1434,330 +1648,134 @@ namespace NE::Graphics {
         return s_ScreenHeight;
     }
 
-    // Debug drawing test code
-    const char* vertexShaderSource = R"(
-    #version 330 core
-    layout (location = 0) in vec3 aPos;
-    layout (location = 1) in vec3 aColor;
-    uniform mat4 u_View;
-    uniform mat4 u_Projection;
-    out vec3 color;
-    void main() {
-        gl_Position = u_Projection * u_View * vec4(aPos, 1.0);
-        color = aColor;
-    }
-)";
-
-    const char* fragmentShaderSource = R"(
-    #version 330 core
-    in vec3 color;
-    out vec4 FragColor;
-    void main() {
-        FragColor = vec4(color, 1.0);
-    }
-)";
-
     void GraphicsManager::InitDebugPrimitives() {
-        // Compile shaders
-        GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-        glCompileShader(vertexShader);
-
-        GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-        glCompileShader(fragmentShader);
-
-        debugShaderProgram = glCreateProgram();
-        glAttachShader(debugShaderProgram, vertexShader);
-        glAttachShader(debugShaderProgram, fragmentShader);
-        glLinkProgram(debugShaderProgram);
-
-        glDeleteShader(vertexShader);
-        glDeleteShader(fragmentShader);
-
-        // cache uniform locations ONCE at initialization
-        GraphicsManager::s_DebugViewLoc = glGetUniformLocation(debugShaderProgram, "u_View");
-        GraphicsManager::s_DebugProjLoc = glGetUniformLocation(debugShaderProgram, "u_Projection");
-
-        glGenVertexArrays(1, &debugVAO);
-        glGenBuffers(1, &debugVBO);
-
-        glBindVertexArray(debugVAO);
-        glBindBuffer(GL_ARRAY_BUFFER, debugVBO);
-
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(0);
-
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-        glEnableVertexAttribArray(1);
-
-        glBindVertexArray(0);
-
-        // pre-allocate debug vertex buffer
-        GraphicsManager::s_DebugVertexBuffer.reserve(INITIAL_DEBUG_BUFFER_SIZE);
+        DebugDrawSystem::Init();
     }
 
     void GraphicsManager::AddDebugLine(const Math::Vec3& from, const Math::Vec3& to, const Math::Vec3& color) 
     {
-        s_DebugLines.push_back({ from, to, color });
+        DebugDrawSystem::AddLine(from, to, color);
     }
 
     void GraphicsManager::DrawDebugLines() 
     {
-        if (s_DebugLines.empty()) return;
-
-        // clear buffer but keep capacity (avoid reallocation)
-        s_DebugVertexBuffer.clear();
-
-        // reserve exact size needed (2 vertices * 6 floats per line)
-        size_t requiredSize = s_DebugLines.size() * 12;
-        if (s_DebugVertexBuffer.capacity() < requiredSize) {
-            s_DebugVertexBuffer.reserve(requiredSize * 2); // Extra room for growth
-        }
-
-        // build vertex data
-        for (const auto& line : s_DebugLines) {
-            // vertex 1 (from)
-            s_DebugVertexBuffer.push_back(line.from.x);
-            s_DebugVertexBuffer.push_back(line.from.y);
-            s_DebugVertexBuffer.push_back(line.from.z);
-            s_DebugVertexBuffer.push_back(line.color.x);
-            s_DebugVertexBuffer.push_back(line.color.y);
-            s_DebugVertexBuffer.push_back(line.color.z);
-
-            // vertex 2 (to)
-            s_DebugVertexBuffer.push_back(line.to.x);
-            s_DebugVertexBuffer.push_back(line.to.y);
-            s_DebugVertexBuffer.push_back(line.to.z);
-            s_DebugVertexBuffer.push_back(line.color.x);
-            s_DebugVertexBuffer.push_back(line.color.y);
-            s_DebugVertexBuffer.push_back(line.color.z);
-        }
-
-        // upload to GPU
-        glBindBuffer(GL_ARRAY_BUFFER, debugVBO);
-        glBufferData(GL_ARRAY_BUFFER, s_DebugVertexBuffer.size() * sizeof(float), s_DebugVertexBuffer.data(), GL_STREAM_DRAW);
-
-        // use shader
-        glUseProgram(debugShaderProgram);
-
-        // use cached uniform locations (no glGetUniformLocation call)
-        glUniformMatrix4fv(s_DebugViewLoc, 1, GL_FALSE, s_EditorCamera->GetViewMatrix().Data());
-        glUniformMatrix4fv(s_DebugProjLoc, 1, GL_FALSE, s_EditorCamera->GetProjectionMatrix().Data());
-
-        // draw
-        glBindVertexArray(debugVAO);
-        glLineWidth(2.0f);
-
-        glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LEQUAL);
-
-        glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(s_DebugLines.size() * 2));
-
-        // clear for next frame
-        s_DebugLines.clear();
-
-        s_StateCache->InvalidateAll(); // TEMP
+        DebugDrawSystem::DrawLines();
     }
 
     void GraphicsManager::AddDebugTriangle(const Math::Vec3& v0, const Math::Vec3& v1, const Math::Vec3& v2, const Math::Vec3& color) {
-        s_DebugTriangles.push_back({ v0, v1, v2, color });
+        DebugDrawSystem::AddTriangle(v0, v1, v2, color);
     }
 
     void GraphicsManager::DrawDebugTriangles() {
-        if (s_DebugTriangles.empty()) return;
+        DebugDrawSystem::DrawTriangles();
+    }
 
-        // clear buffer but keep capacity (avoid reallocation)
-        s_DebugVertexBuffer.clear();
+    void GraphicsManager::DrawSelectedLightGizmos(const ECS::Component::Light& light) {
+        std::vector<Vec3> vertices;
+        vertices.reserve(256);
 
-        // reserve exact size needed (2 vertices * 6 floats per line)
-        size_t requiredSize = s_DebugTriangles.size() * 12;
-        if (s_DebugVertexBuffer.capacity() < requiredSize) {
-            s_DebugVertexBuffer.reserve(requiredSize * 2); // Extra room for growth
+        Vec3 baseColor = light.color;
+        if (baseColor.LengthSquared() < 1e-6f) {
+            baseColor = { 1.0f, 1.0f, 1.0f };
+        }
+        baseColor.x = std::clamp(baseColor.x, 0.1f, 1.0f);
+        baseColor.y = std::clamp(baseColor.y, 0.1f, 1.0f);
+        baseColor.z = std::clamp(baseColor.z, 0.1f, 1.0f);
+
+        switch (light.type) {
+        case ECS::Component::Light::Type::Point: {
+            const auto* pointData = std::get_if<ECS::Component::Light::PointLightData>(&light.data);
+            if (!pointData) break;
+
+            const float range = std::max(pointData->range, LIGHT_DEBUG_MIN_RANGE);
+            vertices.clear();
+            AppendWireCircle(vertices, light.position, { 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, range, LIGHT_DEBUG_CIRCLE_SEGMENTS);
+            AppendWireCircle(vertices, light.position, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, range, LIGHT_DEBUG_CIRCLE_SEGMENTS);
+            AppendWireCircle(vertices, light.position, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, range, LIGHT_DEBUG_CIRCLE_SEGMENTS);
+            GraphicsManager::AddDebugLinesBatch(vertices, baseColor);
+            break;
+        }
+        case ECS::Component::Light::Type::Spot: {
+            const auto* spotData = std::get_if<ECS::Component::Light::SpotLightData>(&light.data);
+            if (!spotData) break;
+
+            const float range = std::max(spotData->range, LIGHT_DEBUG_MIN_RANGE);
+            vertices.clear();
+            AppendWireCone(
+                vertices,
+                light.position,
+                light.direction,
+                range,
+                spotData->outerConeAngleDeg,
+                LIGHT_DEBUG_CIRCLE_SEGMENTS,
+                LIGHT_DEBUG_CONE_RAYS
+            );
+            GraphicsManager::AddDebugLinesBatch(vertices, baseColor);
+
+            if (spotData->innerConeAngleDeg > LIGHT_DEBUG_MIN_ANGLE_DEG) {
+                vertices.clear();
+                AppendWireCone(
+                    vertices,
+                    light.position,
+                    light.direction,
+                    range,
+                    std::min(spotData->innerConeAngleDeg, spotData->outerConeAngleDeg),
+                    LIGHT_DEBUG_CIRCLE_SEGMENTS,
+                    LIGHT_DEBUG_CONE_RAYS
+                );
+                GraphicsManager::AddDebugLinesBatch(vertices, baseColor * 0.6f);
+            }
+            break;
+        }
+        default:
+            break;
+        }
+    }
+
+    void GraphicsManager::DrawSelectedDecalGizmos(const ECS::Component::DecalProjector& decal, 
+        const ECS::Component::Transform& transform
+    ) {
+        static constexpr Math::Vec3 kColour = { 0.20f, 0.95f, 1.0f };
+        static constexpr Math::Vec3 kCorners[8] = {
+            { -0.5f, -0.5f, -0.5f }, { 0.5f, -0.5f, -0.5f }, { 0.5f,  0.5f, -0.5f }, { -0.5f,  0.5f, -0.5f },
+            { -0.5f, -0.5f,  0.5f }, { 0.5f, -0.5f,  0.5f }, { 0.5f,  0.5f,  0.5f }, { -0.5f,  0.5f,  0.5f }
+        };
+        static constexpr int kEdges[12][2] = {
+            {0,1}, {1,2}, {2,3}, {3,0},
+            {4,5}, {5,6}, {6,7}, {7,4},
+            {0,4}, {1,5}, {2,6}, {3,7}
+        };
+
+        const Math::Mat4 localPivot = Math::Mat4::BuildTranslation(decal.pivot);
+        const Math::Mat4 localScale = Math::Mat4::BuildScaling(decal.width, decal.height, decal.depth);
+        const Math::Mat4 projectorModel = transform.worldMatrix * localPivot * localScale;
+
+        std::vector<Math::Vec3> vertices;
+        vertices.reserve(24);
+
+        Math::Vec3 wsCorners[8];
+        for (int i = 0; i < 8; ++i) {
+            wsCorners[i] = TransformPoint(projectorModel, kCorners[i]);
         }
 
-        // build vertex data
-        for (const auto& tri : s_DebugTriangles) {
-            // Vertex 0
-            s_DebugVertexBuffer.push_back(tri.v0.x);
-            s_DebugVertexBuffer.push_back(tri.v0.y);
-            s_DebugVertexBuffer.push_back(tri.v0.z);
-            s_DebugVertexBuffer.push_back(tri.color.x);
-            s_DebugVertexBuffer.push_back(tri.color.y);
-            s_DebugVertexBuffer.push_back(tri.color.z);
-
-            // Vertex 1
-            s_DebugVertexBuffer.push_back(tri.v1.x);
-            s_DebugVertexBuffer.push_back(tri.v1.y);
-            s_DebugVertexBuffer.push_back(tri.v1.z);
-            s_DebugVertexBuffer.push_back(tri.color.x);
-            s_DebugVertexBuffer.push_back(tri.color.y);
-            s_DebugVertexBuffer.push_back(tri.color.z);
-
-            // Vertex 2
-            s_DebugVertexBuffer.push_back(tri.v2.x);
-            s_DebugVertexBuffer.push_back(tri.v2.y);
-            s_DebugVertexBuffer.push_back(tri.v2.z);
-            s_DebugVertexBuffer.push_back(tri.color.x);
-            s_DebugVertexBuffer.push_back(tri.color.y);
-            s_DebugVertexBuffer.push_back(tri.color.z);
+        for (const auto& edge : kEdges) {
+            vertices.push_back(wsCorners[edge[0]]);
+            vertices.push_back(wsCorners[edge[1]]);
         }
 
-        // upload to GPU
-        glBindBuffer(GL_ARRAY_BUFFER, debugVBO);
-        glBufferData(GL_ARRAY_BUFFER, s_DebugVertexBuffer.size() * sizeof(float), s_DebugVertexBuffer.data(), GL_STREAM_DRAW);
-
-        // use shader
-        glUseProgram(debugShaderProgram);
-
-        // Use cached uniform locations (no glGetUniformLocation call!)
-        glUniformMatrix4fv(s_DebugViewLoc, 1, GL_FALSE, s_EditorCamera->GetViewMatrix().Data());
-        glUniformMatrix4fv(s_DebugProjLoc, 1, GL_FALSE, s_EditorCamera->GetProjectionMatrix().Data());
-
-        // draw
-        glBindVertexArray(debugVAO);
-
-        glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LESS);
-        glDepthMask(GL_TRUE);
-
-        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(s_DebugTriangles.size() * 3));
-
-        s_DebugTriangles.clear();
+        Graphics::GraphicsManager::AddDebugLinesBatch(vertices, kColour);
     }
 
     void GraphicsManager::AddDebugLinesBatch(const std::vector<Math::Vec3>& positions, const Math::Vec3& color) {
-        if (positions.size() < 2) return;
-
-        // reserve space upfront to avoid reallocations
-        const size_t lineCount = positions.size() / 2;
-        s_DebugLines.reserve(s_DebugLines.size() + lineCount);
-
-        // add lines in pairs
-        for (size_t i = 0; i + 1 < positions.size(); i += 2) {
-            s_DebugLines.push_back({ positions[i], positions[i + 1], color });
-        }
+        DebugDrawSystem::AddLinesBatch(positions, color);
     }
 
     void GraphicsManager::AddDebugTrianglesBatch(const std::vector<Math::Vec3>& positions, const Math::Vec3& color) {
-        if (positions.size() < 3) return;
-
-        // reserve space upfront to avoid reallocations
-        const size_t triCount = positions.size() / 3;
-        s_DebugTriangles.reserve(s_DebugTriangles.size() + triCount);
-
-        // add triangles in groups of 3
-        for (size_t i = 0; i + 2 < positions.size(); i += 3) {
-            s_DebugTriangles.push_back({ positions[i], positions[i + 1], positions[i + 2], color });
-        }
+        DebugDrawSystem::AddTrianglesBatch(positions, color);
     }
 
     void GraphicsManager::DrawAllDebugGeometry() {
-        if (s_DebugLines.empty() && s_DebugTriangles.empty()) return;
-
-        s_DebugVertexBuffer.clear();
-
-        // calculate exact size needed
-        const size_t lineVertexCount = s_DebugLines.size() * 2;
-        const size_t triVertexCount = s_DebugTriangles.size() * 3;
-        const size_t totalFloats = (lineVertexCount * 6) + (triVertexCount * 6);
-
-        // resize once (no clear/reserve dance needed)
-        s_DebugVertexBuffer.resize(totalFloats);
-
-        // get raw pointer to data - direct memory writes!
-        float* ptr = s_DebugVertexBuffer.data();
-
-        // add all line vertices
-        for (const auto& line : s_DebugLines) {
-            // vertex 1 (from)
-            *ptr++ = line.from.x;
-            *ptr++ = line.from.y;
-            *ptr++ = line.from.z;
-            *ptr++ = line.color.x;
-            *ptr++ = line.color.y;
-            *ptr++ = line.color.z;
-
-            // vertex 2 (to)
-            *ptr++ = line.to.x;
-            *ptr++ = line.to.y;
-            *ptr++ = line.to.z;
-            *ptr++ = line.color.x;
-            *ptr++ = line.color.y;
-            *ptr++ = line.color.z;
-        }
-
-        // add all triangle vertices
-        for (const auto& tri : s_DebugTriangles) {
-            // vertex 0
-            *ptr++ = tri.v0.x;
-            *ptr++ = tri.v0.y;
-            *ptr++ = tri.v0.z;
-            *ptr++ = tri.color.x;
-            *ptr++ = tri.color.y;
-            *ptr++ = tri.color.z;
-
-            // vertex 1
-            *ptr++ = tri.v1.x;
-            *ptr++ = tri.v1.y;
-            *ptr++ = tri.v1.z;
-            *ptr++ = tri.color.x;
-            *ptr++ = tri.color.y;
-            *ptr++ = tri.color.z;
-
-            // vertex 2
-            *ptr++ = tri.v2.x;
-            *ptr++ = tri.v2.y;
-            *ptr++ = tri.v2.z;
-            *ptr++ = tri.color.x;
-            *ptr++ = tri.color.y;
-            *ptr++ = tri.color.z;
-        }
-
-        // single upload to GPU
-        glBindVertexArray(debugVAO);
-        glBindBuffer(GL_ARRAY_BUFFER, debugVBO);
-        glBufferData(GL_ARRAY_BUFFER,
-            totalFloats * sizeof(float),
-            s_DebugVertexBuffer.data(),
-            GL_STREAM_DRAW);
-
-        // setup shader
-        glUseProgram(debugShaderProgram);
-        glUniformMatrix4fv(s_DebugViewLoc, 1, GL_FALSE, s_EditorCamera->GetViewMatrix().Data());
-        glUniformMatrix4fv(s_DebugProjLoc, 1, GL_FALSE, s_EditorCamera->GetProjectionMatrix().Data());
-        glBindVertexArray(debugVAO);
-        glEnable(GL_DEPTH_TEST);
-
-        // draw lines
-        if (!s_DebugLines.empty()) {
-            glLineWidth(2.0f);
-            glDepthFunc(GL_LEQUAL);
-            glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(lineVertexCount));
-        }
-
-        // draw triangles
-        if (!s_DebugTriangles.empty()) {
-            glDepthFunc(GL_LESS);
-            glDepthMask(GL_TRUE);
-            glDrawArrays(GL_TRIANGLES,
-                static_cast<GLsizei>(lineVertexCount),
-                static_cast<GLsizei>(s_DebugTriangles.size() * 3));
-        }
-
-        // clear both buffers
-        s_DebugLines.clear();
-        s_DebugTriangles.clear();
+        DebugDrawSystem::DrawAll();
     }
 
-    void GraphicsManager::DrawUI() {
-        UIRenderer::BeginFrame();
-        UIRenderer::DrawUIFrame();
-        //UIRenderer::DrawTestQuad();
-        UIRenderer::EndFrame();
-        UIRenderer::Draw3DUIFrame(s_FinalOutputViewHandle);
-        
-        UIRenderer::Composite(s_FinalOutputViewHandle);
-        UIRenderer::ClearCommands();
-    }
 }

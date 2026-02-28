@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "GLContext.hpp"
 #include <glad/glad.h>
 #define GLFW_DLL
@@ -21,7 +22,7 @@ namespace NE::Graphics::OpenGL {
 			LOG_ERROR("Bindless texture not supported!");
 		}
 
-		SPD_INFO("OpenGL Version: ", glGetString(GL_VERSION));
+		SPD_INFO("OpenGL Version: " << glGetString(GL_VERSION));
 
 		return true;
 	}

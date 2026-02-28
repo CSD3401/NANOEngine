@@ -14,6 +14,7 @@ public:
         // Example: SCRIPT_FIELD(speed, float);
         // Example: SCRIPT_FIELD_VECTOR(blingstring, String);;
         SCRIPT_COMPONENT_REF(panelRef, TransformRef);
+        SCRIPT_GAMEOBJECT_REF(alignedBattery);
         SCRIPT_FIELD(message, String);
     }
 
@@ -35,6 +36,8 @@ public:
 
     void Update(double deltaTime) override {
         // Called every frame while the script is enabled
+        //if (HoldingBattery)
+        //    AlignTheBattery(heldBattery);
     }
 
     void OnDestroy() override {
@@ -45,6 +48,7 @@ public:
 
     void OnEnable() override {
         // Called when the script is enabled
+        SetActive(false, alignedBattery.GetEntity());
     }
 
     void OnDisable() override {
@@ -83,8 +87,10 @@ public:
             Vec3 scale = GetScale(panelRef);
             Vec3 rot = GetRotation(panelRef);
 
-            batteryScript->Align(pos, scale, rot);
-
+            AlignTheBattery(other);
+            SetActive(false, other);
+            SetActive(false, panelRef.GetEntity());
+            SetActive(true, alignedBattery.GetEntity());
             // also send a message to whatever needs to be sent
             Events::Send(message.c_str());
         }
@@ -93,9 +99,27 @@ public:
     void OnTriggerExit(Entity other) override { (void)other; }
     void OnTriggerStay(Entity other) override { (void)other; }
 
+    void AlignTheBattery(Entity batteryEntity)
+    {
+        GameObject battery(batteryEntity);
+        auto batteryScript = battery.GetComponent<Interactable_Battery>();
+
+        Entity e = panelRef.GetEntity();
+        Vec3 pos = TF_GetPosition(e);
+        Vec3 scale = TF_GetScale(e);
+        Vec3 rot = TF_GetRotation(e);
+        std::string logMsg = "PANEL BATTERY POS[X: " + std::to_string(pos.x) + ", Y: " + std::to_string(pos.y) + ", Z: " + std::to_string(pos.z) + "]";
+        LOG_DEBUG("ALIGNING TO THIS TRANSFORM!");
+        LOG_DEBUG(logMsg);
+        //TF_SetPosition(pos, batteryEntity);
+
+        batteryScript->Align(pos, scale, rot);
+    }
+
 private:
     // Add your private member variables here
     // Example: float speed = 5.0f;
+    GameObjectRef alignedBattery;
     TransformRef panelRef;
     std::string message;
 };

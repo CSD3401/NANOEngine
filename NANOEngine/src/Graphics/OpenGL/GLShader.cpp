@@ -1,8 +1,10 @@
+#include "pch.h"
 #include "GLShader.hpp"
 #include <fstream>
 #include <sstream>
 #include <glad/glad.h>
 #include "Core/SpdLogger.hpp"
+#include <iostream>
 #include "Math/Vec2.hpp"
 #include "Math/Vec3.hpp"
 #include "Math/Vec4.hpp"
@@ -129,7 +131,9 @@ namespace NE::Graphics::OpenGL {
 			return;
 		}
 		GLint loc = GetUniformLocation(uName);
-		if (loc >= 0) glUniformHandleui64ARB(loc, handle);
+		if (loc >= 0) {
+			glUniformHandleui64ARB(loc, handle);
+		}
 	}
 
 	void GLShader::SetUniformHandlev(const std::string& uName, const uint64_t* handles, int count)

@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "Application.hpp"
 // Needed for one shared instance of GLFW
 #define GLFW_DLL
@@ -36,7 +37,6 @@ namespace Editor {
 	static bool s_showUnsavedChangesPopup = false;
 
 	void Application::Init() {
-
 		NANOEngine::Events::EventBus::Get().Subscribe<Events::ShowCursorEvent>(
 			NANOEngine::Events::EventDomain::Editor,
 			[&](const Events::ShowCursorEvent&) {
@@ -138,14 +138,12 @@ namespace Editor {
 		editorLayer.AddPanel<InspectorPanel>();
 		editorLayer.AddPanel<ProfilerPanel>();
 		editorLayer.AddPanel<LoggerPanel>();
-		editorLayer.AddPanel<AnimationPanel>();
 
 		NE::SetEditorCamera(reinterpret_cast<void*>(&EditorScene::m_editorCamera));
 		Deserialization::JSON::DeserializeProjectSettings();
 	}
 
-	void Application::Run()
-	{
+	void Application::Run() {
 		while (!NE::WindowShouldClose()) {
 			Profiler::BeginFrame();
 			timer.Update(); // move to engine run
@@ -155,6 +153,7 @@ namespace Editor {
 
 			NE::Run(timer.GetDeltaTime());
 
+			FlushPendingFontRebuild();
 			ImGui_ImplOpenGL3_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();

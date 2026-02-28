@@ -1,3 +1,4 @@
+#include "pch.h"
 /**
  * @file ScriptAPI.cpp
  * @brief Implementation of the clean scripting SDK API
@@ -10,16 +11,23 @@
 #include "ScriptContext.hpp"
 #include "ScriptContextFactory.hpp"
 #include "ScriptingEngine.hpp"
+#include "Engine.hpp"
 
  // Internal engine headers (NOT exposed to scripts)
 #include "../ECS/Components/Transform.hpp"
 #include "../ECS/Components/Rigidbody.hpp"
+#include "../ECS/Components/Collider.hpp"
 #include "../ECS/Components/AudioSource.hpp"
 #include "../ECS/Components/EntityMeta.hpp"
 #include "../ECS/Components/Renderer.hpp"
+#include "../ECS/Components/Animator.hpp"
 #include "../ECS/Components/Camera.hpp"
 #include "../ECS/Components/NativeScript.hpp"
 #include "../ECS/Components/Hierarchy.hpp"
+#include "../ECS/Components/UIText.hpp"
+#include "../ECS/Components/UIButton.hpp"
+#include "../ECS/Components/UISlider.hpp"
+#include "../ECS/Components/UIToggle.hpp"
 #include "../ECS/Systems/HierarchySystem.hpp"
 #include "../Physics/PhysicsManager.hpp"
 #include "../Physics/ForceMode.hpp"
@@ -33,6 +41,7 @@
 #include "../Tween/TweenManager.hpp"  // Include TweenManager for tween API
 #include "SceneManagement/SceneManager.hpp"
 #include "../EditorInterface/RendererExports.hpp"  // For RenderSettings access
+#include "../EditorInterface/AudioExports.hpp"  
 #include "../Graphics/Core/RenderSettings.hpp"  // For RenderSettings struct
 
 #include <sstream>
@@ -317,7 +326,7 @@ namespace NE {
 
 			auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
 			Math::Mat4 m = transform.worldMatrix;
-			Math::Vec3 worldScale = m.GetRotation();
+			Math::Vec3 worldScale = m.GetScale();
 			return ToSDKVec3(worldScale);
 		}
 
@@ -659,6 +668,17 @@ namespace NE {
 			RB_AddImpulse(Vec3(x, y, z), entity);
 		}
 
+		void IScript::RB_SetIsTrigger(bool isTrigger, Entity entity) {
+			CHECK_CONTEXT_OR_RETURN();
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			auto& collider = m_context->componentManager->GetComponent<ECS::Component::Collider>(targetEntity);
+
+			collider.isTrigger = isTrigger;
+			Physics::PhysicsManager::GetInstance().SetIsTrigger(meta.luid, isTrigger);
+		}
+
 		void IScript::CC_Move(const Vec3& displacement, Entity entity) {
 			CHECK_CONTEXT_OR_RETURN();
 
@@ -693,6 +713,32 @@ namespace NE {
 
 			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
 			return Vec3(Physics::PhysicsManager::GetInstance().CharacterGetGroundNormal(meta.luid));
+		}
+
+		void IScript::CC_SetPosition(const Vec3& position, Entity entity) {
+			CHECK_CONTEXT_OR_RETURN();
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			Physics::PhysicsManager::GetInstance().CharacterSetPosition(meta.luid, ToEngineVec3(position));
+		}
+
+		void IScript::Anim_Play(Entity entity) {
+			CHECK_CONTEXT_OR_RETURN();
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (m_context->componentManager->HasComponent<ECS::Component::Animator>(targetEntity)) {
+				auto& animator = m_context->componentManager->GetComponent<ECS::Component::Animator>(targetEntity);
+				animator.isPlaying = true;
+			}
+		}
+
+		void IScript::Anim_Stop(Entity entity) {
+			CHECK_CONTEXT_OR_RETURN();
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (m_context->componentManager->HasComponent<ECS::Component::Animator>(targetEntity)) {
+				auto& animator = m_context->componentManager->GetComponent<ECS::Component::Animator>(targetEntity);
+				animator.isPlaying = false;
+			}
 		}
 
 		//=========================================================================
@@ -815,6 +861,58 @@ namespace NE {
 		//=========================================================================
 		// Audio Source
 		//=========================================================================
+
+		void IScript::PlayAudio(const std::string& eventName) {
+			NE::Audio::PlayAudio(eventName);
+		}
+
+		void IScript::StopAudio(const std::string& eventName) {
+			NE::Audio::StopAudio(eventName);
+		}
+		void IScript::StopAllAudio() {
+			NE::Audio::StopAllAudio();
+		}
+
+		void IScript::SetMasterVolume(float volume)
+		{
+			NE::Audio::SetMasterVolume(volume);
+		}
+
+		void IScript::SetBGMVolume(float volume)
+		{
+			NE::Audio::SetBGMVolume(volume);
+		}
+
+		void IScript::SetSFXVolume(float volume)
+		{
+			NE::Audio::SetSFXVolume(volume);
+		}
+
+		void IScript::SetAmbienceVolume(float volume)
+		{
+			NE::Audio::SetAmbienceVolume(volume);
+		}
+
+		float IScript::GetMasterVolume() const
+		{
+			return NE::Audio::GetMasterVolume();
+		}
+
+		float IScript::GetBGMVolume() const
+		{
+			return NE::Audio::GetBGMVolume();
+		}
+
+		float IScript::GetSFXVolume() const
+		{
+			return NE::Audio::GetSFXVolume();
+		}
+
+		float IScript::GetAmbienceVolume() const
+		{
+			return NE::Audio::GetAmbienceVolume();
+		}
+
 
 		bool IScript::HasAudioSource(Entity entity) const {
 			if (!m_context || !m_context->componentManager) return false;
@@ -1055,6 +1153,18 @@ namespace NE {
 			}
 			return AudioSourceRef();
 		}
+
+		/// Audio system namespace - global controls (master volume)
+		namespace Audio {
+			inline void SetMasterVolumeLevel(int level) {
+				NE::Scripting::SetMasterVolumeLevel(level);
+			}
+
+			inline int GetMasterVolumeLevel() {
+				return NE::Scripting::GetMasterVolumeLevel();
+			}
+		} // namespace Audio
+
 
 		//=========================================================================
 		// Material UUID Registry (Maps material IDs to UUIDs)
@@ -3192,7 +3302,7 @@ namespace NE {
 		}
 
 		// Virtual methods with default implementations for optional override
-		std::vector<std::string> IScript::GetEnumOptions(const std::string& fieldName) const {
+		std::vector<std::string> IScript::GetEnumOptions(const std::string& fieldName) const { 
 			if (!m_fieldRegistry) {
 				//SPD_WARNING("GetEnumOptions: m_fieldRegistry is null for field '{}'", fieldName);
 				return {};
@@ -3439,22 +3549,10 @@ namespace NE {
 		// Scene Management API IMPLEMENTATION (SDK → Engine bridge)
 		//=========================================================================
 
-		void SwitchScene(const std::string& path) {
-			bool wasPlaying = gSceneManager.IsPlaying();
-
-			// Stop runtime if currently playing
-			if (wasPlaying) {
-				gSceneManager.StopRuntime();
-			}
-
-			// Exit current scene and load new one
-			gSceneManager.ExitScene();
-			gSceneManager.LoadScene(path);
-
-			// Resume playing if we were in play mode
-			if (wasPlaying) {
-				gSceneManager.LoadRuntime();
-			}
+		void SwitchScene(std::string path) {
+			// Queue the scene switch to happen at the end of the frame (after all scripts have updated)
+			// This prevents crashes from destroying scripts while they're still being iterated over
+			gSceneManager.QueueSceneSwitch(path);
 		}
 
 		//=========================================================================
@@ -3543,6 +3641,11 @@ namespace NE {
 
 		bool IsMouseLocked() {
 			return NE::InputManager::IsMouseLocked();
+		}
+
+		void SetMouseVisible(bool visible) {
+			//NE::InputManager::SetMouseVisible(visible);
+			NE::SetCursorVisible(visible);
 		}
 
 		//=========================================================================
@@ -3843,6 +3946,312 @@ namespace NE {
 			auto& settings = Renderer::Command::GetRenderSettings();
 			settings.fogDensity = density;
 		}
+
+		//=========================================================================
+		// UI TEXT FUNCTIONS
+		//=========================================================================
+
+		void SetUIText(Entity entity, const char* text) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UIText>(entity)) {
+				return;
+			}
+
+			auto& uiText = ecs.GetComponent<ECS::Component::UIText>(entity);
+			uiText.text = text ? text : "";
+			uiText.isDirty = true;
+		}
+
+		void SetUITextColor(Entity entity, float r, float g, float b, float a) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UIText>(entity)) {
+				return;
+			}
+
+			auto& uiText = ecs.GetComponent<ECS::Component::UIText>(entity);
+			uiText.color = NE::Math::Vec4(r, g, b, a);
+			uiText.isDirty = true;
+		}
+
+		const char* GetUIText(Entity entity) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UIText>(entity)) {
+				return "";
+			}
+
+			auto& uiText = ecs.GetComponent<ECS::Component::UIText>(entity);
+			return uiText.text.c_str();
+		}
+
+		//=========================================================================
+		// UI BUTTON FUNCTIONS
+		//=========================================================================
+
+		bool IsButtonHovered(Entity entity) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UIButton>(entity)) {
+				return false;
+			}
+
+			auto& button = ecs.GetComponent<ECS::Component::UIButton>(entity);
+			return button.currentState == ECS::Component::UIButton::State::HOVERED;
+		}
+
+		bool IsButtonPressed(Entity entity) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UIButton>(entity)) {
+				return false;
+			}
+
+			auto& button = ecs.GetComponent<ECS::Component::UIButton>(entity);
+			return button.currentState == ECS::Component::UIButton::State::PRESSED;
+		}
+
+		bool WasButtonClicked(Entity entity) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UIButton>(entity)) {
+				return false;
+			}
+
+			auto& button = ecs.GetComponent<ECS::Component::UIButton>(entity);
+			return button.wasClicked;
+		}
+
+		void SetButtonInteractable(Entity entity, bool interactable) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UIButton>(entity)) {
+				return;
+			}
+
+			auto& button = ecs.GetComponent<ECS::Component::UIButton>(entity);
+			button.interactable = interactable;
+			if (!interactable) {
+				button.currentState = ECS::Component::UIButton::State::DISABLED;
+			}
+		}
+
+		bool IsButtonInteractable(Entity entity) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UIButton>(entity)) {
+				return false;
+			}
+
+			auto& button = ecs.GetComponent<ECS::Component::UIButton>(entity);
+			return button.interactable;
+		}
+
+		//=========================================================================
+		// UI SLIDER FUNCTIONS
+		//=========================================================================
+
+		float GetSliderValue(Entity entity) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UISlider>(entity)) {
+				return 0.0f;
+			}
+
+			auto& slider = ecs.GetComponent<ECS::Component::UISlider>(entity);
+			return slider.value;
+		}
+
+		void SetSliderValue(Entity entity, float value) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UISlider>(entity)) {
+				return;
+			}
+
+			auto& slider = ecs.GetComponent<ECS::Component::UISlider>(entity);
+			slider.value = value;
+			slider.ClampValue();
+			slider.valueChanged = true;
+		}
+
+		float GetSliderNormalizedValue(Entity entity) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UISlider>(entity)) {
+				return 0.0f;
+			}
+
+			auto& slider = ecs.GetComponent<ECS::Component::UISlider>(entity);
+			return slider.GetNormalizedValue();
+		}
+
+		void SetSliderNormalizedValue(Entity entity, float normalizedValue) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UISlider>(entity)) {
+				return;
+			}
+
+			auto& slider = ecs.GetComponent<ECS::Component::UISlider>(entity);
+			slider.SetNormalizedValue(normalizedValue);
+			slider.valueChanged = true;
+		}
+
+		void SetSliderMinMax(Entity entity, float minValue, float maxValue) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UISlider>(entity)) {
+				return;
+			}
+
+			auto& slider = ecs.GetComponent<ECS::Component::UISlider>(entity);
+			slider.minValue = minValue;
+			slider.maxValue = maxValue;
+			// Re-clamp current value to new range
+			slider.ClampValue();
+		}
+
+		bool SliderValueChanged(Entity entity) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UISlider>(entity)) {
+				return false;
+			}
+
+			auto& slider = ecs.GetComponent<ECS::Component::UISlider>(entity);
+			return slider.valueChanged;
+		}
+
+		bool IsSliderInteractable(Entity entity) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UISlider>(entity)) {
+				return false;
+			}
+
+			auto& slider = ecs.GetComponent<ECS::Component::UISlider>(entity);
+			return slider.interactable;
+		}
+
+		void SetSliderInteractable(Entity entity, bool interactable) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UISlider>(entity)) {
+				return;
+			}
+
+			auto& slider = ecs.GetComponent<ECS::Component::UISlider>(entity);
+			slider.interactable = interactable;
+		}
+
+		//=========================================================================
+		// UI TOGGLE FUNCTIONS
+		//=========================================================================
+
+		bool IsToggleOn(Entity entity) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UIToggle>(entity)) {
+				return false;
+			}
+
+			auto& toggle = ecs.GetComponent<ECS::Component::UIToggle>(entity);
+			return toggle.isOn;
+		}
+
+		void SetToggleOn(Entity entity, bool isOn) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UIToggle>(entity)) {
+				return;
+			}
+
+			auto& toggle = ecs.GetComponent<ECS::Component::UIToggle>(entity);
+			toggle.SetIsOn(isOn);
+		}
+
+		bool ToggleValueChanged(Entity entity) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UIToggle>(entity)) {
+				return false;
+			}
+
+			auto& toggle = ecs.GetComponent<ECS::Component::UIToggle>(entity);
+			return toggle.valueChanged;
+		}
+
+		bool WasToggleClicked(Entity entity) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UIToggle>(entity)) {
+				return false;
+			}
+
+			auto& toggle = ecs.GetComponent<ECS::Component::UIToggle>(entity);
+			return toggle.wasClicked;
+		}
+
+		bool IsToggleInteractable(Entity entity) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UIToggle>(entity)) {
+				return false;
+			}
+
+			auto& toggle = ecs.GetComponent<ECS::Component::UIToggle>(entity);
+			return toggle.interactable;
+		}
+
+		void SetToggleInteractable(Entity entity, bool interactable) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UIToggle>(entity)) {
+				return;
+			}
+
+			auto& toggle = ecs.GetComponent<ECS::Component::UIToggle>(entity);
+			toggle.interactable = interactable;
+		}
+
+		//=========================================================================
+// MASTER VOLUME (GLOBAL)
+//=========================================================================
+
+		void SetMasterVolumeLevel(int level)
+		{
+			NE::Audio::SetMasterVolumeLevel(level);
+		}
+
+		int GetMasterVolumeLevel()
+		{
+			return NE::Audio::GetMasterVolumeLevel();
+		}
+
 
 	} // namespace Scripting
 } // namespace NE

@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "Engine.hpp"
 
 #include <memory>
@@ -27,6 +28,7 @@
 #include "ResourceManagement/ResourceManager.hpp"
 #include "Animation/AnimationClip.hpp"
 #include "ECS/Systems/AnimatorSystem.hpp"
+#include "Events/EventBus.hpp"
 
 namespace {
 
@@ -94,35 +96,28 @@ namespace NE {
 		s_renderContext = std::make_unique<Graphics::OpenGL::GLContext>();
 		s_renderContext->Init(s_window->GetNativeWindow());
 
-		// here for now
-		glEnable(GL_CULL_FACE);
-
 		Graphics::GraphicsManager::Init();
 		Physics::PhysicsManager::GetInstance().Init();
 		Scripting::ScriptingEngine::GetInstance().Initialize();
 	}
 
 	void Run(double dt) {
+#ifndef PRODUCTION_BUILD
 		NE_PROFILE_FUNCTION();
-		//s_window->PollEvents();
-
-		//Physics::PhysicsManager::Update(static_cast<float>(dt));
+#endif
 		Physics::JoltDebugRenderer::BeginFrame();
 		
 		gSceneManager.Update(dt);
-
-		//Graphics::GraphicsManager::SubmitSkybox(); // Submit skybox once per frame
-
 		Physics::JoltDebugRenderer::EndFrame();
+
+
 		gSceneManager.Render();
 
 		Graphics::GraphicsManager::Clear(); // Clear draw commands after rendering
 
 		TweenManager::Get().Update(static_cast<float>(dt));
 
-		if (InputManager::WasKeyPressed(GLFW_KEY_ESCAPE)) {
-			glfwSetInputMode(static_cast<GLFWwindow*>(s_window->GetNativeWindow()), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-		}
+		//NANOEngine::Events::EventBus::Get().DispatchQueued();
 	}
 
 	void Shutdown() {
@@ -176,8 +171,8 @@ namespace NE {
 		NE::Serialization::SerializeScene(GetScene().GetECSCoordinator(), rootNodes, _artifactPath);
 	}
 
-	bool LoadScene(const std::string& _artifactPath) {
-		return gSceneManager.LoadScene(Resource::ComputeArtifactPathFromUUID(_artifactPath, Resource::ResourceType::Scene));
+	bool LoadScene(const std::string& _uuid) {
+		return gSceneManager.LoadScene(_uuid);
 	}
 
 	void CreateSceneFallback(const std::string& _artifactPath) {
@@ -246,8 +241,9 @@ namespace NE {
 		return buffer;
 	}
 
-	uint32_t PasteEntity(std::vector<uint8_t> clipboard) {
-		return NE::Deserialization::DeserializeEntitiesFromMemory(gSceneManager.GetActive()->GetECSCoordinator(), clipboard);
+	uint32_t PasteEntity(const std::vector<uint8_t>& clipboard) {
+		std::vector<uint8_t> buffer = clipboard;
+		return NE::Deserialization::DeserializeEntitiesFromMemory(gSceneManager.GetActive()->GetECSCoordinator(), buffer);
 	}
 
 	void CreatePrefabFromEntity(uint32_t entity, std::string& uuid, uint32_t& localID, bool isRoot) {
@@ -359,6 +355,10 @@ namespace NE {
 		return ofs.good();
 	}
 
+	void UseProductionSceneManager() {
+		gSceneManager.SetMode(SceneManagement::SceneManager::SceneManagerMode::RuntimeOnly);
+	}
+
 	void StartRuntime() {
 		gSceneManager.LoadRuntime();
 	}
@@ -369,6 +369,14 @@ namespace NE {
 
 	int GetDrawCallCount() {
 		return Graphics::GraphicsManager::drawCount;
+	}
+
+	uint32_t GetUIScreenWidth() {
+		return Graphics::GraphicsManager::GetScreenWidth();
+	}
+
+	uint32_t GetUIScreenHeight() {
+		return Graphics::GraphicsManager::GetScreenHeight();
 	}
 
 	void DisplayFinalOutput(int windowWidth, int windowHeight) {
@@ -391,5 +399,9 @@ namespace NE {
 
 	void PreviewAnimation(uint32_t entity, const Animation::AnimationClip& animClip, float timeInSeconds) {
 		gSceneManager.GetActive()->GetECSCoordinator().m_animatorSystem->ApplyClipAtTime(entity, animClip, timeInSeconds);
+	}
+	
+	void SetCursorVisible(bool visible) {
+		glfwSetInputMode(static_cast<GLFWwindow*>(s_window->GetNativeWindow()), GLFW_CURSOR, visible ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
 	}
 }

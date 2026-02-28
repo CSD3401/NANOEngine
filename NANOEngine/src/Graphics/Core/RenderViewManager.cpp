@@ -1,6 +1,8 @@
+#include "pch.h"
 #include "RenderViewManager.hpp"
 #include "../Interfaces/IFrameBuffer.hpp"
 #include "Graphics/OpenGL/GLFrameBuffer.hpp"
+#include <algorithm>
 
 // Note: When remove component is added, make sure to call RenderViewManager::Destroy for the associated handle
 // when deleting a camera component to avoid memory leaks.
@@ -11,63 +13,67 @@ namespace NE::Graphics {
 	{
 	}
 
-	void RenderViewManager::Shutdown()
-	{
+	void RenderViewManager::Shutdown() {
 		DestroyAll();
 	}
 
-	RenderViewHandle RenderViewManager::Create(uint32_t width, uint32_t height, bool enablePicking)
-	{
+	RenderViewHandle RenderViewManager::Create(const RenderViewCreateDesc& desc) {
 		RenderViewHandle handle = m_NextHandle++;
+		std::shared_ptr<OpenGL::GLFrameBuffer> framebuffer;
 
-		// Create OpenGL framebuffer
-		auto framebuffer = std::make_shared<OpenGL::GLFrameBuffer>(width, height);
-		framebuffer->SetPickingWrite(enablePicking);
+		switch (desc.format) {
+		case RenderViewFormat::HDR:
+			framebuffer = std::make_shared<OpenGL::GLFrameBuffer>();
+			framebuffer->CreateAsHDR(desc.width, desc.height, desc.enablePicking, desc.enableMiniGBuffer, desc.enableDepth, desc.enableStencil);
+			break;
+		case RenderViewFormat::LDR:
+			framebuffer = std::make_shared<OpenGL::GLFrameBuffer>();
+			framebuffer->CreateAsLDR(desc.width, desc.height, desc.enablePicking, desc.enableMiniGBuffer, desc.enableDepth, desc.enableStencil);
+			break;
+		case RenderViewFormat::Standard:
+		default:
+			framebuffer = std::make_shared<OpenGL::GLFrameBuffer>();
+			framebuffer->CreateAsStandard(desc.width, desc.height, desc.enablePicking, desc.enableMiniGBuffer, desc.enableDepth, desc.enableStencil);
+			break;
+		}
 
-		// Store the render view
+		framebuffer->SetPickingWrite(desc.enablePicking);
+
 		RenderView view;
 		view.framebuffer = framebuffer;
-		m_Views[handle] = view;
+		m_Views[handle] = std::move(view);
 
 		return handle;
 	}
 
-	RenderViewHandle RenderViewManager::CreateHDR(uint32_t width, uint32_t height, bool enablePicking)
-	{
-		RenderViewHandle handle = m_NextHandle++;
-
-		// Create OpenGL framebuffer
-		auto framebuffer = std::make_shared<OpenGL::GLFrameBuffer>();
-		framebuffer->CreateAsHDR(width, height, enablePicking);
-		framebuffer->SetPickingWrite(enablePicking);
-
-		// Store the render view
-		RenderView view;
-		view.framebuffer = framebuffer;
-		m_Views[handle] = view;
-
-		return handle;
+	RenderViewHandle RenderViewManager::Create(uint32_t width, uint32_t height, bool enablePicking) {
+		RenderViewCreateDesc desc;
+		desc.width = width;
+		desc.height = height;
+		desc.enablePicking = enablePicking;
+		desc.format = RenderViewFormat::Standard;
+		return Create(desc);
 	}
 
-	RenderViewHandle RenderViewManager::CreateLDR(uint32_t width, uint32_t height, bool enablePicking)
-	{
-		RenderViewHandle handle = m_NextHandle++;
-
-		// Create OpenGL framebuffer
-		auto framebuffer = std::make_shared<OpenGL::GLFrameBuffer>(width, height);
-		framebuffer->CreateAsLDR(width, height, enablePicking);
-		framebuffer->SetPickingWrite(enablePicking);
-
-		// Store the render view
-		RenderView view;
-		view.framebuffer = framebuffer;
-		m_Views[handle] = view;
-
-		return handle;
+	RenderViewHandle RenderViewManager::CreateHDR(uint32_t width, uint32_t height, bool enablePicking) {
+		RenderViewCreateDesc desc;
+		desc.width = width;
+		desc.height = height;
+		desc.enablePicking = enablePicking;
+		desc.format = RenderViewFormat::HDR;
+		return Create(desc);
 	}
 
-	void RenderViewManager::Destroy(RenderViewHandle handle)
-	{
+	RenderViewHandle RenderViewManager::CreateLDR(uint32_t width, uint32_t height, bool enablePicking) {
+		RenderViewCreateDesc desc;
+		desc.width = width;
+		desc.height = height;
+		desc.enablePicking = enablePicking;
+		desc.format = RenderViewFormat::LDR;
+		return Create(desc);
+	}
+
+	void RenderViewManager::Destroy(RenderViewHandle handle) {
 		if (handle == InvalidRenderView)
 			return;
 
@@ -78,23 +84,20 @@ namespace NE::Graphics {
 		m_Views.erase(it);
 	}
 
-	void RenderViewManager::DestroyAll()
-	{
+	void RenderViewManager::DestroyAll() {
 		// This function should ONLY be called during Shutdown
 		m_Views.clear();
 		m_NextHandle = 1;
 	}
 
-	void RenderViewManager::BlitToScreen(RenderViewHandle handle, int windowWidth, int windowHeight)
-	{
+	void RenderViewManager::BlitToScreen(RenderViewHandle handle, int windowWidth, int windowHeight) {
 		auto framebuffer = GetFramebuffer(handle);
 		if (framebuffer) {
 			framebuffer->BlitToScreen(windowWidth, windowHeight);
 		}
 	}
 
-	void RenderViewManager::SetCameraData(RenderViewHandle handle, Math::Mat4 projection, Math::Mat4 view, Math::Vec3 position, float nearPlane, float farPlane, bool isMain, uint16_t order)
-	{
+	void RenderViewManager::SetCameraData(RenderViewHandle handle, const Math::Mat4& projection, const Math::Mat4& view, const Math::Vec3& position, float nearPlane, float farPlane, bool isMain, uint16_t order) {
 		auto it = m_Views.find(handle);
 		if (it != m_Views.end()) {
 			it->second.projection = projection;
@@ -108,24 +111,21 @@ namespace NE::Graphics {
 		}
 	}
 
-	void RenderViewManager::EnableCamera(RenderViewHandle handle)
-	{
+	void RenderViewManager::EnableCamera(RenderViewHandle handle) {
 		auto it = m_Views.find(handle);
 		if (it != m_Views.end()) {
 			it->second.isActive = true;
 		}
 	}
 
-	void RenderViewManager::DisableCamera(RenderViewHandle handle)
-	{
+	void RenderViewManager::DisableCamera(RenderViewHandle handle) {
 		auto it = m_Views.find(handle);
 		if (it != m_Views.end()) {
 			it->second.isActive = false;
 		}
 	}
 
-	std::shared_ptr<IFrameBuffer> RenderViewManager::GetFramebuffer(RenderViewHandle handle)
-	{
+	std::shared_ptr<IFrameBuffer> RenderViewManager::GetFramebuffer(RenderViewHandle handle) {
 		auto it = m_Views.find(handle);
 		if (it != m_Views.end()) {
 			return it->second.framebuffer;
@@ -133,8 +133,7 @@ namespace NE::Graphics {
 		return nullptr;
 	}
 
-	void RenderViewManager::Bind(RenderViewHandle handle)
-	{
+	void RenderViewManager::Bind(RenderViewHandle handle) {
 		auto framebuffer = GetFramebuffer(handle);
 		if (framebuffer) {
 			framebuffer->Bind();
@@ -144,23 +143,48 @@ namespace NE::Graphics {
 		}
 	}
 
-	void RenderViewManager::Unbind() const
-	{
+	void RenderViewManager::Unbind() const {
 		OpenGL::GLFrameBuffer::Unbind();
 	}
 
-	void RenderViewManager::Resize(RenderViewHandle handle, uint32_t width, uint32_t height)
-	{
+	void RenderViewManager::Resize(RenderViewHandle handle, uint32_t width, uint32_t height) {
 		auto framebuffer = GetFramebuffer(handle);
 		if (framebuffer) {
 			framebuffer->Resize(width, height);
 		}
 	}
 
-	void RenderViewManager::ResizeAll(uint32_t width, uint32_t height)
-	{
+	void RenderViewManager::ResizeAll(uint32_t width, uint32_t height) {
 		for (auto& [handle, view] : m_Views) {
 			view.framebuffer->Resize(width, height);
 		}
+	}
+
+	std::vector<RenderViewHandle> RenderViewManager::GetOrderedActiveViews() const {
+		std::vector<RenderViewHandle> handles;
+		handles.reserve(m_Views.size());
+
+		for (const auto& [handle, view] : m_Views) {
+			if (view.isActive) {
+				handles.push_back(handle);
+			}
+		}
+
+		std::sort(handles.begin(), handles.end(), [this](RenderViewHandle a, RenderViewHandle b) {
+			const auto ita = m_Views.find(a);
+			const auto itb = m_Views.find(b);
+			if (ita == m_Views.end() || itb == m_Views.end()) {
+				return a < b;
+			}
+
+			const auto& viewA = ita->second;
+			const auto& viewB = itb->second;
+			if (viewA.order != viewB.order) {
+				return viewA.order < viewB.order;
+			}
+			return a < b;
+		});
+
+		return handles;
 	}
 }

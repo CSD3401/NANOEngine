@@ -1,4 +1,5 @@
-﻿#include "ScenePanel.hpp"
+#include "pch.h"
+#include "ScenePanel.hpp"
 #include "Math/Vec3.hpp"
 #include <imgui/imgui.h>
 #include <unordered_set>
@@ -10,13 +11,13 @@
 #include "Engine.hpp"
 #include <imgui/widgets/imguizmo/ImGuizmo.h>
 #include <EditorInterface/ECSExports.hpp>
+#include <Graphics/Core/GraphicsManager.hpp>
 #include <ECS/Components/Transform.hpp>
 #include <ECS/Components/Hierarchy.hpp>
 #include <ECS/Components/UIRectTransform.hpp>
 #include <ECS/Components/UICanvas.hpp>
 #include "../Command/EditorSetTransformCommand.hpp"
 #include "../Command/CommandHistory.hpp"
-#include "Graphics/Core/UIRenderer.hpp"
 #include "../UIGizmoHandler.hpp"
 #include <limits>
 #include <algorithm>
@@ -64,7 +65,7 @@ namespace Editor {
 			float worldY = rect.y;
 
 			// Walk up parent chain
-			uint32_t currentParent = rect.parent;
+			uint32_t currentParent = NE::ECS::Query::HasHierarchy(entity) ? NE::ECS::Query::GetEntityHierarchy(entity).parent : NE::ECS::NO_ENTITY;
 			while (currentParent != std::numeric_limits<uint32_t>::max()) {
 				if (!NE::ECS::Query::HasUIRectTransform(currentParent)) {
 					break;
@@ -74,7 +75,7 @@ namespace Editor {
 				worldX += parentRect.x;
 				worldY += parentRect.y;
 
-				currentParent = parentRect.parent;
+				currentParent = NE::ECS::Query::HasHierarchy(currentParent) ? NE::ECS::Query::GetEntityHierarchy(currentParent).parent : NE::ECS::NO_ENTITY;
 			}
 
 			return ImVec2(worldX, worldY);
@@ -178,6 +179,22 @@ namespace Editor {
 
 		ImVec2 panelPos = ImGui::GetCursorScreenPos();
 		ImVec2 panelSize = ImGui::GetContentRegionAvail();
+
+		// Convert panel position from screen coordinates to GLFW window coordinates
+		// GLFW mouse coordinates are relative to the window (0,0 at top-left)
+		// ImGui screen coordinates may include window position on multi-monitor setups
+		ImGuiViewport* mainViewport = ImGui::GetMainViewport();
+		ImVec2 mainViewportPos = mainViewport->Pos;
+		float panelPosX = panelPos.x - mainViewportPos.x;
+		float panelPosY = panelPos.y - mainViewportPos.y;
+
+		// Set viewport bounds for UI interaction system
+		NE::ECS::Command::SetUIViewportBounds(
+			panelPosX, panelPosY,
+			panelSize.x, panelSize.y,
+			static_cast<float>(NE::GetUIScreenWidth()),
+			static_cast<float>(NE::GetUIScreenHeight())
+		);
 
 		float newAspect = (panelSize.y > 0.0f) ? (panelSize.x / panelSize.y) : (16.0f / 9.0f);
 
@@ -533,33 +550,19 @@ namespace Editor {
 					);
 				}
 
-
-
-				//ImVec2 delta = { io.MousePos.x - m_lastMousePos.x, io.MousePos.y - m_lastMousePos.y };
-				//m_lastMousePos = io.MousePos;
-
-				//if (m_wrapIgnoreNextDelta) {
-				//	delta = ImVec2(0, 0);
-				//	m_wrapIgnoreNextDelta = false;
-				//}
-
 				ImVec2 cur = GetCursorScreenPosImVec2();
 
-				// 2) Compute delta from OS cursor pos
 				ImVec2 delta = { cur.x - m_lastMousePos.x, cur.y - m_lastMousePos.y };
 
-				// 3) Warp (monitor wrap)
 				bool warped = false;
 				WrapCursorInCurrentMonitor(/*useWorkArea=*/true, /*marginPx=*/2, warped);
 
 				if (warped) {
-					// After warping, refresh OS cursor pos and reset tracking
 					ImVec2 afterWarp = GetCursorScreenPosImVec2();
 					m_lastMousePos = afterWarp;
 					m_wrapIgnoreNextDelta = true;
 					delta = ImVec2(0, 0);
 				} else {
-					// Normal path: advance last mouse
 					m_lastMousePos = cur;
 				}
 
@@ -581,23 +584,33 @@ namespace Editor {
 		}
 
 		// transform gizmos
+		static uint32_t s_lastUIGizmoEntity = NE::ECS::NO_ENTITY;
+
 		if (!EditorScene::s_selection.Empty()) {
 			static ImGuizmo::OPERATION currentOperation = ImGuizmo::TRANSLATE;
 			if (ImGui::IsKeyPressed(ImGuiKey_W)) currentOperation = ImGuizmo::TRANSLATE;
 			if (ImGui::IsKeyPressed(ImGuiKey_E)) currentOperation = ImGuizmo::ROTATE;
 			if (ImGui::IsKeyPressed(ImGuiKey_R)) currentOperation = ImGuizmo::SCALE;
+			if (ImGui::IsKeyPressed(ImGuiKey_T)) currentOperation = ImGuizmo::BOUNDS;
 
 			ImGuizmo::SetOrthographic(false);
 			ImGuizmo::SetDrawlist();
 			ImGuizmo::SetRect(panelPos.x, panelPos.y, panelSize.x, panelSize.y);
 
 			using Owner = NE::ECS::Component::Transform;
-			const uint32_t last = EditorScene::s_selection.GetPrimary();
+			const uint32_t last = EditorScene::s_selection.GetLastClicked();
 
-			bool lastHasTransform = (last != NE::ECS::NO_ENTITY) && NE::ECS::Query::HasTransform(last);
-			bool lastHasUIRectTransform = (last != NE::ECS::NO_ENTITY) && NE::ECS::Query::HasUIRectTransform(last);
+			bool isUI = NE::ECS::Query::HasUIRectTransform(last);
 
-			if (lastHasTransform) {
+			// End the previous 2D gizmo if we switched to a different entity
+			if (s_lastUIGizmoEntity != NE::ECS::NO_ENTITY &&
+				s_lastUIGizmoEntity != last &&
+				UIGizmoHandler::IsGizmoActive()) {
+				UIGizmoHandler::End2DGizmo(s_lastUIGizmoEntity);
+				s_lastUIGizmoEntity = NE::ECS::NO_ENTITY;
+			}
+
+			if (!isUI) {
 				auto topLevel = EditorScene::s_selection.GetTopLevelSelection(
 					[](uint32_t e) {
 						const auto& h = NE::ECS::Query::GetEntityHierarchy(e);
@@ -764,68 +777,74 @@ namespace Editor {
 						s_gizmoActive = false;
 					}
 				}
-			} else if (lastHasUIRectTransform) {
-				auto& rectTransform = NE::ECS::Command::GetUIRectTransform(last);
+			} else {
+				// UI element selected - use UIGizmoHandler for interactive handles
+				if (NE::ECS::Query::HasUIRectTransform(last)) {
+					// Find the canvas this UI element belongs to
+					uint32_t canvasEntity = NE::ECS::NO_ENTITY;
+					uint32_t current = last;
 
-				// Get the canvas parent to check render mode
-				uint32_t canvasEntityId = std::numeric_limits<uint32_t>::max();
-				NE::ECS::Component::UICanvas* canvas = nullptr;
-
-				// First check if this entity itself is a canvas
-				if (NE::ECS::Query::HasUICanvas(last)) {
-					canvasEntityId = last;
-					canvas = &NE::ECS::Command::GetUICanvas(last);
-				} else {
-					// Walk up parent chain to find canvas
-					uint32_t currentParent = rectTransform.parent;
-					while (currentParent != std::numeric_limits<uint32_t>::max()) {
-						if (NE::ECS::Query::HasUICanvas(currentParent)) {
-							canvasEntityId = currentParent;
-							canvas = &NE::ECS::Command::GetUICanvas(currentParent);
+					while (current != NE::ECS::NO_ENTITY) {
+						if (NE::ECS::Query::HasUICanvas(current)) {
+							canvasEntity = current;
 							break;
 						}
-						if (!NE::ECS::Query::HasUIRectTransform(currentParent)) break;
-						currentParent = NE::ECS::Query::GetUIRectTransform(currentParent).parent;
-					}
-				}
-
-				if (!canvas) {
-					// No canvas parent found, skip
-					ImGui::End();
-					return;
-				}
-
-				// Setup operation keys for 3D gizmo
-				UIGizmoHandler::SetOperation(currentOperation);
-
-				// World space canvas (3D gizmo)
-				if (canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::WORLD_SPACE) {
-					NE::Math::Mat4 view = EditorScene::m_editorCamera.GetViewMatrix();
-					NE::Math::Mat4 proj = EditorScene::m_editorCamera.GetProjectionMatrix();
-
-					Editor::UIGizmoHandler::Update3DGizmo(last, view, proj, panelPos, panelSize);
-					s_usingUIGizmo = Editor::UIGizmoHandler::IsGizmoActive();
-				}
-				// Screen space canvas (2D gizmo with corner/edge handles)
-				else if (canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY ||
-					canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_CAMERA) {
-					// Begin 2D gizmo if not already active
-					if (!UIGizmoHandler::IsGizmoActive()) {
-						UIGizmoHandler::Begin2DGizmo(last);
-						s_usingUIGizmo = true;
+						if (NE::ECS::Query::HasUIRectTransform(current)) {
+							auto& rect = NE::ECS::Query::GetUIRectTransform(current);
+							current = NE::ECS::Query::HasHierarchy(current) ? NE::ECS::Query::GetEntityHierarchy(current).parent : NE::ECS::NO_ENTITY;
+						} else {
+							break;
+						}
 					}
 
-					// Update 2D gizmo
-					if (UIGizmoHandler::IsGizmoActive()) {
-						UIGizmoHandler::Update2DGizmo(last, panelPos, panelSize, 1920.f, 1080.f);
+					// Determine render mode
+					bool isWorldSpace = false;
+					if (canvasEntity != NE::ECS::NO_ENTITY && NE::ECS::Query::HasUICanvas(canvasEntity)) {
+						auto& canvas = NE::ECS::Query::GetUICanvas(canvasEntity);
+						isWorldSpace = (canvas.renderMode == NE::ECS::Component::UICanvas::RenderMode::WORLD_SPACE);
 					}
 
-					// End 2D gizmo on mouse release
-					if (!ImGui::IsMouseDown(ImGuiMouseButton_Left) && UIGizmoHandler::IsGizmoActive()) {
-						UIGizmoHandler::End2DGizmo(last);
-						s_usingUIGizmo = false;
+					// Track UI gizmo state for drag selection blocking
+					s_usingUIGizmo = UIGizmoHandler::IsGizmoActive();
+
+					if (isWorldSpace) {
+						// World-space UI uses 3D gizmo with ImGuizmo
+						UIGizmoHandler::SetOperation(currentOperation);
+						UIGizmoHandler::Update3DGizmo(
+							last,
+							EditorScene::m_editorCamera.GetViewMatrix(),
+							EditorScene::m_editorCamera.GetProjectionMatrix(),
+							panelPos,
+							panelSize
+						);
+					} else {
+						// Screen-space UI uses custom 2D handles
+						// Framebuffer dimensions (matching the picking resolution)
+						constexpr float fbWidth = 1920.0f;
+						constexpr float fbHeight = 1080.0f;
+
+						// Begin the 2D gizmo if not already active
+						if (!UIGizmoHandler::IsGizmoActive()) {
+							UIGizmoHandler::Begin2DGizmo(last);
+						}
+
+						// Track the current UI entity for cleanup
+						s_lastUIGizmoEntity = last;
+
+						// Update the 2D gizmo (draws handles and handles input)
+						UIGizmoHandler::Update2DGizmo(last, panelPos, panelSize, fbWidth, fbHeight);
 					}
+
+					// Update flag after gizmo operations
+					s_usingUIGizmo = UIGizmoHandler::IsGizmoActive();
 				}
+			}
+		} else {
+			// Selection is empty - clean up any active UI gizmo
+			if (s_lastUIGizmoEntity != NE::ECS::NO_ENTITY && UIGizmoHandler::IsGizmoActive()) {
+				UIGizmoHandler::End2DGizmo(s_lastUIGizmoEntity);
+				s_lastUIGizmoEntity = NE::ECS::NO_ENTITY;
+				s_usingUIGizmo = false;
 			}
 		}
 
@@ -835,6 +854,9 @@ namespace Editor {
 		dir.y = sinf(Radians(EditorScene::m_cameraPitch));
 		dir.z = sinf(Radians(EditorScene::m_cameraYaw)) * cosf(Radians(EditorScene::m_cameraPitch));
 		EditorScene::m_editorCamera.LookAt(EditorScene::m_editorCamera.GetPosition() + dir, Vec3(0, 1, 0));
+
+		// Keep renderer-side highlight selection in sync with editor selection.
+		NE::Renderer::Command::SetSelectedEntities(EditorScene::s_selection.GetSelection());
 
 		NE::UpdateEditorCameraData();
 

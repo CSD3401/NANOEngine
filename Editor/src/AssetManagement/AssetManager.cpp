@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "AssetManager.hpp"
 #include <fstream>
 #include <filesystem>
@@ -15,6 +16,7 @@
 #include "Assets/SceneAsset.hpp"
 #include "Assets/PrefabAsset.hpp"
 #include "Assets/AnimationClipAsset.hpp"
+#include "Assets/FontAsset.hpp"
 #include <rapidjson/istreamwrapper.h>
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/prettywriter.h>
@@ -41,11 +43,12 @@ namespace Editor::Assets {
             case Editor::Assets::AssetType::Prefab:                 return "Prefab";
             case Editor::Assets::AssetType::AnimationClip:          return "AnimationClip";
             case Editor::Assets::AssetType::AnimatorController:     return "AnimationController";
+            case Editor::Assets::AssetType::Font:                   return "Font";
             default:                                                return "Unknown";
             }
         }
 
-        std::unique_ptr<Assets::IAsset> CreateImporterForType(Assets::AssetType type, 
+        std::unique_ptr<Assets::IAsset> CreateImporterForType(Assets::AssetType type,
             const std::string& uuid, const std::string& filename) {
             switch (type) {
             case Assets::AssetType::Texture:                return std::make_unique<Assets::TextureAsset>();
@@ -55,6 +58,7 @@ namespace Editor::Assets {
             case Assets::AssetType::Scene:                  return std::make_unique<Assets::SceneAsset>();
             case Assets::AssetType::Prefab:                 return std::make_unique<Assets::PrefabAsset>();
             case Assets::AssetType::AnimationClip:          return std::make_unique<Assets::AnimationClipAsset>();
+            case Assets::AssetType::Font:                   return std::make_unique<Assets::FontAsset>();
             default:                                        return nullptr;
             }
         }
@@ -68,6 +72,7 @@ namespace Editor::Assets {
             case Assets::AssetType::Scene:              return NE::Resource::ResourceType::Scene;
             case Assets::AssetType::Prefab:             return NE::Resource::ResourceType::Prefab;
             case Assets::AssetType::AnimationClip:      return NE::Resource::ResourceType::AnimationClip;
+            case Assets::AssetType::Font:               return NE::Resource::ResourceType::Font;
             default:                                    return NE::Resource::ResourceType::Unknown;
             }
         }
@@ -537,6 +542,7 @@ namespace Editor::Assets {
         else if (e == ".nfab")                                          return Assets::AssetType::Prefab;
         else if (e == ".nanim")                                         return Assets::AssetType::AnimationClip;
         else if (e == ".ncontroller")                                   return Assets::AssetType::AnimatorController;
+        else if (e == ".ttf" || e == ".otf")                            return Assets::AssetType::Font;
 		else if (e == "")                                               return Assets::AssetType::Folder;
 		return Assets::AssetType::Unknown;
 	}

@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "Serializer.hpp"
 
 #include <fstream>
@@ -19,11 +20,23 @@
 #include "ECS/Components/UIRectTransform.hpp"
 #include "ECS/Components/UICanvas.hpp"
 #include "ECS/Components/UIImage.hpp"
+#include "ECS/Components/UIText.hpp"
+#include "ECS/Components/UIButton.hpp"
+#include "ECS/Components/UISlider.hpp"
+#include "ECS/Components/UIToggle.hpp"
 #include "ECS/Components/Hierarchy.hpp"
 #include "ECS/Components/PrefabLink.hpp"
 #include "ECS/Components/PrefabInstance.hpp"
 #include "ECS/Components/CharacterController.hpp"
 #include "ECS/Components/Animator.hpp"
+#include "ECS/Components/DecalProjector.hpp"
+#include "ECS/Components/UILayoutGroup.hpp"
+#include "ECS/Components/UIGridLayoutGroup.hpp"
+#include "ECS/Components/UILayoutElement.hpp"
+#include "ECS/Components/UIScrollRect.hpp"
+#include "ECS/Components/UIAutoSize.hpp"
+#include "ECS/Components/UIInputField.hpp"
+#include "ECS/Components/UIDropdown.hpp"
 
 namespace NE {
 	namespace {
@@ -42,8 +55,20 @@ namespace NE {
 			ECS::Component::UIRectTransform,
 			ECS::Component::UICanvas,
 			ECS::Component::UIImage,
+			ECS::Component::UIText,
+			ECS::Component::UIButton,
+			ECS::Component::UISlider,
+			ECS::Component::UIToggle,
+			ECS::Component::UILayoutGroup,
+			ECS::Component::UIGridLayoutGroup,
+			ECS::Component::UILayoutElement,
+			ECS::Component::UIScrollRect,
+			ECS::Component::UIAutoSize,
+			ECS::Component::UIInputField,
+			ECS::Component::UIDropdown,
 			ECS::Component::CharacterController,
-			ECS::Component::Animator
+			ECS::Component::Animator,
+            ECS::Component::DecalProjector
 		>;
 
 		using ComponentMask = std::uint64_t;

@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "EditorCamera.hpp"
 #include <cmath>
 #include <iostream>

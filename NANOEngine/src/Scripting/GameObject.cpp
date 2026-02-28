@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "../../include/ScriptSDK/ScriptAPI.h"
 #include "ScriptContext.hpp"
 #include "ScriptingEngine.hpp"

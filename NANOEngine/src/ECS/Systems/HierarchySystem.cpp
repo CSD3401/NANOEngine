@@ -1,12 +1,15 @@
+#include "pch.h"
 #include "HierarchySystem.hpp"
 
 #include "Core/LUIDGenerator.hpp"
 #include "Core/LUIDRegistry.hpp"
 #include "Math/Mat4.hpp"
-#include "../Components/Hierarchy.hpp"
-#include "../Components/Transform.hpp"
-#include "../Components/EntityMeta.hpp"
+#include "ECS/Components/Hierarchy.hpp"
+#include "ECS/Components/Transform.hpp"
+#include "ECS/Components/EntityMeta.hpp"
+#include "ECS/Components/Rigidbody.hpp"
 #include <Core/Profiler.hpp>
+#include "Physics/PhysicsManager.hpp"
 
 namespace NE::ECS::Systems {
 
@@ -87,10 +90,13 @@ namespace NE::ECS::Systems {
 
 	void HierarchySystem::SetParent(Entity child, Entity newParent, bool keepWorld) {
         auto& childH = m_componentManager->GetComponent<Component::Hierarchy>(child);
-        auto& childT = m_componentManager->GetComponent<Component::Transform>(child);
+
+        // Check if entity has Transform component (UI entities may not have Transform)
+        bool hasTransform = m_componentManager->HasComponent<Component::Transform>(child);
 
         NE::Math::Mat4 childWorldBefore;
-        if (keepWorld) {
+        if (keepWorld && hasTransform) {
+            auto& childT = m_componentManager->GetComponent<Component::Transform>(child);
             childWorldBefore = childT.worldMatrix;
         }
 
@@ -113,9 +119,10 @@ namespace NE::ECS::Systems {
             childH.parentLuid = 0;
         }
 
-        if (keepWorld) {
+        if (keepWorld && hasTransform) {
+            auto& childT = m_componentManager->GetComponent<Component::Transform>(child);
             NE::Math::Mat4 localM;
-            if (newParent != Component::INVALID_PARENT) {
+            if (newParent != Component::INVALID_PARENT && m_componentManager->HasComponent<Component::Transform>(newParent)) {
                 auto& parentT = m_componentManager->GetComponent<Component::Transform>(newParent);
                 NE::Math::Mat4 invParent = InverseTRS(parentT.worldMatrix);
                 localM = invParent * childWorldBefore;
@@ -127,9 +134,8 @@ namespace NE::ECS::Systems {
                 childT.localPosition,
                 childT.localRotationEuler,
                 childT.localScale);
+            childT.isDirty = true;
         }
-
-        childT.isDirty = true;
 	}
 
     void HierarchySystem::SetParent(Entity child,
@@ -140,12 +146,15 @@ namespace NE::ECS::Systems {
         using Component::INVALID_PARENT;
 
         auto& childH = m_componentManager->GetComponent<Component::Hierarchy>(child);
-        auto& childT = m_componentManager->GetComponent<Component::Transform>(child);
+
+        // Check if entity has Transform component (UI entities may not have Transform)
+        bool hasTransform = m_componentManager->HasComponent<Component::Transform>(child);
 
         const uint32_t oldParent = childH.parent;
 
         NE::Math::Mat4 childWorldBefore;
-        if (keepWorld) {
+        if (keepWorld && hasTransform) {
+            auto& childT = m_componentManager->GetComponent<Component::Transform>(child);
             childWorldBefore = childT.worldMatrix;
         }
 
@@ -186,9 +195,10 @@ namespace NE::ECS::Systems {
             childH.parentLuid = 0;
         }
 
-        if (keepWorld) {
+        if (keepWorld && hasTransform) {
+            auto& childT = m_componentManager->GetComponent<Component::Transform>(child);
             NE::Math::Mat4 localM;
-            if (newParent != INVALID_PARENT) {
+            if (newParent != INVALID_PARENT && m_componentManager->HasComponent<Component::Transform>(newParent)) {
                 auto& parentT = m_componentManager->GetComponent<Component::Transform>(newParent);
                 NE::Math::Mat4 invParent = InverseTRS(parentT.worldMatrix);
                 localM = invParent * childWorldBefore;
@@ -200,18 +210,23 @@ namespace NE::ECS::Systems {
                 childT.localPosition,
                 childT.localRotationEuler,
                 childT.localScale);
+            childT.isDirty = true;
         }
-
-        childT.isDirty = true;
     }
 
     void HierarchySystem::SetActive(Entity root, bool isActive) {
-        m_componentManager->GetComponent<Component::EntityMeta>(root).isActive = isActive;
+        auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(root);
+        meta.isActive = isActive;
         auto& hier = m_componentManager->GetComponent<Component::Hierarchy>(root);
+
+        if (m_componentManager->HasComponent<Component::Rigidbody>(root)) {
+            Physics::PhysicsManager::GetInstance().UpdateBodyState(meta.luid, isActive);
+        }
 
         for (auto child : hier.children)
             SetActive(child, isActive);
     }
+
 
     //void HierarchySystem::SetParent(Entity child,
     //    Entity newParent,

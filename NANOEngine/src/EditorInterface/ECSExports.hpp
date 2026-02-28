@@ -33,10 +33,22 @@ namespace NE::ECS {
 		struct UIRectTransform;
 		struct UIImage;
 		struct UICanvas;
+		struct UIText;
+		struct UIButton;
+		struct UISlider;
+		struct UIToggle;
 		struct Hierarchy;
 		struct PrefabLink;
 		struct PrefabInstance;
 		struct CharacterController;
+        struct DecalProjector;
+		struct UILayoutGroup;
+		struct UIGridLayoutGroup;
+		struct UILayoutElement;
+		struct UIScrollRect;
+		struct UIAutoSize;
+		struct UIInputField;
+		struct UIDropdown;
 	}
 
 	namespace Query {
@@ -56,12 +68,24 @@ namespace NE::ECS {
 		NANOENGINE_API const Component::UIRectTransform& GetUIRectTransform(uint32_t e);
 		NANOENGINE_API const Component::UIImage& GetUIImage(uint32_t e);
 		NANOENGINE_API const Component::UICanvas& GetUICanvas(uint32_t e);
+		NANOENGINE_API const Component::UIText& GetUIText(uint32_t e);
+		NANOENGINE_API const Component::UIButton& GetUIButton(uint32_t e);
+		NANOENGINE_API const Component::UISlider& GetUISlider(uint32_t e);
+		NANOENGINE_API const Component::UIToggle& GetUIToggle(uint32_t e);
 		NANOENGINE_API const Component::Hierarchy& GetEntityHierarchy(uint32_t e);
 		NANOENGINE_API const Component::Animator& GetEntityAnimator(uint32_t e);
 		NANOENGINE_API const Component::Camera& GetEntityCamera(uint32_t e);
 		NANOENGINE_API const Component::PrefabLink& GetPrefabLink(uint32_t e);
 		NANOENGINE_API const Component::PrefabInstance& GetPrefabInstance(uint32_t e);
 		NANOENGINE_API const Component::CharacterController& GetCharacterController(uint32_t e);
+        NANOENGINE_API const Component::DecalProjector& GetDecalProjector(uint32_t e);
+		NANOENGINE_API const Component::UILayoutGroup& GetUILayoutGroup(uint32_t e);
+		NANOENGINE_API const Component::UIGridLayoutGroup& GetUIGridLayoutGroup(uint32_t e);
+		NANOENGINE_API const Component::UILayoutElement& GetUILayoutElement(uint32_t e);
+		NANOENGINE_API const Component::UIScrollRect& GetUIScrollRect(uint32_t e);
+		NANOENGINE_API const Component::UIAutoSize& GetUIAutoSize(uint32_t e);
+		NANOENGINE_API const Component::UIInputField& GetUIInputField(uint32_t e);
+		NANOENGINE_API const Component::UIDropdown& GetUIDropdown(uint32_t e);
 
 		// to move to this in the future
 		// also need to find a way to enforce C as component
@@ -76,14 +100,26 @@ namespace NE::ECS {
 		template<> inline const Component::Collider& GetComponent<Component::Collider>(uint32_t e) { return GetEntityCollider(e); }
 		template<> inline const Component::NativeScript& GetComponent<Component::NativeScript>(uint32_t e) { return GetEntityScript(e); }
 		template<> inline const Component::UIRectTransform& GetComponent<Component::UIRectTransform>(uint32_t e) { return GetUIRectTransform(e); }
-		template<> inline const Component::UIImage& GetComponent<Component::UIImage>(uint32_t e) { return GetUIImage(e); }
 		template<> inline const Component::UICanvas& GetComponent<Component::UICanvas>(uint32_t e) { return GetUICanvas(e); }
+		template<> inline const Component::UIImage& GetComponent<Component::UIImage>(uint32_t e) { return GetUIImage(e); }
+		template<> inline const Component::UIText& GetComponent<Component::UIText>(uint32_t e) { return GetUIText(e); }
+		template<> inline const Component::UIButton& GetComponent<Component::UIButton>(uint32_t e) { return GetUIButton(e); }
+		template<> inline const Component::UISlider& GetComponent<Component::UISlider>(uint32_t e) { return GetUISlider(e); }
+		template<> inline const Component::UIToggle& GetComponent<Component::UIToggle>(uint32_t e) { return GetUIToggle(e); }
 		template<> inline const Component::Hierarchy& GetComponent<Component::Hierarchy>(uint32_t e) { return GetEntityHierarchy(e); }
 		template<> inline const Component::Camera& GetComponent<Component::Camera>(uint32_t e) { return GetEntityCamera(e); }
 		template<> inline const Component::Animator& GetComponent<Component::Animator>(uint32_t e) { return GetEntityAnimator(e); }
 		template<> inline const Component::PrefabLink& GetComponent<Component::PrefabLink>(uint32_t e) { return GetPrefabLink(e); }
 		template<> inline const Component::PrefabInstance& GetComponent<Component::PrefabInstance>(uint32_t e) { return GetPrefabInstance(e); }
 		template<> inline const Component::CharacterController& GetComponent<Component::CharacterController>(uint32_t e) { return GetCharacterController(e); }
+        template<> inline const Component::DecalProjector& GetComponent<Component::DecalProjector>(uint32_t e) { return GetDecalProjector(e); }
+		template<> inline const Component::UILayoutGroup& GetComponent<Component::UILayoutGroup>(uint32_t e) { return GetUILayoutGroup(e); }
+		template<> inline const Component::UIGridLayoutGroup& GetComponent<Component::UIGridLayoutGroup>(uint32_t e) { return GetUIGridLayoutGroup(e); }
+		template<> inline const Component::UILayoutElement& GetComponent<Component::UILayoutElement>(uint32_t e) { return GetUILayoutElement(e); }
+		template<> inline const Component::UIScrollRect& GetComponent<Component::UIScrollRect>(uint32_t e) { return GetUIScrollRect(e); }
+		template<> inline const Component::UIAutoSize& GetComponent<Component::UIAutoSize>(uint32_t e) { return GetUIAutoSize(e); }
+		template<> inline const Component::UIInputField& GetComponent<Component::UIInputField>(uint32_t e) { return GetUIInputField(e); }
+		template<> inline const Component::UIDropdown& GetComponent<Component::UIDropdown>(uint32_t e) { return GetUIDropdown(e); }
 
 		NANOENGINE_API bool HasEntityMeta(uint32_t e);
 		NANOENGINE_API bool HasHierarchy(uint32_t e);
@@ -91,6 +127,10 @@ namespace NE::ECS {
 		NANOENGINE_API bool HasUIRectTransform(uint32_t e);
 		NANOENGINE_API bool HasUICanvas(uint32_t e);
 		NANOENGINE_API bool HasUIImage(uint32_t e);
+		NANOENGINE_API bool HasUIText(uint32_t e);
+		NANOENGINE_API bool HasUIButton(uint32_t e);
+		NANOENGINE_API bool HasUISlider(uint32_t e);
+		NANOENGINE_API bool HasUIToggle(uint32_t e);
 		NANOENGINE_API bool HasPrefabLink(uint32_t e);
 		NANOENGINE_API bool HasPrefabInstance(uint32_t e);
 		NANOENGINE_API bool HasRenderer(uint32_t e);
@@ -102,6 +142,14 @@ namespace NE::ECS {
 		NANOENGINE_API bool HasAnimator(uint32_t e);
 		NANOENGINE_API bool HasCamera(uint32_t e);
 		NANOENGINE_API bool HasCharacterController(uint32_t e);
+        NANOENGINE_API bool HasDecalProjector(uint32_t e);
+		NANOENGINE_API bool HasUILayoutGroup(uint32_t e);
+		NANOENGINE_API bool HasUIGridLayoutGroup(uint32_t e);
+		NANOENGINE_API bool HasUILayoutElement(uint32_t e);
+		NANOENGINE_API bool HasUIScrollRect(uint32_t e);
+		NANOENGINE_API bool HasUIAutoSize(uint32_t e);
+		NANOENGINE_API bool HasUIInputField(uint32_t e);
+		NANOENGINE_API bool HasUIDropdown(uint32_t e);
 
 		template <typename C>
 		bool HasComponent(Entity e);
@@ -112,6 +160,9 @@ namespace NE::ECS {
 		template<> inline bool HasComponent<Component::UIRectTransform>(uint32_t e) { return HasUIRectTransform(e); }
 		template<> inline bool HasComponent<Component::UICanvas>(uint32_t e) { return HasUICanvas(e); }
 		template<> inline bool HasComponent<Component::UIImage>(uint32_t e) { return HasUIImage(e); }
+		template<> inline bool HasComponent<Component::UIText>(uint32_t e) { return HasUIText(e); }
+		template<> inline bool HasComponent<Component::UIButton>(uint32_t e) { return HasUIButton(e); }
+		template<> inline bool HasComponent<Component::UISlider>(uint32_t e) { return HasUISlider(e); }
 		template<> inline bool HasComponent<Component::Renderer>(uint32_t e) { return HasRenderer(e); }
 		template<> inline bool HasComponent<Component::Light>(uint32_t e) { return HasLight(e); }
 		template<> inline bool HasComponent<Component::Rigidbody>(uint32_t e) { return HasRigidbody(e); }
@@ -123,6 +174,14 @@ namespace NE::ECS {
 		template<> inline bool HasComponent<Component::PrefabLink>(uint32_t e) { return HasPrefabLink(e); }
 		template<> inline bool HasComponent<Component::PrefabInstance>(uint32_t e) { return HasPrefabInstance(e); }
 		template<> inline bool HasComponent<Component::CharacterController>(uint32_t e) { return HasCharacterController(e); }
+        template<> inline bool HasComponent<Component::DecalProjector>(uint32_t e) { return HasDecalProjector(e); }
+		template<> inline bool HasComponent<Component::UILayoutGroup>(uint32_t e) { return HasUILayoutGroup(e); }
+		template<> inline bool HasComponent<Component::UIGridLayoutGroup>(uint32_t e) { return HasUIGridLayoutGroup(e); }
+		template<> inline bool HasComponent<Component::UILayoutElement>(uint32_t e) { return HasUILayoutElement(e); }
+		template<> inline bool HasComponent<Component::UIScrollRect>(uint32_t e) { return HasUIScrollRect(e); }
+		template<> inline bool HasComponent<Component::UIAutoSize>(uint32_t e) { return HasUIAutoSize(e); }
+		template<> inline bool HasComponent<Component::UIInputField>(uint32_t e) { return HasUIInputField(e); }
+		template<> inline bool HasComponent<Component::UIDropdown>(uint32_t e) { return HasUIDropdown(e); }
 
 		//template <typename C>
 		//ComponentType GetComponentType() {
@@ -140,10 +199,22 @@ namespace NE::ECS {
 		NANOENGINE_API ComponentType GetUIRectTransformComponentType();
 		NANOENGINE_API ComponentType GetUIImageComponentType();
 		NANOENGINE_API ComponentType GetUICanvasComponentType();
+		NANOENGINE_API ComponentType GetUITextComponentType();
+		NANOENGINE_API ComponentType GetUIButtonComponentType();
+		NANOENGINE_API ComponentType GetUISliderComponentType();
+		NANOENGINE_API ComponentType GetUIToggleComponentType();
 		NANOENGINE_API ComponentType GetEntityAnimatorComponentType();
 		NANOENGINE_API ComponentType GetEntityCameraComponentType();
 		NANOENGINE_API ComponentType GetPrefabInstanceComponentType();
 		NANOENGINE_API ComponentType GetCharacterControllerComponentType();
+        NANOENGINE_API ComponentType GetDecalProjectorComponentType();
+		NANOENGINE_API ComponentType GetUILayoutGroupComponentType();
+		NANOENGINE_API ComponentType GetUIGridLayoutGroupComponentType();
+		NANOENGINE_API ComponentType GetUILayoutElementComponentType();
+		NANOENGINE_API ComponentType GetUIScrollRectComponentType();
+		NANOENGINE_API ComponentType GetUIAutoSizeComponentType();
+		NANOENGINE_API ComponentType GetUIInputFieldComponentType();
+		NANOENGINE_API ComponentType GetUIDropdownComponentType();
 
 		NANOENGINE_API uint32_t GetParent(uint32_t child);
 
@@ -185,6 +256,7 @@ namespace NE::ECS {
 		NANOENGINE_API void AddAudioSourceComponent(uint32_t e);
 		NANOENGINE_API void AddScriptComponent(uint32_t e);
 		NANOENGINE_API void AddCameraComponent(uint32_t e);
+        NANOENGINE_API void AddDecalProjectorComponent(uint32_t e);
 
 		template <typename C>
 		void AddComponent(Entity e) {
@@ -205,9 +277,21 @@ namespace NE::ECS {
 		NANOENGINE_API void AddUIRectTransformComponent(uint32_t e, const Component::UIRectTransform& c);
 		NANOENGINE_API void AddUICanvasComponent(uint32_t e, const Component::UICanvas& c);
 		NANOENGINE_API void AddUIImageComponent(uint32_t e, const Component::UIImage& c);
+		NANOENGINE_API void AddUITextComponent(uint32_t e, const Component::UIText& c);
+		NANOENGINE_API void AddUIButtonComponent(uint32_t e, const Component::UIButton& c);
+		NANOENGINE_API void AddUISliderComponent(uint32_t e, const Component::UISlider& c);
+		NANOENGINE_API void AddUIToggleComponent(uint32_t e, const Component::UIToggle& c);
 		NANOENGINE_API void AddPrefabLinkComponent(uint32_t e, const Component::PrefabLink& c);
 		NANOENGINE_API void AddPrefabInstanceComponent(uint32_t e, const Component::PrefabInstance& c);
 		NANOENGINE_API void AddCharacterControllerComponent(uint32_t e, const Component::CharacterController& c);
+        NANOENGINE_API void AddDecalProjectorComponent(uint32_t e, const Component::DecalProjector& c);
+		NANOENGINE_API void AddUILayoutGroupComponent(uint32_t e, const Component::UILayoutGroup& c);
+		NANOENGINE_API void AddUIGridLayoutGroupComponent(uint32_t e, const Component::UIGridLayoutGroup& c);
+		NANOENGINE_API void AddUILayoutElementComponent(uint32_t e, const Component::UILayoutElement& c);
+		NANOENGINE_API void AddUIScrollRectComponent(uint32_t e, const Component::UIScrollRect& c);
+		NANOENGINE_API void AddUIAutoSizeComponent(uint32_t e, const Component::UIAutoSize& c);
+		NANOENGINE_API void AddUIInputFieldComponent(uint32_t e, const Component::UIInputField& c);
+		NANOENGINE_API void AddUIDropdownComponent(uint32_t e, const Component::UIDropdown& c);
 
 		template <typename C>
 		void AddComponent(Entity e, const C& component);
@@ -225,9 +309,20 @@ namespace NE::ECS {
 		template<> inline void AddComponent<Component::UIRectTransform>(uint32_t e, const Component::UIRectTransform& component) { AddUIRectTransformComponent(e, component); }
 		template<> inline void AddComponent<Component::UICanvas>(uint32_t e, const Component::UICanvas& component) { AddUICanvasComponent(e, component); }
 		template<> inline void AddComponent<Component::UIImage>(uint32_t e, const Component::UIImage& component) { AddUIImageComponent(e, component); }
+		template<> inline void AddComponent<Component::UIText>(uint32_t e, const Component::UIText& component) { AddUITextComponent(e, component); }
+		template<> inline void AddComponent<Component::UIButton>(uint32_t e, const Component::UIButton& component) { AddUIButtonComponent(e, component); }
+		template<> inline void AddComponent<Component::UISlider>(uint32_t e, const Component::UISlider& component) { AddUISliderComponent(e, component); }
 		template<> inline void AddComponent<Component::PrefabLink>(uint32_t e, const Component::PrefabLink& component) { AddPrefabLinkComponent(e, component); }
 		template<> inline void AddComponent<Component::PrefabInstance>(uint32_t e, const Component::PrefabInstance& component) { AddPrefabInstanceComponent(e, component); }
 		template<> inline void AddComponent<Component::CharacterController>(uint32_t e, const Component::CharacterController& component) { AddCharacterControllerComponent(e, component); }
+        template<> inline void AddComponent<Component::DecalProjector>(uint32_t e, const Component::DecalProjector& component) { AddDecalProjectorComponent(e, component); }
+		template<> inline void AddComponent<Component::UILayoutGroup>(uint32_t e, const Component::UILayoutGroup& component) { AddUILayoutGroupComponent(e, component); }
+		template<> inline void AddComponent<Component::UIGridLayoutGroup>(uint32_t e, const Component::UIGridLayoutGroup& component) { AddUIGridLayoutGroupComponent(e, component); }
+		template<> inline void AddComponent<Component::UILayoutElement>(uint32_t e, const Component::UILayoutElement& component) { AddUILayoutElementComponent(e, component); }
+		template<> inline void AddComponent<Component::UIScrollRect>(uint32_t e, const Component::UIScrollRect& component) { AddUIScrollRectComponent(e, component); }
+		template<> inline void AddComponent<Component::UIAutoSize>(uint32_t e, const Component::UIAutoSize& component) { AddUIAutoSizeComponent(e, component); }
+		template<> inline void AddComponent<Component::UIInputField>(uint32_t e, const Component::UIInputField& component) { AddUIInputFieldComponent(e, component); }
+		template<> inline void AddComponent<Component::UIDropdown>(uint32_t e, const Component::UIDropdown& component) { AddUIDropdownComponent(e, component); }
 
 		NANOENGINE_API void RemoveLightComponent(uint32_t e);
 		NANOENGINE_API void RemoveRendererComponent(uint32_t e);
@@ -235,6 +330,7 @@ namespace NE::ECS {
 		NANOENGINE_API void RemoveColliderComponent(uint32_t e);
 		NANOENGINE_API void RemoveAudioSourceComponent(uint32_t e);
 		NANOENGINE_API void RemoveCameraComponent(uint32_t e);
+        NANOENGINE_API void RemoveDecalProjectorComponent(uint32_t e);
 
 		// --- Editor Component Mutators --- //
 		//NANOENGINE_API Component::EntityMeta& GetEntityMeta(uint32_t e);
@@ -263,12 +359,24 @@ namespace NE::ECS {
 		NANOENGINE_API Component::UIRectTransform& GetUIRectTransform(uint32_t e);
 		NANOENGINE_API Component::UIImage& GetUIImage(uint32_t e);
 		NANOENGINE_API Component::UICanvas& GetUICanvas(uint32_t e);
+		NANOENGINE_API Component::UIText& GetUIText(uint32_t e);
+		NANOENGINE_API Component::UIButton& GetUIButton(uint32_t e);
+		NANOENGINE_API Component::UISlider& GetUISlider(uint32_t e);
+		NANOENGINE_API Component::UIToggle& GetUIToggle(uint32_t e);
 		NANOENGINE_API Component::Hierarchy& GetEntityHierarchy(uint32_t e);
 		NANOENGINE_API Component::Animator& GetEntityAnimator(uint32_t e);
 		NANOENGINE_API Component::Camera& GetEntityCamera(uint32_t e);
 		NANOENGINE_API Component::PrefabLink& GetPrefabLink(uint32_t e);
 		NANOENGINE_API Component::PrefabInstance& GetPrefabInstance(uint32_t e);
 		NANOENGINE_API Component::CharacterController& GetCharacterController(uint32_t e);
+        NANOENGINE_API Component::DecalProjector& GetDecalProjector(uint32_t e);
+		NANOENGINE_API Component::UILayoutGroup& GetUILayoutGroup(uint32_t e);
+		NANOENGINE_API Component::UIGridLayoutGroup& GetUIGridLayoutGroup(uint32_t e);
+		NANOENGINE_API Component::UILayoutElement& GetUILayoutElement(uint32_t e);
+		NANOENGINE_API Component::UIScrollRect& GetUIScrollRect(uint32_t e);
+		NANOENGINE_API Component::UIAutoSize& GetUIAutoSize(uint32_t e);
+		NANOENGINE_API Component::UIInputField& GetUIInputField(uint32_t e);
+		NANOENGINE_API Component::UIDropdown& GetUIDropdown(uint32_t e);
 
 		template <typename C>
 		C& GetComponent(Entity e);
@@ -289,6 +397,14 @@ namespace NE::ECS {
 		template<> inline Component::PrefabLink& GetComponent<Component::PrefabLink>(uint32_t e) { return GetPrefabLink(e); }
 		template<> inline Component::PrefabInstance& GetComponent<Component::PrefabInstance>(uint32_t e) { return GetPrefabInstance(e); }
 		template<> inline Component::CharacterController& GetComponent<Component::CharacterController>(uint32_t e) { return GetCharacterController(e); }
+        template<> inline Component::DecalProjector& GetComponent<Component::DecalProjector>(uint32_t e) { return GetDecalProjector(e); }
+		template<> inline Component::UILayoutGroup& GetComponent<Component::UILayoutGroup>(uint32_t e) { return GetUILayoutGroup(e); }
+		template<> inline Component::UIGridLayoutGroup& GetComponent<Component::UIGridLayoutGroup>(uint32_t e) { return GetUIGridLayoutGroup(e); }
+		template<> inline Component::UILayoutElement& GetComponent<Component::UILayoutElement>(uint32_t e) { return GetUILayoutElement(e); }
+		template<> inline Component::UIScrollRect& GetComponent<Component::UIScrollRect>(uint32_t e) { return GetUIScrollRect(e); }
+		template<> inline Component::UIAutoSize& GetComponent<Component::UIAutoSize>(uint32_t e) { return GetUIAutoSize(e); }
+		template<> inline Component::UIInputField& GetComponent<Component::UIInputField>(uint32_t e) { return GetUIInputField(e); }
+		template<> inline Component::UIDropdown& GetComponent<Component::UIDropdown>(uint32_t e) { return GetUIDropdown(e); }
 
 		// --- Script Management ---
 		NANOENGINE_API std::vector<std::string> GetRegisteredScriptNames();
@@ -305,6 +421,26 @@ namespace NE::ECS {
 
 		NANOENGINE_API std::shared_ptr<NE::Animation::AnimationClip> GetAnimationClip(const std::string& uuid);
 		NANOENGINE_API void AssignAnimClip(uint32_t e, const std::string& uuid);
+
+		// --- UI Image Utilities ---
+		/// Swap the texture on a UIImage component (handles GPU resource loading)
+		NANOENGINE_API bool SetUIImageTexture(uint32_t imageEntity, const char* textureUUID);
+
+		/// Swap texture and material on a UIImage component
+		NANOENGINE_API bool SetUIImageTextureAndMaterial(uint32_t imageEntity, const char* textureUUID, const char* materialUUID);
+
+		/// Set the color tint on a UIImage component
+		NANOENGINE_API void SetUIImageColor(uint32_t imageEntity, float r, float g, float b, float a);
+
+		/// Set the fill amount on a UIImage component (for FILLED image type)
+		NANOENGINE_API void SetUIImageFillAmount(uint32_t imageEntity, float fillAmount);
+
+		// --- UI Viewport Bounds (for Editor) ---
+		/// Set viewport bounds to transform mouse coordinates from window space to UI space
+		NANOENGINE_API void SetUIViewportBounds(float offsetX, float offsetY, float width, float height, float uiWidth, float uiHeight);
+
+		/// Clear viewport bounds (use raw mouse coordinates)
+		NANOENGINE_API void ClearUIViewportBounds();
 	}
 
 }

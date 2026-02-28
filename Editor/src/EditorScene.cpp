@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "EditorScene.hpp"
 #include <algorithm>
 #include <EditorInterface/ECSExports.hpp>
@@ -131,15 +132,28 @@ namespace Editor {
         if (clipboard.empty()) return;
 
         auto rootEntt = NE::PasteEntity(clipboard);
-        RegisterRoot(rootEntt);
+
+        if (s_selection.GetLastClicked() != NE::ECS::NO_ENTITY) {
+            //auto& h = NE::ECS::Query::GetEntityHierarchy(s_selection.GetLastClicked());
+			NE::ECS::Command::SetParent(rootEntt, s_selection.GetLastClicked(), -1, false);
+        } else {
+            RegisterRoot(rootEntt);
+        }
+
         s_selection.SetSingle(rootEntt);
 
         EditorScene::isDirty = true;
     }
 
     void EditorScene::DuplicateSelected() {
+        auto& h = NE::ECS::Query::GetEntityHierarchy(s_selection.GetLastClicked());
 		auto rootEntt = NE::DuplicateEntity(s_selection.GetLastClicked());
-        RegisterRoot(rootEntt);
+
+        if (h.parent != NE::ECS::Component::INVALID_PARENT)
+            SetParent(rootEntt, h.parent, -1, false);
+        else
+            RegisterRoot(rootEntt);
+        
         s_selection.SetSingle(rootEntt);
 
         EditorScene::isDirty = true;

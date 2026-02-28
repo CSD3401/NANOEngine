@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "MaterialEditor.hpp"
 
 #include <fstream>
@@ -72,7 +73,7 @@ namespace Editor {
 
         for (auto& [name, val] : mat.GetVec3Uniforms()) {
             auto v = val;
-            if (Editor::DrawVec3Control(name.c_str(), v, 0.f, 100.f)) mat.SetUniformVec3(name, v);
+            if (Editor::DrawVec3Control(name.c_str(), v, 100.f)) mat.SetUniformVec3(name, v);
         }
 
         for (auto& [name, val] : mat.GetIntUniforms()) {

@@ -3,17 +3,23 @@
 #include <cstdint>
 #include <string>
 #include <memory>
+#include <vector>
 #include "../NANOEngineAPI.hpp"
 
 // Forward Decl
 namespace NE::ECS::Component {
 	struct Renderer;
+	struct Light;
+	struct DecalProjector;
+	struct Transform;
 }
 
 namespace NE::Graphics {
 	struct RenderSettings;
 	struct PostProcessingSettings;
 	class Material;
+	class RenderGraph;
+	class TexturePool;
 }
 
 namespace NE::Renderer {
@@ -23,6 +29,8 @@ namespace NE::Renderer {
 		NANOENGINE_API std::string GetMaterial(uint32_t e);
 		NANOENGINE_API const Graphics::RenderSettings& GetRenderSettings();
 		NANOENGINE_API const Graphics::PostProcessingSettings& GetPostProcessingSettings();
+		NANOENGINE_API Graphics::RenderGraph* GetRenderGraph();
+		NANOENGINE_API Graphics::TexturePool* GetTexturePool();
 	}
 
 	namespace Command {
@@ -33,5 +41,10 @@ namespace NE::Renderer {
 		NANOENGINE_API void AssignUITexture(uint32_t e, const std::string& textureUUID, const std::string& materialUUID);
 		NANOENGINE_API Graphics::RenderSettings& GetRenderSettings();
 		NANOENGINE_API Graphics::PostProcessingSettings& GetPostProcessingSettings();
+		NANOENGINE_API void DrawSelectedLightGizmos(const NE::ECS::Component::Light& lightComponent);
+		NANOENGINE_API void DrawSelectedDecalGizmos(const NE::ECS::Component::DecalProjector& decalComponent, 
+			const NE::ECS::Component::Transform& transformComponent);
+		NANOENGINE_API void SetSelectedEntities(const std::vector<uint32_t>& selectedIds);
+		NANOENGINE_API void ClearSelectedEntities();
 	}
 }
