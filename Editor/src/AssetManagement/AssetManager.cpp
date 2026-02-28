@@ -3,6 +3,9 @@
 #include <fstream>
 #include <filesystem>
 #include <vector>
+#include <array>
+#include <algorithm>
+#include <string_view>
 #include "UUID.hpp"
 #include <ResourceManagement/ResourcePaths.hpp>
 #include <glad/glad.h>
@@ -31,6 +34,35 @@ namespace Editor::Assets {
 			    c = (char)std::tolower((unsigned char)c); 
 		    return s;
 	    }
+
+        bool LooksLikeUUID(std::string_view s) {
+            if (s.size() != 36) return false;
+            if (s[8] != '-' || s[13] != '-' || s[18] != '-' || s[23] != '-') return false;
+
+            auto isHex = [](char c) {
+                return (c >= '0' && c <= '9') ||
+                    (c >= 'a' && c <= 'f') ||
+                    (c >= 'A' && c <= 'F');
+            };
+
+            for (size_t i = 0; i < s.size(); ++i) {
+                if (i == 8 || i == 13 || i == 18 || i == 23) continue;
+                if (!isHex(s[i])) return false;
+            }
+            return true;
+        }
+
+        bool IsKnownArtifactExtension(std::string_view ext) {
+            static constexpr std::array<std::string_view, 10> exts{
+                ".ntexbin", ".nmodbin", ".nshdbin", ".nmatbin", ".naudbin",
+                ".nfabbin", ".nscebin", ".nancbin", ".nconbin", ".nfntbin"
+            };
+
+            for (auto e : exts) {
+                if (ext == e) return true;
+            }
+            return false;
+        }
 
         std::string AssetTypeToString(Editor::Assets::AssetType type) {
             switch (type) {
@@ -514,6 +546,112 @@ namespace Editor::Assets {
 
         // Remove from main map
         m_assetsByID.erase(it);
+    }
+
+    void AssetManager::CleanupOrphanArtifacts() {
+        namespace fs = std::filesystem;
+
+        const fs::path artifactRoot = std::string(NE::Resource::artifactPath);
+
+        std::error_code ec;
+        if (!fs::exists(artifactRoot, ec) || !fs::is_directory(artifactRoot, ec)) {
+            return;
+        }
+
+        size_t deletedCount = 0;
+        std::vector<fs::path> directories;
+
+        fs::recursive_directory_iterator it(
+            artifactRoot,
+            fs::directory_options::skip_permission_denied,
+            ec
+        );
+        fs::recursive_directory_iterator end;
+
+        for (; it != end; it.increment(ec)) {
+            if (ec) {
+                SPD_WARNING("Artifact cleanup: traversal error under '" << artifactRoot.string()
+                    << "': " << ec.message());
+                ec.clear();
+                continue;
+            }
+
+            const auto& entry = *it;
+            const fs::path p = entry.path();
+
+            if (entry.is_directory(ec)) {
+                if (!ec) directories.push_back(p);
+                ec.clear();
+                continue;
+            }
+            ec.clear();
+
+            if (!entry.is_regular_file(ec)) {
+                ec.clear();
+                continue;
+            }
+            ec.clear();
+
+            std::string ext = ToLower(p.extension().string());
+            if (!IsKnownArtifactExtension(ext)) {
+                continue;
+            }
+
+            const std::string uuid = p.stem().string();
+            if (!LooksLikeUUID(uuid)) {
+                continue;
+            }
+
+            AssetRecord* rec = GetRecord(uuid);
+            bool isOrphan = (rec == nullptr);
+
+            if (!isOrphan) {
+                if (!fs::exists(rec->sourcePath, ec)) {
+                    isOrphan = true;
+                }
+                ec.clear();
+            }
+
+            if (!isOrphan) continue;
+
+            if (!fs::remove(p, ec)) {
+                SPD_WARNING("Artifact cleanup: failed to delete '" << p.string()
+                    << "': " << ec.message());
+                ec.clear();
+                continue;
+            }
+            ec.clear();
+            ++deletedCount;
+        }
+
+        std::sort(directories.begin(), directories.end(),
+            [](const fs::path& a, const fs::path& b) {
+                return a.native().size() > b.native().size();
+            });
+
+        for (const auto& dir : directories) {
+            if (!fs::exists(dir, ec) || !fs::is_directory(dir, ec)) {
+                ec.clear();
+                continue;
+            }
+
+            if (!fs::is_empty(dir, ec)) {
+                ec.clear();
+                continue;
+            }
+            ec.clear();
+
+            if (!fs::remove(dir, ec)) {
+                SPD_WARNING("Artifact cleanup: failed to remove empty directory '" << dir.string()
+                    << "': " << ec.message());
+                ec.clear();
+            }
+            ec.clear();
+        }
+
+        if (deletedCount > 0) {
+            SPD_INFO("Artifact cleanup: deleted " << deletedCount << " orphan artifact(s).");
+        }
     }
 
     Assets::AssetType AssetManager::GetAssetTypeFromString(std::string_view extension) {

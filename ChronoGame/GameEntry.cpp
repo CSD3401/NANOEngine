@@ -14,6 +14,7 @@
 #include "Scripts/Puzzle_Wire.hpp"
 #include "Scripts/Puzzle_Mirror.hpp"
 #include "Scripts/Puzzle_Lever.hpp"
+#include "Scripts/Puzzle_BatteryPanel.hpp"
 #include "Scripts/Interactable_WireButton.hpp"
 #include "Scripts/Interactable_WireTether.hpp"
 #include "Scripts/Interactable_Grabbable.hpp"
@@ -22,6 +23,7 @@
 #include "Scripts/Interactable_NoteCollector.hpp"
 #include "Scripts/Interactable_Gate.hpp"
 #include "Scripts/Interactable_DoorHinge.hpp"
+#include "Scripts/Interactable_Battery.hpp"
 #include "Scripts/Misc_Manager.hpp"
 #include "Scripts/Misc_WireChild.hpp"
 #include "Scripts/Misc_Grabber.hpp"
@@ -48,6 +50,7 @@
 #include "Scripts/UI_Notes.hpp"
 #include "Scripts/PhoneBooth.hpp"
 #include "Scripts/Misc_TimeFogLighting.hpp"
+
 
 
 // extern "C" ensures C linkage so the Engine DLL can find this function
@@ -193,6 +196,12 @@ extern "C" {
             });
         registrar->RegisterScript("Misc_TimeFogLighting", []() -> NE::Scripting::IScript* {
             return new Misc_TimeFogLighting();
+            });
+        registrar->RegisterScript("Puzzle_BatteryPanel", []() -> NE::Scripting::IScript* {
+            return new Puzzle_BatteryPanel();
+            });
+        registrar->RegisterScript("Interactable_Battery", []() -> NE::Scripting::IScript* {
+            return new Interactable_Battery();
             });
         }
 }
