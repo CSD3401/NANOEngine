@@ -91,6 +91,9 @@ namespace NE::Graphics::OpenGL {
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
         glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
+
+		m_clustersCPU.reserve(clustersX * clustersY * clustersZ);
+		m_gpuLightsCPU.reserve(maxLights);
     }
 
     GLClusteredLighting::~GLClusteredLighting() 
@@ -141,7 +144,6 @@ namespace NE::Graphics::OpenGL {
             return;
         }
             
-
         // ---------- PASS 1: COUNT ----------
         // Bind SSBOs
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_lightSSBO);
@@ -160,20 +162,20 @@ namespace NE::Graphics::OpenGL {
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
         // ---------- CPU PREFIX SUM ----------
-        std::vector<ClusterGPU> clusters(numClusters);
+		m_clustersCPU.resize(numClusters);
 
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_clusterSSBO);
         glGetBufferSubData(GL_SHADER_STORAGE_BUFFER,
             0,
             sizeof(ClusterGPU) * numClusters,
-            clusters.data());
+            m_clustersCPU.data());
 
         // Compute required total indices (sum of counts)
         uint32_t required = 0;
         uint32_t largestCount = 0;
         for (int i = 0; i < numClusters; ++i) {
-            largestCount = std::max(largestCount, clusters[i].count);
-            required += clusters[i].count;
+            largestCount = std::max(largestCount, m_clustersCPU[i].count);
+            required += m_clustersCPU[i].count;
         }
 
 		// If we exceeded the allocated size for cluster light indices, reallocate and re-run
@@ -194,21 +196,21 @@ namespace NE::Graphics::OpenGL {
             glGetBufferSubData(GL_SHADER_STORAGE_BUFFER,
                 0,
                 sizeof(ClusterGPU) * numClusters,
-                clusters.data());
+                m_clustersCPU.data());
         }
 
         // Prefix sum offsets
         uint32_t runningOffset = 0;
         for (int i = 0; i < numClusters; ++i) {
-            clusters[i].offset = runningOffset;
-            runningOffset += clusters[i].count;
+            m_clustersCPU[i].offset = runningOffset;
+            runningOffset += m_clustersCPU[i].count;
         }
 
         // Upload offsets (and possibly clamped counts) back to GPU
         glBufferSubData(GL_SHADER_STORAGE_BUFFER,
             0,
             sizeof(ClusterGPU) * numClusters,
-            clusters.data());
+            m_clustersCPU.data());
 
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
@@ -239,8 +241,9 @@ namespace NE::Graphics::OpenGL {
         using NE::Math::Vec3;
 
         // ---- Lights SSBO ----
-        std::vector<GPULightCPU> gpuLights;
-        gpuLights.reserve(m_numLightsThisView);
+        m_gpuLightsCPU.clear();
+        m_gpuLightsCPU.reserve(m_numLightsThisView);
+
 
         auto pushLight = [&](const ECS::Component::Light* src,
             float intensity,
@@ -271,7 +274,7 @@ namespace NE::Graphics::OpenGL {
                 dst.direction[2] = dir.z;
                 dst.direction[3] = (float)src->shadowType;
 
-                gpuLights.push_back(dst);
+                m_gpuLightsCPU.push_back(dst);
         };
 
 		for (int i = 0; i < m_numLightsThisView; ++i) {
@@ -318,17 +321,17 @@ namespace NE::Graphics::OpenGL {
 
             pushLight(src, intensity, radius, innerCos, outerCos);
 
-            if (static_cast<int>(gpuLights.size()) >= maxLights)
+            if (static_cast<int>(m_gpuLightsCPU.size()) >= maxLights)
                 break;
         }
 
-        m_numLightsThisView = static_cast<int>(gpuLights.size());
+        m_numLightsThisView = static_cast<int>(m_gpuLightsCPU.size());
 
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_lightSSBO);
         glBufferSubData(GL_SHADER_STORAGE_BUFFER,
             0,
-            gpuLights.size() * sizeof(GPULightCPU),
-            gpuLights.data());
+            m_gpuLightsCPU.size() * sizeof(GPULightCPU),
+            m_gpuLightsCPU.data());
 
         // ---- Cluster params UBO ----
         ClusterParamsCPU params{};

@@ -66,6 +66,8 @@ namespace NE::Graphics::OpenGL {
         std::shared_ptr<GLShader> m_fillShader;
         int m_numLightsThisView = 0;
 
+		
+
         // CPU-side structs matching GLSL layouts
 		// Any changes here must be reflected in the compute shaders
         struct GPULightCPU
@@ -97,5 +99,8 @@ namespace NE::Graphics::OpenGL {
             uint32_t pad0;
             uint32_t pad1;
         };
+
+        std::vector<ClusterGPU> m_clustersCPU;
+		std::vector<GPULightCPU> m_gpuLightsCPU;
     };
 }
