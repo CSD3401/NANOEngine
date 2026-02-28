@@ -175,6 +175,7 @@ namespace NE::ECS {
 		template<> inline bool HasComponent<Component::PrefabInstance>(uint32_t e) { return HasPrefabInstance(e); }
 		template<> inline bool HasComponent<Component::CharacterController>(uint32_t e) { return HasCharacterController(e); }
         template<> inline bool HasComponent<Component::DecalProjector>(uint32_t e) { return HasDecalProjector(e); }
+		template<> inline bool HasComponent<Component::UIToggle>(uint32_t e) { return HasUIToggle(e); }
 		template<> inline bool HasComponent<Component::UILayoutGroup>(uint32_t e) { return HasUILayoutGroup(e); }
 		template<> inline bool HasComponent<Component::UIGridLayoutGroup>(uint32_t e) { return HasUIGridLayoutGroup(e); }
 		template<> inline bool HasComponent<Component::UILayoutElement>(uint32_t e) { return HasUILayoutElement(e); }
@@ -316,6 +317,7 @@ namespace NE::ECS {
 		template<> inline void AddComponent<Component::PrefabInstance>(uint32_t e, const Component::PrefabInstance& component) { AddPrefabInstanceComponent(e, component); }
 		template<> inline void AddComponent<Component::CharacterController>(uint32_t e, const Component::CharacterController& component) { AddCharacterControllerComponent(e, component); }
         template<> inline void AddComponent<Component::DecalProjector>(uint32_t e, const Component::DecalProjector& component) { AddDecalProjectorComponent(e, component); }
+		template<> inline void AddComponent<Component::UIToggle>(uint32_t e, const Component::UIToggle& component) { AddUIToggleComponent(e, component); }
 		template<> inline void AddComponent<Component::UILayoutGroup>(uint32_t e, const Component::UILayoutGroup& component) { AddUILayoutGroupComponent(e, component); }
 		template<> inline void AddComponent<Component::UIGridLayoutGroup>(uint32_t e, const Component::UIGridLayoutGroup& component) { AddUIGridLayoutGroupComponent(e, component); }
 		template<> inline void AddComponent<Component::UILayoutElement>(uint32_t e, const Component::UILayoutElement& component) { AddUILayoutElementComponent(e, component); }

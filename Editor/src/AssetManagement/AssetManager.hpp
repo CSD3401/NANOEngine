@@ -22,6 +22,7 @@ namespace Editor::Assets {
 
 		void GenerateMetadata(const std::string& sourcePath, std::string uuid = "");
 		void ReimportAsset(const std::string& sourcePath);
+		void CleanupOrphanArtifacts();
 
 		std::string RetrieveUUID(const std::string& sourcePath);
 		std::string RetrieveFilename(const std::string& uuid);

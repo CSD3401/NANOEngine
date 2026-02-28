@@ -23,6 +23,13 @@
 #include <ECS/Components/UIButton.hpp>
 #include <ECS/Components/UISlider.hpp>
 #include <ECS/Components/UIToggle.hpp>
+#include <ECS/Components/UILayoutGroup.hpp>
+#include <ECS/Components/UIGridLayoutGroup.hpp>
+#include <ECS/Components/UILayoutElement.hpp>
+#include <ECS/Components/UIScrollRect.hpp>
+#include <ECS/Components/UIAutoSize.hpp>
+#include <ECS/Components/UIInputField.hpp>
+#include <ECS/Components/UIDropdown.hpp>
 #include <ECS/Components/Hierarchy.hpp>
 #include <ECS/Components/PrefabLink.hpp>
 #include <ECS/Components/PrefabInstance.hpp>
@@ -66,6 +73,14 @@ namespace Editor {
 			NE::ECS::Component::UIText,
 			NE::ECS::Component::UIButton,
 			NE::ECS::Component::UISlider,
+			NE::ECS::Component::UIToggle,
+			NE::ECS::Component::UILayoutGroup,
+			NE::ECS::Component::UIGridLayoutGroup,
+			NE::ECS::Component::UILayoutElement,
+			NE::ECS::Component::UIScrollRect,
+			NE::ECS::Component::UIAutoSize,
+			NE::ECS::Component::UIInputField,
+			NE::ECS::Component::UIDropdown,
 			NE::ECS::Component::CharacterController,
 			NE::ECS::Component::Animator,
 			NE::ECS::Component::DecalProjector

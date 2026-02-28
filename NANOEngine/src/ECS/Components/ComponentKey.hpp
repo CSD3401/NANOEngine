@@ -21,6 +21,14 @@ namespace NE::ECS::Component {
 	struct CharacterController;
 	struct Animator;
     struct DecalProjector;
+	struct UIToggle;
+	struct UIInputField;
+	struct UIAutoSize;
+	struct UIDropdown;
+	struct UILayoutGroup;
+	struct UIGridLayoutGroup;
+	struct UILayoutElement;
+	struct UIScrollRect;
 }
 
 template <typename T> struct ComponentKey;
@@ -48,3 +56,11 @@ NE_COMPONENT_KEY(NE::ECS::Component::PrefabInstance, "PrefabInstance")
 NE_COMPONENT_KEY(NE::ECS::Component::CharacterController, "CharacterController")
 NE_COMPONENT_KEY(NE::ECS::Component::Animator, "Animator")
 NE_COMPONENT_KEY(NE::ECS::Component::DecalProjector, "DecalProjector")
+NE_COMPONENT_KEY(NE::ECS::Component::UIToggle, "UIToggle")
+NE_COMPONENT_KEY(NE::ECS::Component::UIInputField, "UIInputField")
+NE_COMPONENT_KEY(NE::ECS::Component::UIAutoSize, "UIAutoSize")
+NE_COMPONENT_KEY(NE::ECS::Component::UIDropdown, "UIDropdown")
+NE_COMPONENT_KEY(NE::ECS::Component::UILayoutGroup, "UILayoutGroup")
+NE_COMPONENT_KEY(NE::ECS::Component::UIGridLayoutGroup, "UIGridLayoutGroup")
+NE_COMPONENT_KEY(NE::ECS::Component::UILayoutElement, "UILayoutElement")
+NE_COMPONENT_KEY(NE::ECS::Component::UIScrollRect, "UIScrollRect")

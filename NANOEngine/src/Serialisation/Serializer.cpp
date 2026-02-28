@@ -24,12 +24,6 @@
 #include "ECS/Components/UIButton.hpp"
 #include "ECS/Components/UISlider.hpp"
 #include "ECS/Components/UIToggle.hpp"
-#include "ECS/Components/Hierarchy.hpp"
-#include "ECS/Components/PrefabLink.hpp"
-#include "ECS/Components/PrefabInstance.hpp"
-#include "ECS/Components/CharacterController.hpp"
-#include "ECS/Components/Animator.hpp"
-#include "ECS/Components/DecalProjector.hpp"
 #include "ECS/Components/UILayoutGroup.hpp"
 #include "ECS/Components/UIGridLayoutGroup.hpp"
 #include "ECS/Components/UILayoutElement.hpp"
@@ -37,6 +31,12 @@
 #include "ECS/Components/UIAutoSize.hpp"
 #include "ECS/Components/UIInputField.hpp"
 #include "ECS/Components/UIDropdown.hpp"
+#include "ECS/Components/Hierarchy.hpp"
+#include "ECS/Components/PrefabLink.hpp"
+#include "ECS/Components/PrefabInstance.hpp"
+#include "ECS/Components/CharacterController.hpp"
+#include "ECS/Components/Animator.hpp"
+#include "ECS/Components/DecalProjector.hpp"
 
 namespace NE {
 	namespace {
@@ -81,7 +81,7 @@ namespace NE {
 		}
 
 		inline constexpr uint32_t NSCE_MAGIC = 0x4E534345;
-		inline constexpr int CURRENT_NANOSCENE_FORMAT_VERSION = 5;
+		inline constexpr int CURRENT_NANOSCENE_FORMAT_VERSION = 3;
 
 		inline constexpr uint32_t NFAB_MAGIC = 0x4E464142;
 		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 2;
