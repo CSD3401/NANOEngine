@@ -40,6 +40,12 @@ namespace Editor {
 			);
 		}
 
+		static bool s_ranArtifactCleanup = false;
+		if (!s_ranArtifactCleanup) {
+			Assets::AssetManager::GetInstance().CleanupOrphanArtifacts();
+			s_ranArtifactCleanup = true;
+		}
+
 		NANOEngine::Events::EventBus::Get().Subscribe<Events::GotoAssetPathEvent>(
 			NANOEngine::Events::EventDomain::Editor,
 			[&](const Events::GotoAssetPathEvent& e) {
