@@ -121,6 +121,8 @@ namespace Editor {
 
         bool HitDiamond(const ImVec2& p, const ImVec2& center, float r) const;
         void DrawDiamond(ImDrawList* dl, const ImVec2& c, float r, unsigned int col) const;
+        void DrawDiamondOutline(ImDrawList* dl, const ImVec2& c, float r, unsigned int col) const;
+        bool HandleKeyClickHitboxes(NE::Animation::AnimTrack& tr, int trackIndex, const ImRect& rowRect, float pxPerSec, float t0, KeyRef& hoveredKey);
 
         KeyRef PickKeyAt(NE::Animation::AnimTrack& tr, int trackIndex, const ImRect& rowRect, float pxPerSec, float t0, const ImVec2& mouse);
 
@@ -178,10 +180,12 @@ namespace Editor {
                         tr.type = animType;
                         tracks.push_back(std::move(tr));
 
+                        const float timeBeforeRefresh = m_state.time;
                         if (m_previewActive) {
                             EndPreview();
                         }
                         EnsurePreviewActiveForInteraction();
+                        SetTime(timeBeforeRefresh);
                         ApplyPreviewPose();
                     }
 

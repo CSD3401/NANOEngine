@@ -446,6 +446,7 @@ namespace Editor {
             m_loadedClip = std::move(nextClip);
 
             if (contextChanged) {
+                m_state.time = 0.0f;
                 m_state.selectedTrack = -1;
                 m_state.selectedKey = {};
                 m_state.draggingKey = false;
@@ -455,6 +456,7 @@ namespace Editor {
             if (!hasClip) {
                 m_state.playing = false;
                 m_state.preview = false;
+                m_state.time = 0.0f;
             }
 
             EndPreviewIfContextInvalid();
@@ -577,6 +579,14 @@ namespace Editor {
         dl->AddQuadFilled(a, b, e, d, col);
     }
 
+    void AnimationPanel::DrawDiamondOutline(ImDrawList* dl, const ImVec2& c, float r, unsigned int col) const {
+        ImVec2 a{ c.x,     c.y - r };
+        ImVec2 b{ c.x + r, c.y };
+        ImVec2 d{ c.x - r, c.y };
+        ImVec2 e{ c.x,     c.y + r };
+        dl->AddQuad(a, b, e, d, col, 1.5f);
+    }
+
     void AnimationPanel::DrawRulerAndGrid(const ImRect& rect, float pxPerSec, float t0, float t1) {
         ImDrawList* dl = ImGui::GetWindowDrawList();
 
@@ -630,6 +640,66 @@ namespace Editor {
             }
         }
         return {};
+    }
+
+    bool AnimationPanel::HandleKeyClickHitboxes(
+        NE::Animation::AnimTrack& tr,
+        int trackIndex,
+        const ImRect& rowRect,
+        float pxPerSec,
+        float t0,
+        KeyRef& hoveredKey
+    ) {
+        const float y = (rowRect.Min.y + rowRect.Max.y) * 0.5f;
+        constexpr float r = 5.0f;
+        constexpr float pad = 2.0f;
+        bool clickedAny = false;
+
+        hoveredKey = {};
+
+        const int channels = ChannelCount(tr.type);
+        for (int ch = 0; ch < channels; ++ch) {
+            auto* c = GetCurveByChannel(tr, ch);
+
+            for (int ki = 0; ki < (int)c->keys.size(); ++ki) {
+                const float kt = c->keys[ki].time;
+                const float x = rowRect.Min.x + (kt - t0) * pxPerSec;
+                if (x < rowRect.Min.x - 10.0f || x > rowRect.Max.x + 10.0f) continue;
+
+                const ImRect hitRect(
+                    ImVec2(x - r - pad, y - r - pad),
+                    ImVec2(x + r + pad, y + r + pad)
+                );
+
+                ImGui::SetCursorScreenPos(hitRect.Min);
+
+                ImGui::PushID(trackIndex);
+                ImGui::PushID(ch);
+                ImGui::PushID(ki);
+                ImGui::InvisibleButton("KeyHit", hitRect.GetSize());
+
+                const bool hovered = ImGui::IsItemHovered();
+                if (hovered) {
+                    hoveredKey = KeyRef{ trackIndex, ch, ki };
+                    ImGui::SetTooltip("t=%.3fs", kt);
+                }
+
+                if (hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                    EnsurePreviewActiveForInteraction();
+                    m_state.selectedKey = KeyRef{ trackIndex, ch, ki };
+                    m_state.selectedTrack = trackIndex;
+                    SetTime(kt);
+                    ApplyPreviewPose();
+                    clickedAny = true;
+                }
+
+                ImGui::PopID();
+                ImGui::PopID();
+                ImGui::PopID();
+            }
+        }
+
+        return clickedAny;
     }
 
     bool AnimationPanel::IsSelectedKeyValid() const {
@@ -750,6 +820,7 @@ namespace Editor {
         m_previewActive = false;
 
         m_state.playing = false;
+        m_state.time = 0.0f;
     }
 
     void AnimationPanel::EnsurePreviewActiveForInteraction() {
@@ -1040,6 +1111,17 @@ namespace Editor {
                 DrawTrackRowBackground(dl, rowRect, ti);
 
                 DrawTrackKeys(dl, tr, ti, rowRect, pxPerSec, t0);
+                KeyRef hoveredRowKey{};
+                const bool keyClickedThisFrame = HandleKeyClickHitboxes(tr, ti, rowRect, pxPerSec, t0, hoveredRowKey);
+
+                if (hoveredRowKey.trackIndex == ti) {
+                    auto* hc = GetCurveByChannel(tr, hoveredRowKey.channel);
+                    if (hoveredRowKey.keyIndex >= 0 && hoveredRowKey.keyIndex < (int)hc->keys.size()) {
+                        const float hy = (rowRect.Min.y + rowRect.Max.y) * 0.5f;
+                        const float hx = rowRect.Min.x + (hc->keys[hoveredRowKey.keyIndex].time - t0) * pxPerSec;
+                        DrawDiamondOutline(dl, ImVec2(hx, hy), 6.5f, IM_COL32(120, 220, 255, 255));
+                    }
+                }
 
                 float phx = rowRect.Min.x + (m_state.time - t0) * pxPerSec;
                 dl->AddLine(ImVec2(phx, rowRect.Min.y), ImVec2(phx, rowRect.Max.y), IM_COL32(255, 120, 60, 140), 1.0f);
@@ -1049,33 +1131,13 @@ namespace Editor {
 
                 const bool rowHovered = ImGui::IsItemHovered();
 
-                if (rowHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                    ImVec2 mouse = io.MousePos;
-
-                    KeyRef picked = PickKeyAt(tr, ti, rowRect, pxPerSec, t0, mouse);
-
-                    if (picked.trackIndex >= 0) {
-                        EnsurePreviewActiveForInteraction();
-
-                        m_state.selectedKey = picked;
-                        m_state.selectedTrack = ti;
-
-                        auto* c = GetCurveByChannel(tr, picked.channel);
-                        const float kt = c->keys[picked.keyIndex].time;
-
-                        SetTime(kt);
-                        ApplyPreviewPose();
-                        // start dragging key...
-                        //m_state.selectedKeyOriginalTime = c->keys[picked.keyIndex].time;
-                        //m_state.draggingKey = true;
-                    } else {
-                        EnsurePreviewActiveForInteraction();
-                        m_state.selectedTrack = ti;
-                        float t = t0 + (mouse.x - rowRect.Min.x) / pxPerSec;
-                        SetTime(t);
-                        m_state.selectedKey = {};
-                        if (m_state.preview) ApplyPreviewPose();
-                    }
+                if (rowHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !keyClickedThisFrame) {
+                    EnsurePreviewActiveForInteraction();
+                    m_state.selectedTrack = ti;
+                    float t = t0 + (io.MousePos.x - rowRect.Min.x) / pxPerSec;
+                    SetTime(t);
+                    m_state.selectedKey = {};
+                    if (m_state.preview) ApplyPreviewPose();
                 }
 
                 if (m_state.draggingKey &&
