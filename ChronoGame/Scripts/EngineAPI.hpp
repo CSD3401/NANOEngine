@@ -28,6 +28,9 @@
 #include <ScriptSDK/ECS.h>
 #include <ScriptSDK/Renderer.h>
 
+// UI components (UICanvas, UIRectTransform, UIImage, UIText, UIButton, UISlider, UIToggle, UIInputField, UIDropdown)
+#include <ScriptSDK/UI.h>
+
 // SDK HEADERS LOADED:
 // - Math.h → Math::Vec3, Math::Mat4 (with Scripting::Vec3 conversions)
 // - Components.h → Transform, Light, Collider component types
@@ -59,6 +62,24 @@ namespace NE {
                     return HasAnimator(entity);
                 } else if constexpr (std::is_same_v<T, Component::Camera>) {
                     return HasCamera(entity);
+                } else if constexpr (std::is_same_v<T, Component::UICanvas>) {
+                    return NE::ECS::Query::HasUICanvas(entity);
+                } else if constexpr (std::is_same_v<T, Component::UIRectTransform>) {
+                    return NE::ECS::Query::HasUIRectTransform(entity);
+                } else if constexpr (std::is_same_v<T, Component::UIImage>) {
+                    return NE::ECS::Query::HasUIImage(entity);
+                } else if constexpr (std::is_same_v<T, Component::UIText>) {
+                    return NE::ECS::Query::HasUIText(entity);
+                } else if constexpr (std::is_same_v<T, Component::UIButton>) {
+                    return NE::ECS::Query::HasUIButton(entity);
+                } else if constexpr (std::is_same_v<T, Component::UISlider>) {
+                    return NE::ECS::Query::HasUISlider(entity);
+                } else if constexpr (std::is_same_v<T, Component::UIToggle>) {
+                    return NE::ECS::Query::HasUIToggle(entity);
+                } else if constexpr (std::is_same_v<T, Component::UIInputField>) {
+                    return NE::ECS::Query::HasUIInputField(entity);
+                } else if constexpr (std::is_same_v<T, Component::UIDropdown>) {
+                    return NE::ECS::Query::HasUIDropdown(entity);
                 }
                 return false;
             }
@@ -91,6 +112,24 @@ namespace NE {
                     return GetEntityAnimator(entity);
                 } else if constexpr (std::is_same_v<T, Component::Camera>) {
                     return GetEntityCamera(entity);
+                } else if constexpr (std::is_same_v<T, Component::UICanvas>) {
+                    return NE::ECS::Command::GetUICanvas(entity);
+                } else if constexpr (std::is_same_v<T, Component::UIRectTransform>) {
+                    return NE::ECS::Command::GetUIRectTransform(entity);
+                } else if constexpr (std::is_same_v<T, Component::UIImage>) {
+                    return NE::ECS::Command::GetUIImage(entity);
+                } else if constexpr (std::is_same_v<T, Component::UIText>) {
+                    return NE::ECS::Command::GetUIText(entity);
+                } else if constexpr (std::is_same_v<T, Component::UIButton>) {
+                    return NE::ECS::Command::GetUIButton(entity);
+                } else if constexpr (std::is_same_v<T, Component::UISlider>) {
+                    return NE::ECS::Command::GetUISlider(entity);
+                } else if constexpr (std::is_same_v<T, Component::UIToggle>) {
+                    return NE::ECS::Command::GetUIToggle(entity);
+                } else if constexpr (std::is_same_v<T, Component::UIInputField>) {
+                    return NE::ECS::Command::GetUIInputField(entity);
+                } else if constexpr (std::is_same_v<T, Component::UIDropdown>) {
+                    return NE::ECS::Command::GetUIDropdown(entity);
                 }
             }
         }
@@ -232,6 +271,17 @@ namespace Query {
     inline bool HasAnimator(uint32_t e) { return NE::ECS::Query::HasAnimator(e); }
     inline bool HasCamera(uint32_t e) { return NE::ECS::Query::HasCamera(e); }
 
+    // UI component existence checks
+    inline bool HasUICanvas(uint32_t e) { return NE::ECS::Query::HasUICanvas(e); }
+    inline bool HasUIRectTransform(uint32_t e) { return NE::ECS::Query::HasUIRectTransform(e); }
+    inline bool HasUIImage(uint32_t e) { return NE::ECS::Query::HasUIImage(e); }
+    inline bool HasUIText(uint32_t e) { return NE::ECS::Query::HasUIText(e); }
+    inline bool HasUIButton(uint32_t e) { return NE::ECS::Query::HasUIButton(e); }
+    inline bool HasUISlider(uint32_t e) { return NE::ECS::Query::HasUISlider(e); }
+    inline bool HasUIToggle(uint32_t e) { return NE::ECS::Query::HasUIToggle(e); }
+    inline bool HasUIInputField(uint32_t e) { return NE::ECS::Query::HasUIInputField(e); }
+    inline bool HasUIDropdown(uint32_t e) { return NE::ECS::Query::HasUIDropdown(e); }
+
     // Read-only component getters
     inline const NE::ECS::Component::EntityMeta& GetEntityMeta(uint32_t e) {
         return NE::ECS::Query::GetEntityMeta(e);
@@ -259,6 +309,35 @@ namespace Query {
     }
     inline const NE::ECS::Component::Camera& GetEntityCamera(uint32_t e) {
         return NE::ECS::Query::GetEntityCamera(e);
+    }
+
+    // UI component read-only getters
+    inline const NE::ECS::Component::UICanvas& GetUICanvas(uint32_t e) {
+        return NE::ECS::Query::GetUICanvas(e);
+    }
+    inline const NE::ECS::Component::UIRectTransform& GetUIRectTransform(uint32_t e) {
+        return NE::ECS::Query::GetUIRectTransform(e);
+    }
+    inline const NE::ECS::Component::UIImage& GetUIImage(uint32_t e) {
+        return NE::ECS::Query::GetUIImage(e);
+    }
+    inline const NE::ECS::Component::UIText& GetUIText(uint32_t e) {
+        return NE::ECS::Query::GetUIText(e);
+    }
+    inline const NE::ECS::Component::UIButton& GetUIButton(uint32_t e) {
+        return NE::ECS::Query::GetUIButton(e);
+    }
+    inline const NE::ECS::Component::UISlider& GetUISlider(uint32_t e) {
+        return NE::ECS::Query::GetUISlider(e);
+    }
+    inline const NE::ECS::Component::UIToggle& GetUIToggle(uint32_t e) {
+        return NE::ECS::Query::GetUIToggle(e);
+    }
+    inline const NE::ECS::Component::UIInputField& GetUIInputField(uint32_t e) {
+        return NE::ECS::Query::GetUIInputField(e);
+    }
+    inline const NE::ECS::Component::UIDropdown& GetUIDropdown(uint32_t e) {
+        return NE::ECS::Query::GetUIDropdown(e);
     }
 }
 
@@ -317,6 +396,88 @@ namespace Command {
     inline NE::ECS::Component::Camera& GetEntityCamera(uint32_t e) {
         return NE::ECS::Command::GetEntityCamera(e);
     }
+
+    // UI mutable component getters
+    inline NE::ECS::Component::UICanvas& GetUICanvas(uint32_t e) {
+        return NE::ECS::Command::GetUICanvas(e);
+    }
+    inline NE::ECS::Component::UIRectTransform& GetUIRectTransform(uint32_t e) {
+        return NE::ECS::Command::GetUIRectTransform(e);
+    }
+    inline NE::ECS::Component::UIImage& GetUIImage(uint32_t e) {
+        return NE::ECS::Command::GetUIImage(e);
+    }
+    inline NE::ECS::Component::UIText& GetUIText(uint32_t e) {
+        return NE::ECS::Command::GetUIText(e);
+    }
+    inline NE::ECS::Component::UIButton& GetUIButton(uint32_t e) {
+        return NE::ECS::Command::GetUIButton(e);
+    }
+    inline NE::ECS::Component::UISlider& GetUISlider(uint32_t e) {
+        return NE::ECS::Command::GetUISlider(e);
+    }
+    inline NE::ECS::Component::UIToggle& GetUIToggle(uint32_t e) {
+        return NE::ECS::Command::GetUIToggle(e);
+    }
+    inline NE::ECS::Component::UIInputField& GetUIInputField(uint32_t e) {
+        return NE::ECS::Command::GetUIInputField(e);
+    }
+    inline NE::ECS::Component::UIDropdown& GetUIDropdown(uint32_t e) {
+        return NE::ECS::Command::GetUIDropdown(e);
+    }
+
+    // UI image utilities
+    inline bool SetUIImageTexture(uint32_t e, const char* uuid) {
+        return NE::ECS::Command::SetUIImageTexture(e, uuid);
+    }
+    inline bool SetUIImageTextureAndMaterial(uint32_t e, const char* texUUID, const char* matUUID) {
+        return NE::ECS::Command::SetUIImageTextureAndMaterial(e, texUUID, matUUID);
+    }
+    inline void SetUIImageColor(uint32_t e, float r, float g, float b, float a) {
+        NE::ECS::Command::SetUIImageColor(e, r, g, b, a);
+    }
+    inline void SetUIImageFillAmount(uint32_t e, float fillAmount) {
+        NE::ECS::Command::SetUIImageFillAmount(e, fillAmount);
+    }
+
+    // UIText helpers
+    inline void SetUIText(uint32_t e, const char* text) { NE::ECS::Command::SetUIText(e, text); }
+    inline void SetUITextColor(uint32_t e, float r, float g, float b, float a) { NE::ECS::Command::SetUITextColor(e, r, g, b, a); }
+    inline const char* GetUITextString(uint32_t e) { return NE::ECS::Command::GetUITextString(e); }
+
+    // UIButton helpers
+    inline bool WasButtonClicked(uint32_t e) { return NE::ECS::Command::WasButtonClicked(e); }
+    inline bool IsButtonHovered(uint32_t e) { return NE::ECS::Command::IsButtonHovered(e); }
+    inline bool IsButtonPressed(uint32_t e) { return NE::ECS::Command::IsButtonPressed(e); }
+    inline void SetButtonInteractable(uint32_t e, bool v) { NE::ECS::Command::SetButtonInteractable(e, v); }
+    inline bool IsButtonInteractable(uint32_t e) { return NE::ECS::Command::IsButtonInteractable(e); }
+
+    // UIToggle helpers
+    inline bool IsToggleOn(uint32_t e) { return NE::ECS::Command::IsToggleOn(e); }
+    inline void SetToggleOn(uint32_t e, bool v) { NE::ECS::Command::SetToggleOn(e, v); }
+    inline bool ToggleValueChanged(uint32_t e) { return NE::ECS::Command::ToggleValueChanged(e); }
+    inline void SetToggleInteractable(uint32_t e, bool v) { NE::ECS::Command::SetToggleInteractable(e, v); }
+
+    // UISlider helpers
+    inline float GetSliderValue(uint32_t e) { return NE::ECS::Command::GetSliderValue(e); }
+    inline void SetSliderValue(uint32_t e, float v) { NE::ECS::Command::SetSliderValue(e, v); }
+    inline float GetSliderNormalizedValue(uint32_t e) { return NE::ECS::Command::GetSliderNormalizedValue(e); }
+    inline void SetSliderNormalizedValue(uint32_t e, float v) { NE::ECS::Command::SetSliderNormalizedValue(e, v); }
+    inline void SetSliderMinMax(uint32_t e, float mn, float mx) { NE::ECS::Command::SetSliderMinMax(e, mn, mx); }
+    inline bool SliderValueChanged(uint32_t e) { return NE::ECS::Command::SliderValueChanged(e); }
+    inline void SetSliderInteractable(uint32_t e, bool v) { NE::ECS::Command::SetSliderInteractable(e, v); }
+
+    // UIInputField helpers
+    inline const char* GetInputFieldText(uint32_t e) { return NE::ECS::Command::GetInputFieldText(e); }
+    inline void SetInputFieldText(uint32_t e, const char* text) { NE::ECS::Command::SetInputFieldText(e, text); }
+    inline bool IsInputFieldFocused(uint32_t e) { return NE::ECS::Command::IsInputFieldFocused(e); }
+    inline void SetInputFieldInteractable(uint32_t e, bool v) { NE::ECS::Command::SetInputFieldInteractable(e, v); }
+
+    // UIDropdown helpers
+    inline int GetDropdownSelectedIndex(uint32_t e) { return NE::ECS::Command::GetDropdownSelectedIndex(e); }
+    inline void SetDropdownSelectedIndex(uint32_t e, int idx) { NE::ECS::Command::SetDropdownSelectedIndex(e, idx); }
+    inline int GetDropdownOptionCount(uint32_t e) { return NE::ECS::Command::GetDropdownOptionCount(e); }
+    inline void SetDropdownInteractable(uint32_t e, bool v) { NE::ECS::Command::SetDropdownInteractable(e, v); }
 
     // Script management
     inline std::vector<std::string> GetRegisteredScriptNames() {

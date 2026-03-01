@@ -159,9 +159,12 @@ namespace Editor::Assets {
             return;
         }
 
-        // Load RGBA
+        // Load RGBA — flip vertically so V=0 maps to the bottom of the image,
+        // matching OpenGL's bottom-origin convention and the (0,1)->(1,0) UVs used in the asset browser.
+        stbi_set_flip_vertically_on_load(true);
         int srcW = 0, srcH = 0, srcChannels = 0;
         stbi_uc* srcRGBA = stbi_load(sourceImagePath.string().c_str(), &srcW, &srcH, &srcChannels, 4);
+        stbi_set_flip_vertically_on_load(false);
         if (!srcRGBA) {
             // TODO: log stbi_failure_reason()
             return;

@@ -64,10 +64,11 @@ namespace NE::Graphics {
         vertices.reserve(4);
 
         // Create 4 vertices for a quad (CW winding order)
-        vertices.push_back(CreateVertex2(x, y, z, 0.0f, 1.0f, color, bindlessHandle)); // Bottom-left
-        vertices.push_back(CreateVertex2(x + width, y, z, 1.0f, 1.0f, color, bindlessHandle)); // Bottom-right
-        vertices.push_back(CreateVertex2(x + width, y + height, z, 1.0f, 0.0f, color, bindlessHandle)); // Top-right
-        vertices.push_back(CreateVertex2(x, y + height, z, 0.0f, 0.0f, color, bindlessHandle)); // Top-left
+        // V=0 at top (y), V=1 at bottom (y+height) — matches stbi row order (top-to-bottom)
+        vertices.push_back(CreateVertex2(x, y, z, 0.0f, 0.0f, color, bindlessHandle)); // Top-left
+        vertices.push_back(CreateVertex2(x + width, y, z, 1.0f, 0.0f, color, bindlessHandle)); // Top-right
+        vertices.push_back(CreateVertex2(x + width, y + height, z, 1.0f, 1.0f, color, bindlessHandle)); // Bottom-right
+        vertices.push_back(CreateVertex2(x, y + height, z, 0.0f, 1.0f, color, bindlessHandle)); // Bottom-left
 
         return vertices;
     }
@@ -112,22 +113,22 @@ namespace NE::Graphics {
         float x2 = x + width - right;
         float x3 = x + width;
 
-        // Y positions
+        // Y positions (Y increases downward in screen space)
         float y0 = y;
-        float y1 = y + bottom;
-        float y2 = y + height - top;
+        float y1 = y + top;             // top border inset from the top edge
+        float y2 = y + height - bottom; // bottom border inset from the bottom edge
         float y3 = y + height;
 
-        // UV positions
+        // UV positions — V=0 at top (y0), V=1 at bottom (y3)
         float u0 = 0.0f;
         float u1 = left / width;
         float u2 = (width - right) / width;
         float u3 = 1.0f;
 
-        float v0 = 1.0f;
-        float v1 = 1.0f - (bottom / height);
-        float v2 = (top / height);
-        float v3 = 0.0f;
+        float v0 = 0.0f;
+        float v1 = top / height;
+        float v2 = 1.0f - (bottom / height);
+        float v3 = 1.0f;
 
         // Helper lambda: emit 4 vertices per quad (indexed by CreateDynamicUIGeometry)
         auto AddQuad = [&](float qx0, float qy0, float qx1, float qy1,
@@ -186,10 +187,11 @@ namespace NE::Graphics {
                 float qu1 = (qx1 - qx0) / tileWidth;
                 float qv1 = (qy1 - qy0) / tileHeight;
 
-                vertices.push_back(CreateVertex2(qx0, qy0, z, 0.0f, qv1, color, bindlessHandle));
-                vertices.push_back(CreateVertex2(qx1, qy0, z, qu1, qv1, color, bindlessHandle));
-                vertices.push_back(CreateVertex2(qx1, qy1, z, qu1, 0.0f, color, bindlessHandle));
-                vertices.push_back(CreateVertex2(qx0, qy1, z, 0.0f, 0.0f, color, bindlessHandle));
+                // V=0 at top (qy0), V=qv1 at bottom (qy1)
+                vertices.push_back(CreateVertex2(qx0, qy0, z, 0.0f, 0.0f, color, bindlessHandle));
+                vertices.push_back(CreateVertex2(qx1, qy0, z, qu1, 0.0f, color, bindlessHandle));
+                vertices.push_back(CreateVertex2(qx1, qy1, z, qu1, qv1, color, bindlessHandle));
+                vertices.push_back(CreateVertex2(qx0, qy1, z, 0.0f, qv1, color, bindlessHandle));
             }
         }
 
@@ -253,10 +255,11 @@ namespace NE::Graphics {
             u1 = 1.0f;
         }
 
-        vertices.push_back(CreateVertex2(startX, y, z, u0, 1.0f, color, bindlessHandle));
-        vertices.push_back(CreateVertex2(endX, y, z, u1, 1.0f, color, bindlessHandle));
-        vertices.push_back(CreateVertex2(endX, y + height, z, u1, 0.0f, color, bindlessHandle));
-        vertices.push_back(CreateVertex2(startX, y + height, z, u0, 0.0f, color, bindlessHandle));
+        // V=0 at top (y), V=1 at bottom (y+height)
+        vertices.push_back(CreateVertex2(startX, y, z, u0, 0.0f, color, bindlessHandle));
+        vertices.push_back(CreateVertex2(endX, y, z, u1, 0.0f, color, bindlessHandle));
+        vertices.push_back(CreateVertex2(endX, y + height, z, u1, 1.0f, color, bindlessHandle));
+        vertices.push_back(CreateVertex2(startX, y + height, z, u0, 1.0f, color, bindlessHandle));
 
         return vertices;
     }
@@ -279,16 +282,19 @@ namespace NE::Graphics {
         vertices.reserve(4);
 
         float fillHeight = height * image.fillAmount;
-        float startY = y;
-        float endY = y + fillHeight;
-        float v0 = 1.0f;
-        float v1 = 1.0f - image.fillAmount;
+        // Default: FillOrigin::BOTTOM — visible region grows upward from bottom
+        // In Y-down screen space, bottom = large y, so region is at [y+height-fill, y+height]
+        float startY = y + height - fillHeight;
+        float endY = y + height;
+        float v0 = 1.0f - image.fillAmount;  // V at top of visible region
+        float v1 = 1.0f;                     // V at bottom of element
 
         if (image.fillOrigin == FillOrigin::TOP) {
-            startY = y + height - fillHeight;
-            endY = y + height;
-            v0 = image.fillAmount;
-            v1 = 0.0f;
+            // FillOrigin::TOP — visible region grows downward from top
+            startY = y;
+            endY = y + fillHeight;
+            v0 = 0.0f;               // V=0 at top of element
+            v1 = image.fillAmount;   // V at bottom of visible region
         }
 
         vertices.push_back(CreateVertex2(x, startY, z, 0.0f, v0, color, bindlessHandle));
