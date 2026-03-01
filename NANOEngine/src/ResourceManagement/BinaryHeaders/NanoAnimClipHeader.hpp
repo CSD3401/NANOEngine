@@ -4,7 +4,7 @@
 namespace NE::Resource {
 
 	inline constexpr uint32_t NANC_MAGIC = 0x4E414E43;
-	inline constexpr int CURRENT_NANOANIMCLIP_FORMAT_VERSION = 1;
+	inline constexpr int CURRENT_NANOANIMCLIP_FORMAT_VERSION = 2;
 
 #pragma pack(push, 1)
     struct NanoAnimClipHeader {
