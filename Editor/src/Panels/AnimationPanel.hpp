@@ -70,6 +70,8 @@ namespace Editor {
         // selection
         KeyRef selectedKey{};
         float selectedKeyOriginalTime = 0.0f;
+        bool dragCandidate = false;
+        float dragTimeOffset = 0.0f;
         bool draggingKey = false;
 
         // track UI
@@ -119,12 +121,18 @@ namespace Editor {
         void DrawRulerAndGrid(const ImRect& rect, float pxPerSec, float t0, float t1);
         void DrawPlayhead(const ImRect& rect, float pxPerSec, float t0);
 
-        bool HitDiamond(const ImVec2& p, const ImVec2& center, float r) const;
         void DrawDiamond(ImDrawList* dl, const ImVec2& c, float r, unsigned int col) const;
         void DrawDiamondOutline(ImDrawList* dl, const ImVec2& c, float r, unsigned int col) const;
-        bool HandleKeyClickHitboxes(NE::Animation::AnimTrack& tr, int trackIndex, const ImRect& rowRect, float pxPerSec, float t0, KeyRef& hoveredKey);
-
-        KeyRef PickKeyAt(NE::Animation::AnimTrack& tr, int trackIndex, const ImRect& rowRect, float pxPerSec, float t0, const ImVec2& mouse);
+        void HandleKeyClickHitboxes(
+            NE::Animation::AnimTrack& tr,
+            int trackIndex,
+            const ImRect& rowRect,
+            float pxPerSec,
+            float t0,
+            KeyRef& hoveredKey,
+            bool& leftClickedKey,
+            bool& rightClickedKey
+        );
 
         bool m_previewActive = false;
         uint32_t m_previewEntity = NE::ECS::NO_ENTITY;

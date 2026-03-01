@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <cstdint>
 #include <cmath>
-#include <filesystem>
 #include <concepts>
 
 #include <Events/EventBus.hpp>
@@ -22,21 +21,18 @@ namespace Editor {
     namespace {
         inline float Clamp(float v, float a, float b) { return v < a ? a : (v > b ? b : v); }
 
-        inline float ClipLength(const std::shared_ptr<NE::Animation::AnimationClip>& clip) {
-            return clip ? clip->GetLengthSeconds() : 0.0f;
-        }
-        inline bool ClipLooping(const std::shared_ptr<NE::Animation::AnimationClip>& clip) {
-            return clip ? clip->IsLooping() : false;
-        }
+        template <typename T>
+        struct AnimFieldTrait;
 
         template <typename T>
         bool TryAnimValueType(NE::Animation::AnimValueType& out) {
-            if constexpr (std::is_same_v<T, bool>) { out = NE::Animation::AnimValueType::Bool; return true; } 
-            else if constexpr (std::is_same_v<T, float>) { out = NE::Animation::AnimValueType::Float; return true; }
-            else if constexpr (std::is_same_v<T, NE::Math::Vec2>) { out = NE::Animation::AnimValueType::Vec2; return true; } 
-            else if constexpr (std::is_same_v<T, NE::Math::Vec3>) { out = NE::Animation::AnimValueType::Vec3; return true; } 
-            else if constexpr (std::is_same_v<T, NE::Math::Vec4>) { out = NE::Animation::AnimValueType::Vec4; return true; }
-            else return false;
+            using ValueT = std::remove_cvref_t<T>;
+            if constexpr (AnimFieldTrait<ValueT>::supported) {
+                out = AnimFieldTrait<ValueT>::type;
+                return true;
+            } else {
+                return false;
+            }
         }
 
         inline int ChannelCount(NE::Animation::AnimValueType t) {
@@ -127,32 +123,6 @@ namespace Editor {
                 [](const NE::Animation::AnimKeyF& a, const NE::Animation::AnimKeyF& b) { return a.time < b.time; });
         }
 
-        void RecordValueIntoTrack(NE::Animation::AnimTrack& tr, float time, bool v) {
-            InsertOrUpdateKey(tr.x, time, v ? 1.0f : 0.0f);
-        }
-
-        void RecordValueIntoTrack(NE::Animation::AnimTrack& tr, float time, float v) {
-            InsertOrUpdateKey(tr.x, time, v);
-        }
-
-        void RecordValueIntoTrack(NE::Animation::AnimTrack& tr, float time, const NE::Math::Vec2& v) {
-            InsertOrUpdateKey(tr.x, time, v.x);
-            InsertOrUpdateKey(tr.y, time, v.y);
-        }
-
-        void RecordValueIntoTrack(NE::Animation::AnimTrack& tr, float time, const NE::Math::Vec3& v) {
-            InsertOrUpdateKey(tr.x, time, v.x);
-            InsertOrUpdateKey(tr.y, time, v.y);
-            InsertOrUpdateKey(tr.z, time, v.z);
-        }
-
-        void RecordValueIntoTrack(NE::Animation::AnimTrack& tr, float time, const NE::Math::Vec4& v) {
-            InsertOrUpdateKey(tr.x, time, v.x);
-            InsertOrUpdateKey(tr.y, time, v.y);
-            InsertOrUpdateKey(tr.z, time, v.z);
-            InsertOrUpdateKey(tr.w, time, v.w);
-        }
-
         template <typename T>
         struct AnimFieldTrait {
             static constexpr bool supported = false;
@@ -184,18 +154,19 @@ namespace Editor {
 
         template <AnimatableField T>
         void RecordValueIntoTrack(NE::Animation::AnimTrack& tr, float time, const T& v) {
-            if constexpr (std::is_same_v<T, bool>) {
+            using ValueT = std::remove_cvref_t<T>;
+            if constexpr (std::is_same_v<ValueT, bool>) {
                 InsertOrUpdateKey(tr.x, time, v ? 1.0f : 0.0f);
-            } else if constexpr (std::is_same_v<T, float>) {
+            } else if constexpr (std::is_same_v<ValueT, float>) {
                 InsertOrUpdateKey(tr.x, time, v);
-            } else if constexpr (std::is_same_v<T, NE::Math::Vec2>) {
+            } else if constexpr (std::is_same_v<ValueT, NE::Math::Vec2>) {
                 InsertOrUpdateKey(tr.x, time, v.x);
                 InsertOrUpdateKey(tr.y, time, v.y);
-            } else if constexpr (std::is_same_v<T, NE::Math::Vec3>) {
+            } else if constexpr (std::is_same_v<ValueT, NE::Math::Vec3>) {
                 InsertOrUpdateKey(tr.x, time, v.x);
                 InsertOrUpdateKey(tr.y, time, v.y);
                 InsertOrUpdateKey(tr.z, time, v.z);
-            } else if constexpr (std::is_same_v<T, NE::Math::Vec4>) {
+            } else if constexpr (std::is_same_v<ValueT, NE::Math::Vec4>) {
                 InsertOrUpdateKey(tr.x, time, v.x);
                 InsertOrUpdateKey(tr.y, time, v.y);
                 InsertOrUpdateKey(tr.z, time, v.z);
@@ -436,7 +407,7 @@ namespace Editor {
                 nextClip = NE::ECS::Command::GetAnimationClip(animator.animClipUUID);
             }
 
-            const bool contextChanged = (nextEntity != m_selectedEntity) || (nextClip.get() != m_loadedClip.get());
+            const bool contextChanged = (nextEntity != m_selectedEntity) || (nextClipPath != m_loadedClipPath);
             if (contextChanged && m_previewActive) {
                 EndPreview();
             }
@@ -449,6 +420,7 @@ namespace Editor {
                 m_state.time = 0.0f;
                 m_state.selectedTrack = -1;
                 m_state.selectedKey = {};
+                m_state.dragCandidate = false;
                 m_state.draggingKey = false;
             }
 
@@ -457,6 +429,8 @@ namespace Editor {
                 m_state.playing = false;
                 m_state.preview = false;
                 m_state.time = 0.0f;
+                m_state.dragCandidate = false;
+                m_state.draggingKey = false;
             }
 
             EndPreviewIfContextInvalid();
@@ -565,12 +539,6 @@ namespace Editor {
         if (std::isfinite(best)) SetTime(best);
     }
 
-    bool AnimationPanel::HitDiamond(const ImVec2& p, const ImVec2& c, float r) const {
-        float dx = std::fabs(p.x - c.x);
-        float dy = std::fabs(p.y - c.y);
-        return (dx + dy) <= (r * 1.2f);
-    }
-
     void AnimationPanel::DrawDiamond(ImDrawList* dl, const ImVec2& c, float r, unsigned int col) const {
         ImVec2 a{ c.x,     c.y - r };
         ImVec2 b{ c.x + r, c.y };
@@ -623,39 +591,23 @@ namespace Editor {
         dl->AddLine(ImVec2(x, rect.Min.y), ImVec2(x, rect.Max.y), IM_COL32(255, 120, 60, 255), 2.0f);
     }
 
-    KeyRef AnimationPanel::PickKeyAt(NE::Animation::AnimTrack& tr, int trackIndex, const ImRect& rowRect, float pxPerSec, float t0, const ImVec2& mouse) {
-        const float r = 5.0f;
-        const float y = (rowRect.Min.y + rowRect.Max.y) * 0.5f;
-
-        const int channels = ChannelCount(tr.type);
-        for (int ch = 0; ch < channels; ++ch) {
-            NE::Animation::AnimCurveF* c = GetCurveByChannel(tr, ch);
-            for (int i = 0; i < (int)c->keys.size(); ++i) {
-                float t = c->keys[i].time;
-                float x = rowRect.Min.x + (t - t0) * pxPerSec;
-                ImVec2 center{ x, y };
-                if (HitDiamond(mouse, center, r)) {
-                    return KeyRef{ trackIndex, ch, i };
-                }
-            }
-        }
-        return {};
-    }
-
-    bool AnimationPanel::HandleKeyClickHitboxes(
+    void AnimationPanel::HandleKeyClickHitboxes(
         NE::Animation::AnimTrack& tr,
         int trackIndex,
         const ImRect& rowRect,
         float pxPerSec,
         float t0,
-        KeyRef& hoveredKey
+        KeyRef& hoveredKey,
+        bool& leftClickedKey,
+        bool& rightClickedKey
     ) {
         const float y = (rowRect.Min.y + rowRect.Max.y) * 0.5f;
         constexpr float r = 5.0f;
         constexpr float pad = 2.0f;
-        bool clickedAny = false;
 
         hoveredKey = {};
+        leftClickedKey = false;
+        rightClickedKey = false;
 
         const int channels = ChannelCount(tr.type);
         for (int ch = 0; ch < channels; ++ch) {
@@ -684,13 +636,27 @@ namespace Editor {
                     ImGui::SetTooltip("t=%.3fs", kt);
                 }
 
-                if (hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+                    ImGuiIO& io = ImGui::GetIO();
                     EnsurePreviewActiveForInteraction();
                     m_state.selectedKey = KeyRef{ trackIndex, ch, ki };
                     m_state.selectedTrack = trackIndex;
+                    m_state.selectedKeyOriginalTime = kt;
+                    const float mouseTime = t0 + (io.MousePos.x - rowRect.Min.x) / pxPerSec;
+                    m_state.dragTimeOffset = kt - mouseTime;
+                    m_state.dragCandidate = true;
+                    m_state.draggingKey = false;
                     SetTime(kt);
-                    ApplyPreviewPose();
-                    clickedAny = true;
+                    if (m_state.preview) ApplyPreviewPose();
+                    leftClickedKey = true;
+                }
+
+                if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+                    m_state.selectedKey = KeyRef{ trackIndex, ch, ki };
+                    m_state.selectedTrack = trackIndex;
+                    m_state.dragCandidate = false;
+                    m_state.draggingKey = false;
+                    rightClickedKey = true;
                 }
 
                 ImGui::PopID();
@@ -698,8 +664,6 @@ namespace Editor {
                 ImGui::PopID();
             }
         }
-
-        return clickedAny;
     }
 
     bool AnimationPanel::IsSelectedKeyValid() const {
@@ -751,6 +715,7 @@ namespace Editor {
     bool AnimationPanel::DeleteSelectedKey() {
         if (!IsSelectedKeyValid()) {
             m_state.selectedKey = {};
+            m_state.dragCandidate = false;
             m_state.draggingKey = false;
             return false;
         }
@@ -762,6 +727,7 @@ namespace Editor {
         c->keys.erase(c->keys.begin() + m_state.selectedKey.keyIndex);
 
         m_state.selectedKey = {};
+        m_state.dragCandidate = false;
         m_state.draggingKey = false;
         return true;
     }
@@ -820,7 +786,6 @@ namespace Editor {
         m_previewActive = false;
 
         m_state.playing = false;
-        m_state.time = 0.0f;
     }
 
     void AnimationPanel::EnsurePreviewActiveForInteraction() {
@@ -895,16 +860,19 @@ namespace Editor {
             }
         }
 
-        auto smallBtn = [&](const char* label) { return ImGui::Button(label, ImVec2(36, 0)); };
+        const float transportSpacing = ImGui::GetStyle().ItemSpacing.x;
+        const float transportAvail = ImGui::GetContentRegionAvail().x;
+        const float transportButtonWidth = std::max(1.0f, (transportAvail - transportSpacing * 4.0f) / 5.0f);
+        auto transportBtn = [&](const char* label) { return ImGui::Button(label, ImVec2(transportButtonWidth, 0)); };
 
         const float L = hasClip ? m_loadedClip->GetLengthSeconds() : 0.0f;
 
-        if (smallBtn("|<")) SetTimeAndApply(0.0f);
-        ImGui::SameLine();
-        if (smallBtn("<K")) { EnsurePreviewActiveForInteraction(); StepToPrevKey(); if (m_state.preview) ApplyPreviewPose(); }
-        ImGui::SameLine();
+        if (transportBtn("|<")) SetTimeAndApply(0.0f);
+        ImGui::SameLine(0.0f, transportSpacing);
+        if (transportBtn("<K")) { EnsurePreviewActiveForInteraction(); StepToPrevKey(); if (m_state.preview) ApplyPreviewPose(); }
+        ImGui::SameLine(0.0f, transportSpacing);
 
-        if (smallBtn(m_state.playing ? "||" : ">")) {
+        if (transportBtn(m_state.playing ? "||" : ">")) {
             EnsurePreviewActiveForInteraction();
 
             m_state.playing = !m_state.playing;
@@ -913,10 +881,10 @@ namespace Editor {
             animator.isPlaying = false;
         }
 
-        ImGui::SameLine();
-        if (smallBtn("K>")) { EnsurePreviewActiveForInteraction(); StepToNextKey(); if (m_state.preview) ApplyPreviewPose(); }
-        ImGui::SameLine();
-        if (smallBtn(">|")) SetTimeAndApply(L);
+        ImGui::SameLine(0.0f, transportSpacing);
+        if (transportBtn("K>")) { EnsurePreviewActiveForInteraction(); StepToNextKey(); if (m_state.preview) ApplyPreviewPose(); }
+        ImGui::SameLine(0.0f, transportSpacing);
+        if (transportBtn(">|")) SetTimeAndApply(L);
 
         ImGui::Spacing();
         ImGui::Separator();
@@ -967,6 +935,39 @@ namespace Editor {
                 m_state.selectedKey.trackIndex,
                 m_state.selectedKey.channel,
                 m_state.selectedKey.keyIndex);
+
+            if (hasClip && IsSelectedKeyValid()) {
+                const auto& tracks = m_loadedClip->GetTracks();
+                const auto& tr = tracks[m_state.selectedKey.trackIndex];
+                const auto* c = GetCurveByChannel(tr, m_state.selectedKey.channel);
+                const auto& key = c->keys[m_state.selectedKey.keyIndex];
+
+                static constexpr const char* channelNames[] = { "X", "Y", "Z", "W" };
+                const char* channelName = (m_state.selectedKey.channel >= 0 && m_state.selectedKey.channel < 4)
+                    ? channelNames[m_state.selectedKey.channel]
+                    : "?";
+
+                ImGui::Text("Property: %s", GetTrackDisplayName(tr).c_str());
+                ImGui::Text("Type: %s", ValueTypeName(tr.type));
+                ImGui::Text("Channel: %s", channelName);
+                ImGui::Text("Time: %.3fs", key.time);
+                ImGui::Text("Value: %.3f", key.value);
+
+                constexpr float eps = 1e-4f;
+                const int channelCount = ChannelCount(tr.type);
+                if (channelCount > 1) {
+                    ImGui::TextUnformatted("Property values at key time:");
+                    for (int ch = 0; ch < channelCount; ++ch) {
+                        const auto* curve = GetCurveByChannel(tr, ch);
+                        const auto it = std::find_if(curve->keys.begin(), curve->keys.end(),
+                            [&](const NE::Animation::AnimKeyF& k) { return std::fabs(k.time - key.time) <= eps; });
+                        if (it != curve->keys.end()) {
+                            const char* chName = (ch >= 0 && ch < 4) ? channelNames[ch] : "?";
+                            ImGui::Text("%s: %.3f", chName, it->value);
+                        }
+                    }
+                }
+            }
         } else {
             ImGui::TextUnformatted("(none)");
         }
@@ -1095,7 +1096,7 @@ namespace Editor {
                 std::string display = GetTrackDisplayName(tr);
                 std::string label = display + "##track_" + std::to_string(ti);
 
-                if (ImGui::Selectable(label.c_str(), m_state.selectedTrack == ti, ImGuiSelectableFlags_SpanAllColumns)) {
+                if (ImGui::Selectable(label.c_str(), m_state.selectedTrack == ti, ImGuiSelectableFlags_SpanAvailWidth)) {
                     m_state.selectedTrack = ti;
                 }
                 //ImGui::SameLine();
@@ -1112,7 +1113,9 @@ namespace Editor {
 
                 DrawTrackKeys(dl, tr, ti, rowRect, pxPerSec, t0);
                 KeyRef hoveredRowKey{};
-                const bool keyClickedThisFrame = HandleKeyClickHitboxes(tr, ti, rowRect, pxPerSec, t0, hoveredRowKey);
+                bool leftClickedKey = false;
+                bool rightClickedKey = false;
+                HandleKeyClickHitboxes(tr, ti, rowRect, pxPerSec, t0, hoveredRowKey, leftClickedKey, rightClickedKey);
 
                 if (hoveredRowKey.trackIndex == ti) {
                     auto* hc = GetCurveByChannel(tr, hoveredRowKey.channel);
@@ -1131,44 +1134,82 @@ namespace Editor {
 
                 const bool rowHovered = ImGui::IsItemHovered();
 
-                if (rowHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !keyClickedThisFrame) {
+                if (rowHovered && !leftClickedKey && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
                     EnsurePreviewActiveForInteraction();
                     m_state.selectedTrack = ti;
+                    m_state.dragCandidate = false;
+                    m_state.draggingKey = false;
                     float t = t0 + (io.MousePos.x - rowRect.Min.x) / pxPerSec;
                     SetTime(t);
                     m_state.selectedKey = {};
                     if (m_state.preview) ApplyPreviewPose();
                 }
 
-                if (m_state.draggingKey &&
+                if ((m_state.dragCandidate || m_state.draggingKey) &&
                     m_state.selectedKey.trackIndex == ti &&
                     ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
                     auto& sTr = tracks[m_state.selectedKey.trackIndex];
                     auto* c = GetCurveByChannel(sTr, m_state.selectedKey.channel);
 
                     if (m_state.selectedKey.keyIndex >= 0 && m_state.selectedKey.keyIndex < (int)c->keys.size()) {
-                        float t = t0 + (io.MousePos.x - rowRect.Min.x) / pxPerSec;
-                        if (t < 0.0f) t = 0.0f;
-
-                        if (m_state.record) {
-                            float Lclip = m_loadedClip->GetLengthSeconds();
-                            if (t > Lclip) m_loadedClip->SetLengthSeconds(t);
-                        } else {
-                            float Lclip = m_loadedClip->GetLengthSeconds();
-                            t = Clamp(t, 0.0f, std::max(0.0f, Lclip));
+                        if (m_state.dragCandidate && !m_state.draggingKey &&
+                            ImGui::IsMouseDragging(ImGuiMouseButton_Left, 3.0f)) {
+                            m_state.draggingKey = true;
                         }
 
-                        c->keys[m_state.selectedKey.keyIndex].time = t;
+                        if (m_state.draggingKey) {
+                            const auto draggedSnapshot = c->keys[m_state.selectedKey.keyIndex];
+                            float t = t0 + (io.MousePos.x - rowRect.Min.x) / pxPerSec + m_state.dragTimeOffset;
+                            if (t < 0.0f) t = 0.0f;
 
-                        std::sort(c->keys.begin(), c->keys.end(),
-                            [](const NE::Animation::AnimKeyF& a, const NE::Animation::AnimKeyF& b) { return a.time < b.time; });
+                            if (m_state.record) {
+                                float Lclip = m_loadedClip->GetLengthSeconds();
+                                if (t > Lclip) m_loadedClip->SetLengthSeconds(t);
+                            } else {
+                                float Lclip = m_loadedClip->GetLengthSeconds();
+                                t = Clamp(t, 0.0f, std::max(0.0f, Lclip));
+                            }
+
+                            c->keys[m_state.selectedKey.keyIndex].time = t;
+
+                            std::sort(c->keys.begin(), c->keys.end(),
+                                [](const NE::Animation::AnimKeyF& a, const NE::Animation::AnimKeyF& b) { return a.time < b.time; });
+
+                            int bestIndex = -1;
+                            float bestScore = std::numeric_limits<float>::infinity();
+                            for (int i = 0; i < (int)c->keys.size(); ++i) {
+                                const auto& key = c->keys[i];
+                                const float score =
+                                    std::fabs(key.time - t) * 1000.0f +
+                                    std::fabs(key.value - draggedSnapshot.value) +
+                                    std::fabs(key.inTan - draggedSnapshot.inTan) +
+                                    std::fabs(key.outTan - draggedSnapshot.outTan);
+                                if (score < bestScore) {
+                                    bestScore = score;
+                                    bestIndex = i;
+                                }
+                            }
+                            if (bestIndex >= 0) {
+                                m_state.selectedKey.keyIndex = bestIndex;
+                                m_state.selectedKeyOriginalTime = t;
+                            }
+
+                            SetTime(t);
+                            if (m_state.preview) ApplyPreviewPose();
+                        }
                     }
                 }
-                if (m_state.draggingKey && !ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+                if ((m_state.dragCandidate || m_state.draggingKey) && !ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+                    m_state.dragCandidate = false;
                     m_state.draggingKey = false;
                 }
 
-                if (rowHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+                if (rightClickedKey || (rowHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right))) {
+                    if (!rightClickedKey) {
+                        m_state.selectedTrack = ti;
+                        m_state.dragCandidate = false;
+                        m_state.draggingKey = false;
+                    }
                     ImGui::OpenPopup(("KeyMenu##" + std::to_string(ti)).c_str());
                 }
 
@@ -1198,6 +1239,7 @@ namespace Editor {
                         EnsurePreviewActiveForInteraction();
                         if (DeleteKeysAtTime(tr, selectedTime, true) > 0) {
                             m_state.selectedKey = {};
+                            m_state.dragCandidate = false;
                             m_state.draggingKey = false;
                             ApplyPreviewPose();
                         }
@@ -1212,6 +1254,7 @@ namespace Editor {
 
                         if (m_state.selectedKey.trackIndex == ti) {
                             m_state.selectedKey = {};
+                            m_state.dragCandidate = false;
                             m_state.draggingKey = false;
                         } else if (m_state.selectedKey.trackIndex > ti) {
                             --m_state.selectedKey.trackIndex;
@@ -1314,7 +1357,6 @@ namespace Editor {
         }
     }
 
-
     void AnimationPanel::MenuEntityMeta(uint32_t e) {
         DrawAnimFieldMenuForComponent<NE::ECS::Component::EntityMeta>(
             e, NE::ECS::Query::GetEntityMetaComponentType(), "EntityMeta");
@@ -1334,5 +1376,4 @@ namespace Editor {
         DrawAnimFieldMenuForComponent<NE::ECS::Component::Light>(
             e, NE::ECS::Query::GetLightComponentType(), "Light");
     }
-
 }
