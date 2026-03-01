@@ -130,8 +130,13 @@ namespace Editor {
 
         void BeginPreview();
         void EndPreview();
+        void EnsurePreviewActiveForInteraction();
+        void EndPreviewIfContextInvalid();
         void SetTimeAndApply(float t);
         void ApplyPreviewPose();
+        bool IsSelectedKeyValid() const;
+        bool DeleteSelectedKey();
+        int DeleteKeysAtTime(NE::Animation::AnimTrack& tr, float time, bool allChannels);
 
         void MenuEntityMeta(uint32_t e);
         void MenuTransform(uint32_t e);
@@ -172,6 +177,12 @@ namespace Editor {
                         tr.fieldId = fieldId;
                         tr.type = animType;
                         tracks.push_back(std::move(tr));
+
+                        if (m_previewActive) {
+                            EndPreview();
+                        }
+                        EnsurePreviewActiveForInteraction();
+                        ApplyPreviewPose();
                     }
 
                     ImGui::CloseCurrentPopup();

@@ -403,7 +403,7 @@ namespace Editor {
 
     AnimationPanel::AnimationPanel() {
         compEntries = {
-            { NE::ECS::Query::GetTransformComponentType(),  "EntityMeta",   &AnimationPanel::MenuEntityMeta },
+            { NE::ECS::Query::GetEntityMetaComponentType(), "EntityMeta",   &AnimationPanel::MenuEntityMeta },
             { NE::ECS::Query::GetTransformComponentType(),  "Transform",    &AnimationPanel::MenuTransform  },
             { NE::ECS::Query::GetRendererComponentType(),   "Renderer",     &AnimationPanel::MenuRenderer   },
             { NE::ECS::Query::GetLightComponentType(),      "Light",        &AnimationPanel::MenuLight      }
@@ -424,24 +424,40 @@ namespace Editor {
 
     void AnimationPanel::OnImGuiRender() {
         if (ImGui::Begin("Animation")) {
+            uint32_t nextEntity = NE::ECS::NO_ENTITY;
+            std::string nextClipPath;
+            std::shared_ptr<NE::Animation::AnimationClip> nextClip = nullptr;
 
-            if (EditorScene::s_selection.GetLastClicked() != NE::ECS::NO_ENTITY) {
-                if (m_selectedEntity != EditorScene::s_selection.GetLastClicked() 
-                    && NE::ECS::Query::HasAnimator(EditorScene::s_selection.GetLastClicked())) {
-                    m_selectedEntity = EditorScene::s_selection.GetLastClicked();
+            const uint32_t clickedEntity = EditorScene::s_selection.GetLastClicked();
+            if (clickedEntity != NE::ECS::NO_ENTITY && NE::ECS::Query::HasAnimator(clickedEntity)) {
+                nextEntity = clickedEntity;
+                auto& animator = NE::ECS::Query::GetEntityAnimator(nextEntity);
+                nextClipPath = Assets::AssetManager::GetInstance().RetrieveFilename(animator.animClipUUID);
+                nextClip = NE::ECS::Command::GetAnimationClip(animator.animClipUUID);
+            }
 
-					auto& animator = NE::ECS::Query::GetEntityAnimator(m_selectedEntity);
-                    m_loadedClipPath = Assets::AssetManager::GetInstance().RetrieveFilename(animator.animClipUUID);
-                    m_loadedClip = NE::ECS::Command::GetAnimationClip(animator.animClipUUID);
-				}
-            } else {
-                m_selectedEntity = NE::ECS::NO_ENTITY;
-                m_loadedClipPath = "";
-                m_loadedClip = nullptr;
+            const bool contextChanged = (nextEntity != m_selectedEntity) || (nextClip.get() != m_loadedClip.get());
+            if (contextChanged && m_previewActive) {
+                EndPreview();
+            }
+
+            m_selectedEntity = nextEntity;
+            m_loadedClipPath = std::move(nextClipPath);
+            m_loadedClip = std::move(nextClip);
+
+            if (contextChanged) {
+                m_state.selectedTrack = -1;
+                m_state.selectedKey = {};
+                m_state.draggingKey = false;
             }
 
             const bool hasClip = (m_loadedClip != nullptr);
-            if (!hasClip) m_state.playing = false;
+            if (!hasClip) {
+                m_state.playing = false;
+                m_state.preview = false;
+            }
+
+            EndPreviewIfContextInvalid();
 
             ImGui::BeginChild("AnimLeft", ImVec2(300.0f, 0.0f), true);
             DrawLeftPanel(hasClip);
@@ -616,6 +632,70 @@ namespace Editor {
         return {};
     }
 
+    bool AnimationPanel::IsSelectedKeyValid() const {
+        if (!m_loadedClip) return false;
+
+        const auto& tracks = m_loadedClip->GetTracks();
+        if (m_state.selectedKey.trackIndex < 0 || m_state.selectedKey.trackIndex >= (int)tracks.size())
+            return false;
+
+        const auto& tr = tracks[m_state.selectedKey.trackIndex];
+        const int channels = ChannelCount(tr.type);
+        if (m_state.selectedKey.channel < 0 || m_state.selectedKey.channel >= channels)
+            return false;
+
+        const auto* c = GetCurveByChannel(tr, m_state.selectedKey.channel);
+        if (m_state.selectedKey.keyIndex < 0 || m_state.selectedKey.keyIndex >= (int)c->keys.size())
+            return false;
+
+        return true;
+    }
+
+    int AnimationPanel::DeleteKeysAtTime(NE::Animation::AnimTrack& tr, float time, bool allChannels) {
+        constexpr float eps = 1e-4f;
+        int removed = 0;
+        const int channels = ChannelCount(tr.type);
+
+        auto eraseAtTime = [&](NE::Animation::AnimCurveF& c) {
+            const int before = (int)c.keys.size();
+            c.keys.erase(std::remove_if(c.keys.begin(), c.keys.end(),
+                [&](const NE::Animation::AnimKeyF& k) { return std::fabs(k.time - time) <= eps; }),
+                c.keys.end());
+            removed += before - (int)c.keys.size();
+        };
+
+        if (!allChannels) {
+            if (m_state.selectedKey.channel >= 0 && m_state.selectedKey.channel < channels) {
+                eraseAtTime(*GetCurveByChannel(tr, m_state.selectedKey.channel));
+            }
+            return removed;
+        }
+
+        for (int ch = 0; ch < channels; ++ch) {
+            eraseAtTime(*GetCurveByChannel(tr, ch));
+        }
+
+        return removed;
+    }
+
+    bool AnimationPanel::DeleteSelectedKey() {
+        if (!IsSelectedKeyValid()) {
+            m_state.selectedKey = {};
+            m_state.draggingKey = false;
+            return false;
+        }
+
+        auto& tracks = m_loadedClip->GetTracksMutable();
+        auto& tr = tracks[m_state.selectedKey.trackIndex];
+        auto* c = GetCurveByChannel(tr, m_state.selectedKey.channel);
+
+        c->keys.erase(c->keys.begin() + m_state.selectedKey.keyIndex);
+
+        m_state.selectedKey = {};
+        m_state.draggingKey = false;
+        return true;
+    }
+
     void AnimationPanel::BeginPreview() {
         if (!m_loadedClip) return;
         if (m_selectedEntity == NE::ECS::NO_ENTITY) return;
@@ -634,7 +714,9 @@ namespace Editor {
 
         std::unordered_set<BaselineKey, BaselineKeyHash> dedup;
         for (const auto& tr : m_loadedClip->GetTracks()) {
-            if (tr.componentTypeId == NE::ECS::Query::GetTransformComponentType())
+            if (tr.componentTypeId == NE::ECS::Query::GetEntityMetaComponentType())
+                CaptureBaselineFromComponent<NE::ECS::Component::EntityMeta>(m_previewEntity, tr, "EntityMeta", m_previewBaseline, dedup);
+            else if (tr.componentTypeId == NE::ECS::Query::GetTransformComponentType())
                 CaptureBaselineFromComponent<NE::ECS::Component::Transform>(m_previewEntity, tr, "Transform", m_previewBaseline, dedup);
             else if (tr.componentTypeId == NE::ECS::Query::GetRendererComponentType())
                 CaptureBaselineFromComponent<NE::ECS::Component::Renderer>(m_previewEntity, tr, "Renderer", m_previewBaseline, dedup);
@@ -642,7 +724,6 @@ namespace Editor {
                 CaptureBaselineFromComponent<NE::ECS::Component::Light>(m_previewEntity, tr, "Light", m_previewBaseline, dedup);
         }
 
-        SetTime(0.0f);
         ApplyPreviewPose();
     }
 
@@ -651,7 +732,9 @@ namespace Editor {
         if (m_previewEntity == NE::ECS::NO_ENTITY) return;
 
         for (const auto& be : m_previewBaseline) {
-            if (be.componentTypeId == NE::ECS::Query::GetTransformComponentType())
+            if (be.componentTypeId == NE::ECS::Query::GetEntityMetaComponentType())
+                RestoreBaselineToComponent<NE::ECS::Component::EntityMeta>(m_previewEntity, be, "EntityMeta");
+            else if (be.componentTypeId == NE::ECS::Query::GetTransformComponentType())
                 RestoreBaselineToComponent<NE::ECS::Component::Transform>(m_previewEntity, be, "Transform");
             else if (be.componentTypeId == NE::ECS::Query::GetRendererComponentType())
                 RestoreBaselineToComponent<NE::ECS::Component::Renderer>(m_previewEntity, be, "Renderer");
@@ -669,10 +752,29 @@ namespace Editor {
         m_state.playing = false;
     }
 
+    void AnimationPanel::EnsurePreviewActiveForInteraction() {
+        if (!m_loadedClip || m_selectedEntity == NE::ECS::NO_ENTITY)
+            return;
+
+        if (!m_state.preview)
+            m_state.preview = true;
+
+        if (!m_previewActive || m_previewEntity != m_selectedEntity)
+            BeginPreview();
+    }
+
+    void AnimationPanel::EndPreviewIfContextInvalid() {
+        if (!m_previewActive) return;
+
+        if (!m_state.preview || !m_loadedClip || m_selectedEntity == NE::ECS::NO_ENTITY || m_previewEntity != m_selectedEntity) {
+            EndPreview();
+        }
+    }
+
     void AnimationPanel::SetTimeAndApply(float t) {
         SetTime(t);
+        EnsurePreviewActiveForInteraction();
         if (m_state.preview) {
-            if (!m_previewActive) BeginPreview();
             ApplyPreviewPose();
         }
     }
@@ -707,7 +809,9 @@ namespace Editor {
         ImGui::SameLine();
         ImGui::BeginDisabled(!m_state.record || m_state.selectedTrack < 0);
         if (ImGui::Button("Key")) {
+            EnsurePreviewActiveForInteraction();
             RecordKeyForTrack(m_state.selectedTrack);
+            ApplyPreviewPose();
         }
         ImGui::EndDisabled();
         ImGui::SameLine();
@@ -726,16 +830,11 @@ namespace Editor {
 
         if (smallBtn("|<")) SetTimeAndApply(0.0f);
         ImGui::SameLine();
-        if (smallBtn("<K")) { StepToPrevKey(); if (m_state.preview) ApplyPreviewPose(); }
+        if (smallBtn("<K")) { EnsurePreviewActiveForInteraction(); StepToPrevKey(); if (m_state.preview) ApplyPreviewPose(); }
         ImGui::SameLine();
 
         if (smallBtn(m_state.playing ? "||" : ">")) {
-            if (!m_state.preview) {
-                m_state.preview = true;
-                BeginPreview();
-            } else if (!m_previewActive) {
-                BeginPreview();
-            }
+            EnsurePreviewActiveForInteraction();
 
             m_state.playing = !m_state.playing;
 
@@ -744,7 +843,7 @@ namespace Editor {
         }
 
         ImGui::SameLine();
-        if (smallBtn("K>")) { StepToNextKey(); if (m_state.preview) ApplyPreviewPose(); }
+        if (smallBtn("K>")) { EnsurePreviewActiveForInteraction(); StepToNextKey(); if (m_state.preview) ApplyPreviewPose(); }
         ImGui::SameLine();
         if (smallBtn(">|")) SetTimeAndApply(L);
 
@@ -838,7 +937,18 @@ namespace Editor {
         if (m_state.record && m_state.selectedTrack >= 0) {
             if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
                 ImGui::IsKeyPressed(ImGuiKey_K)) {
+                EnsurePreviewActiveForInteraction();
                 RecordKeyForTrack(m_state.selectedTrack);
+                ApplyPreviewPose();
+            }
+        }
+
+        if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+            !io.WantTextInput &&
+            ImGui::IsKeyPressed(ImGuiKey_Delete, false)) {
+            EnsurePreviewActiveForInteraction();
+            if (DeleteSelectedKey()) {
+                ApplyPreviewPose();
             }
         }
 
@@ -882,6 +992,7 @@ namespace Editor {
                 float mx = io.MousePos.x;
                 float t = t0 + (mx - rulerRect.Min.x) / pxPerSec;
                 SetTime(t);
+                EnsurePreviewActiveForInteraction();
                 if (m_state.preview) ApplyPreviewPose();
             }
 
@@ -944,10 +1055,7 @@ namespace Editor {
                     KeyRef picked = PickKeyAt(tr, ti, rowRect, pxPerSec, t0, mouse);
 
                     if (picked.trackIndex >= 0) {
-                        if (!m_state.preview) {
-                            m_state.preview = true;
-                            BeginPreview();
-                        }
+                        EnsurePreviewActiveForInteraction();
 
                         m_state.selectedKey = picked;
                         m_state.selectedTrack = ti;
@@ -961,10 +1069,12 @@ namespace Editor {
                         //m_state.selectedKeyOriginalTime = c->keys[picked.keyIndex].time;
                         //m_state.draggingKey = true;
                     } else {
+                        EnsurePreviewActiveForInteraction();
                         m_state.selectedTrack = ti;
                         float t = t0 + (mouse.x - rowRect.Min.x) / pxPerSec;
                         SetTime(t);
                         m_state.selectedKey = {};
+                        if (m_state.preview) ApplyPreviewPose();
                     }
                 }
 
@@ -1002,13 +1112,49 @@ namespace Editor {
 
                 if (ImGui::BeginPopup(("KeyMenu##" + std::to_string(ti)).c_str())) {
                     if (ImGui::MenuItem("Add key at playhead (all channels)")) {
+                        EnsurePreviewActiveForInteraction();
                         const int chN = ChannelCount(tr.type);
                         for (int ch = 0; ch < chN; ++ch) {
                             auto* c = GetCurveByChannel(tr, ch);
                             InsertOrUpdateKey(*c, m_state.time, 0.0f);
                         }
+                        ApplyPreviewPose();
                     }
+
+                    bool hasSelectedKeyInTrack = IsSelectedKeyValid() && m_state.selectedKey.trackIndex == ti;
+                    if (ImGui::MenuItem("Delete selected key", "Del", false, hasSelectedKeyInTrack)) {
+                        EnsurePreviewActiveForInteraction();
+                        if (DeleteSelectedKey()) {
+                            ApplyPreviewPose();
+                        }
+                    }
+
+                    if (ImGui::MenuItem("Delete keys at selected time (all channels)", nullptr, false, hasSelectedKeyInTrack)) {
+                        const auto* selCurve = GetCurveByChannel(tr, m_state.selectedKey.channel);
+                        const float selectedTime = selCurve->keys[m_state.selectedKey.keyIndex].time;
+
+                        EnsurePreviewActiveForInteraction();
+                        if (DeleteKeysAtTime(tr, selectedTime, true) > 0) {
+                            m_state.selectedKey = {};
+                            m_state.draggingKey = false;
+                            ApplyPreviewPose();
+                        }
+                    }
+
                     if (ImGui::MenuItem("Delete track")) {
+                        if (m_state.selectedTrack == ti) {
+                            m_state.selectedTrack = -1;
+                        } else if (m_state.selectedTrack > ti) {
+                            --m_state.selectedTrack;
+                        }
+
+                        if (m_state.selectedKey.trackIndex == ti) {
+                            m_state.selectedKey = {};
+                            m_state.draggingKey = false;
+                        } else if (m_state.selectedKey.trackIndex > ti) {
+                            --m_state.selectedKey.trackIndex;
+                        }
+
                         tracks.erase(tracks.begin() + ti);
                         ImGui::EndPopup();
                         ImGui::EndTable();
