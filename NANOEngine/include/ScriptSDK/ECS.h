@@ -36,6 +36,12 @@ namespace NE {
             struct UICanvas;
             struct UIRectTransform;
             struct UIImage;
+            struct UIText;
+            struct UIButton;
+            struct UISlider;
+            struct UIToggle;
+            struct UIInputField;
+            struct UIDropdown;
         }
     }
 }

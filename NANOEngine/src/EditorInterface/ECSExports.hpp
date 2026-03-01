@@ -437,6 +437,45 @@ namespace NE::ECS {
 		/// Set the fill amount on a UIImage component (for FILLED image type)
 		NANOENGINE_API void SetUIImageFillAmount(uint32_t imageEntity, float fillAmount);
 
+		// --- UIText Helpers ---
+		NANOENGINE_API void SetUIText(uint32_t e, const char* text);
+		NANOENGINE_API void SetUITextColor(uint32_t e, float r, float g, float b, float a);
+		NANOENGINE_API const char* GetUITextString(uint32_t e);
+
+		// --- UIButton Helpers ---
+		NANOENGINE_API bool WasButtonClicked(uint32_t e);
+		NANOENGINE_API bool IsButtonHovered(uint32_t e);
+		NANOENGINE_API bool IsButtonPressed(uint32_t e);
+		NANOENGINE_API void SetButtonInteractable(uint32_t e, bool interactable);
+		NANOENGINE_API bool IsButtonInteractable(uint32_t e);
+
+		// --- UIToggle Helpers ---
+		NANOENGINE_API bool IsToggleOn(uint32_t e);
+		NANOENGINE_API void SetToggleOn(uint32_t e, bool value);
+		NANOENGINE_API bool ToggleValueChanged(uint32_t e);
+		NANOENGINE_API void SetToggleInteractable(uint32_t e, bool interactable);
+
+		// --- UISlider Helpers ---
+		NANOENGINE_API float GetSliderValue(uint32_t e);
+		NANOENGINE_API void SetSliderValue(uint32_t e, float value);
+		NANOENGINE_API float GetSliderNormalizedValue(uint32_t e);
+		NANOENGINE_API void SetSliderNormalizedValue(uint32_t e, float normalized);
+		NANOENGINE_API void SetSliderMinMax(uint32_t e, float minVal, float maxVal);
+		NANOENGINE_API bool SliderValueChanged(uint32_t e);
+		NANOENGINE_API void SetSliderInteractable(uint32_t e, bool interactable);
+
+		// --- UIInputField Helpers ---
+		NANOENGINE_API const char* GetInputFieldText(uint32_t e);
+		NANOENGINE_API void SetInputFieldText(uint32_t e, const char* text);
+		NANOENGINE_API bool IsInputFieldFocused(uint32_t e);
+		NANOENGINE_API void SetInputFieldInteractable(uint32_t e, bool interactable);
+
+		// --- UIDropdown Helpers ---
+		NANOENGINE_API int GetDropdownSelectedIndex(uint32_t e);
+		NANOENGINE_API void SetDropdownSelectedIndex(uint32_t e, int index);
+		NANOENGINE_API int GetDropdownOptionCount(uint32_t e);
+		NANOENGINE_API void SetDropdownInteractable(uint32_t e, bool interactable);
+
 		// --- UI Viewport Bounds (for Editor) ---
 		/// Set viewport bounds to transform mouse coordinates from window space to UI space
 		NANOENGINE_API void SetUIViewportBounds(float offsetX, float offsetY, float width, float height, float uiWidth, float uiHeight);
