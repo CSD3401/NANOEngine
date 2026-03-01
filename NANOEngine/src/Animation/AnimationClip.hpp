@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+
 #include "NANOEngineAPI.hpp"
 #include "Core/Reflection.hpp"
 #include "ResourceManagement/IResource.hpp"
@@ -12,7 +13,7 @@ namespace NE::Animation {
     struct AnimKeyF {
         float time;      // seconds
         float value;
-        float inTan;     // optional (for cubic)
+        float inTan;     // for cubic
         float outTan;
 
         NE_REFLECT_BEGIN(AnimKeyF)
@@ -31,17 +32,34 @@ namespace NE::Animation {
             NE_REFLECT_END()
     };
 
-    enum class AnimValueType { Bool, Float, Vec2, Vec3, Vec4, Quat };
+    struct AnimKeyS {
+        float time;
+        std::string value;
+
+        NE_REFLECT_BEGIN(AnimKeyS)
+            NE_REFLECT_FIELD(time),
+            NE_REFLECT_FIELD(value)
+            NE_REFLECT_END()
+    };
+
+    struct AnimCurveS {
+        std::vector<AnimKeyS> keys;
+        NE_REFLECT_BEGIN(AnimCurveS)
+            NE_REFLECT_FIELD(keys)
+            NE_REFLECT_END()
+    };
+
+    enum class AnimValueType { Bool, Float, Vec2, Vec3, Vec4, Quat, String };
 
     struct AnimTrack {
-        // binding
-        std::string relativePath; // e.g. "Root/Spine/Arm_L" (or your LUID path)
-        uint32_t componentTypeId; // your reflection type id
-        uint32_t fieldId;         // your reflection field id (or hashed "Transform.position")
+        std::string relativePath; // "Root/Spine/Arm_L" or your LUID path
+        uint32_t componentTypeId;
+        uint32_t fieldId;
         AnimValueType type;
 
         // curves (fast + simple)
         AnimCurveF x, y, z, w;    // used depending on type
+        AnimCurveS s;             // used by String tracks
 
         NE_REFLECT_BEGIN(AnimTrack)
             NE_REFLECT_FIELD(relativePath),
@@ -51,7 +69,8 @@ namespace NE::Animation {
             NE_REFLECT_FIELD(x),
             NE_REFLECT_FIELD(y),
             NE_REFLECT_FIELD(z),
-            NE_REFLECT_FIELD(w)
+            NE_REFLECT_FIELD(w),
+            NE_REFLECT_FIELD(s)
 			NE_REFLECT_END()
     };
 

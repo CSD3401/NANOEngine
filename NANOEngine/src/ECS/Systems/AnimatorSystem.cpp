@@ -1,12 +1,11 @@
 #include "pch.h"
 #include "AnimatorSystem.hpp"
 
-#include <algorithm>
-
 #include "ECS/Core/EntityManager.hpp"
 #include "ECS/Core/ComponentManager.hpp"
 #include "Core/LUIDRegistry.hpp"
 #include "Core/LUIDGenerator.hpp"
+#include "Core/SpdLogger.hpp"
 #include "Math/Quat.hpp"
 
 #include "ECS/Components/EntityMeta.hpp"
@@ -55,6 +54,21 @@ namespace NE::ECS::Systems {
                 }
             }
             return keys.back().value;
+        }
+
+        bool EvalCurveStep(const NE::Animation::AnimCurveS& c, float t, std::string& out) {
+            const auto& keys = c.keys;
+            if (keys.empty()) return false;
+
+            out = keys.front().value;
+            for (const auto& key : keys) {
+                if (key.time <= t) {
+                    out = key.value;
+                } else {
+                    break;
+                }
+            }
+            return true;
         }
 
         template <typename FieldT>
@@ -111,6 +125,57 @@ namespace NE::ECS::Systems {
             if constexpr (requires { comp.isDirty; }) comp.isDirty = true;
         }
 
+        bool ApplyRendererStringTrack(
+            uint32_t e,
+            NE::ECS::ComponentManager* m_componentManager,
+            const NE::Animation::AnimTrack& tr,
+            float t
+        ) {
+            using VT = NE::Animation::AnimValueType;
+            if (tr.type != VT::String) return false;
+            if (!m_componentManager->HasComponent<NE::ECS::Component::Renderer>(e)) return false;
+
+            static const uint32_t modelUUIDField = MakeFieldId("Renderer", "modelUUID");
+            static const uint32_t materialUUIDField = MakeFieldId("Renderer", "materialUUID");
+            if (tr.fieldId != modelUUIDField && tr.fieldId != materialUUIDField) return false;
+
+            std::string sampled;
+            if (!EvalCurveStep(tr.s, t, sampled)) return false;
+
+            auto& renderer = m_componentManager->GetComponent<NE::ECS::Component::Renderer>(e);
+            if (tr.fieldId == modelUUIDField) {
+                if (sampled == renderer.modelUUID) return true;
+
+                auto model = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Model>(sampled);
+                if (!model) {
+                    SPD_WARNING("[AnimatorSystem] Failed to load animated model UUID: " << sampled);
+                    return false;
+                }
+
+                renderer.modelUUID = sampled;
+                renderer.model = std::move(model);
+                if (!renderer.model->meshes.empty()) {
+                    if (renderer.subMeshIndex < 0 || renderer.subMeshIndex >= (int32_t)renderer.model->meshes.size())
+                        renderer.subMeshIndex = 0;
+                } else {
+                    renderer.subMeshIndex = 0;
+                }
+                return true;
+            }
+
+            if (sampled == renderer.materialUUID) return true;
+
+            auto material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>(sampled);
+            if (!material) {
+                SPD_WARNING("[AnimatorSystem] Failed to load animated material UUID: " << sampled);
+                return false;
+            }
+
+            renderer.materialUUID = sampled;
+            renderer.material = std::move(material);
+            return true;
+        }
+
         template <typename CompT>
         bool ApplyTrackToComponent(uint32_t e,
 			NE::ECS::ComponentManager* m_componentManager,
@@ -142,10 +207,11 @@ namespace NE::ECS::Systems {
                 }
             );
 
-            if constexpr (requires { comp.localRotationQuat; }) 
-                comp.localRotationQuat = NE::Math::Quat::FromEulerDegrees(comp.localRotationEuler);
-
-            MarkDirtyIfPresent(comp);
+            if (applied) {
+                if constexpr (requires { comp.localRotationQuat; })
+                    comp.localRotationQuat = NE::Math::Quat::FromEulerDegrees(comp.localRotationEuler);
+                MarkDirtyIfPresent(comp);
+            }
 
             return applied;
         }
@@ -205,14 +271,16 @@ namespace NE::ECS::Systems {
 
     }
 
-    void AnimatorSystem::ApplyClipAtTime(uint32_t e, const Animation::AnimationClip& clip, float t) {
+    void AnimatorSystem::ApplyClipAtTime(Entity e, const Animation::AnimationClip& clip, float t) {
         for (const auto& tr : clip.GetTracks()) {
             if (tr.componentTypeId == m_componentManager->GetComponentType<Component::EntityMeta>()) {
                 ApplyTrackToComponent<NE::ECS::Component::EntityMeta>(e, m_componentManager, tr, t, "EntityMeta");
             } else if (tr.componentTypeId == m_componentManager->GetComponentType<Component::Transform>()) {
                 ApplyTrackToComponent<NE::ECS::Component::Transform>(e, m_componentManager, tr, t, "Transform");
             } else if (tr.componentTypeId == m_componentManager->GetComponentType<Component::Renderer>()) {
-                ApplyTrackToComponent<NE::ECS::Component::Renderer>(e, m_componentManager, tr, t, "Renderer");
+                if (!ApplyRendererStringTrack(e, m_componentManager, tr, t)) {
+                    ApplyTrackToComponent<NE::ECS::Component::Renderer>(e, m_componentManager, tr, t, "Renderer");
+                }
             } else if (tr.componentTypeId == m_componentManager->GetComponentType<Component::Light>()) {
                 ApplyTrackToComponent<NE::ECS::Component::Light>(e, m_componentManager, tr, t, "Light");
             }

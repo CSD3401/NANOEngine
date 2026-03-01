@@ -2,6 +2,8 @@
 #include "IPanel.hpp"
 
 #include <memory>
+#include <string>
+#include <type_traits>
 #include <variant>
 
 #include <imgui/imgui.h>
@@ -36,7 +38,7 @@ namespace Editor {
         }
     };
 
-    using BaselineValue = std::variant<bool, float, NE::Math::Vec2, NE::Math::Vec3, NE::Math::Vec4>;
+    using BaselineValue = std::variant<bool, float, NE::Math::Vec2, NE::Math::Vec3, NE::Math::Vec4, std::string>;
 
     struct BaselineEntry {
         uint32_t componentTypeId{};
@@ -70,6 +72,8 @@ namespace Editor {
         // selection
         KeyRef selectedKey{};
         float selectedKeyOriginalTime = 0.0f;
+        bool dragCandidate = false;
+        float dragTimeOffset = 0.0f;
         bool draggingKey = false;
 
         // track UI
@@ -119,10 +123,18 @@ namespace Editor {
         void DrawRulerAndGrid(const ImRect& rect, float pxPerSec, float t0, float t1);
         void DrawPlayhead(const ImRect& rect, float pxPerSec, float t0);
 
-        bool HitDiamond(const ImVec2& p, const ImVec2& center, float r) const;
         void DrawDiamond(ImDrawList* dl, const ImVec2& c, float r, unsigned int col) const;
-
-        KeyRef PickKeyAt(NE::Animation::AnimTrack& tr, int trackIndex, const ImRect& rowRect, float pxPerSec, float t0, const ImVec2& mouse);
+        void DrawDiamondOutline(ImDrawList* dl, const ImVec2& c, float r, unsigned int col) const;
+        void HandleKeyClickHitboxes(
+            NE::Animation::AnimTrack& tr,
+            int trackIndex,
+            const ImRect& rowRect,
+            float pxPerSec,
+            float t0,
+            KeyRef& hoveredKey,
+            bool& leftClickedKey,
+            bool& rightClickedKey
+        );
 
         bool m_previewActive = false;
         uint32_t m_previewEntity = NE::ECS::NO_ENTITY;
@@ -130,8 +142,13 @@ namespace Editor {
 
         void BeginPreview();
         void EndPreview();
+        void EnsurePreviewActiveForInteraction();
+        void EndPreviewIfContextInvalid();
         void SetTimeAndApply(float t);
         void ApplyPreviewPose();
+        bool IsSelectedKeyValid() const;
+        bool DeleteSelectedKey();
+        int DeleteKeysAtTime(NE::Animation::AnimTrack& tr, float time, bool allChannels);
 
         void MenuEntityMeta(uint32_t e);
         void MenuTransform(uint32_t e);
@@ -148,6 +165,11 @@ namespace Editor {
                 NE::Animation::AnimValueType animType;
                 if (!TryAnimValueType<FieldT>(animType))
                     return;
+
+                if constexpr (std::is_same_v<FieldT, std::string>) {
+                    if (componentTypeId != NE::ECS::Query::GetRendererComponentType())
+                        return;
+                }
 
                 std::string full;
                 full.reserve(std::strlen(componentName) + 1 + desc.name.size());
@@ -172,6 +194,14 @@ namespace Editor {
                         tr.fieldId = fieldId;
                         tr.type = animType;
                         tracks.push_back(std::move(tr));
+
+                        const float timeBeforeRefresh = m_state.time;
+                        if (m_previewActive) {
+                            EndPreview();
+                        }
+                        EnsurePreviewActiveForInteraction();
+                        SetTime(timeBeforeRefresh);
+                        ApplyPreviewPose();
                     }
 
                     ImGui::CloseCurrentPopup();
