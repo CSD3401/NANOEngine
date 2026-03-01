@@ -43,6 +43,7 @@ namespace Editor {
             case NE::Animation::AnimValueType::Vec3:  return 3;
             case NE::Animation::AnimValueType::Vec4:  return 4;
             case NE::Animation::AnimValueType::Quat:  return 4;
+            case NE::Animation::AnimValueType::String: return 1;
             default: return 1;
             }
         }
@@ -55,6 +56,7 @@ namespace Editor {
             case NE::Animation::AnimValueType::Vec3:  return "Vec3";
             case NE::Animation::AnimValueType::Vec4:  return "Vec4";
             case NE::Animation::AnimValueType::Quat:  return "Quat";
+            case NE::Animation::AnimValueType::String: return "String";
             default: return "Unknown";
             }
         }
@@ -81,9 +83,13 @@ namespace Editor {
 
         inline void CollectUniqueKeyTimes(const NE::Animation::AnimTrack& tr, std::vector<float>& outTimes) {
             outTimes.clear();
+            if (tr.type == NE::Animation::AnimValueType::String) {
+                for (const auto& k : tr.s.keys) outTimes.push_back(k.time);
+            }
+
             const int channels = ChannelCount(tr.type);
 
-            for (int ch = 0; ch < channels; ++ch) {
+            for (int ch = 0; ch < channels && tr.type != NE::Animation::AnimValueType::String; ++ch) {
                 const NE::Animation::AnimCurveF* c = GetCurveByChannel(tr, ch);
                 for (const auto& k : c->keys) outTimes.push_back(k.time);
             }
@@ -123,6 +129,22 @@ namespace Editor {
                 [](const NE::Animation::AnimKeyF& a, const NE::Animation::AnimKeyF& b) { return a.time < b.time; });
         }
 
+        void InsertOrUpdateKey(NE::Animation::AnimCurveS& c, float time, const std::string& value) {
+            constexpr float eps = 1e-4f;
+
+            for (auto& k : c.keys) {
+                if (std::fabs(k.time - time) <= eps) {
+                    k.time = time;
+                    k.value = value;
+                    return;
+                }
+            }
+
+            c.keys.push_back(NE::Animation::AnimKeyS{ time, value });
+            std::sort(c.keys.begin(), c.keys.end(),
+                [](const NE::Animation::AnimKeyS& a, const NE::Animation::AnimKeyS& b) { return a.time < b.time; });
+        }
+
         template <typename T>
         struct AnimFieldTrait {
             static constexpr bool supported = false;
@@ -148,6 +170,10 @@ namespace Editor {
             static constexpr bool supported = true;
             static constexpr NE::Animation::AnimValueType type = NE::Animation::AnimValueType::Vec4;
         };
+        template <> struct AnimFieldTrait<std::string> {
+            static constexpr bool supported = true;
+            static constexpr NE::Animation::AnimValueType type = NE::Animation::AnimValueType::String;
+        };
 
         template <typename T>
         concept AnimatableField = AnimFieldTrait<std::remove_cvref_t<T>>::supported;
@@ -171,6 +197,8 @@ namespace Editor {
                 InsertOrUpdateKey(tr.y, time, v.y);
                 InsertOrUpdateKey(tr.z, time, v.z);
                 InsertOrUpdateKey(tr.w, time, v.w);
+            } else if constexpr (std::is_same_v<ValueT, std::string>) {
+                InsertOrUpdateKey(tr.s, time, v);
             }
         }
 
@@ -209,6 +237,11 @@ namespace Editor {
         float ComputeMaxKeyTime(const NE::Animation::AnimationClip& clip) {
             float mx = 0.0f;
             for (auto const& tr : clip.GetTracks()) {
+                if (tr.type == NE::Animation::AnimValueType::String) {
+                    for (const auto& k : tr.s.keys) mx = std::max(mx, k.time);
+                    continue;
+                }
+
                 const int chN = ChannelCount(tr.type);
                 for (int ch = 0; ch < chN; ++ch) {
                     auto const* c = GetCurveByChannel(tr, ch);
@@ -241,6 +274,11 @@ namespace Editor {
         float ComputeMinKeyTime(const NE::Animation::AnimationClip& clip) {
             float best = std::numeric_limits<float>::infinity();
             for (const auto& tr : clip.GetTracks()) {
+                if (tr.type == NE::Animation::AnimValueType::String) {
+                    for (const auto& k : tr.s.keys) best = std::min(best, k.time);
+                    continue;
+                }
+
                 const int chN = ChannelCount(tr.type);
                 for (int ch = 0; ch < chN; ++ch) {
                     const auto* c = GetCurveByChannel(tr, ch);
@@ -264,6 +302,8 @@ namespace Editor {
                 e.value = v;
             } else if constexpr (std::is_same_v<U, NE::Math::Vec4>) {
                 e.value = v;
+            } else if constexpr (std::is_same_v<U, std::string>) {
+                e.value = v;
             }
             else {
                 // unsupported type
@@ -279,7 +319,8 @@ namespace Editor {
             std::same_as<DecayT<T>, float> ||
             std::same_as<DecayT<T>, NE::Math::Vec2> ||
             std::same_as<DecayT<T>, NE::Math::Vec3> ||
-            std::same_as<DecayT<T>, NE::Math::Vec4>;
+            std::same_as<DecayT<T>, NE::Math::Vec4> ||
+            std::same_as<DecayT<T>, std::string>;
 
         template<class FieldT>
         DecayT<FieldT>* GetBaselinePtr(BaselineEntry& be) {
@@ -609,6 +650,64 @@ namespace Editor {
         leftClickedKey = false;
         rightClickedKey = false;
 
+        if (tr.type == NE::Animation::AnimValueType::String) {
+            const float y = (rowRect.Min.y + rowRect.Max.y) * 0.5f;
+            constexpr float r = 5.0f;
+            constexpr float pad = 2.0f;
+
+            for (int ki = 0; ki < (int)tr.s.keys.size(); ++ki) {
+                const float kt = tr.s.keys[ki].time;
+                const float x = rowRect.Min.x + (kt - t0) * pxPerSec;
+                if (x < rowRect.Min.x - 10.0f || x > rowRect.Max.x + 10.0f) continue;
+
+                const ImRect hitRect(
+                    ImVec2(x - r - pad, y - r - pad),
+                    ImVec2(x + r + pad, y + r + pad)
+                );
+
+                ImGui::SetCursorScreenPos(hitRect.Min);
+
+                ImGui::PushID(trackIndex);
+                ImGui::PushID(0);
+                ImGui::PushID(ki);
+                ImGui::InvisibleButton("KeyHit", hitRect.GetSize());
+
+                const bool hovered = ImGui::IsItemHovered();
+                if (hovered) {
+                    hoveredKey = KeyRef{ trackIndex, 0, ki };
+                    ImGui::SetTooltip("t=%.3fs\n%s", kt, tr.s.keys[ki].value.c_str());
+                }
+
+                if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+                    ImGuiIO& io = ImGui::GetIO();
+                    EnsurePreviewActiveForInteraction();
+                    m_state.selectedKey = KeyRef{ trackIndex, 0, ki };
+                    m_state.selectedTrack = trackIndex;
+                    m_state.selectedKeyOriginalTime = kt;
+                    const float mouseTime = t0 + (io.MousePos.x - rowRect.Min.x) / pxPerSec;
+                    m_state.dragTimeOffset = kt - mouseTime;
+                    m_state.dragCandidate = true;
+                    m_state.draggingKey = false;
+                    SetTime(kt);
+                    if (m_state.preview) ApplyPreviewPose();
+                    leftClickedKey = true;
+                }
+
+                if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+                    m_state.selectedKey = KeyRef{ trackIndex, 0, ki };
+                    m_state.selectedTrack = trackIndex;
+                    m_state.dragCandidate = false;
+                    m_state.draggingKey = false;
+                    rightClickedKey = true;
+                }
+
+                ImGui::PopID();
+                ImGui::PopID();
+                ImGui::PopID();
+            }
+            return;
+        }
+
         const int channels = ChannelCount(tr.type);
         for (int ch = 0; ch < channels; ++ch) {
             auto* c = GetCurveByChannel(tr, ch);
@@ -674,6 +773,12 @@ namespace Editor {
             return false;
 
         const auto& tr = tracks[m_state.selectedKey.trackIndex];
+        if (tr.type == NE::Animation::AnimValueType::String) {
+            if (m_state.selectedKey.channel != 0)
+                return false;
+            return m_state.selectedKey.keyIndex >= 0 && m_state.selectedKey.keyIndex < (int)tr.s.keys.size();
+        }
+
         const int channels = ChannelCount(tr.type);
         if (m_state.selectedKey.channel < 0 || m_state.selectedKey.channel >= channels)
             return false;
@@ -688,6 +793,15 @@ namespace Editor {
     int AnimationPanel::DeleteKeysAtTime(NE::Animation::AnimTrack& tr, float time, bool allChannels) {
         constexpr float eps = 1e-4f;
         int removed = 0;
+
+        if (tr.type == NE::Animation::AnimValueType::String) {
+            const int before = (int)tr.s.keys.size();
+            tr.s.keys.erase(std::remove_if(tr.s.keys.begin(), tr.s.keys.end(),
+                [&](const NE::Animation::AnimKeyS& k) { return std::fabs(k.time - time) <= eps; }),
+                tr.s.keys.end());
+            return before - (int)tr.s.keys.size();
+        }
+
         const int channels = ChannelCount(tr.type);
 
         auto eraseAtTime = [&](NE::Animation::AnimCurveF& c) {
@@ -722,6 +836,15 @@ namespace Editor {
 
         auto& tracks = m_loadedClip->GetTracksMutable();
         auto& tr = tracks[m_state.selectedKey.trackIndex];
+        if (tr.type == NE::Animation::AnimValueType::String) {
+            tr.s.keys.erase(tr.s.keys.begin() + m_state.selectedKey.keyIndex);
+
+            m_state.selectedKey = {};
+            m_state.dragCandidate = false;
+            m_state.draggingKey = false;
+            return true;
+        }
+
         auto* c = GetCurveByChannel(tr, m_state.selectedKey.channel);
 
         c->keys.erase(c->keys.begin() + m_state.selectedKey.keyIndex);
@@ -939,31 +1062,38 @@ namespace Editor {
             if (hasClip && IsSelectedKeyValid()) {
                 const auto& tracks = m_loadedClip->GetTracks();
                 const auto& tr = tracks[m_state.selectedKey.trackIndex];
-                const auto* c = GetCurveByChannel(tr, m_state.selectedKey.channel);
-                const auto& key = c->keys[m_state.selectedKey.keyIndex];
-
-                static constexpr const char* channelNames[] = { "X", "Y", "Z", "W" };
-                const char* channelName = (m_state.selectedKey.channel >= 0 && m_state.selectedKey.channel < 4)
-                    ? channelNames[m_state.selectedKey.channel]
-                    : "?";
-
                 ImGui::Text("Property: %s", GetTrackDisplayName(tr).c_str());
                 ImGui::Text("Type: %s", ValueTypeName(tr.type));
-                ImGui::Text("Channel: %s", channelName);
-                ImGui::Text("Time: %.3fs", key.time);
-                ImGui::Text("Value: %.3f", key.value);
 
-                constexpr float eps = 1e-4f;
-                const int channelCount = ChannelCount(tr.type);
-                if (channelCount > 1) {
-                    ImGui::TextUnformatted("Property values at key time:");
-                    for (int ch = 0; ch < channelCount; ++ch) {
-                        const auto* curve = GetCurveByChannel(tr, ch);
-                        const auto it = std::find_if(curve->keys.begin(), curve->keys.end(),
-                            [&](const NE::Animation::AnimKeyF& k) { return std::fabs(k.time - key.time) <= eps; });
-                        if (it != curve->keys.end()) {
-                            const char* chName = (ch >= 0 && ch < 4) ? channelNames[ch] : "?";
-                            ImGui::Text("%s: %.3f", chName, it->value);
+                if (tr.type == NE::Animation::AnimValueType::String) {
+                    const auto& key = tr.s.keys[m_state.selectedKey.keyIndex];
+                    ImGui::Text("Time: %.3fs", key.time);
+                    ImGui::TextWrapped("Value: %s", key.value.c_str());
+                } else {
+                    const auto* c = GetCurveByChannel(tr, m_state.selectedKey.channel);
+                    const auto& key = c->keys[m_state.selectedKey.keyIndex];
+
+                    static constexpr const char* channelNames[] = { "X", "Y", "Z", "W" };
+                    const char* channelName = (m_state.selectedKey.channel >= 0 && m_state.selectedKey.channel < 4)
+                        ? channelNames[m_state.selectedKey.channel]
+                        : "?";
+
+                    ImGui::Text("Channel: %s", channelName);
+                    ImGui::Text("Time: %.3fs", key.time);
+                    ImGui::Text("Value: %.3f", key.value);
+
+                    constexpr float eps = 1e-4f;
+                    const int channelCount = ChannelCount(tr.type);
+                    if (channelCount > 1) {
+                        ImGui::TextUnformatted("Property values at key time:");
+                        for (int ch = 0; ch < channelCount; ++ch) {
+                            const auto* curve = GetCurveByChannel(tr, ch);
+                            const auto it = std::find_if(curve->keys.begin(), curve->keys.end(),
+                                [&](const NE::Animation::AnimKeyF& k) { return std::fabs(k.time - key.time) <= eps; });
+                            if (it != curve->keys.end()) {
+                                const char* chName = (ch >= 0 && ch < 4) ? channelNames[ch] : "?";
+                                ImGui::Text("%s: %.3f", chName, it->value);
+                            }
                         }
                     }
                 }
@@ -1118,10 +1248,19 @@ namespace Editor {
                 HandleKeyClickHitboxes(tr, ti, rowRect, pxPerSec, t0, hoveredRowKey, leftClickedKey, rightClickedKey);
 
                 if (hoveredRowKey.trackIndex == ti) {
-                    auto* hc = GetCurveByChannel(tr, hoveredRowKey.channel);
-                    if (hoveredRowKey.keyIndex >= 0 && hoveredRowKey.keyIndex < (int)hc->keys.size()) {
+                    const bool isStringTrack = tr.type == NE::Animation::AnimValueType::String;
+                    const bool hasKey = isStringTrack
+                        ? (hoveredRowKey.keyIndex >= 0 && hoveredRowKey.keyIndex < (int)tr.s.keys.size())
+                        : ([&] {
+                            auto* hc = GetCurveByChannel(tr, hoveredRowKey.channel);
+                            return hoveredRowKey.keyIndex >= 0 && hoveredRowKey.keyIndex < (int)hc->keys.size();
+                            })();
+                    if (hasKey) {
                         const float hy = (rowRect.Min.y + rowRect.Max.y) * 0.5f;
-                        const float hx = rowRect.Min.x + (hc->keys[hoveredRowKey.keyIndex].time - t0) * pxPerSec;
+                        const float keyTime = isStringTrack
+                            ? tr.s.keys[hoveredRowKey.keyIndex].time
+                            : GetCurveByChannel(tr, hoveredRowKey.channel)->keys[hoveredRowKey.keyIndex].time;
+                        const float hx = rowRect.Min.x + (keyTime - t0) * pxPerSec;
                         DrawDiamondOutline(dl, ImVec2(hx, hy), 6.5f, IM_COL32(120, 220, 255, 255));
                     }
                 }
@@ -1149,16 +1288,19 @@ namespace Editor {
                     m_state.selectedKey.trackIndex == ti &&
                     ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
                     auto& sTr = tracks[m_state.selectedKey.trackIndex];
-                    auto* c = GetCurveByChannel(sTr, m_state.selectedKey.channel);
+                    const bool stringTrack = sTr.type == NE::Animation::AnimValueType::String;
+                    auto* c = stringTrack ? nullptr : GetCurveByChannel(sTr, m_state.selectedKey.channel);
+                    const bool validKey = stringTrack
+                        ? (m_state.selectedKey.keyIndex >= 0 && m_state.selectedKey.keyIndex < (int)sTr.s.keys.size())
+                        : (m_state.selectedKey.keyIndex >= 0 && m_state.selectedKey.keyIndex < (int)c->keys.size());
 
-                    if (m_state.selectedKey.keyIndex >= 0 && m_state.selectedKey.keyIndex < (int)c->keys.size()) {
+                    if (validKey) {
                         if (m_state.dragCandidate && !m_state.draggingKey &&
                             ImGui::IsMouseDragging(ImGuiMouseButton_Left, 3.0f)) {
                             m_state.draggingKey = true;
                         }
 
                         if (m_state.draggingKey) {
-                            const auto draggedSnapshot = c->keys[m_state.selectedKey.keyIndex];
                             float t = t0 + (io.MousePos.x - rowRect.Min.x) / pxPerSec + m_state.dragTimeOffset;
                             if (t < 0.0f) t = 0.0f;
 
@@ -1170,28 +1312,54 @@ namespace Editor {
                                 t = Clamp(t, 0.0f, std::max(0.0f, Lclip));
                             }
 
-                            c->keys[m_state.selectedKey.keyIndex].time = t;
+                            if (stringTrack) {
+                                const auto draggedSnapshot = sTr.s.keys[m_state.selectedKey.keyIndex];
+                                sTr.s.keys[m_state.selectedKey.keyIndex].time = t;
 
-                            std::sort(c->keys.begin(), c->keys.end(),
-                                [](const NE::Animation::AnimKeyF& a, const NE::Animation::AnimKeyF& b) { return a.time < b.time; });
+                                std::sort(sTr.s.keys.begin(), sTr.s.keys.end(),
+                                    [](const NE::Animation::AnimKeyS& a, const NE::Animation::AnimKeyS& b) { return a.time < b.time; });
 
-                            int bestIndex = -1;
-                            float bestScore = std::numeric_limits<float>::infinity();
-                            for (int i = 0; i < (int)c->keys.size(); ++i) {
-                                const auto& key = c->keys[i];
-                                const float score =
-                                    std::fabs(key.time - t) * 1000.0f +
-                                    std::fabs(key.value - draggedSnapshot.value) +
-                                    std::fabs(key.inTan - draggedSnapshot.inTan) +
-                                    std::fabs(key.outTan - draggedSnapshot.outTan);
-                                if (score < bestScore) {
-                                    bestScore = score;
-                                    bestIndex = i;
+                                int bestIndex = -1;
+                                float bestScore = std::numeric_limits<float>::infinity();
+                                for (int i = 0; i < (int)sTr.s.keys.size(); ++i) {
+                                    const auto& key = sTr.s.keys[i];
+                                    const float score =
+                                        std::fabs(key.time - t) * 1000.0f +
+                                        (key.value == draggedSnapshot.value ? 0.0f : 1.0f);
+                                    if (score < bestScore) {
+                                        bestScore = score;
+                                        bestIndex = i;
+                                    }
                                 }
-                            }
-                            if (bestIndex >= 0) {
-                                m_state.selectedKey.keyIndex = bestIndex;
-                                m_state.selectedKeyOriginalTime = t;
+                                if (bestIndex >= 0) {
+                                    m_state.selectedKey.keyIndex = bestIndex;
+                                    m_state.selectedKeyOriginalTime = t;
+                                }
+                            } else {
+                                const auto draggedSnapshot = c->keys[m_state.selectedKey.keyIndex];
+                                c->keys[m_state.selectedKey.keyIndex].time = t;
+
+                                std::sort(c->keys.begin(), c->keys.end(),
+                                    [](const NE::Animation::AnimKeyF& a, const NE::Animation::AnimKeyF& b) { return a.time < b.time; });
+
+                                int bestIndex = -1;
+                                float bestScore = std::numeric_limits<float>::infinity();
+                                for (int i = 0; i < (int)c->keys.size(); ++i) {
+                                    const auto& key = c->keys[i];
+                                    const float score =
+                                        std::fabs(key.time - t) * 1000.0f +
+                                        std::fabs(key.value - draggedSnapshot.value) +
+                                        std::fabs(key.inTan - draggedSnapshot.inTan) +
+                                        std::fabs(key.outTan - draggedSnapshot.outTan);
+                                    if (score < bestScore) {
+                                        bestScore = score;
+                                        bestIndex = i;
+                                    }
+                                }
+                                if (bestIndex >= 0) {
+                                    m_state.selectedKey.keyIndex = bestIndex;
+                                    m_state.selectedKeyOriginalTime = t;
+                                }
                             }
 
                             SetTime(t);
@@ -1214,12 +1382,18 @@ namespace Editor {
                 }
 
                 if (ImGui::BeginPopup(("KeyMenu##" + std::to_string(ti)).c_str())) {
-                    if (ImGui::MenuItem("Add key at playhead (all channels)")) {
+                    const bool stringTrack = tr.type == NE::Animation::AnimValueType::String;
+                    const char* addKeyLabel = stringTrack ? "Add key at playhead" : "Add key at playhead (all channels)";
+                    if (ImGui::MenuItem(addKeyLabel)) {
                         EnsurePreviewActiveForInteraction();
-                        const int chN = ChannelCount(tr.type);
-                        for (int ch = 0; ch < chN; ++ch) {
-                            auto* c = GetCurveByChannel(tr, ch);
-                            InsertOrUpdateKey(*c, m_state.time, 0.0f);
+                        if (stringTrack) {
+                            RecordKeyForTrack(ti);
+                        } else {
+                            const int chN = ChannelCount(tr.type);
+                            for (int ch = 0; ch < chN; ++ch) {
+                                auto* c = GetCurveByChannel(tr, ch);
+                                InsertOrUpdateKey(*c, m_state.time, 0.0f);
+                            }
                         }
                         ApplyPreviewPose();
                     }
@@ -1233,8 +1407,9 @@ namespace Editor {
                     }
 
                     if (ImGui::MenuItem("Delete keys at selected time (all channels)", nullptr, false, hasSelectedKeyInTrack)) {
-                        const auto* selCurve = GetCurveByChannel(tr, m_state.selectedKey.channel);
-                        const float selectedTime = selCurve->keys[m_state.selectedKey.keyIndex].time;
+                        const float selectedTime = (tr.type == NE::Animation::AnimValueType::String)
+                            ? tr.s.keys[m_state.selectedKey.keyIndex].time
+                            : GetCurveByChannel(tr, m_state.selectedKey.channel)->keys[m_state.selectedKey.keyIndex].time;
 
                         EnsurePreviewActiveForInteraction();
                         if (DeleteKeysAtTime(tr, selectedTime, true) > 0) {
@@ -1335,6 +1510,24 @@ namespace Editor {
     ) {
         const float y = (rowRect.Min.y + rowRect.Max.y) * 0.5f;
         const float r = 5.0f;
+
+        if (tr.type == NE::Animation::AnimValueType::String) {
+            for (int ki = 0; ki < (int)tr.s.keys.size(); ++ki) {
+                const float kt = tr.s.keys[ki].time;
+                const float x = rowRect.Min.x + (kt - t0) * pxPerSec;
+
+                if (x < rowRect.Min.x - 10.0f || x > rowRect.Max.x + 10.0f) continue;
+
+                const bool selected =
+                    (m_state.selectedKey.trackIndex == ti &&
+                        m_state.selectedKey.channel == 0 &&
+                        m_state.selectedKey.keyIndex == ki);
+
+                ImU32 col = selected ? IM_COL32(255, 220, 120, 255) : IM_COL32(220, 220, 220, 255);
+                DrawDiamond(dl, ImVec2(x, y), r, col);
+            }
+            return;
+        }
 
         const int channels = ChannelCount(tr.type);
 

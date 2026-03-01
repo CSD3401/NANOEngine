@@ -2,6 +2,8 @@
 #include "IPanel.hpp"
 
 #include <memory>
+#include <string>
+#include <type_traits>
 #include <variant>
 
 #include <imgui/imgui.h>
@@ -36,7 +38,7 @@ namespace Editor {
         }
     };
 
-    using BaselineValue = std::variant<bool, float, NE::Math::Vec2, NE::Math::Vec3, NE::Math::Vec4>;
+    using BaselineValue = std::variant<bool, float, NE::Math::Vec2, NE::Math::Vec3, NE::Math::Vec4, std::string>;
 
     struct BaselineEntry {
         uint32_t componentTypeId{};
@@ -163,6 +165,11 @@ namespace Editor {
                 NE::Animation::AnimValueType animType;
                 if (!TryAnimValueType<FieldT>(animType))
                     return;
+
+                if constexpr (std::is_same_v<FieldT, std::string>) {
+                    if (componentTypeId != NE::ECS::Query::GetRendererComponentType())
+                        return;
+                }
 
                 std::string full;
                 full.reserve(std::strlen(componentName) + 1 + desc.name.size());

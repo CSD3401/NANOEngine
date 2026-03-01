@@ -14,6 +14,37 @@
 
 namespace NE::ECS::Systems {
     namespace {
+        void ResolveRendererResources(NE::ECS::Component::Renderer& renderer) {
+            auto& resourceManager = Resource::ResourceManager::GetInstance();
+
+            if (!renderer.materialUUID.empty()) {
+                renderer.material = resourceManager.LoadResource<Graphics::Material>(renderer.materialUUID);
+            }
+            if (!renderer.material) {
+                renderer.materialUUID = "nelitmat";
+                renderer.material = resourceManager.LoadResource<Graphics::Material>("nelitmat");
+            }
+
+            if (!renderer.modelUUID.empty()) {
+                renderer.model = resourceManager.LoadResource<Graphics::Model>(renderer.modelUUID);
+            }
+            if (!renderer.model) {
+                renderer.modelUUID = "builtin:model/cube";
+                renderer.model = resourceManager.LoadResource<Graphics::Model>("builtin:model/cube");
+                renderer.subMeshIndex = 0;
+            }
+
+            if (renderer.model && !renderer.model->meshes.empty()) {
+                if (renderer.subMeshIndex < 0 || renderer.subMeshIndex >= (int32_t)renderer.model->meshes.size()) {
+                    renderer.subMeshIndex = 0;
+                }
+            } else {
+                renderer.subMeshIndex = -1;
+            }
+
+            renderer.isDirty = false;
+        }
+
         inline float MaxScaleAxis(const NE::Math::Mat4& M) {
             NE::Math::Vec3 x = { M.GetElement(0, 0), M.GetElement(1, 0), M.GetElement(2, 0) };
             NE::Math::Vec3 y = { M.GetElement(0, 1), M.GetElement(1, 1), M.GetElement(2, 1) };
@@ -38,36 +69,7 @@ namespace NE::ECS::Systems {
 
     void RenderSystem::OnEntityAdded(Entity entity) {
         auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
-
-        if (!renderer.materialUUID.empty()) {
-            renderer.material = Resource::ResourceManager::GetInstance().
-                LoadResource<Graphics::Material>(renderer.materialUUID);
-            if (!renderer.material) {
-				renderer.materialUUID = "Lit";
-                renderer.material = Resource::ResourceManager::GetInstance().
-                    LoadResource<Graphics::Material>("nelitmat");
-            }
-        } else {
-            renderer.materialUUID = "Lit";
-            renderer.material = Resource::ResourceManager::GetInstance().
-                LoadResource<Graphics::Material>("nelitmat");
-        }
-
-        if (!renderer.modelUUID.empty()) {
-            renderer.model = Resource::ResourceManager::GetInstance().
-                LoadResource<Graphics::Model>(renderer.modelUUID);
-            if (!renderer.model) {
-                renderer.modelUUID = "Cube";
-                renderer.model = Resource::ResourceManager::GetInstance().
-                    LoadResource<Graphics::Model>("builtin:model/cube");
-				renderer.subMeshIndex = 0;
-            }
-        } else {
-            renderer.modelUUID = "Cube";
-            renderer.material = Resource::ResourceManager::GetInstance().
-                LoadResource<Graphics::Material>("builtin:model/cube");
-            renderer.subMeshIndex = 0;
-        }
+        ResolveRendererResources(renderer);
 
         if (renderer.luid == 0)
             renderer.luid = Core::LUIDGenerator::Generate("rd");
@@ -96,7 +98,12 @@ namespace NE::ECS::Systems {
             }
 
             auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
+            if (renderer.isDirty) {
+                ResolveRendererResources(renderer);
+            }
+
             if (!renderer.model) continue;
+            if (renderer.subMeshIndex < 0 || renderer.subMeshIndex >= (int32_t)renderer.model->meshes.size()) continue;
 
             auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
 
