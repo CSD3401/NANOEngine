@@ -1018,6 +1018,10 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().RemoveComponent<Component::Renderer>(e);
 		}
 
+		void RemoveAnimatorComponent(uint32_t e) {
+			GetScene().GetECSCoordinator().RemoveComponent<Component::Animator>(e);
+		}
+
 		void RemoveRigidbodyComponent(uint32_t e) {
 			GetScene().GetECSCoordinator().RemoveComponent<Component::Rigidbody>(e);
 		}

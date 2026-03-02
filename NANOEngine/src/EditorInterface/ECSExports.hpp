@@ -328,6 +328,7 @@ namespace NE::ECS {
 
 		NANOENGINE_API void RemoveLightComponent(uint32_t e);
 		NANOENGINE_API void RemoveRendererComponent(uint32_t e);
+		NANOENGINE_API void RemoveAnimatorComponent(uint32_t e);
 		NANOENGINE_API void RemoveRigidbodyComponent(uint32_t e);
 		NANOENGINE_API void RemoveColliderComponent(uint32_t e);
 		NANOENGINE_API void RemoveAudioSourceComponent(uint32_t e);
