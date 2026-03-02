@@ -12,6 +12,7 @@ namespace NE::ECS::Component {
     struct UIDropdown {
 
         // === SERIALIZED FIELDS ===
+        uint64_t luid = 0;
 
         // Options list
         std::vector<std::string> options{ "Option A", "Option B", "Option C" };
@@ -37,6 +38,7 @@ namespace NE::ECS::Component {
         uint32_t onValueChangedEventId = 0;
 
         NE_REFLECT_BEGIN(UIDropdown)
+            NE_REFLECT_FIELD(luid),
             NE_REFLECT_FIELD(options),
             NE_REFLECT_FIELD(selectedIndex),
             NE_REFLECT_FIELD(captionTextEntity),

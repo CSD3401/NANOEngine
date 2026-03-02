@@ -547,6 +547,7 @@ namespace Editor {
 						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
 					}
 					NE::ECS::Component::UIText text{};
+					text.luid = NE::Core::LUIDGenerator::Generate("tx");
 					NE::ECS::Command::AddUITextComponent(entity, text);
 				}
 				if (ImGui::MenuItem("UI Button")) {
@@ -560,6 +561,7 @@ namespace Editor {
 						NE::ECS::Command::AddUIImageComponent(entity, img);
 					}
 					NE::ECS::Component::UIButton button{};
+					button.luid = NE::Core::LUIDGenerator::Generate("bt");
 					NE::ECS::Command::AddUIButtonComponent(entity, button);
 				}
 				if (ImGui::MenuItem("UI Slider")) {
@@ -646,7 +648,7 @@ namespace Editor {
 					}
 					NE::ECS::Component::UILayoutGroup comp{};
 					comp.isHorizontal = true;
-					comp.childAlignment = 3; // MiddleLeft
+					comp.childAlignment = NE::ECS::Component::UILayoutGroup::ChildAlignment::MiddleLeft;
 					NE::ECS::Command::AddUILayoutGroupComponent(entity, comp);
 				}
 				if (ImGui::MenuItem("UI Vertical Layout Group")) {
@@ -657,7 +659,7 @@ namespace Editor {
 					}
 					NE::ECS::Component::UILayoutGroup comp{};
 					comp.isHorizontal = false;
-					comp.childAlignment = 1; // UpperCenter
+					comp.childAlignment = NE::ECS::Component::UILayoutGroup::ChildAlignment::UpperCenter;
 					NE::ECS::Command::AddUILayoutGroupComponent(entity, comp);
 				}
 				if (ImGui::MenuItem("UI Grid Layout Group")) {
@@ -710,6 +712,7 @@ namespace Editor {
 						NE::ECS::Command::AddUIImageComponent(entity, img);
 					}
 					NE::ECS::Component::UIDropdown comp{};
+					comp.luid = NE::Core::LUIDGenerator::Generate("dd");
 
 					// Create caption text child
 					uint32_t captionEnt = NE::ECS::Command::CreateEntityNoComponents();
@@ -814,6 +817,7 @@ namespace Editor {
 						NE::ECS::Command::AddUITextComponent(entity, txt);
 					}
 					NE::ECS::Component::UIInputField comp{};
+					comp.luid = NE::Core::LUIDGenerator::Generate("if");
 					NE::ECS::Command::AddUIInputFieldComponent(entity, comp);
 				}
 
@@ -4039,8 +4043,13 @@ namespace Editor {
 		if (!open)
 			return;
 
-		float labelWidth = 120.0f;
 		ImGui::Indent();
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.8f, 0.2f, 1.0f));
+		ImGui::TextWrapped("(!) UISlider is not production-ready. Handle positioning and value clamping may behave incorrectly.");
+		ImGui::PopStyleColor();
+		ImGui::Spacing();
+
+		float labelWidth = 120.0f;
 
 		// Interactable
 		{
@@ -4296,7 +4305,9 @@ namespace Editor {
 			ImGui::SameLine(labelWidth);
 			ImGui::SetNextItemWidth(-1);
 			static const char* AlignNames[] = { "Upper Left", "Upper Center", "Upper Right", "Middle Left", "Middle Center", "Middle Right", "Lower Left", "Lower Center", "Lower Right" };
-			ImGui::Combo("##ChildAlignment", &comp.childAlignment, AlignNames, IM_ARRAYSIZE(AlignNames));
+			int alignIdx = static_cast<int>(comp.childAlignment);
+			if (ImGui::Combo("##ChildAlignment", &alignIdx, AlignNames, IM_ARRAYSIZE(AlignNames)))
+				comp.childAlignment = static_cast<NE::ECS::Component::UILayoutGroup::ChildAlignment>(alignIdx);
 		}
 
 		{
@@ -4437,7 +4448,9 @@ namespace Editor {
 			ImGui::SameLine(labelWidth);
 			ImGui::SetNextItemWidth(-1);
 			static const char* CornerNames[] = { "Upper Left", "Upper Right", "Lower Left", "Lower Right" };
-			ImGui::Combo("##StartCorner", &comp.startCorner, CornerNames, IM_ARRAYSIZE(CornerNames));
+			int cornerIdx = static_cast<int>(comp.startCorner);
+			if (ImGui::Combo("##StartCorner", &cornerIdx, CornerNames, IM_ARRAYSIZE(CornerNames)))
+				comp.startCorner = static_cast<NE::ECS::Component::UIGridLayoutGroup::StartCorner>(cornerIdx);
 		}
 
 		{
@@ -4446,7 +4459,9 @@ namespace Editor {
 			ImGui::SameLine(labelWidth);
 			ImGui::SetNextItemWidth(-1);
 			static const char* AxisNames[] = { "Horizontal", "Vertical" };
-			ImGui::Combo("##StartAxis", &comp.startAxis, AxisNames, IM_ARRAYSIZE(AxisNames));
+			int axisIdx = static_cast<int>(comp.startAxis);
+			if (ImGui::Combo("##StartAxis", &axisIdx, AxisNames, IM_ARRAYSIZE(AxisNames)))
+				comp.startAxis = static_cast<NE::ECS::Component::UIGridLayoutGroup::StartAxis>(axisIdx);
 		}
 
 		{
@@ -4455,7 +4470,9 @@ namespace Editor {
 			ImGui::SameLine(labelWidth);
 			ImGui::SetNextItemWidth(-1);
 			static const char* AlignNames[] = { "Upper Left", "Upper Center", "Upper Right", "Middle Left", "Middle Center", "Middle Right", "Lower Left", "Lower Center", "Lower Right" };
-			ImGui::Combo("##ChildAlignment", &comp.childAlignment, AlignNames, IM_ARRAYSIZE(AlignNames));
+			int gridAlignIdx = static_cast<int>(comp.childAlignment);
+			if (ImGui::Combo("##ChildAlignment", &gridAlignIdx, AlignNames, IM_ARRAYSIZE(AlignNames)))
+				comp.childAlignment = static_cast<NE::ECS::Component::UIGridLayoutGroup::ChildAlignment>(gridAlignIdx);
 		}
 
 		ImGui::Separator();
@@ -4466,10 +4483,12 @@ namespace Editor {
 			ImGui::SameLine(labelWidth);
 			ImGui::SetNextItemWidth(-1);
 			static const char* ConstraintNames[] = { "Flexible", "Fixed Column Count", "Fixed Row Count" };
-			ImGui::Combo("##Constraint", &comp.constraint, ConstraintNames, IM_ARRAYSIZE(ConstraintNames));
+			int constraintIdx = static_cast<int>(comp.constraint);
+			if (ImGui::Combo("##Constraint", &constraintIdx, ConstraintNames, IM_ARRAYSIZE(ConstraintNames)))
+				comp.constraint = static_cast<NE::ECS::Component::UIGridLayoutGroup::Constraint>(constraintIdx);
 		}
 
-		if (comp.constraint != 0) {
+		if (comp.constraint != NE::ECS::Component::UIGridLayoutGroup::Constraint::Flexible) {
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Constraint Count");
 			ImGui::SameLine(labelWidth);
@@ -4631,10 +4650,12 @@ namespace Editor {
 			ImGui::SameLine(labelWidth);
 			ImGui::SetNextItemWidth(-1);
 			static const char* MovementNames[] = { "Unrestricted", "Elastic", "Clamped" };
-			ImGui::Combo("##MovementType", &comp.movementType, MovementNames, IM_ARRAYSIZE(MovementNames));
+			int movIdx = static_cast<int>(comp.movementType);
+			if (ImGui::Combo("##MovementType", &movIdx, MovementNames, IM_ARRAYSIZE(MovementNames)))
+				comp.movementType = static_cast<NE::ECS::Component::UIScrollRect::MovementType>(movIdx);
 		}
 
-		if (comp.movementType == 1) {
+		if (comp.movementType == NE::ECS::Component::UIScrollRect::MovementType::Elastic) {
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Elasticity");
 			ImGui::SameLine(labelWidth);
@@ -4721,35 +4742,41 @@ namespace Editor {
 
 		// Content Size Fitter section
 		ImGui::TextDisabled("Content Size Fitter");
-		const char* fitModes[] = { "Unconstrained", "Min Size", "Preferred Size" };
+		static const char* fitModes[] = { "Unconstrained", "Min Size", "Preferred Size" };
 
 		{
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Horizontal Fit");
 			ImGui::SameLine(labelWidth);
 			ImGui::SetNextItemWidth(-1);
-			ImGui::Combo("##HorizontalFit", &comp.horizontalFit, fitModes, IM_ARRAYSIZE(fitModes));
+			int hFitIdx = static_cast<int>(comp.horizontalFit);
+			if (ImGui::Combo("##HorizontalFit", &hFitIdx, fitModes, IM_ARRAYSIZE(fitModes)))
+				comp.horizontalFit = static_cast<NE::ECS::Component::UIAutoSize::FitMode>(hFitIdx);
 		}
 		{
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Vertical Fit");
 			ImGui::SameLine(labelWidth);
 			ImGui::SetNextItemWidth(-1);
-			ImGui::Combo("##VerticalFit", &comp.verticalFit, fitModes, IM_ARRAYSIZE(fitModes));
+			int vFitIdx = static_cast<int>(comp.verticalFit);
+			if (ImGui::Combo("##VerticalFit", &vFitIdx, fitModes, IM_ARRAYSIZE(fitModes)))
+				comp.verticalFit = static_cast<NE::ECS::Component::UIAutoSize::FitMode>(vFitIdx);
 		}
 
 		ImGui::Separator();
 
 		// Aspect Ratio Fitter section
 		ImGui::TextDisabled("Aspect Ratio Fitter");
-		const char* aspectModes[] = { "None", "Width Controls Height", "Height Controls Width", "Fit In Parent", "Envelope Parent" };
+		static const char* aspectModes[] = { "None", "Width Controls Height", "Height Controls Width", "Fit In Parent", "Envelope Parent" };
 
 		{
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Aspect Mode");
 			ImGui::SameLine(labelWidth);
 			ImGui::SetNextItemWidth(-1);
-			ImGui::Combo("##AspectMode", &comp.aspectMode, aspectModes, IM_ARRAYSIZE(aspectModes));
+			int aspectIdx = static_cast<int>(comp.aspectMode);
+			if (ImGui::Combo("##AspectMode", &aspectIdx, aspectModes, IM_ARRAYSIZE(aspectModes)))
+				comp.aspectMode = static_cast<NE::ECS::Component::UIAutoSize::AspectMode>(aspectIdx);
 		}
 		{
 			ImGui::AlignTextToFramePadding();
@@ -4783,8 +4810,13 @@ namespace Editor {
 		if (!open)
 			return;
 
-		float labelWidth = 150.0f;
 		ImGui::Indent();
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.8f, 0.2f, 1.0f));
+		ImGui::TextWrapped("(!) UIDropdown is not production-ready. Option panel management and selection state may behave incorrectly.");
+		ImGui::PopStyleColor();
+		ImGui::Spacing();
+
+		float labelWidth = 150.0f;
 
 		// Options list
 		ImGui::Separator();

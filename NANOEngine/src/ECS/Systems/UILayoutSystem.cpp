@@ -54,7 +54,7 @@ namespace NE::ECS::Systems {
         float padTop = layout.paddingTop;
         float padBottom = layout.paddingBottom;
         float spacing = layout.spacing;
-        int childAlignment = layout.childAlignment;
+        int childAlignment = static_cast<int>(layout.childAlignment);
         bool controlChildWidth = layout.controlChildWidth;
         bool controlChildHeight = layout.controlChildHeight;
         bool forceExpandWidth = layout.childForceExpandWidth;
@@ -253,14 +253,14 @@ namespace NE::ECS::Systems {
         int columns = 1;
         int rows = 1;
 
-        if (grid.constraint == 1) { // FixedColumnCount
+        if (grid.constraint == UIGridLayoutGroup::Constraint::FixedColumnCount) {
             columns = std::max(1, grid.constraintCount);
             rows = (static_cast<int>(children.size()) + columns - 1) / columns;
-        } else if (grid.constraint == 2) { // FixedRowCount
+        } else if (grid.constraint == UIGridLayoutGroup::Constraint::FixedRowCount) {
             rows = std::max(1, grid.constraintCount);
             columns = (static_cast<int>(children.size()) + rows - 1) / rows;
         } else { // Flexible
-            if (grid.startAxis == 0) { // Horizontal
+            if (grid.startAxis == UIGridLayoutGroup::StartAxis::Horizontal) {
                 columns = std::max(1, static_cast<int>((containerWidth + grid.spacingX) / (grid.cellWidth + grid.spacingX)));
                 rows = (static_cast<int>(children.size()) + columns - 1) / columns;
             } else { // Vertical
@@ -276,7 +276,7 @@ namespace NE::ECS::Systems {
             auto& childRect = m_cm->GetComponent<UIRectTransform>(children[i]);
 
             int col, row;
-            if (grid.startAxis == 0) { // Horizontal
+            if (grid.startAxis == UIGridLayoutGroup::StartAxis::Horizontal) {
                 col = i % columns;
                 row = i / columns;
             } else { // Vertical
@@ -285,10 +285,12 @@ namespace NE::ECS::Systems {
             }
 
             // Handle start corner
-            if (grid.startCorner == 1 || grid.startCorner == 3) { // Right corners
+            if (grid.startCorner == UIGridLayoutGroup::StartCorner::UpperRight ||
+                grid.startCorner == UIGridLayoutGroup::StartCorner::LowerRight) {
                 col = (columns - 1) - col;
             }
-            if (grid.startCorner == 2 || grid.startCorner == 3) { // Lower corners
+            if (grid.startCorner == UIGridLayoutGroup::StartCorner::LowerLeft ||
+                grid.startCorner == UIGridLayoutGroup::StartCorner::LowerRight) {
                 row = (rows - 1) - row;
             }
 
@@ -320,7 +322,8 @@ namespace NE::ECS::Systems {
             bool changed = false;
 
             // === Content Size Fitter ===
-            if (fitter.horizontalFit != 0 || fitter.verticalFit != 0) {
+            if (fitter.horizontalFit != UIAutoSize::FitMode::Unconstrained ||
+                fitter.verticalFit   != UIAutoSize::FitMode::Unconstrained) {
                 float preferredW = rect.width;
                 float preferredH = rect.height;
 
@@ -342,16 +345,16 @@ namespace NE::ECS::Systems {
                     }
                 }
 
-                // horizontalFit: 1=MinSize, 2=PreferredSize
-                if (fitter.horizontalFit == 2) {
+                // horizontalFit: PreferredSize sets width to measured preferred
+                if (fitter.horizontalFit == UIAutoSize::FitMode::PreferredSize) {
                     if (std::abs(rect.width - preferredW) > 0.01f) {
                         rect.width = preferredW;
                         changed = true;
                     }
                 }
 
-                // verticalFit: 1=MinSize, 2=PreferredSize
-                if (fitter.verticalFit == 2) {
+                // verticalFit: PreferredSize sets height to measured preferred
+                if (fitter.verticalFit == UIAutoSize::FitMode::PreferredSize) {
                     if (std::abs(rect.height - preferredH) > 0.01f) {
                         rect.height = preferredH;
                         changed = true;
@@ -360,9 +363,9 @@ namespace NE::ECS::Systems {
             }
 
             // === Aspect Ratio Fitter ===
-            if (fitter.aspectMode != 0 && fitter.aspectRatio > 0.f) {
+            if (fitter.aspectMode != UIAutoSize::AspectMode::None && fitter.aspectRatio > 0.f) {
                 switch (fitter.aspectMode) {
-                case 1: { // WidthControlsHeight
+                case UIAutoSize::AspectMode::WidthControlsHeight: {
                     float newH = rect.width / fitter.aspectRatio;
                     if (std::abs(rect.height - newH) > 0.01f) {
                         rect.height = newH;
@@ -370,7 +373,7 @@ namespace NE::ECS::Systems {
                     }
                     break;
                 }
-                case 2: { // HeightControlsWidth
+                case UIAutoSize::AspectMode::HeightControlsWidth: {
                     float newW = rect.height * fitter.aspectRatio;
                     if (std::abs(rect.width - newW) > 0.01f) {
                         rect.width = newW;
@@ -378,8 +381,8 @@ namespace NE::ECS::Systems {
                     }
                     break;
                 }
-                case 3: // FitInParent
-                case 4: // EnvelopeParent
+                case UIAutoSize::AspectMode::FitInParent:
+                case UIAutoSize::AspectMode::EnvelopeParent:
                 {
                     float parentW = rect.width;
                     float parentH = rect.height;
@@ -397,7 +400,7 @@ namespace NE::ECS::Systems {
                     float parentAspect = (parentH > 0.f) ? parentW / parentH : 1.f;
                     float newW, newH;
 
-                    if (fitter.aspectMode == 3) {
+                    if (fitter.aspectMode == UIAutoSize::AspectMode::FitInParent) {
                         // FitInParent: Fit inside parent, maintaining ratio
                         if (fitter.aspectRatio > parentAspect) {
                             newW = parentW;

@@ -8,6 +8,8 @@
 #include "../Components/UIImage.hpp"
 #include "../Components/UIText.hpp"
 #include "../src/Math/Mat4.hpp"
+#include "../src/Math/Vec2.hpp"
+#include "../src/Math/Vec3.hpp"
 #include "../../Graphics/Core/UIImageMeshGenerator.hpp"
 #include "../../Graphics/Core/FontAtlas.hpp"
 #include "../../Graphics/Core/DrawCommand.hpp"
@@ -75,6 +77,18 @@ namespace NE::ECS::Systems {
     struct UIBatch {
         std::vector<NE::Graphics::UIVertex2> vertices;
         std::vector<uint32_t> indices;
+    };
+
+    // Per-entity text render cache (owned by UIRenderSystem, not the component)
+    struct UITextCache {
+        uint64_t fontAtlasHandle = 0;
+        std::vector<NE::Graphics::UIVertex2> cachedVertices;
+        std::string cachedText;
+        float cachedFontSize = 0.0f;
+        NE::Math::Vec3 cachedPos{};
+        NE::Math::Vec2 cachedSize{};
+        float cachedRotZ = 0.0f;
+        bool hasCachedTransform = false;
     };
 
     class UIRenderSystem final : public System {
@@ -194,6 +208,9 @@ namespace NE::ECS::Systems {
     private:
         ComponentManager* m_cm;
         UILayoutEngine* m_layoutEngine = nullptr;
+
+        // Text render cache keyed by entity (moved off the UIText component)
+        std::unordered_map<Entity, UITextCache> m_textCache;
 
         // Batching diagnostics
         int m_frameDrawCalls = 0;

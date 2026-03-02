@@ -5,6 +5,15 @@
 namespace NE::ECS::Component {
 
     struct UIGridLayoutGroup {
+        enum class StartCorner  { UpperLeft = 0, UpperRight = 1, LowerLeft = 2, LowerRight = 3 };
+        enum class StartAxis    { Horizontal = 0, Vertical = 1 };
+        enum class ChildAlignment {
+            UpperLeft   = 0, UpperCenter  = 1, UpperRight  = 2,
+            MiddleLeft  = 3, MiddleCenter = 4, MiddleRight = 5,
+            LowerLeft   = 6, LowerCenter  = 7, LowerRight  = 8
+        };
+        enum class Constraint   { Flexible = 0, FixedColumnCount = 1, FixedRowCount = 2 };
+
         float paddingLeft = 0.f;
         float paddingRight = 0.f;
         float paddingTop = 0.f;
@@ -16,18 +25,11 @@ namespace NE::ECS::Component {
         float spacingX = 0.f;
         float spacingY = 0.f;
 
-        // 0=UpperLeft, 1=UpperRight, 2=LowerLeft, 3=LowerRight
-        int startCorner = 0;
-
-        // 0=Horizontal (fill rows first), 1=Vertical (fill columns first)
-        int startAxis = 0;
-
-        // 0-8 matching Unity's TextAnchor grid
-        int childAlignment = 0;
-
-        // 0=Flexible, 1=FixedColumnCount, 2=FixedRowCount
-        int constraint = 0;
-        int constraintCount = 2;
+        StartCorner   startCorner     = StartCorner::UpperLeft;
+        StartAxis     startAxis       = StartAxis::Horizontal;
+        ChildAlignment childAlignment = ChildAlignment::UpperLeft;
+        Constraint    constraint      = Constraint::Flexible;
+        int           constraintCount = 2;
 
         NE_REFLECT_BEGIN(UIGridLayoutGroup)
             NE_REFLECT_FIELD(paddingLeft),

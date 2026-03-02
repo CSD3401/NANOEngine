@@ -227,6 +227,7 @@ namespace Component {
         enum class VerticalAlignment { TOP, MIDDLE, BOTTOM };
 
         // === SERIALIZED FIELDS ===
+        uint64_t luid = 0;
         std::string text = "New Text";
         std::string fontUUID;
         float fontSize = 16.0f;
@@ -239,19 +240,10 @@ namespace Component {
         float maxFontSize = 100.0f;
 
         // === RUNTIME FIELDS (managed by engine — do not modify) ===
-        uint64_t _fontAtlasHandle = 0;
         bool isDirty = true;
-        // std::vector<UIVertex2> cachedVertices — opaque placeholder (24 bytes on x64 MSVC)
-        void* _pad_cached_vertices[3] = {};
-        std::string _cachedText;
-        float _cachedFontSize = 0.0f;
-        float _cachedPosX = 0.0f;
-        float _cachedPosY = 0.0f;
-        float _cachedPosZ = 0.0f;
+        // Written by UIRenderSystem for UIAutoSize layout; do not modify directly
         float _cachedSizeX = 0.0f;
         float _cachedSizeY = 0.0f;
-        float _cachedRotZ = 0.0f;
-        bool _hasCachedTransform = false;
     };
 
     //=========================================================================
@@ -263,6 +255,7 @@ namespace Component {
         enum class State { NORMAL, HOVERED, PRESSED, DISABLED };
 
         // === SERIALIZED FIELDS ===
+        uint64_t luid = 0;
         Math::Vec4 normalColor{ 0.8f, 0.8f, 0.8f, 1.0f };
         Math::Vec4 hoverColor{ 0.9f, 0.9f, 0.9f, 1.0f };
         Math::Vec4 pressedColor{ 0.6f, 0.6f, 0.6f, 1.0f };
@@ -351,6 +344,7 @@ namespace Component {
         enum class LineType { SINGLE_LINE, MULTI_LINE };
 
         // === SERIALIZED FIELDS ===
+        uint64_t luid = 0;
         std::string text;
         std::string placeholderText = "Enter text...";
         ContentType contentType = ContentType::STANDARD;
@@ -388,6 +382,7 @@ namespace Component {
     /// UIDropdown component - Expandable option selection list
     struct UIDropdown {
         // === SERIALIZED FIELDS ===
+        uint64_t luid = 0;
         std::vector<std::string> options{ "Option A", "Option B", "Option C" };
         int selectedIndex = 0;
         uint32_t captionTextEntity = UINT32_MAX;    ///< UIText showing selected option

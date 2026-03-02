@@ -57,6 +57,9 @@ namespace NE::ECS::Systems {
 
     void UIRenderSystem::OnEntityAdded(Entity e)
     {
+        if (m_cm->HasComponent<UIText>(e))
+            m_textCache.emplace(e, UITextCache{});
+
         if (!m_cm->HasComponent<UIImage>(e)) return;
 
         auto& img = m_cm->GetComponent<UIImage>(e);
@@ -79,7 +82,7 @@ namespace NE::ECS::Systems {
 
     void UIRenderSystem::OnEntityRemoved(Entity e)
     {
-        (void)e; // Unused parameter
+        m_textCache.erase(e);
     }
 
     void UIRenderSystem::Init()
@@ -919,6 +922,7 @@ namespace NE::ECS::Systems {
         auto GenerateTextVertices = [&](Entity entity) -> std::vector<NE::Graphics::UIVertex2> {
             auto& text = m_cm->GetComponent<UIText>(entity);
             auto& rect = m_cm->GetComponent<UIRectTransform>(entity);
+            auto& cache = m_textCache[entity];
 
             AccumulatedTransform accumulated = m_layoutEngine->AccumulateParentTransforms(entity, canvasEntity, canvas);
             rect.worldMatrixDirty = true;
@@ -977,18 +981,18 @@ namespace NE::ECS::Systems {
                 isWorldSpace ? rect.height : worldTransform.height
             };
 
-            bool transformChanged = !text.hasCachedTransform ||
-                absf(text.cachedPos.x - curPos.x) > POS_EPS ||
-                absf(text.cachedPos.y - curPos.y) > POS_EPS ||
-                absf(text.cachedPos.z - curPos.z) > POS_EPS ||
-                absf(text.cachedSize.x - curSize.x) > SIZE_EPS ||
-                absf(text.cachedSize.y - curSize.y) > SIZE_EPS ||
-                absf(text.cachedRotZ - worldTransform.accumulatedRotationZ) > ROT_EPS;
+            bool transformChanged = !cache.hasCachedTransform ||
+                absf(cache.cachedPos.x - curPos.x) > POS_EPS ||
+                absf(cache.cachedPos.y - curPos.y) > POS_EPS ||
+                absf(cache.cachedPos.z - curPos.z) > POS_EPS ||
+                absf(cache.cachedSize.x - curSize.x) > SIZE_EPS ||
+                absf(cache.cachedSize.y - curSize.y) > SIZE_EPS ||
+                absf(cache.cachedRotZ - worldTransform.accumulatedRotationZ) > ROT_EPS;
 
             bool needsRegen = text.isDirty ||
-                text.cachedText != text.text ||
-                std::abs(text.cachedFontSize - effectiveFontSize) > 0.1f ||
-                text.fontAtlasHandle != fontAtlas->GetBindlessHandle() ||
+                cache.cachedText != text.text ||
+                std::abs(cache.cachedFontSize - effectiveFontSize) > 0.1f ||
+                cache.fontAtlasHandle != fontAtlas->GetBindlessHandle() ||
                 transformChanged;
 
             std::vector<NE::Graphics::UIVertex2> verticesV2;
@@ -1026,17 +1030,18 @@ namespace NE::ECS::Systems {
                     }
                 }
 
-                text.cachedVertices = verticesV2;
-                text.cachedText = text.text;
-                text.cachedFontSize = effectiveFontSize;
-                text.fontAtlasHandle = fontAtlas->GetBindlessHandle();
+                cache.cachedVertices = verticesV2;
+                cache.cachedText = text.text;
+                cache.cachedFontSize = effectiveFontSize;
+                cache.fontAtlasHandle = fontAtlas->GetBindlessHandle();
                 text.isDirty = false;
-                text.cachedPos = curPos;
+                cache.cachedPos = curPos;
+                cache.cachedSize = curSize;
+                cache.cachedRotZ = worldTransform.accumulatedRotationZ;
+                cache.hasCachedTransform = true;
                 text.cachedSize = curSize;
-                text.cachedRotZ = worldTransform.accumulatedRotationZ;
-                text.hasCachedTransform = true;
             } else {
-                verticesV2 = text.cachedVertices;
+                verticesV2 = cache.cachedVertices;
             }
 
             return verticesV2;
@@ -1185,6 +1190,7 @@ namespace NE::ECS::Systems {
 
         auto& text = m_cm->GetComponent<UIText>(entity);
         auto& rect = m_cm->GetComponent<UIRectTransform>(entity);
+        auto& cache = m_textCache[entity];
 
         // Skip if no text or font
         if (text.text.empty() || text.fontUUID.empty()) return;
@@ -1286,19 +1292,19 @@ namespace NE::ECS::Systems {
 
         auto absf = [](float v) { return v < 0.0f ? -v : v; };
 
-        bool transformChanged = !text.hasCachedTransform ||
-            absf(text.cachedPos.x - curPos.x) > POS_EPS ||
-            absf(text.cachedPos.y - curPos.y) > POS_EPS ||
-            absf(text.cachedPos.z - curPos.z) > POS_EPS ||
-            absf(text.cachedSize.x - curSize.x) > SIZE_EPS ||
-            absf(text.cachedSize.y - curSize.y) > SIZE_EPS ||
-            absf(text.cachedRotZ - worldTransform.accumulatedRotationZ) > ROT_EPS;
+        bool transformChanged = !cache.hasCachedTransform ||
+            absf(cache.cachedPos.x - curPos.x) > POS_EPS ||
+            absf(cache.cachedPos.y - curPos.y) > POS_EPS ||
+            absf(cache.cachedPos.z - curPos.z) > POS_EPS ||
+            absf(cache.cachedSize.x - curSize.x) > SIZE_EPS ||
+            absf(cache.cachedSize.y - curSize.y) > SIZE_EPS ||
+            absf(cache.cachedRotZ - worldTransform.accumulatedRotationZ) > ROT_EPS;
 
         // Check if text needs to be regenerated
         bool needsRegen = text.isDirty ||
-            text.cachedText != text.text ||
-            std::abs(text.cachedFontSize - effectiveFontSize) > 0.1f ||
-            text.fontAtlasHandle != fontAtlas->GetBindlessHandle() ||
+            cache.cachedText != text.text ||
+            std::abs(cache.cachedFontSize - effectiveFontSize) > 0.1f ||
+            cache.fontAtlasHandle != fontAtlas->GetBindlessHandle() ||
             transformChanged;
 
         if (needsRegen) {
@@ -1318,7 +1324,7 @@ namespace NE::ECS::Systems {
                 fontAtlas->GetBindlessHandle()  // Embed font atlas handle in vertices
             );
 
-            text.cachedVertices = result.vertices;
+            cache.cachedVertices = result.vertices;
 
             // For screen-space, apply manual rotation; for WorldSpace, world matrix handles it
             if (!isWorldSpace) {
@@ -1330,7 +1336,7 @@ namespace NE::ECS::Systems {
                     const float c = std::cos(rot);
                     const float s = std::sin(rot);
 
-                    for (auto& v : text.cachedVertices) {
+                    for (auto& v : cache.cachedVertices) {
                         float lx = v.Position.x - pivotX;
                         float ly = v.Position.y - pivotY;
                         float rx = lx * c - ly * s;
@@ -1341,14 +1347,15 @@ namespace NE::ECS::Systems {
                 }
             }
 
-            text.cachedText = text.text;
-            text.cachedFontSize = effectiveFontSize;
-            text.fontAtlasHandle = fontAtlas->GetBindlessHandle();
+            cache.cachedText = text.text;
+            cache.cachedFontSize = effectiveFontSize;
+            cache.fontAtlasHandle = fontAtlas->GetBindlessHandle();
             text.isDirty = false;
-            text.cachedPos = curPos;
+            cache.cachedPos = curPos;
+            cache.cachedSize = curSize;
+            cache.cachedRotZ = worldTransform.accumulatedRotationZ;
+            cache.hasCachedTransform = true;
             text.cachedSize = curSize;
-            text.cachedRotZ = worldTransform.accumulatedRotationZ;
-            text.hasCachedTransform = true;
         }
 
         // Skip scissor for WorldSpace (screen-space operation)
@@ -1356,7 +1363,7 @@ namespace NE::ECS::Systems {
         if (!isWorldSpace) {
             scissor = ComputeScissorRect(entity, canvasEntity, canvas);
         }
-        SubmitTextElement(entity, canvas, text, rect, text.cachedVertices, fontAtlas, scissor);
+        SubmitTextElement(entity, canvas, text, rect, cache.cachedVertices, fontAtlas, scissor);
     }
 
     //=========================================================================
