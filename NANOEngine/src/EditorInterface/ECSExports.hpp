@@ -425,6 +425,10 @@ namespace NE::ECS {
 		NANOENGINE_API std::shared_ptr<NE::Animation::AnimationClip> GetAnimationClip(const std::string& uuid);
 		NANOENGINE_API void AssignAnimClip(uint32_t e, const std::string& uuid);
 
+		// --- UICanvas Helpers ---
+		NANOENGINE_API float GetUICanvasAlpha(uint32_t e);
+		NANOENGINE_API void SetUICanvasAlpha(uint32_t e, float alpha);
+
 		// --- UI Image Utilities ---
 		/// Swap the texture on a UIImage component (handles GPU resource loading)
 		NANOENGINE_API bool SetUIImageTexture(uint32_t imageEntity, const char* textureUUID);

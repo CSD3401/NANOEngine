@@ -83,6 +83,9 @@ namespace Component {
         // Higher values render on top (layering of canvases)
         int sortingOrder = 0;
 
+        // Canvas-level opacity multiplied into all child element colors (0 = invisible, 1 = fully opaque)
+        float alpha = 1.0f;
+
         // Runtime only (not serialized)
         float scaleFactor = 1.0f;
         RenderMode lastInitializedMode = RenderMode::SCREEN_SPACE_OVERLAY;
@@ -536,6 +539,17 @@ namespace Command {
 
     /// Add UIDropdown component to an entity
     NANOENGINE_API void AddUIDropdownComponent(uint32_t e, const Component::UIDropdown& c);
+
+    //=========================================================================
+    // UICANVAS HELPERS
+    //=========================================================================
+
+    /// Get the opacity of a UICanvas (0 = invisible, 1 = fully opaque)
+    NANOENGINE_API float GetUICanvasAlpha(uint32_t e);
+
+    /// Set the opacity of a UICanvas. Multiplied into all child element colors at render time.
+    /// @param alpha Clamped to [0, 1]
+    NANOENGINE_API void SetUICanvasAlpha(uint32_t e, float alpha);
 
     //=========================================================================
     // TEXTURE SWAPPING UTILITIES
