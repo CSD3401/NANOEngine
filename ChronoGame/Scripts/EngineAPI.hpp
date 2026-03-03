@@ -426,6 +426,10 @@ namespace Command {
         return NE::ECS::Command::GetUIDropdown(e);
     }
 
+    // UICanvas helpers
+    inline float GetUICanvasAlpha(uint32_t e) { return NE::ECS::Command::GetUICanvasAlpha(e); }
+    inline void SetUICanvasAlpha(uint32_t e, float alpha) { NE::ECS::Command::SetUICanvasAlpha(e, alpha); }
+
     // UI image utilities
     inline bool SetUIImageTexture(uint32_t e, const char* uuid) {
         return NE::ECS::Command::SetUIImageTexture(e, uuid);
