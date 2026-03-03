@@ -3297,6 +3297,13 @@ namespace Editor {
 			if (ImGui::DragInt("##SortOrder", &comp.sortingOrder)) {
 			}
 
+			// Opacity
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Opacity");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::SliderFloat("##CanvasAlpha", &comp.alpha, 0.0f, 1.0f);
+
 			ImGui::Unindent();
 		}
 

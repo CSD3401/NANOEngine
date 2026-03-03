@@ -763,7 +763,10 @@ namespace NE::ECS::Systems {
 
                 UIBatch& batch = worldBatchMap[key];
                 uint32_t base = static_cast<uint32_t>(batch.vertices.size());
-                for (const auto& v : verts) batch.vertices.push_back(v);
+                for (auto v : verts) {
+                    v.Color.w *= canvas.alpha;
+                    batch.vertices.push_back(v);
+                }
 
                 // verts.size() is always 4 (simple quad)
                 uint32_t quadCount = static_cast<uint32_t>(verts.size()) / 4;
@@ -855,7 +858,8 @@ namespace NE::ECS::Systems {
                 UIBatch& batch = batchMap[key];
                 uint32_t baseVertex = static_cast<uint32_t>(batch.vertices.size());
 
-                for (const auto& v : verticesV2) {
+                for (auto v : verticesV2) {
+                    v.Color.w *= canvas.alpha;
                     batch.vertices.push_back(v);
                 }
 
@@ -1060,6 +1064,10 @@ namespace NE::ECS::Systems {
                 std::vector<NE::Graphics::UIVertex2> verticesV2 = GenerateTextVertices(entity);
                 if (verticesV2.empty()) continue;
 
+                if (canvas.alpha < 1.0f) {
+                    for (auto& v : verticesV2) v.Color.w *= canvas.alpha;
+                }
+
                 m_frameDrawCalls++;
                 auto geometryBuffer = CreateDynamicTextGeometry(verticesV2);
                 if (!geometryBuffer) continue;
@@ -1113,7 +1121,8 @@ namespace NE::ECS::Systems {
             UIBatch& batch = batchMap[key];
             uint32_t baseVertex = static_cast<uint32_t>(batch.vertices.size());
 
-            for (const auto& v : verticesV2) {
+            for (auto v : verticesV2) {
+                v.Color.w *= canvas.alpha;
                 batch.vertices.push_back(v);
             }
 
@@ -1363,7 +1372,13 @@ namespace NE::ECS::Systems {
         if (!isWorldSpace) {
             scissor = ComputeScissorRect(entity, canvasEntity, canvas);
         }
-        SubmitTextElement(entity, canvas, text, rect, cache.cachedVertices, fontAtlas, scissor);
+        if (canvas.alpha < 1.0f) {
+            std::vector<NE::Graphics::UIVertex2> alphaVerts = cache.cachedVertices;
+            for (auto& v : alphaVerts) v.Color.w *= canvas.alpha;
+            SubmitTextElement(entity, canvas, text, rect, alphaVerts, fontAtlas, scissor);
+        } else {
+            SubmitTextElement(entity, canvas, text, rect, cache.cachedVertices, fontAtlas, scissor);
+        }
     }
 
     //=========================================================================

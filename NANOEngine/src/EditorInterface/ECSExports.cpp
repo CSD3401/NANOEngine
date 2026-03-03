@@ -1308,6 +1308,22 @@ namespace NE::ECS {
 		}
 
 		//=========================================================================
+		// UI CANVAS HELPERS
+		//=========================================================================
+
+		float GetUICanvasAlpha(uint32_t e) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UICanvas>(e)) return 1.0f;
+			return ecs.GetComponent<Component::UICanvas>(e).alpha;
+		}
+
+		void SetUICanvasAlpha(uint32_t e, float alpha) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UICanvas>(e)) return;
+			ecs.GetComponent<Component::UICanvas>(e).alpha = alpha < 0.0f ? 0.0f : (alpha > 1.0f ? 1.0f : alpha);
+		}
+
+		//=========================================================================
 		// UI IMAGE UTILITIES
 		//=========================================================================
 
