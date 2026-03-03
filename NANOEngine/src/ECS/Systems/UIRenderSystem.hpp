@@ -172,8 +172,9 @@ namespace NE::ECS::Systems {
         // Built once per frame in Update(), keyed by canvas entity
         std::unordered_map<Entity, CanvasChildren> m_canvasChildrenMap;
 
-        // Single O(N) pass to bucket all UI entities by their owning canvas
+        // Build canvas children map by walking each canvas's hierarchy in sibling order
         void BuildCanvasChildrenMap();
+        void CollectChildrenInOrder(Entity canvasEntity, Entity node, CanvasChildren& out);
 
         //=================================================================
         // Camera Utilities
