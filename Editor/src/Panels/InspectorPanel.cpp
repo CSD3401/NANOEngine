@@ -53,7 +53,6 @@
 #include <string>
 #include <sstream>
 #include <vector>
-#include <algorithm>
 #include "../AssetManagement/AssetManager.hpp"
 #include <Core/SpdLogger.hpp>
 #include "../Command/EditorCommands.hpp"
@@ -1676,60 +1675,35 @@ namespace Editor {
 		// Script selection dropdown (add new script)
 		ImGui::Text("Add Script:");
 		if (ImGui::BeginCombo("##ScriptType", "Add Script...")) {
-			// Search box for filtering scripts
-			ImGui::SetNextItemWidth(-1.0f);
-			ImGui::InputTextWithHint("##ScriptSearch", "Type to filter scripts...", m_scriptSearchBuffer, sizeof(m_scriptSearchBuffer));
+			if (ImSearch::BeginSearch(ImSearchFlags_NoTextHighlighting)) {
+				ImSearch::SearchBar();
 
-			ImGui::Separator();
+				auto scriptNames = NE::ECS::Command::GetRegisteredScriptNames();
+				for (const auto& scriptName : scriptNames) {
+					ImSearch::SearchableItem(scriptName.c_str(), [&, entity, scriptName](const char*) {
+						// Check if script is already attached
+						bool alreadyAttached = false;
+						for (const auto& attachedName : comp.ScriptNames) {
+							if (attachedName == scriptName) {
+								alreadyAttached = true;
+								break;
+							}
+						}
 
-			// Convert search query to lowercase for case-insensitive matching
-			std::string searchLower = m_scriptSearchBuffer;
-			std::transform(searchLower.begin(), searchLower.end(), searchLower.begin(),
-				[](unsigned char c) { return static_cast<char>(::tolower(c)); });
-
-			// List all registered scripts with search filter
-			auto scriptNames = NE::ECS::Command::GetRegisteredScriptNames();
-			size_t visibleCount = 0;
-			for (const auto& scriptName : scriptNames) {
-				// Filter by search query
-				if (!searchLower.empty()) {
-					std::string nameLower = scriptName;
-					std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(),
-						[](unsigned char c) { return static_cast<char>(::tolower(c)); });
-					if (nameLower.find(searchLower) == std::string::npos) {
-						continue;
-					}
+						if (alreadyAttached) {
+							ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+							ImGui::Selectable(scriptName.c_str(), false, ImGuiSelectableFlags_Disabled);
+							ImGui::PopStyleColor();
+						}
+						else if (ImGui::Selectable(scriptName.c_str())) {
+							// Add this script to the list
+							NE::ECS::Command::AddEntityScript(entity, scriptName);
+						}
+					});
 				}
 
-				visibleCount++;
-
-				// Check if script is already attached
-				bool alreadyAttached = false;
-				for (const auto& attachedName : comp.ScriptNames) {
-					if (attachedName == scriptName) {
-						alreadyAttached = true;
-						break;
-					}
-				}
-
-				if (alreadyAttached) {
-					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-					ImGui::Selectable(scriptName.c_str(), false, ImGuiSelectableFlags_Disabled);
-					ImGui::PopStyleColor();
-				}
-				else if (ImGui::Selectable(scriptName.c_str())) {
-					// Add this script to the list
-					NE::ECS::Command::AddEntityScript(entity, scriptName);
-					// Clear search after selection
-					m_scriptSearchBuffer[0] = '\0';
-				}
+				ImSearch::EndSearch();
 			}
-
-			// Show message if no scripts match filter
-			if (visibleCount == 0) {
-				ImGui::TextDisabled("No matching scripts");
-			}
-
 			ImGui::EndCombo();
 		}
 

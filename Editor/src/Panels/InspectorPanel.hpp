@@ -66,8 +66,5 @@ namespace Editor {
 		std::unique_ptr<TextureSettingsEditor> m_textureEditor;
 		std::string m_lastPath;
 
-		// Script dropdown search buffer
-		char m_scriptSearchBuffer[256] = "";
-
 	};
 }
