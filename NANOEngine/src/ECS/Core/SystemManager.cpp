@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "SystemManager.hpp"
 
 namespace NE::ECS {

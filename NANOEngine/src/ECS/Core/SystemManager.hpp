@@ -10,6 +10,8 @@ namespace NE::Core {
 }
 
 namespace NE::ECS {
+    class ComponentManager;
+	class EntityManager;
 
     class SystemManager {
     public:
