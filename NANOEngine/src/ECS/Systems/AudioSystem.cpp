@@ -380,6 +380,9 @@ namespace NE::ECS::Systems {
 	{
 	}
 
+	void AudioSystem::OnEntityActive(Entity /*entity*/) {}
+	void AudioSystem::OnEntityInactive(Entity /*entity*/) {}
+
 	void AudioSystem::Init()
 	{
 		SPD_INFO("AudioSystem::Init() - Starting initialization");
@@ -692,6 +695,4 @@ namespace NE::ECS::Systems {
 		m_masterVolumeLevel = std::clamp(level, 0, 5);
 		ApplyMasterVolume();
 	}
-
-
 }

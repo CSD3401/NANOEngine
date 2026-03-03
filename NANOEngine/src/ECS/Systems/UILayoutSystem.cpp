@@ -20,6 +20,8 @@ namespace NE::ECS::Systems {
     void UILayoutSystem::Exit() {}
     void UILayoutSystem::OnEntityAdded(Entity) {}
     void UILayoutSystem::OnEntityRemoved(Entity) {}
+    void UILayoutSystem::OnEntityActive(Entity /*entity*/) {}
+    void UILayoutSystem::OnEntityInactive(Entity /*entity*/) {}
 
     void UILayoutSystem::Update(double)
     {

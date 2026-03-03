@@ -72,6 +72,9 @@ namespace NE::ECS::Systems {
         m_luidRegistry->Unregister(meta.luid);
 	}
 
+    void HierarchySystem::OnEntityActive(Entity /*entity*/) {}
+    void HierarchySystem::OnEntityInactive(Entity /*entity*/) {}
+
 	void HierarchySystem::Init() {
         ResolvePendingParentsForAll(false);
 	}

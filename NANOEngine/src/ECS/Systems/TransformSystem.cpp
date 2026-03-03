@@ -45,6 +45,9 @@ namespace NE::ECS::Systems {
 		m_luidRegistry->Unregister(t.luid);
 	}
 
+	void TransformSystem::OnEntityActive(Entity /*entity*/) {}
+	void TransformSystem::OnEntityInactive(Entity /*entity*/) {}
+
 	void TransformSystem::Init() {
 		Update(0.0);
 	}

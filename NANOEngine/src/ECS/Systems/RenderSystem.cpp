@@ -82,6 +82,9 @@ namespace NE::ECS::Systems {
         m_luidRegistry->Unregister(renderer.luid);
     }
 
+    void RenderSystem::OnEntityActive(Entity /*entity*/) {}
+    void RenderSystem::OnEntityInactive(Entity /*entity*/) {}
+
     void RenderSystem::Init() {
     }
 

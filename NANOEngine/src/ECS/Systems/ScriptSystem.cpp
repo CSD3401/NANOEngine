@@ -67,6 +67,9 @@ namespace NE::ECS::Systems {
 		Scripting::ScriptingEngine::GetInstance().DestroyScriptInstances(entity);
 	}
 
+	void ScriptSystem::OnEntityActive(Entity /*entity*/) {}
+	void ScriptSystem::OnEntityInactive(Entity /*entity*/) {}
+
 	void ScriptSystem::Init() {
 		SPD_INFO("ScriptSystem::Init() - Starting initialization");
 

@@ -104,7 +104,9 @@ namespace NE::ECS::Systems {
         void Exit() override;
         void OnEntityAdded(Entity e) override;
         void OnEntityRemoved(Entity e) override;
-
+
+        void OnEntityActive(Entity entity) override;
+        void OnEntityInactive(Entity entity) override;
     private:
 
         //=================================================================

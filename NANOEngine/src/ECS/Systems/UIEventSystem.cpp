@@ -84,6 +84,9 @@ namespace NE::ECS::Systems {
         }
     }
 
+    void UIEventSystem::OnEntityActive(Entity /*entity*/) {}
+    void UIEventSystem::OnEntityInactive(Entity /*entity*/) {}
+
     void UIEventSystem::Exit() {}
 
     void UIEventSystem::Update(double deltaTime) {

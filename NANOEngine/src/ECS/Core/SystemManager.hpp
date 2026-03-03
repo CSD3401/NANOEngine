@@ -56,33 +56,9 @@ namespace NE::ECS {
             m_signatures[typeIdx] = signature;
         }
 
-        void EntityDestroyed(Entity entity) {
-            for (auto& [_, system] : m_systems) {
-                if (system->m_entities.Contains(entity)) {
-                    system->m_entities.Remove(entity);
-                    system->OnEntityRemoved(entity);
-                }
-            }
-        }
-
-        void EntitySignatureChanged(Entity entity, const Signature& entitySig) {
-            for (auto& [type, system] : m_systems) {
-                const Signature& sysSig = m_signatures[type];
-
-                bool shouldHave = (entitySig & sysSig) == sysSig;
-                bool has = system->m_entities.Contains(entity);
-
-                if (shouldHave != has) {
-                    if (shouldHave) {
-                        system->m_entities.Insert(entity);
-                        system->OnEntityAdded(entity);
-                    } else {
-                        system->OnEntityRemoved(entity);
-                        system->m_entities.Remove(entity);
-                    }
-                }
-            }
-        }
+        void EntityDestroyed(Entity entity);
+        void EntitySignatureChanged(Entity entity, const Signature& entitySig);
+		void EntityActiveStatusChanged(Entity entity, const Signature& entitySig, bool active);
 
     private:
         std::unordered_map<std::type_index, std::shared_ptr<System>> m_systems;

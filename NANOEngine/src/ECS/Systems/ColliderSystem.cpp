@@ -50,6 +50,9 @@ namespace NE::ECS::Systems {
 		Physics::PhysicsManager::GetInstance().RemoveShape(meta.luid);
 	}
 
+	void ColliderSystem::OnEntityActive(Entity /*entity*/) {}
+	void ColliderSystem::OnEntityInactive(Entity /*entity*/) {}
+
 	void ColliderSystem::Init() {
 		auto& allEntities = m_entities.GetDenseContainer();
 

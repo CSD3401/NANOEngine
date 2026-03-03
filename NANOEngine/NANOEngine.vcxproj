@@ -26,7 +26,7 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-    <ItemGroup>
+  <ItemGroup>
     <ClInclude Include="src\pch.h" />
   </ItemGroup>
   <ItemGroup>
@@ -227,6 +227,7 @@
     <ClInclude Include="src\Graphics\Core\RenderGraph\TexturePool.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\ECS\Core\SystemManager.cpp" />
     <ClCompile Include="src\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>

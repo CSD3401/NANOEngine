@@ -28,6 +28,9 @@ namespace NE::ECS::Systems {
 		m_luidRegistry->Unregister(rb.luid);
 	}
 
+	void RigidbodySystem::OnEntityActive(Entity /*entity*/) {}
+	void RigidbodySystem::OnEntityInactive(Entity /*entity*/) {}
+
 	void RigidbodySystem::Init() {
 		auto& allEntities = m_entities.GetDenseContainer();
 

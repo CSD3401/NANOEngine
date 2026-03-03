@@ -39,10 +39,6 @@ namespace NE::ECS {
 
         void DestroyEntity(Entity e);
 
-        // --- UI API ---
-        Entity CreateUICanvasEntity();
-        Entity CreateUIImageEntity(Entity parentCanvas);
-
         // --- Component API ---
         template<typename T>
         void RegisterComponent() {
@@ -71,6 +67,8 @@ namespace NE::ECS {
             m_systemManager->EntitySignatureChanged(e, signature);
             m_componentManager->RemoveComponent<T>(e);
         }
+
+		void ToggleEntityActive(Entity e, bool active);
 
         template<typename T>
         T& GetComponent(Entity e) {

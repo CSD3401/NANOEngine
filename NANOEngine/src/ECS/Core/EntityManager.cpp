@@ -49,6 +49,14 @@ namespace NE::ECS {
 		m_signatures[entity] = sig;
 	}
 
+	void EntityManager::ToggleActive(Entity e, bool active) {
+		m_active.set(e, active);
+	}
+
+	bool EntityManager::GetActive(Entity e) {
+		return m_active.test(e);
+	}
+
 	Core::LayerID EntityManager::GetLayer(Entity entity) const noexcept {
 		return m_layer[entity];
 	}

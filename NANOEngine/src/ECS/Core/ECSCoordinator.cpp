@@ -232,6 +232,11 @@ namespace NE::ECS {
         m_componentManager->EntityDestroyed(e);
     }
 
+    void ECSCoordinator::ToggleEntityActive(Entity e, bool active) {
+		m_entityManager->ToggleActive(e, active);
+		m_systemManager->EntityActiveStatusChanged(e, m_entityManager->GetSignature(e), active);
+    }
+
     Signature ECSCoordinator::GetSignature(Entity entity) {
         return m_entityManager->GetSignature(entity);
     }

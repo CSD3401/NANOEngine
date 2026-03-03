@@ -14,7 +14,9 @@ namespace NE::ECS::Systems {
 
 		void OnEntityAdded(Entity e) override;
 		void OnEntityRemoved(Entity e) override;
-
+
+		void OnEntityActive(Entity entity) override;
+		void OnEntityInactive(Entity entity) override;
 		void Init() override;
 		void Update(double) override;
 		void Exit() override;
