@@ -5,7 +5,7 @@
 namespace NE::ECS::Component {
 	struct EntityMeta {
 		std::string name = "Empty Entity";
-		uint64_t luid;
+		uint64_t luid = 0;
 		bool isActive = true;
 
 		NE_REFLECT_BEGIN(EntityMeta)

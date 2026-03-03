@@ -64,7 +64,7 @@ namespace NE::ECS::Component {
 
 		ColliderData data;
 		Math::Vec3 center{ 0.f, 0.f, 0.f };
-		uint64_t luid;
+		uint64_t luid = 0;
 		ColliderType type{ ColliderType::Box };
 		bool isTrigger = false;
 

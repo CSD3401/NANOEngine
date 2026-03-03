@@ -24,7 +24,7 @@ namespace NE::ECS::Component {
 
         //std::string animControllerUUID;
         std::string animClipUUID;
-        uint64_t luid;
+        uint64_t luid = 0;
 		//std::shared_ptr<Animation::AnimatorController> controller;
 		std::shared_ptr<Animation::AnimationClip> clip; // for now
 		bool applyRootMotion = false;
