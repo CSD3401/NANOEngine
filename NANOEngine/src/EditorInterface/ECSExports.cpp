@@ -951,11 +951,15 @@ namespace NE::ECS {
 		}
 
 		void AddUITextComponent(uint32_t e, const Component::UIText& c) {
-			GetScene().GetECSCoordinator().AddComponent<Component::UIText>(e, c);
+			auto comp = c;
+			if (comp.luid == 0) comp.luid = Core::LUIDGenerator::Generate("tx");
+			GetScene().GetECSCoordinator().AddComponent<Component::UIText>(e, comp);
 		}
 
 		void AddUIButtonComponent(uint32_t e, const Component::UIButton& c) {
-			GetScene().GetECSCoordinator().AddComponent<Component::UIButton>(e, c);
+			auto comp = c;
+			if (comp.luid == 0) comp.luid = Core::LUIDGenerator::Generate("bt");
+			GetScene().GetECSCoordinator().AddComponent<Component::UIButton>(e, comp);
 		}
 
 		void AddUISliderComponent(uint32_t e, const Component::UISlider& c) {
@@ -987,11 +991,15 @@ namespace NE::ECS {
 		}
 
 		void AddUIInputFieldComponent(uint32_t e, const Component::UIInputField& c) {
-			GetScene().GetECSCoordinator().AddComponent<Component::UIInputField>(e, c);
+			auto comp = c;
+			if (comp.luid == 0) comp.luid = Core::LUIDGenerator::Generate("if");
+			GetScene().GetECSCoordinator().AddComponent<Component::UIInputField>(e, comp);
 		}
 
 		void AddUIDropdownComponent(uint32_t e, const Component::UIDropdown& c) {
-			GetScene().GetECSCoordinator().AddComponent<Component::UIDropdown>(e, c);
+			auto comp = c;
+			if (comp.luid == 0) comp.luid = Core::LUIDGenerator::Generate("dd");
+			GetScene().GetECSCoordinator().AddComponent<Component::UIDropdown>(e, comp);
 		}
 
 		void AddPrefabLinkComponent(uint32_t e, const Component::PrefabLink& c) {

@@ -5,6 +5,12 @@
 namespace NE::ECS::Component {
 
     struct UILayoutGroup {
+        enum class ChildAlignment {
+            UpperLeft   = 0, UpperCenter  = 1, UpperRight  = 2,
+            MiddleLeft  = 3, MiddleCenter = 4, MiddleRight = 5,
+            LowerLeft   = 6, LowerCenter  = 7, LowerRight  = 8
+        };
+
         bool isHorizontal = true;
 
         float paddingLeft = 0.f;
@@ -13,11 +19,7 @@ namespace NE::ECS::Component {
         float paddingBottom = 0.f;
         float spacing = 0.f;
 
-        // 0-8 matching Unity's TextAnchor grid:
-        // 0=UpperLeft, 1=UpperCenter, 2=UpperRight
-        // 3=MiddleLeft, 4=MiddleCenter, 5=MiddleRight
-        // 6=LowerLeft, 7=LowerCenter, 8=LowerRight
-        int childAlignment = 3; // MiddleLeft default (horizontal)
+        ChildAlignment childAlignment = ChildAlignment::MiddleLeft;
 
         bool controlChildWidth = true;
         bool controlChildHeight = true;
