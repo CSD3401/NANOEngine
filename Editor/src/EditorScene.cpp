@@ -131,16 +131,19 @@ namespace Editor {
     void EditorScene::PasteSelected() {
         if (clipboard.empty()) return;
 
-        auto rootEntt = NE::PasteEntity(clipboard);
+        auto pastedEntt = NE::PasteEntity(clipboard);
 
         if (s_selection.GetLastClicked() != NE::ECS::NO_ENTITY) {
-            //auto& h = NE::ECS::Query::GetEntityHierarchy(s_selection.GetLastClicked());
-			NE::ECS::Command::SetParent(rootEntt, s_selection.GetLastClicked(), -1, false);
+            auto parentEntt = NE::ECS::Query::GetEntityHierarchy(s_selection.GetLastClicked()).parent;
+			if (parentEntt != NE::ECS::Component::INVALID_PARENT)
+                NE::ECS::Command::SetParent(pastedEntt, parentEntt, -1, false);
+            else
+                RegisterRoot(pastedEntt);
         } else {
-            RegisterRoot(rootEntt);
+            RegisterRoot(pastedEntt);
         }
 
-        s_selection.SetSingle(rootEntt);
+        s_selection.SetSingle(pastedEntt);
 
         EditorScene::isDirty = true;
     }

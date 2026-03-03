@@ -604,16 +604,6 @@ namespace Editor {
 			EditorScene::DuplicateSelected();
 		}
 		if (ImGui::MenuItem("Delete", "Del", false, !EditorScene::s_selection.Empty())) {
-			//uint32_t idToDelete = contextEntityId;
-			//if (idToDelete == NE::ECS::NO_ENTITY && EditorScene::s_selectedEntity)
-			//	idToDelete = EditorScene::s_selectedEntity->linkedEntity;
-
-			//if (idToDelete != NE::ECS::NO_ENTITY) {
-			//	NANOEngine::Events::EventBus::Get().Dispatch(
-			//		NANOEngine::Events::EventDomain::Editor,
-			//		DeleteEntityEvent{ idToDelete }
-			//	);
-			//}
 			std::vector<uint32_t> toDelete = BuildDeleteRoots(EditorScene::s_selection.GetSelection());
 			if (!toDelete.empty()) {
 				NANOEngine::Events::EventBus::Get().Dispatch(

@@ -10,6 +10,196 @@
 #include "ThumbnailManager.hpp"
 
 namespace Editor {
+    namespace {
+        ImU32 ColorScale(ImU32 col, float scale) {
+            ImVec4 c = ImGui::ColorConvertU32ToFloat4(col);
+            c.x = std::clamp(c.x * scale, 0.0f, 1.0f);
+            c.y = std::clamp(c.y * scale, 0.0f, 1.0f);
+            c.z = std::clamp(c.z * scale, 0.0f, 1.0f);
+            return ImGui::ColorConvertFloat4ToU32(c);
+        }
+
+        bool DrawAxisPill(const char* axis_id,
+            const char* axis_text,
+            float* value,
+            ImU32 axis_color,
+            float width,
+            float drag_speed_per_pixel,
+            float reset_value,
+            int precision)
+        {
+            ImGui::PushID(axis_id);
+
+            const float old_value = *value;
+
+            const float height = ImGui::GetFrameHeight() * 0.7f;
+            const float rounding = height * 0.5f;
+            const float seg_w = std::clamp(height * 1.25f, 28.0f, 48.0f);
+
+            const ImVec2 p0 = ImGui::GetCursorScreenPos() + ImVec2(0.f, ImGui::GetFrameHeight() * 0.25f);
+            const ImVec2 sz(width, height);
+
+            ImGui::InvisibleButton("##pill", sz, ImGuiButtonFlags_AllowOverlap);
+
+            // Save layout cursor after the pill item, so we can restore it after overlay drawing.
+            const ImVec2 cursor_after = ImGui::GetCursorPos();
+
+            ImGuiIO& io = ImGui::GetIO();
+            ImDrawList* dl = ImGui::GetWindowDrawList();
+
+            const bool hovered = ImGui::IsItemHovered();
+            const bool held = ImGui::IsItemActive();
+            const ImGuiID item_id = ImGui::GetItemID();
+
+            const float local_x = io.MousePos.x - p0.x;
+            const bool over_axis = hovered && (local_x >= 0.0f) && (local_x < seg_w);
+            const bool over_value = hovered && (local_x >= seg_w) && (local_x < width);
+
+            // ---- Persistent state ----
+            ImGuiStorage* st = ImGui::GetStateStorage();
+            const ImGuiID kDragging = ImGui::GetID("##dragging");   // 0/1
+            const ImGuiID kStartX = ImGui::GetID("##startx");
+            const ImGuiID kStartVal = ImGui::GetID("##startval");
+
+            const ImGuiID kEditing = ImGui::GetID("##editing");    // 0/1
+            const ImGuiID kEditStart = ImGui::GetID("##editstart");  // float for Esc revert
+
+            bool editing = (st->GetInt(kEditing, 0) != 0);
+            bool start_edit = false;
+
+            // Cursor hint
+            if (hovered)
+                ImGui::SetMouseCursor(editing ? ImGuiMouseCursor_TextInput
+                    : (over_value ? ImGuiMouseCursor_ResizeEW : ImGuiMouseCursor_Hand));
+
+            // Enter edit mode on double click in value area
+            if (!editing && over_value && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                st->SetInt(kEditing, 1);
+                st->SetInt(kDragging, 0);
+                st->SetFloat(kEditStart, *value);
+                editing = true;
+                start_edit = true;
+            }
+
+            // ---- Interaction (non-edit) ----
+            if (!editing) {
+                // Axis click resets
+                if (over_axis && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                    *value = reset_value;
+                }
+                // Click in value area starts dragging
+                else if (over_value && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                    st->SetInt(kDragging, 1);
+                    st->SetFloat(kStartX, io.MousePos.x);
+                    st->SetFloat(kStartVal, *value);
+                }
+
+                // Dragging continues even if mouse leaves the rect
+                if (st->GetInt(kDragging, 0) != 0) {
+                    if (io.MouseDown[ImGuiMouseButton_Left]) {
+                        float speed = drag_speed_per_pixel;
+                        if (io.KeyShift) speed *= 0.1f;
+                        if (io.KeyCtrl)  speed *= 10.0f;
+
+                        const float start_x = st->GetFloat(kStartX, io.MousePos.x);
+                        const float start_val = st->GetFloat(kStartVal, *value);
+                        *value = start_val + (io.MousePos.x - start_x) * speed;
+                    } else {
+                        st->SetInt(kDragging, 0);
+                    }
+                }
+            }
+
+            // ---- Determine changed ----
+            bool changed = (*value != old_value);
+            if (changed)
+                ImGui::MarkItemEdited(item_id);
+
+            // ---- Colors ----
+            ImU32 bg = ImGui::GetColorU32(ImGuiCol_FrameBg);
+            ImU32 border = ImGui::GetColorU32(ImGuiCol_Border);
+            ImU32 text = ImGui::GetColorU32(ImGuiCol_Text);
+            if ((border >> 24) == 0) border = IM_COL32(0, 0, 0, 255);
+
+            ImU32 axis_fill = axis_color;
+            if (over_axis && !editing) axis_fill = ColorScale(axis_fill, 1.08f);
+            if (over_value && !editing) bg = ColorScale(bg, 1.03f);
+
+            // ---- Draw pill ----
+            dl->AddRectFilled(p0, p0 + sz, bg, rounding);
+            dl->AddRect(p0, p0 + sz, border, rounding, 0, 1.25f);
+
+            dl->AddRectFilled(p0, p0 + ImVec2(seg_w, height), axis_fill, rounding, ImDrawFlags_RoundCornersLeft);
+            dl->AddLine(p0 + ImVec2(seg_w, 1.0f), p0 + ImVec2(seg_w, height - 1.0f), border, 1.0f);
+
+            {
+                const ImVec2 ts = ImGui::CalcTextSize(axis_text);
+                const ImVec2 tp = p0 + ImVec2((seg_w - ts.x) * 0.5f, (height - ts.y) * 0.5f);
+                dl->AddText(tp, IM_COL32(255, 255, 255, 255), axis_text);
+            }
+
+            if (editing) {
+                ImGui::SetItemAllowOverlap();
+
+                if (over_axis && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                    *value = reset_value;
+                    st->SetInt(kEditing, 0);
+                } else {
+                    ImGui::SetCursorScreenPos(p0);
+                    ImGui::PushItemWidth(width);
+
+                    const float pad_x = ImGui::GetStyle().FramePadding.x;
+
+                    ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(0, 0, 0, 0));
+                    ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(0, 0, 0, 0));
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
+                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(seg_w + pad_x, ImGui::GetStyle().FramePadding.y));
+
+                    char fmt[16];
+                    std::snprintf(fmt, sizeof(fmt), "%%.%df", precision);
+
+                    if (start_edit)
+                        ImGui::SetKeyboardFocusHere();
+
+                    ImGuiInputTextFlags flags = ImGuiInputTextFlags_AutoSelectAll;
+
+                    bool input_changed = ImGui::InputFloat("##edit", value, 0.0f, 0.0f, fmt, flags);
+                    if (input_changed) {
+                        changed = true;
+                    }
+
+                    if (ImGui::IsItemActive() && ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+                        *value = st->GetFloat(kEditStart, *value);
+                        st->SetInt(kEditing, 0);
+                    }
+
+                    if (ImGui::IsItemDeactivatedAfterEdit() || ImGui::IsItemDeactivated())
+                        st->SetInt(kEditing, 0);
+
+                    ImGui::PopStyleVar(3);
+                    ImGui::PopStyleColor(2);
+                    ImGui::PopItemWidth();
+
+                    ImGui::SetCursorPos(cursor_after);
+                }
+            } else {
+                char fmt[16];
+                std::snprintf(fmt, sizeof(fmt), "%%.%df", precision);
+
+                char buf[64];
+                std::snprintf(buf, sizeof(buf), fmt, *value);
+
+                const float pad_x = ImGui::GetStyle().FramePadding.x;
+                const ImVec2 ts = ImGui::CalcTextSize(buf);
+                const ImVec2 tp = p0 + ImVec2(seg_w + pad_x, (height - ts.y) * 0.5f);
+                dl->AddText(tp, text, buf);
+            }
+
+            ImGui::PopID();
+            return changed;
+        }
+    }
 
     bool BeginPillCombo(const char* id, const char* preview) {
         ImGuiStyle& s = ImGui::GetStyle();
@@ -64,8 +254,7 @@ namespace Editor {
         ImGui::PopStyleVar(3);
     }
 
-    bool DrawHDRColorPicker(const char* id, HDRColor& hdr)
-    {
+    bool DrawHDRColorPicker(const char* id, HDRColor& hdr) {
         bool changed = false;
 
         ImGui::PushID(id);
@@ -188,106 +377,6 @@ namespace Editor {
 
         ImGui::Spacing();
         ImGui::TextDisabled("Click a swatch to apply.\nRight-click to overwrite.");
-
-        ImGui::PopID();
-        return changed;
-    }
-
-    bool DrawVec3Control(const char* label, NE::Math::Vec3& v, float labelWidth,
-        float speed, float axisTextGap, float groupSpacing) 
-    {
-        bool changed = false;
-        ImGui::PushID(label);
-
-        if (ImGui::BeginTable("##vec3", 2, ImGuiTableFlags_SizingFixedFit)) {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, labelWidth);
-            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
-
-            ImGui::TableNextRow();
-
-            // Label column
-            ImGui::TableSetColumnIndex(0);
-            ImGui::AlignTextToFramePadding();
-            ImGui::TextUnformatted(label);
-
-            // Value column
-            ImGui::TableSetColumnIndex(1);
-
-            const float avail = ImGui::GetContentRegionAvail().x;
-
-            // Width budget: 3 drags + 2 group spacings + 3 axis letters + 3 axis gaps
-            const float axisW = ImGui::CalcTextSize("X").x; // same for Y/Z
-            const float dragsW = avail - (2.0f * groupSpacing) - (3.0f * axisW) - (3.0f * axisTextGap);
-            const float dragW = (dragsW > 0.0f) ? (dragsW / 3.0f) : 0.0f;
-
-            auto axisDrag = [&](const char* axisLabel, const char* id, float& value) {
-                ImGui::AlignTextToFramePadding();
-                ImGui::TextUnformatted(axisLabel);
-                ImGui::SameLine(0.0f, axisTextGap);
-
-                ImGui::PushItemWidth(dragW);
-                changed |= ImGui::DragFloat(id, &value, speed);
-                ImGui::PopItemWidth();
-                };
-
-            axisDrag("X", "##X", v.x);
-            ImGui::SameLine(0.0f, groupSpacing);
-
-            axisDrag("Y", "##Y", v.y);
-            ImGui::SameLine(0.0f, groupSpacing);
-
-            axisDrag("Z", "##Z", v.z);
-
-            ImGui::EndTable();
-        }
-
-        ImGui::PopID();
-        return changed;
-    }
-
-    bool DrawVec2Control(const char* label, NE::Math::Vec2& v, float labelWidth,
-        float speed, float axisTextGap, float groupSpacing)
-    {
-        bool changed = false;
-        ImGui::PushID(label);
-
-        if (ImGui::BeginTable("##vec2", 2, ImGuiTableFlags_SizingFixedFit)) {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, labelWidth);
-            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
-
-            ImGui::TableNextRow();
-
-            // Label column
-            ImGui::TableSetColumnIndex(0);
-            ImGui::AlignTextToFramePadding();
-            ImGui::TextUnformatted(label);
-
-            // Value column
-            ImGui::TableSetColumnIndex(1);
-
-            const float avail = ImGui::GetContentRegionAvail().x;
-
-            // Width budget: 2 drags + 1 group spacing + 2 axis letters + 2 axis gaps
-            const float axisW = ImGui::CalcTextSize("X").x; // same for Y
-            const float dragsW = avail - (1.0f * groupSpacing) - (2.0f * axisW) - (2.0f * axisTextGap);
-            const float dragW = (dragsW > 0.0f) ? (dragsW / 2.0f) : 0.0f;
-
-            auto axisDrag = [&](const char* axisLabel, const char* id, float& value) {
-                ImGui::AlignTextToFramePadding();
-                ImGui::TextUnformatted(axisLabel);
-                ImGui::SameLine(0.0f, axisTextGap);
-
-                ImGui::PushItemWidth(dragW);
-                changed |= ImGui::DragFloat(id, &value, speed);
-                ImGui::PopItemWidth();
-                };
-
-            axisDrag("X", "##X", v.x);
-            ImGui::SameLine(0.0f, groupSpacing);
-            axisDrag("Y", "##Y", v.y);
-
-            ImGui::EndTable();
-        }
 
         ImGui::PopID();
         return changed;
@@ -890,4 +979,62 @@ namespace Editor {
         return changed;
     }
 
+    // NEW STYLING
+    bool DrawVec3Control(const char* label,
+        NE::Math::Vec3& v,
+        float label_width,
+        float drag_speed_per_pixel,
+        float reset_value,
+        int precision)
+    {
+        ImGui::PushID(label);
+
+        const float line_start_x = ImGui::GetCursorPosX();
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(label);
+
+        ImGui::SameLine();
+        const float target_x = line_start_x + label_width;
+        ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), target_x));
+
+        const float avail = ImGui::GetContentRegionAvail().x;
+        const float spacing = ImGui::GetStyle().ItemSpacing.x;
+        const float w = std::max(1.0f, (avail - spacing * 2.0f) / 3.0f);
+
+        bool changed = false;
+
+        changed |= DrawAxisPill("X", "X", &v.x, IM_COL32(220, 60, 60, 255), w, drag_speed_per_pixel, reset_value, precision);
+        ImGui::SameLine(0.0f, spacing);
+        changed |= DrawAxisPill("Y", "Y", &v.y, IM_COL32(60, 180, 75, 255), w, drag_speed_per_pixel, reset_value, precision);
+        ImGui::SameLine(0.0f, spacing);
+        changed |= DrawAxisPill("Z", "Z", &v.z, IM_COL32(70, 120, 230, 255), w, drag_speed_per_pixel, reset_value, precision);
+
+        ImGui::PopID();
+        return changed;
+    }
+
+    bool DrawVec2Control(const char* label, NE::Math::Vec2& v, float label_width, float drag_speed_per_pixel, float reset_value, int precision) {
+        ImGui::PushID(label);
+
+        const float line_start_x = ImGui::GetCursorPosX();
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(label);
+
+        ImGui::SameLine();
+        const float target_x = line_start_x + label_width;
+        ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), target_x));
+
+        const float avail = ImGui::GetContentRegionAvail().x;
+        const float spacing = ImGui::GetStyle().ItemSpacing.x;
+        const float w = std::max(1.0f, (avail - spacing * 2.0f) / 2.0f);
+
+        bool changed = false;
+
+        changed |= DrawAxisPill("X", "X", &v.x, IM_COL32(220, 60, 60, 255), w, drag_speed_per_pixel, reset_value, precision);
+        ImGui::SameLine(0.0f, spacing);
+        changed |= DrawAxisPill("Y", "Y", &v.y, IM_COL32(60, 180, 75, 255), w, drag_speed_per_pixel, reset_value, precision);
+
+        ImGui::PopID();
+        return changed;
+    }
 }

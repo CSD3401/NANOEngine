@@ -5,17 +5,22 @@
 namespace NE::ECS::Component {
 
     struct UIAutoSize {
+        enum class FitMode   { Unconstrained = 0, MinSize = 1, PreferredSize = 2 };
+        enum class AspectMode {
+            None               = 0,
+            WidthControlsHeight = 1,
+            HeightControlsWidth = 2,
+            FitInParent        = 3,
+            EnvelopeParent     = 4
+        };
+
         // === Content Size Fitter ===
-        // 0=Unconstrained, 1=MinSize, 2=PreferredSize
-        int horizontalFit = 0;
-        int verticalFit = 0;
+        FitMode horizontalFit = FitMode::Unconstrained;
+        FitMode verticalFit   = FitMode::Unconstrained;
 
         // === Aspect Ratio Fitter ===
         float aspectRatio = 1.0f;  // width / height
-
-        // 0=None, 1=WidthControlsHeight, 2=HeightControlsWidth,
-        // 3=FitInParent, 4=EnvelopeParent
-        int aspectMode = 0;
+        AspectMode aspectMode = AspectMode::None;
 
         NE_REFLECT_BEGIN(UIAutoSize)
             NE_REFLECT_FIELD(horizontalFit),

@@ -951,11 +951,15 @@ namespace NE::ECS {
 		}
 
 		void AddUITextComponent(uint32_t e, const Component::UIText& c) {
-			GetScene().GetECSCoordinator().AddComponent<Component::UIText>(e, c);
+			auto comp = c;
+			if (comp.luid == 0) comp.luid = Core::LUIDGenerator::Generate("tx");
+			GetScene().GetECSCoordinator().AddComponent<Component::UIText>(e, comp);
 		}
 
 		void AddUIButtonComponent(uint32_t e, const Component::UIButton& c) {
-			GetScene().GetECSCoordinator().AddComponent<Component::UIButton>(e, c);
+			auto comp = c;
+			if (comp.luid == 0) comp.luid = Core::LUIDGenerator::Generate("bt");
+			GetScene().GetECSCoordinator().AddComponent<Component::UIButton>(e, comp);
 		}
 
 		void AddUISliderComponent(uint32_t e, const Component::UISlider& c) {
@@ -987,11 +991,15 @@ namespace NE::ECS {
 		}
 
 		void AddUIInputFieldComponent(uint32_t e, const Component::UIInputField& c) {
-			GetScene().GetECSCoordinator().AddComponent<Component::UIInputField>(e, c);
+			auto comp = c;
+			if (comp.luid == 0) comp.luid = Core::LUIDGenerator::Generate("if");
+			GetScene().GetECSCoordinator().AddComponent<Component::UIInputField>(e, comp);
 		}
 
 		void AddUIDropdownComponent(uint32_t e, const Component::UIDropdown& c) {
-			GetScene().GetECSCoordinator().AddComponent<Component::UIDropdown>(e, c);
+			auto comp = c;
+			if (comp.luid == 0) comp.luid = Core::LUIDGenerator::Generate("dd");
+			GetScene().GetECSCoordinator().AddComponent<Component::UIDropdown>(e, comp);
 		}
 
 		void AddPrefabLinkComponent(uint32_t e, const Component::PrefabLink& c) {
@@ -1016,6 +1024,10 @@ namespace NE::ECS {
 
 		void RemoveRendererComponent(uint32_t e) {
 			GetScene().GetECSCoordinator().RemoveComponent<Component::Renderer>(e);
+		}
+
+		void RemoveAnimatorComponent(uint32_t e) {
+			GetScene().GetECSCoordinator().RemoveComponent<Component::Animator>(e);
 		}
 
 		void RemoveRigidbodyComponent(uint32_t e) {
@@ -1296,6 +1308,22 @@ namespace NE::ECS {
 		}
 
 		//=========================================================================
+		// UI CANVAS HELPERS
+		//=========================================================================
+
+		float GetUICanvasAlpha(uint32_t e) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UICanvas>(e)) return 1.0f;
+			return ecs.GetComponent<Component::UICanvas>(e).alpha;
+		}
+
+		void SetUICanvasAlpha(uint32_t e, float alpha) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UICanvas>(e)) return;
+			ecs.GetComponent<Component::UICanvas>(e).alpha = alpha < 0.0f ? 0.0f : (alpha > 1.0f ? 1.0f : alpha);
+		}
+
+		//=========================================================================
 		// UI IMAGE UTILITIES
 		//=========================================================================
 
@@ -1372,6 +1400,225 @@ namespace NE::ECS {
 	}
 
 	namespace Command {
+
+		//=========================================================================
+		// UITEXT HELPERS
+		//=========================================================================
+
+		void SetUIText(uint32_t e, const char* text) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIText>(e)) return;
+			auto& comp = ecs.GetComponent<Component::UIText>(e);
+			comp.text = text ? text : "";
+			comp.isDirty = true;
+		}
+
+		void SetUITextColor(uint32_t e, float r, float g, float b, float a) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIText>(e)) return;
+			auto& comp = ecs.GetComponent<Component::UIText>(e);
+			comp.color = Math::Vec4(r, g, b, a);
+			comp.isDirty = true;
+		}
+
+		const char* GetUITextString(uint32_t e) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIText>(e)) return nullptr;
+			return ecs.GetComponent<Component::UIText>(e).text.c_str();
+		}
+
+		//=========================================================================
+		// UIBUTTON HELPERS
+		//=========================================================================
+
+		bool WasButtonClicked(uint32_t e) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIButton>(e)) return false;
+			return ecs.GetComponent<Component::UIButton>(e).wasClicked;
+		}
+
+		bool IsButtonHovered(uint32_t e) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIButton>(e)) return false;
+			return ecs.GetComponent<Component::UIButton>(e).currentState == Component::UIButton::State::HOVERED;
+		}
+
+		bool IsButtonPressed(uint32_t e) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIButton>(e)) return false;
+			return ecs.GetComponent<Component::UIButton>(e).currentState == Component::UIButton::State::PRESSED;
+		}
+
+		void SetButtonInteractable(uint32_t e, bool interactable) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIButton>(e)) return;
+			ecs.GetComponent<Component::UIButton>(e).interactable = interactable;
+		}
+
+		bool IsButtonInteractable(uint32_t e) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIButton>(e)) return false;
+			return ecs.GetComponent<Component::UIButton>(e).interactable;
+		}
+
+		//=========================================================================
+		// UITOGGLE HELPERS
+		//=========================================================================
+
+		bool IsToggleOn(uint32_t e) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIToggle>(e)) return false;
+			return ecs.GetComponent<Component::UIToggle>(e).isOn;
+		}
+
+		void SetToggleOn(uint32_t e, bool value) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIToggle>(e)) return;
+			auto& comp = ecs.GetComponent<Component::UIToggle>(e);
+			if (comp.isOn != value) {
+				comp.isOn = value;
+				comp.valueChanged = true;
+			}
+		}
+
+		bool ToggleValueChanged(uint32_t e) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIToggle>(e)) return false;
+			return ecs.GetComponent<Component::UIToggle>(e).valueChanged;
+		}
+
+		void SetToggleInteractable(uint32_t e, bool interactable) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIToggle>(e)) return;
+			ecs.GetComponent<Component::UIToggle>(e).interactable = interactable;
+		}
+
+		//=========================================================================
+		// UISLIDER HELPERS
+		//=========================================================================
+
+		float GetSliderValue(uint32_t e) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UISlider>(e)) return 0.0f;
+			return ecs.GetComponent<Component::UISlider>(e).value;
+		}
+
+		void SetSliderValue(uint32_t e, float value) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UISlider>(e)) return;
+			auto& comp = ecs.GetComponent<Component::UISlider>(e);
+			if (value < comp.minValue) value = comp.minValue;
+			if (value > comp.maxValue) value = comp.maxValue;
+			if (comp.value != value) {
+				comp.value = value;
+				comp.valueChanged = true;
+			}
+		}
+
+		float GetSliderNormalizedValue(uint32_t e) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UISlider>(e)) return 0.0f;
+			auto& comp = ecs.GetComponent<Component::UISlider>(e);
+			if (comp.maxValue <= comp.minValue) return 0.0f;
+			return (comp.value - comp.minValue) / (comp.maxValue - comp.minValue);
+		}
+
+		void SetSliderNormalizedValue(uint32_t e, float normalized) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UISlider>(e)) return;
+			auto& comp = ecs.GetComponent<Component::UISlider>(e);
+			if (normalized < 0.0f) normalized = 0.0f;
+			if (normalized > 1.0f) normalized = 1.0f;
+			float newVal = comp.minValue + normalized * (comp.maxValue - comp.minValue);
+			if (comp.value != newVal) {
+				comp.value = newVal;
+				comp.valueChanged = true;
+			}
+		}
+
+		void SetSliderMinMax(uint32_t e, float minVal, float maxVal) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UISlider>(e)) return;
+			auto& comp = ecs.GetComponent<Component::UISlider>(e);
+			comp.minValue = minVal;
+			comp.maxValue = maxVal;
+			// Re-clamp value
+			if (comp.value < comp.minValue) comp.value = comp.minValue;
+			if (comp.value > comp.maxValue) comp.value = comp.maxValue;
+		}
+
+		bool SliderValueChanged(uint32_t e) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UISlider>(e)) return false;
+			return ecs.GetComponent<Component::UISlider>(e).valueChanged;
+		}
+
+		void SetSliderInteractable(uint32_t e, bool interactable) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UISlider>(e)) return;
+			ecs.GetComponent<Component::UISlider>(e).interactable = interactable;
+		}
+
+		//=========================================================================
+		// UIINPUTFIELD HELPERS
+		//=========================================================================
+
+		const char* GetInputFieldText(uint32_t e) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIInputField>(e)) return nullptr;
+			return ecs.GetComponent<Component::UIInputField>(e).text.c_str();
+		}
+
+		void SetInputFieldText(uint32_t e, const char* text) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIInputField>(e)) return;
+			ecs.GetComponent<Component::UIInputField>(e).text = text ? text : "";
+		}
+
+		bool IsInputFieldFocused(uint32_t e) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIInputField>(e)) return false;
+			return ecs.GetComponent<Component::UIInputField>(e).isFocused;
+		}
+
+		void SetInputFieldInteractable(uint32_t e, bool interactable) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIInputField>(e)) return;
+			ecs.GetComponent<Component::UIInputField>(e).interactable = interactable;
+		}
+
+		//=========================================================================
+		// UIDROPDOWN HELPERS
+		//=========================================================================
+
+		int GetDropdownSelectedIndex(uint32_t e) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIDropdown>(e)) return -1;
+			return ecs.GetComponent<Component::UIDropdown>(e).selectedIndex;
+		}
+
+		void SetDropdownSelectedIndex(uint32_t e, int index) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIDropdown>(e)) return;
+			auto& comp = ecs.GetComponent<Component::UIDropdown>(e);
+			int count = static_cast<int>(comp.options.size());
+			if (index < 0) index = 0;
+			if (index >= count) index = count > 0 ? count - 1 : 0;
+			comp.selectedIndex = index;
+		}
+
+		int GetDropdownOptionCount(uint32_t e) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIDropdown>(e)) return 0;
+			return static_cast<int>(ecs.GetComponent<Component::UIDropdown>(e).options.size());
+		}
+
+		void SetDropdownInteractable(uint32_t e, bool interactable) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIDropdown>(e)) return;
+			ecs.GetComponent<Component::UIDropdown>(e).interactable = interactable;
+		}
+
 		void SetUIViewportBounds(float offsetX, float offsetY, float width, float height, float uiWidth, float uiHeight) {
 			Systems::UIEventSystem::SetViewportBounds(offsetX, offsetY, width, height, uiWidth, uiHeight);
 		}

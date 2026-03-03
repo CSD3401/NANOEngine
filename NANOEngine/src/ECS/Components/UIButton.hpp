@@ -12,6 +12,8 @@ namespace NE::ECS::Component {
         enum class State { NORMAL, HOVERED, PRESSED, DISABLED };
 
         // === SERIALIZED FIELDS ===
+        uint64_t luid = 0;
+
         // Visual states
         NE::Math::Vec4 normalColor{ 0.8f, 0.8f, 0.8f, 1.0f };
         NE::Math::Vec4 hoverColor{ 0.9f, 0.9f, 0.9f, 1.0f };
@@ -29,6 +31,7 @@ namespace NE::ECS::Component {
 
         // Reflection - only serialize user-editable fields
         NE_REFLECT_BEGIN(UIButton)
+            NE_REFLECT_FIELD(luid),
             NE_REFLECT_FIELD(normalColor),
             NE_REFLECT_FIELD(hoverColor),
             NE_REFLECT_FIELD(pressedColor),

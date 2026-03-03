@@ -24,12 +24,6 @@
 #include "ECS/Components/UIButton.hpp"
 #include "ECS/Components/UISlider.hpp"
 #include "ECS/Components/UIToggle.hpp"
-#include "ECS/Components/Hierarchy.hpp"
-#include "ECS/Components/PrefabLink.hpp"
-#include "ECS/Components/PrefabInstance.hpp"
-#include "ECS/Components/CharacterController.hpp"
-#include "ECS/Components/Animator.hpp"
-#include "ECS/Components/DecalProjector.hpp"
 #include "ECS/Components/UILayoutGroup.hpp"
 #include "ECS/Components/UIGridLayoutGroup.hpp"
 #include "ECS/Components/UILayoutElement.hpp"
@@ -37,6 +31,12 @@
 #include "ECS/Components/UIAutoSize.hpp"
 #include "ECS/Components/UIInputField.hpp"
 #include "ECS/Components/UIDropdown.hpp"
+#include "ECS/Components/Hierarchy.hpp"
+#include "ECS/Components/PrefabLink.hpp"
+#include "ECS/Components/PrefabInstance.hpp"
+#include "ECS/Components/CharacterController.hpp"
+#include "ECS/Components/Animator.hpp"
+#include "ECS/Components/DecalProjector.hpp"
 
 namespace NE {
 	namespace {
@@ -81,10 +81,128 @@ namespace NE {
 		}
 
 		inline constexpr uint32_t NSCE_MAGIC = 0x4E534345;
-		inline constexpr int CURRENT_NANOSCENE_FORMAT_VERSION = 5;
+		inline constexpr int CURRENT_NANOSCENE_FORMAT_VERSION = 4;
+		inline constexpr int PREV_NANOSCENE_FORMAT_VERSION = 3;
 
 		inline constexpr uint32_t NFAB_MAGIC = 0x4E464142;
-		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 2;
+		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 3;
+		inline constexpr int PREV_NANOPREFAB_FORMAT_VERSION = 2;
+
+		// -----------------------------------------------------------------------
+		// V3 legacy component structs (no luid field — for migration from v3→v4)
+		// -----------------------------------------------------------------------
+		namespace V3 {
+			struct UIText {
+				std::string text = "New Text";
+				std::string fontUUID;
+				float fontSize = 16.0f;
+				NE::Math::Vec4 color{ 0.f, 0.f, 0.f, 1.f };
+				NE::ECS::Component::UIText::Alignment horizontalAlign{};
+				NE::ECS::Component::UIText::VerticalAlignment verticalAlign{};
+				bool wordWrap = false;
+				bool autoScale = false;
+				float minFontSize = 10.0f;
+				float maxFontSize = 100.0f;
+				NE_REFLECT_BEGIN(UIText)
+					NE_REFLECT_FIELD(text),
+					NE_REFLECT_FIELD(fontUUID),
+					NE_REFLECT_FIELD(fontSize),
+					NE_REFLECT_FIELD(color),
+					NE_REFLECT_FIELD(horizontalAlign),
+					NE_REFLECT_FIELD(verticalAlign),
+					NE_REFLECT_FIELD(wordWrap),
+					NE_REFLECT_FIELD(autoScale),
+					NE_REFLECT_FIELD(minFontSize),
+					NE_REFLECT_FIELD(maxFontSize)
+				NE_REFLECT_END()
+			};
+			struct UIButton {
+				NE::Math::Vec4 normalColor{ 0.8f, 0.8f, 0.8f, 1.f };
+				NE::Math::Vec4 hoverColor{ 0.9f, 0.9f, 0.9f, 1.f };
+				NE::Math::Vec4 pressedColor{ 0.6f, 0.6f, 0.6f, 1.f };
+				NE::Math::Vec4 disabledColor{ 0.5f, 0.5f, 0.5f, 0.5f };
+				uint32_t onClickEventId = 0;
+				bool interactable = true;
+				NE_REFLECT_BEGIN(UIButton)
+					NE_REFLECT_FIELD(normalColor),
+					NE_REFLECT_FIELD(hoverColor),
+					NE_REFLECT_FIELD(pressedColor),
+					NE_REFLECT_FIELD(disabledColor),
+					NE_REFLECT_FIELD(onClickEventId),
+					NE_REFLECT_FIELD(interactable)
+				NE_REFLECT_END()
+			};
+			struct UIInputField {
+				std::string text;
+				std::string placeholderText = "Enter text...";
+				NE::ECS::Component::UIInputField::ContentType contentType{};
+				NE::ECS::Component::UIInputField::LineType lineType{};
+				int characterLimit = 0;
+				char passwordChar = '*';
+				bool interactable = true;
+				bool readOnly = false;
+				NE::Math::Vec4 normalColor{ 1.f, 1.f, 1.f, 1.f };
+				NE::Math::Vec4 selectedColor{ 0.88f, 0.88f, 1.f, 1.f };
+				NE::Math::Vec4 disabledColor{ 0.7f, 0.7f, 0.7f, 0.5f };
+				NE::Math::Vec4 textColor{ 0.f, 0.f, 0.f, 1.f };
+				NE::Math::Vec4 placeholderColor{ 0.5f, 0.5f, 0.5f, 1.f };
+				NE::Math::Vec4 cursorColor{ 0.f, 0.f, 0.f, 1.f };
+				float cursorWidth = 2.0f;
+				float cursorBlinkRate = 0.53f;
+				NE::Math::Vec4 selectionColor{ 0.24f, 0.47f, 0.95f, 0.4f };
+				uint32_t onValueChangedEventId = 0;
+				uint32_t onSubmitEventId = 0;
+				NE_REFLECT_BEGIN(UIInputField)
+					NE_REFLECT_FIELD(text),
+					NE_REFLECT_FIELD(placeholderText),
+					NE_REFLECT_FIELD(contentType),
+					NE_REFLECT_FIELD(lineType),
+					NE_REFLECT_FIELD(characterLimit),
+					NE_REFLECT_FIELD(passwordChar),
+					NE_REFLECT_FIELD(interactable),
+					NE_REFLECT_FIELD(readOnly),
+					NE_REFLECT_FIELD(normalColor),
+					NE_REFLECT_FIELD(selectedColor),
+					NE_REFLECT_FIELD(disabledColor),
+					NE_REFLECT_FIELD(textColor),
+					NE_REFLECT_FIELD(placeholderColor),
+					NE_REFLECT_FIELD(cursorColor),
+					NE_REFLECT_FIELD(cursorWidth),
+					NE_REFLECT_FIELD(cursorBlinkRate),
+					NE_REFLECT_FIELD(selectionColor),
+					NE_REFLECT_FIELD(onValueChangedEventId),
+					NE_REFLECT_FIELD(onSubmitEventId)
+				NE_REFLECT_END()
+			};
+			struct UIDropdown {
+				std::vector<std::string> options{ "Option A", "Option B", "Option C" };
+				int selectedIndex = 0;
+				uint32_t captionTextEntity = UINT32_MAX;
+				uint32_t optionsPanelEntity = UINT32_MAX;
+				bool interactable = true;
+				NE::Math::Vec4 normalColor{ 1.f, 1.f, 1.f, 1.f };
+				NE::Math::Vec4 highlightedColor{ 0.92f, 0.92f, 0.92f, 1.f };
+				NE::Math::Vec4 pressedColor{ 0.78f, 0.78f, 0.78f, 1.f };
+				NE::Math::Vec4 disabledColor{ 0.7f, 0.7f, 0.7f, 0.5f };
+				NE::Math::Vec4 optionNormalColor{ 1.f, 1.f, 1.f, 1.f };
+				NE::Math::Vec4 optionHighlightedColor{ 0.85f, 0.85f, 1.f, 1.f };
+				uint32_t onValueChangedEventId = 0;
+				NE_REFLECT_BEGIN(UIDropdown)
+					NE_REFLECT_FIELD(options),
+					NE_REFLECT_FIELD(selectedIndex),
+					NE_REFLECT_FIELD(captionTextEntity),
+					NE_REFLECT_FIELD(optionsPanelEntity),
+					NE_REFLECT_FIELD(interactable),
+					NE_REFLECT_FIELD(normalColor),
+					NE_REFLECT_FIELD(highlightedColor),
+					NE_REFLECT_FIELD(pressedColor),
+					NE_REFLECT_FIELD(disabledColor),
+					NE_REFLECT_FIELD(optionNormalColor),
+					NE_REFLECT_FIELD(optionHighlightedColor),
+					NE_REFLECT_FIELD(onValueChangedEventId)
+				NE_REFLECT_END()
+			};
+		} // namespace V3
 
 		void AppendPreorder(ECS::ECSCoordinator& ecs, ECS::Entity e, std::vector<ECS::Entity>& out) {
 			out.push_back(e);
@@ -399,13 +517,16 @@ namespace NE {
 			if (magic != NSCE_MAGIC) return false;
 
 			if (!ReadT(it, end, version)) return false;
-			if (version != CURRENT_NANOSCENE_FORMAT_VERSION) return false;
+			if (version != CURRENT_NANOSCENE_FORMAT_VERSION && version != PREV_NANOSCENE_FORMAT_VERSION)
+				return false;
 
 			if (!ReadT(it, end, Graphics::GraphicsManager::renderSettings)) return false;
 			if (!ReadT(it, end, Graphics::GraphicsManager::postProcessingSettings)) return false;
 
 			std::uint64_t entityCount = 0;
 			if (!ReadT(it, end, entityCount)) return false;
+
+			const bool isV3Scene = (version == PREV_NANOSCENE_FORMAT_VERSION);
 
 			for (std::uint64_t i = 0; i < entityCount; ++i) {
 				ECS::Entity e = ecs.CreateEntity();
@@ -421,9 +542,102 @@ namespace NE {
 				std::uint32_t idx = 0;
 				ForEachComponentType([&]<typename C>() {
 					if (mask & (std::uint64_t(1) << idx)) {
-						C c{};
-						if (!ReadT(it, end, c)) return false;
-						ecs.AddComponent<C>(e, c);
+						if constexpr (std::is_same_v<C, ECS::Component::UIText>) {
+							if (isV3Scene) {
+								V3::UIText legacy{};
+								if (!ReadT(it, end, legacy)) { ++idx; return; }
+								ECS::Component::UIText c{};
+								c.text = std::move(legacy.text);
+								c.fontUUID = std::move(legacy.fontUUID);
+								c.fontSize = legacy.fontSize;
+								c.color = legacy.color;
+								c.horizontalAlign = legacy.horizontalAlign;
+								c.verticalAlign = legacy.verticalAlign;
+								c.wordWrap = legacy.wordWrap;
+								c.autoScale = legacy.autoScale;
+								c.minFontSize = legacy.minFontSize;
+								c.maxFontSize = legacy.maxFontSize;
+								ecs.AddComponent<C>(e, c);
+							} else {
+								C c{};
+								if (!ReadT(it, end, c)) { ++idx; return; }
+								ecs.AddComponent<C>(e, c);
+							}
+						} else if constexpr (std::is_same_v<C, ECS::Component::UIButton>) {
+							if (isV3Scene) {
+								V3::UIButton legacy{};
+								if (!ReadT(it, end, legacy)) { ++idx; return; }
+								ECS::Component::UIButton c{};
+								c.normalColor = legacy.normalColor;
+								c.hoverColor = legacy.hoverColor;
+								c.pressedColor = legacy.pressedColor;
+								c.disabledColor = legacy.disabledColor;
+								c.onClickEventId = legacy.onClickEventId;
+								c.interactable = legacy.interactable;
+								ecs.AddComponent<C>(e, c);
+							} else {
+								C c{};
+								if (!ReadT(it, end, c)) { ++idx; return; }
+								ecs.AddComponent<C>(e, c);
+							}
+						} else if constexpr (std::is_same_v<C, ECS::Component::UIInputField>) {
+							if (isV3Scene) {
+								V3::UIInputField legacy{};
+								if (!ReadT(it, end, legacy)) { ++idx; return; }
+								ECS::Component::UIInputField c{};
+								c.text = std::move(legacy.text);
+								c.placeholderText = std::move(legacy.placeholderText);
+								c.contentType = legacy.contentType;
+								c.lineType = legacy.lineType;
+								c.characterLimit = legacy.characterLimit;
+								c.passwordChar = legacy.passwordChar;
+								c.interactable = legacy.interactable;
+								c.readOnly = legacy.readOnly;
+								c.normalColor = legacy.normalColor;
+								c.selectedColor = legacy.selectedColor;
+								c.disabledColor = legacy.disabledColor;
+								c.textColor = legacy.textColor;
+								c.placeholderColor = legacy.placeholderColor;
+								c.cursorColor = legacy.cursorColor;
+								c.cursorWidth = legacy.cursorWidth;
+								c.cursorBlinkRate = legacy.cursorBlinkRate;
+								c.selectionColor = legacy.selectionColor;
+								c.onValueChangedEventId = legacy.onValueChangedEventId;
+								c.onSubmitEventId = legacy.onSubmitEventId;
+								ecs.AddComponent<C>(e, c);
+							} else {
+								C c{};
+								if (!ReadT(it, end, c)) { ++idx; return; }
+								ecs.AddComponent<C>(e, c);
+							}
+						} else if constexpr (std::is_same_v<C, ECS::Component::UIDropdown>) {
+							if (isV3Scene) {
+								V3::UIDropdown legacy{};
+								if (!ReadT(it, end, legacy)) { ++idx; return; }
+								ECS::Component::UIDropdown c{};
+								c.options = std::move(legacy.options);
+								c.selectedIndex = legacy.selectedIndex;
+								c.captionTextEntity = legacy.captionTextEntity;
+								c.optionsPanelEntity = legacy.optionsPanelEntity;
+								c.interactable = legacy.interactable;
+								c.normalColor = legacy.normalColor;
+								c.highlightedColor = legacy.highlightedColor;
+								c.pressedColor = legacy.pressedColor;
+								c.disabledColor = legacy.disabledColor;
+								c.optionNormalColor = legacy.optionNormalColor;
+								c.optionHighlightedColor = legacy.optionHighlightedColor;
+								c.onValueChangedEventId = legacy.onValueChangedEventId;
+								ecs.AddComponent<C>(e, c);
+							} else {
+								C c{};
+								if (!ReadT(it, end, c)) { ++idx; return; }
+								ecs.AddComponent<C>(e, c);
+							}
+						} else {
+							C c{};
+							if (!ReadT(it, end, c)) { ++idx; return; }
+							ecs.AddComponent<C>(e, c);
+						}
 					}
 					++idx;
 				});
@@ -446,7 +660,7 @@ namespace NE {
 			if (magic != NFAB_MAGIC)      return ECS::Component::INVALID_PARENT;
 
 			if (!ReadT(it, end, version)) return ECS::Component::INVALID_PARENT;
-			if (version != CURRENT_NANOPREFAB_FORMAT_VERSION)
+			if (version != CURRENT_NANOPREFAB_FORMAT_VERSION && version != PREV_NANOPREFAB_FORMAT_VERSION)
 				return ECS::Component::INVALID_PARENT;
 
 			std::uint64_t entityCount64 = 0;
@@ -454,6 +668,8 @@ namespace NE {
 
 			const size_t count = static_cast<size_t>(entityCount64);
 			if (count == 0) return ECS::Component::INVALID_PARENT;
+
+			const bool isV2Prefab = (version == PREV_NANOPREFAB_FORMAT_VERSION);
 
 			ECS::Entity outNewRoot = ECS::Component::INVALID_PARENT;
 
@@ -495,29 +711,120 @@ namespace NE {
 					if (!ok) { ++idx; return; }
 
 					if (mask & (std::uint64_t(1) << idx)) {
-						C c{};
-						if (!ReadT(it, end, c)) { ok = false; ++idx; return; }
-
 						if constexpr (std::is_same_v<C, ECS::Component::Hierarchy>) {
+							ECS::Component::Hierarchy c{};
+							if (!ReadT(it, end, c)) { ok = false; ++idx; return; }
 							const uint64_t oldMy = c.luid;
 							const uint64_t oldParent = c.parentLuid;
-
 							const uint64_t newMy = Core::LUIDGenerator::Generate("hr");
 							c.luid = newMy;
-
 							c.parent = ECS::Component::INVALID_PARENT;
 							c.parentLuid = 0;
 							c.children.clear();
-
 							ecs.AddComponent<ECS::Component::Hierarchy>(e, c);
-
 							oldLuidToEntity[oldMy] = e;
 							oldLuidToNewLuid[oldMy] = newMy;
 							pending.push_back({ e, oldMy, oldParent });
-
 							if (oldMy == 0)
 								outNewRoot = e;
+						} else if constexpr (std::is_same_v<C, ECS::Component::UIText>) {
+							if (isV2Prefab) {
+								V3::UIText legacy{};
+								if (!ReadT(it, end, legacy)) { ok = false; ++idx; return; }
+								ECS::Component::UIText c{};
+								c.text = std::move(legacy.text);
+								c.fontUUID = std::move(legacy.fontUUID);
+								c.fontSize = legacy.fontSize;
+								c.color = legacy.color;
+								c.horizontalAlign = legacy.horizontalAlign;
+								c.verticalAlign = legacy.verticalAlign;
+								c.wordWrap = legacy.wordWrap;
+								c.autoScale = legacy.autoScale;
+								c.minFontSize = legacy.minFontSize;
+								c.maxFontSize = legacy.maxFontSize;
+								ecs.AddComponent<C>(e, c);
+							} else {
+								C c{};
+								if (!ReadT(it, end, c)) { ok = false; ++idx; return; }
+								c.luid = 0;
+								ecs.AddComponent<C>(e, c);
+							}
+						} else if constexpr (std::is_same_v<C, ECS::Component::UIButton>) {
+							if (isV2Prefab) {
+								V3::UIButton legacy{};
+								if (!ReadT(it, end, legacy)) { ok = false; ++idx; return; }
+								ECS::Component::UIButton c{};
+								c.normalColor = legacy.normalColor;
+								c.hoverColor = legacy.hoverColor;
+								c.pressedColor = legacy.pressedColor;
+								c.disabledColor = legacy.disabledColor;
+								c.onClickEventId = legacy.onClickEventId;
+								c.interactable = legacy.interactable;
+								ecs.AddComponent<C>(e, c);
+							} else {
+								C c{};
+								if (!ReadT(it, end, c)) { ok = false; ++idx; return; }
+								c.luid = 0;
+								ecs.AddComponent<C>(e, c);
+							}
+						} else if constexpr (std::is_same_v<C, ECS::Component::UIInputField>) {
+							if (isV2Prefab) {
+								V3::UIInputField legacy{};
+								if (!ReadT(it, end, legacy)) { ok = false; ++idx; return; }
+								ECS::Component::UIInputField c{};
+								c.text = std::move(legacy.text);
+								c.placeholderText = std::move(legacy.placeholderText);
+								c.contentType = legacy.contentType;
+								c.lineType = legacy.lineType;
+								c.characterLimit = legacy.characterLimit;
+								c.passwordChar = legacy.passwordChar;
+								c.interactable = legacy.interactable;
+								c.readOnly = legacy.readOnly;
+								c.normalColor = legacy.normalColor;
+								c.selectedColor = legacy.selectedColor;
+								c.disabledColor = legacy.disabledColor;
+								c.textColor = legacy.textColor;
+								c.placeholderColor = legacy.placeholderColor;
+								c.cursorColor = legacy.cursorColor;
+								c.cursorWidth = legacy.cursorWidth;
+								c.cursorBlinkRate = legacy.cursorBlinkRate;
+								c.selectionColor = legacy.selectionColor;
+								c.onValueChangedEventId = legacy.onValueChangedEventId;
+								c.onSubmitEventId = legacy.onSubmitEventId;
+								ecs.AddComponent<C>(e, c);
+							} else {
+								C c{};
+								if (!ReadT(it, end, c)) { ok = false; ++idx; return; }
+								c.luid = 0;
+								ecs.AddComponent<C>(e, c);
+							}
+						} else if constexpr (std::is_same_v<C, ECS::Component::UIDropdown>) {
+							if (isV2Prefab) {
+								V3::UIDropdown legacy{};
+								if (!ReadT(it, end, legacy)) { ok = false; ++idx; return; }
+								ECS::Component::UIDropdown c{};
+								c.options = std::move(legacy.options);
+								c.selectedIndex = legacy.selectedIndex;
+								c.captionTextEntity = legacy.captionTextEntity;
+								c.optionsPanelEntity = legacy.optionsPanelEntity;
+								c.interactable = legacy.interactable;
+								c.normalColor = legacy.normalColor;
+								c.highlightedColor = legacy.highlightedColor;
+								c.pressedColor = legacy.pressedColor;
+								c.disabledColor = legacy.disabledColor;
+								c.optionNormalColor = legacy.optionNormalColor;
+								c.optionHighlightedColor = legacy.optionHighlightedColor;
+								c.onValueChangedEventId = legacy.onValueChangedEventId;
+								ecs.AddComponent<C>(e, c);
+							} else {
+								C c{};
+								if (!ReadT(it, end, c)) { ok = false; ++idx; return; }
+								c.luid = 0;
+								ecs.AddComponent<C>(e, c);
+							}
 						} else {
+							C c{};
+							if (!ReadT(it, end, c)) { ok = false; ++idx; return; }
 							if constexpr (HasLuid<C>) {
 								c.luid = 0;
 							}
@@ -572,13 +879,16 @@ namespace NE {
 			if (magic != NFAB_MAGIC)    return false;
 
 			if (!ReadT(it, end, version)) return false;
-			if (version != CURRENT_NANOPREFAB_FORMAT_VERSION) return false;
+			if (version != CURRENT_NANOPREFAB_FORMAT_VERSION && version != PREV_NANOPREFAB_FORMAT_VERSION)
+				return false;
 
 			std::uint64_t entityCount64 = 0;
 			if (!ReadT(it, end, entityCount64)) return false;
 
 			const size_t count = static_cast<size_t>(entityCount64);
 			if (count == 0) return false;
+
+			const bool isV2Prefab2 = (version == PREV_NANOPREFAB_FORMAT_VERSION);
 
 			const ECS::Entity attachRoot = root;
 			if (attachRoot == ECS::Component::INVALID_PARENT)
@@ -606,6 +916,18 @@ namespace NE {
 			uint64_t oldRootLuid = 0;
 			bool haveOldRootLuid = false;
 
+			// Helper: read component using V3 legacy struct and copy to current layout
+			auto ReadMigratedComponent = [&]<typename Legacy, typename Current>(
+				const uint8_t*& pit, const uint8_t* pend, Current& out) -> bool
+			{
+				Legacy legacy{};
+				if (!ReadT(pit, pend, legacy)) return false;
+				out = Current{};
+				// field-by-field copy handled by caller
+				return true;
+			};
+			(void)ReadMigratedComponent;
+
 			for (size_t i = 0; i < count && ok; ++i) {
 				const bool skipFirst = (i == 0);
 
@@ -630,36 +952,130 @@ namespace NE {
 					if (!ok) { ++idx; return; }
 
 					if (mask & (std::uint64_t(1) << idx)) {
-						C c{};
-						if (!ReadT(it, end, c)) { ok = false; ++idx; return; }
-
 						if constexpr (std::is_same_v<C, ECS::Component::Hierarchy>) {
+							ECS::Component::Hierarchy c{};
+							if (!ReadT(it, end, c)) { ok = false; ++idx; return; }
 							const uint64_t oldMy = c.luid;
 							const uint64_t oldParent = c.parentLuid;
-
 							if (skipFirst) {
 								oldRootLuid = oldMy;
 								haveOldRootLuid = true;
-
 								auto& attachH = ecs.GetComponent<ECS::Component::Hierarchy>(attachRoot);
-
 								oldLuidToEntity[oldMy] = attachRoot;
 								oldLuidToNewLuid[oldMy] = attachH.luid;
 							} else {
 								const uint64_t newMy = Core::LUIDGenerator::Generate("hr");
 								c.luid = newMy;
-
 								c.parent = ECS::Component::INVALID_PARENT;
 								c.parentLuid = 0;
 								c.children.clear();
-
 								ecs.AddComponent<ECS::Component::Hierarchy>(e, c);
-
 								oldLuidToEntity[oldMy] = e;
 								oldLuidToNewLuid[oldMy] = newMy;
 								pending.push_back({ e, oldMy, oldParent });
 							}
+						} else if constexpr (std::is_same_v<C, ECS::Component::UIText>) {
+							if (isV2Prefab2) {
+								V3::UIText legacy{};
+								if (!ReadT(it, end, legacy)) { ok = false; ++idx; return; }
+								if (!skipFirst) {
+									ECS::Component::UIText c{};
+									c.text = std::move(legacy.text);
+									c.fontUUID = std::move(legacy.fontUUID);
+									c.fontSize = legacy.fontSize;
+									c.color = legacy.color;
+									c.horizontalAlign = legacy.horizontalAlign;
+									c.verticalAlign = legacy.verticalAlign;
+									c.wordWrap = legacy.wordWrap;
+									c.autoScale = legacy.autoScale;
+									c.minFontSize = legacy.minFontSize;
+									c.maxFontSize = legacy.maxFontSize;
+									ecs.AddComponent<C>(e, c);
+								}
+							} else {
+								C c{};
+								if (!ReadT(it, end, c)) { ok = false; ++idx; return; }
+								if (!skipFirst) ecs.AddComponent<C>(e, c);
+							}
+						} else if constexpr (std::is_same_v<C, ECS::Component::UIButton>) {
+							if (isV2Prefab2) {
+								V3::UIButton legacy{};
+								if (!ReadT(it, end, legacy)) { ok = false; ++idx; return; }
+								if (!skipFirst) {
+									ECS::Component::UIButton c{};
+									c.normalColor = legacy.normalColor;
+									c.hoverColor = legacy.hoverColor;
+									c.pressedColor = legacy.pressedColor;
+									c.disabledColor = legacy.disabledColor;
+									c.onClickEventId = legacy.onClickEventId;
+									c.interactable = legacy.interactable;
+									ecs.AddComponent<C>(e, c);
+								}
+							} else {
+								C c{};
+								if (!ReadT(it, end, c)) { ok = false; ++idx; return; }
+								if (!skipFirst) ecs.AddComponent<C>(e, c);
+							}
+						} else if constexpr (std::is_same_v<C, ECS::Component::UIInputField>) {
+							if (isV2Prefab2) {
+								V3::UIInputField legacy{};
+								if (!ReadT(it, end, legacy)) { ok = false; ++idx; return; }
+								if (!skipFirst) {
+									ECS::Component::UIInputField c{};
+									c.text = std::move(legacy.text);
+									c.placeholderText = std::move(legacy.placeholderText);
+									c.contentType = legacy.contentType;
+									c.lineType = legacy.lineType;
+									c.characterLimit = legacy.characterLimit;
+									c.passwordChar = legacy.passwordChar;
+									c.interactable = legacy.interactable;
+									c.readOnly = legacy.readOnly;
+									c.normalColor = legacy.normalColor;
+									c.selectedColor = legacy.selectedColor;
+									c.disabledColor = legacy.disabledColor;
+									c.textColor = legacy.textColor;
+									c.placeholderColor = legacy.placeholderColor;
+									c.cursorColor = legacy.cursorColor;
+									c.cursorWidth = legacy.cursorWidth;
+									c.cursorBlinkRate = legacy.cursorBlinkRate;
+									c.selectionColor = legacy.selectionColor;
+									c.onValueChangedEventId = legacy.onValueChangedEventId;
+									c.onSubmitEventId = legacy.onSubmitEventId;
+									ecs.AddComponent<C>(e, c);
+								}
+							} else {
+								C c{};
+								if (!ReadT(it, end, c)) { ok = false; ++idx; return; }
+								if (!skipFirst) ecs.AddComponent<C>(e, c);
+							}
+						} else if constexpr (std::is_same_v<C, ECS::Component::UIDropdown>) {
+							if (isV2Prefab2) {
+								V3::UIDropdown legacy{};
+								if (!ReadT(it, end, legacy)) { ok = false; ++idx; return; }
+								if (!skipFirst) {
+									ECS::Component::UIDropdown c{};
+									c.options = std::move(legacy.options);
+									c.selectedIndex = legacy.selectedIndex;
+									c.captionTextEntity = legacy.captionTextEntity;
+									c.optionsPanelEntity = legacy.optionsPanelEntity;
+									c.interactable = legacy.interactable;
+									c.normalColor = legacy.normalColor;
+									c.highlightedColor = legacy.highlightedColor;
+									c.pressedColor = legacy.pressedColor;
+									c.disabledColor = legacy.disabledColor;
+									c.optionNormalColor = legacy.optionNormalColor;
+									c.optionHighlightedColor = legacy.optionHighlightedColor;
+									c.onValueChangedEventId = legacy.onValueChangedEventId;
+									ecs.AddComponent<C>(e, c);
+								}
+							} else {
+								C c{};
+								if (!ReadT(it, end, c)) { ok = false; ++idx; return; }
+								if (!skipFirst) ecs.AddComponent<C>(e, c);
+							}
 						} else {
+							C c{};
+							if (!ReadT(it, end, c)) { ok = false; ++idx; return; }
 							if (!skipFirst) {
 								ecs.AddComponent<C>(e, c);
 							}

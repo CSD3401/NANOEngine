@@ -15,6 +15,7 @@ namespace NE::ECS::Component {
         enum class LineType { SINGLE_LINE, MULTI_LINE };
 
         // === SERIALIZED FIELDS ===
+        uint64_t luid = 0;
 
         // Text content
         std::string text;
@@ -61,6 +62,7 @@ namespace NE::ECS::Component {
 
         // Reflection — only serialize user-editable fields
         NE_REFLECT_BEGIN(UIInputField)
+            NE_REFLECT_FIELD(luid),
             NE_REFLECT_FIELD(text),
             NE_REFLECT_FIELD(placeholderText),
             NE_REFLECT_FIELD(contentType),

@@ -7,6 +7,8 @@
 namespace NE::ECS::Component {
 
     struct UIScrollRect {
+        enum class MovementType { Unrestricted = 0, Elastic = 1, Clamped = 2 };
+
         // Entity references
         uint32_t contentEntity = UINT32_MAX;
         uint32_t viewportEntity = UINT32_MAX;
@@ -16,8 +18,7 @@ namespace NE::ECS::Component {
         bool horizontal = true;
         bool vertical = true;
 
-        // 0=Unrestricted, 1=Elastic, 2=Clamped
-        int movementType = 1;
+        MovementType movementType = MovementType::Elastic;
 
         float elasticity = 0.1f;
         bool inertia = true;
