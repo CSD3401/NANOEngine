@@ -2,19 +2,17 @@
 #define UI_TEXT_HPP
 
 #include <string>
-#include <filesystem>
-#include <vector>
 #include <cstdint>
 #include "Math/Vec2.hpp"
-#include "Math/Vec3.hpp"
 #include "Math/Vec4.hpp"
 #include "Core/Reflection.hpp"
-#include "Graphics/Core/UIImageMeshGenerator.hpp"  // For UIVertex2
 
 namespace NE::ECS::Component {
 
     struct UIText {
         // === SERIALIZED FIELDS ===
+        uint64_t luid = 0;
+
         std::string text = "New Text";
         std::string fontUUID;
         float fontSize = 16.0f;
@@ -34,18 +32,12 @@ namespace NE::ECS::Component {
         float maxFontSize = 100.0f;
 
         // === RUNTIME FIELDS (not serialized) ===
-        uint64_t fontAtlasHandle = 0;
         bool isDirty = true;
-        std::vector<NE::Graphics::UIVertex2> cachedVertices;
-        std::string cachedText;
-        float cachedFontSize = 0.0f;
-        NE::Math::Vec3 cachedPos{ 0.0f, 0.0f, 0.0f };
-        NE::Math::Vec2 cachedSize{ 0.0f, 0.0f };
-        float cachedRotZ = 0.0f;
-        bool hasCachedTransform = false;
+        NE::Math::Vec2 cachedSize{ 0.0f, 0.0f };  // Written by UIRenderSystem; read by UILayoutSystem
 
         // Reflection - only serialize user-editable fields
         NE_REFLECT_BEGIN(UIText)
+            NE_REFLECT_FIELD(luid),
             NE_REFLECT_FIELD(text),
             NE_REFLECT_FIELD(fontUUID),
             NE_REFLECT_FIELD(fontSize),

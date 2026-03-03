@@ -1204,7 +1204,7 @@ namespace NE::ECS::Systems {
                 float minY = -maxScrollY + halfVpH - scroll.contentHeight * contentRect.pivotY;
                 float maxY = halfVpH - scroll.contentHeight * contentRect.pivotY;
 
-                if (scroll.movementType == 2) { // Clamped
+                if (scroll.movementType == UIScrollRect::MovementType::Clamped) {
                     if (scroll.horizontal) newX = std::max(minX, std::min(maxX, newX));
                     if (scroll.vertical) newY = std::max(minY, std::min(maxY, newY));
                 }
@@ -1252,7 +1252,7 @@ namespace NE::ECS::Systems {
             }
 
             // Elastic bounce-back (when content is out of bounds and movementType == Elastic)
-            if (!scroll.isDragging && scroll.movementType == 1) {
+            if (!scroll.isDragging && scroll.movementType == UIScrollRect::MovementType::Elastic) {
                 float maxScrollX = std::max(0.f, scroll.contentWidth - scroll.viewportWidth);
                 float maxScrollY = std::max(0.f, scroll.contentHeight - scroll.viewportHeight);
                 float halfVpW = scroll.viewportWidth * 0.5f;
