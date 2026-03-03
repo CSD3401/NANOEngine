@@ -81,12 +81,14 @@ namespace NE {
 		}
 
 		inline constexpr uint32_t NSCE_MAGIC = 0x4E534345;
-		inline constexpr int CURRENT_NANOSCENE_FORMAT_VERSION = 4;
-		inline constexpr int PREV_NANOSCENE_FORMAT_VERSION = 3;
+		inline constexpr int CURRENT_NANOSCENE_FORMAT_VERSION = 5;
+		inline constexpr int PREV_NANOSCENE_FORMAT_VERSION = 4;    // no alpha on UICanvas
+		inline constexpr int LEGACY_NANOSCENE_FORMAT_VERSION = 3;  // no luid on UIText/UIButton/UIInputField/UIDropdown
 
 		inline constexpr uint32_t NFAB_MAGIC = 0x4E464142;
-		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 3;
-		inline constexpr int PREV_NANOPREFAB_FORMAT_VERSION = 2;
+		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 4;
+		inline constexpr int PREV_NANOPREFAB_FORMAT_VERSION = 3;   // no alpha on UICanvas
+		inline constexpr int LEGACY_NANOPREFAB_FORMAT_VERSION = 2; // no luid on UIText/UIButton/UIInputField/UIDropdown
 
 		// -----------------------------------------------------------------------
 		// V3 legacy component structs (no luid field — for migration from v3→v4)
@@ -203,6 +205,37 @@ namespace NE {
 				NE_REFLECT_END()
 			};
 		} // namespace V3
+
+		// -----------------------------------------------------------------------
+		// V4 legacy component structs (no alpha on UICanvas — for migration from v4→v5)
+		// Also used when migrating v3 scenes/prefabs for UICanvas (structure is the same)
+		// -----------------------------------------------------------------------
+		namespace V4 {
+			struct UICanvas {
+				uint64_t luid = 0;
+				NE::ECS::Component::UICanvas::RenderMode renderMode{};
+				NE::ECS::Component::UICanvas::ScaleMode scaleMode = NE::ECS::Component::UICanvas::ScaleMode::SCALE_WITH_SCREEN_SIZE;
+				uint32_t cameraEntity = UINT32_MAX;
+				float planeDistance = 100.0f;
+				float referenceWidth = 1920.0f;
+				float referenceHeight = 1080.0f;
+				bool pixelPerfect = false;
+				bool isActive = true;
+				int sortingOrder = 0;
+				NE_REFLECT_BEGIN(UICanvas)
+					NE_REFLECT_FIELD_HIDDEN(luid),
+					NE_REFLECT_FIELD(renderMode),
+					NE_REFLECT_FIELD(scaleMode),
+					NE_REFLECT_FIELD(cameraEntity),
+					NE_REFLECT_FIELD(planeDistance),
+					NE_REFLECT_FIELD(referenceWidth),
+					NE_REFLECT_FIELD(referenceHeight),
+					NE_REFLECT_FIELD(pixelPerfect),
+					NE_REFLECT_FIELD(isActive),
+					NE_REFLECT_FIELD(sortingOrder)
+				NE_REFLECT_END()
+			};
+		} // namespace V4
 
 		void AppendPreorder(ECS::ECSCoordinator& ecs, ECS::Entity e, std::vector<ECS::Entity>& out) {
 			out.push_back(e);
@@ -517,7 +550,9 @@ namespace NE {
 			if (magic != NSCE_MAGIC) return false;
 
 			if (!ReadT(it, end, version)) return false;
-			if (version != CURRENT_NANOSCENE_FORMAT_VERSION && version != PREV_NANOSCENE_FORMAT_VERSION)
+			if (version != CURRENT_NANOSCENE_FORMAT_VERSION &&
+				version != PREV_NANOSCENE_FORMAT_VERSION &&
+				version != LEGACY_NANOSCENE_FORMAT_VERSION)
 				return false;
 
 			if (!ReadT(it, end, Graphics::GraphicsManager::renderSettings)) return false;
@@ -526,7 +561,9 @@ namespace NE {
 			std::uint64_t entityCount = 0;
 			if (!ReadT(it, end, entityCount)) return false;
 
-			const bool isV3Scene = (version == PREV_NANOSCENE_FORMAT_VERSION);
+			const bool isV3Scene = (version == LEGACY_NANOSCENE_FORMAT_VERSION);
+			const bool isV4Scene = (version == PREV_NANOSCENE_FORMAT_VERSION);
+			const bool needsCanvasMigration = isV3Scene || isV4Scene;
 
 			for (std::uint64_t i = 0; i < entityCount; ++i) {
 				ECS::Entity e = ecs.CreateEntity();
@@ -633,6 +670,28 @@ namespace NE {
 								if (!ReadT(it, end, c)) { ++idx; return; }
 								ecs.AddComponent<C>(e, c);
 							}
+						} else if constexpr (std::is_same_v<C, ECS::Component::UICanvas>) {
+							if (needsCanvasMigration) {
+								V4::UICanvas legacy{};
+								if (!ReadT(it, end, legacy)) { ++idx; return; }
+								ECS::Component::UICanvas c{};
+								c.luid = legacy.luid;
+								c.renderMode = legacy.renderMode;
+								c.scaleMode = legacy.scaleMode;
+								c.cameraEntity = legacy.cameraEntity;
+								c.planeDistance = legacy.planeDistance;
+								c.referenceWidth = legacy.referenceWidth;
+								c.referenceHeight = legacy.referenceHeight;
+								c.pixelPerfect = legacy.pixelPerfect;
+								c.isActive = legacy.isActive;
+								c.sortingOrder = legacy.sortingOrder;
+								c.alpha = 1.0f;
+								ecs.AddComponent<C>(e, c);
+							} else {
+								C c{};
+								if (!ReadT(it, end, c)) { ++idx; return; }
+								ecs.AddComponent<C>(e, c);
+							}
 						} else {
 							C c{};
 							if (!ReadT(it, end, c)) { ++idx; return; }
@@ -660,7 +719,9 @@ namespace NE {
 			if (magic != NFAB_MAGIC)      return ECS::Component::INVALID_PARENT;
 
 			if (!ReadT(it, end, version)) return ECS::Component::INVALID_PARENT;
-			if (version != CURRENT_NANOPREFAB_FORMAT_VERSION && version != PREV_NANOPREFAB_FORMAT_VERSION)
+			if (version != CURRENT_NANOPREFAB_FORMAT_VERSION &&
+				version != PREV_NANOPREFAB_FORMAT_VERSION &&
+				version != LEGACY_NANOPREFAB_FORMAT_VERSION)
 				return ECS::Component::INVALID_PARENT;
 
 			std::uint64_t entityCount64 = 0;
@@ -669,7 +730,9 @@ namespace NE {
 			const size_t count = static_cast<size_t>(entityCount64);
 			if (count == 0) return ECS::Component::INVALID_PARENT;
 
-			const bool isV2Prefab = (version == PREV_NANOPREFAB_FORMAT_VERSION);
+			const bool isV2Prefab = (version == LEGACY_NANOPREFAB_FORMAT_VERSION);
+			const bool isV3Prefab = (version == PREV_NANOPREFAB_FORMAT_VERSION);
+			const bool needsCanvasMigration = isV2Prefab || isV3Prefab;
 
 			ECS::Entity outNewRoot = ECS::Component::INVALID_PARENT;
 
@@ -822,6 +885,30 @@ namespace NE {
 								c.luid = 0;
 								ecs.AddComponent<C>(e, c);
 							}
+						} else if constexpr (std::is_same_v<C, ECS::Component::UICanvas>) {
+							if (needsCanvasMigration) {
+								V4::UICanvas legacy{};
+								if (!ReadT(it, end, legacy)) { ok = false; ++idx; return; }
+								ECS::Component::UICanvas c{};
+								c.luid = legacy.luid;
+								c.renderMode = legacy.renderMode;
+								c.scaleMode = legacy.scaleMode;
+								c.cameraEntity = legacy.cameraEntity;
+								c.planeDistance = legacy.planeDistance;
+								c.referenceWidth = legacy.referenceWidth;
+								c.referenceHeight = legacy.referenceHeight;
+								c.pixelPerfect = legacy.pixelPerfect;
+								c.isActive = legacy.isActive;
+								c.sortingOrder = legacy.sortingOrder;
+								c.alpha = 1.0f;
+								c.luid = 0;
+								ecs.AddComponent<C>(e, c);
+							} else {
+								C c{};
+								if (!ReadT(it, end, c)) { ok = false; ++idx; return; }
+								c.luid = 0;
+								ecs.AddComponent<C>(e, c);
+							}
 						} else {
 							C c{};
 							if (!ReadT(it, end, c)) { ok = false; ++idx; return; }
@@ -879,7 +966,9 @@ namespace NE {
 			if (magic != NFAB_MAGIC)    return false;
 
 			if (!ReadT(it, end, version)) return false;
-			if (version != CURRENT_NANOPREFAB_FORMAT_VERSION && version != PREV_NANOPREFAB_FORMAT_VERSION)
+			if (version != CURRENT_NANOPREFAB_FORMAT_VERSION &&
+				version != PREV_NANOPREFAB_FORMAT_VERSION &&
+				version != LEGACY_NANOPREFAB_FORMAT_VERSION)
 				return false;
 
 			std::uint64_t entityCount64 = 0;
@@ -888,7 +977,9 @@ namespace NE {
 			const size_t count = static_cast<size_t>(entityCount64);
 			if (count == 0) return false;
 
-			const bool isV2Prefab2 = (version == PREV_NANOPREFAB_FORMAT_VERSION);
+			const bool isV2Prefab2 = (version == LEGACY_NANOPREFAB_FORMAT_VERSION);
+			const bool isV3Prefab2 = (version == PREV_NANOPREFAB_FORMAT_VERSION);
+			const bool needsCanvasMigration2 = isV2Prefab2 || isV3Prefab2;
 
 			const ECS::Entity attachRoot = root;
 			if (attachRoot == ECS::Component::INVALID_PARENT)
@@ -1066,6 +1157,31 @@ namespace NE {
 									c.optionNormalColor = legacy.optionNormalColor;
 									c.optionHighlightedColor = legacy.optionHighlightedColor;
 									c.onValueChangedEventId = legacy.onValueChangedEventId;
+									ecs.AddComponent<C>(e, c);
+								}
+							} else {
+								C c{};
+								if (!ReadT(it, end, c)) { ok = false; ++idx; return; }
+								if (!skipFirst) ecs.AddComponent<C>(e, c);
+							}
+						} else if constexpr (std::is_same_v<C, ECS::Component::UICanvas>) {
+							if (needsCanvasMigration2) {
+								V4::UICanvas legacy{};
+								if (!ReadT(it, end, legacy)) { ok = false; ++idx; return; }
+								if (!skipFirst) {
+									ECS::Component::UICanvas c{};
+									c.luid = legacy.luid;
+									c.renderMode = legacy.renderMode;
+									c.scaleMode = legacy.scaleMode;
+									c.cameraEntity = legacy.cameraEntity;
+									c.planeDistance = legacy.planeDistance;
+									c.referenceWidth = legacy.referenceWidth;
+									c.referenceHeight = legacy.referenceHeight;
+									c.pixelPerfect = legacy.pixelPerfect;
+									c.isActive = legacy.isActive;
+									c.sortingOrder = legacy.sortingOrder;
+									c.alpha = 1.0f;
+									c.luid = 0;
 									ecs.AddComponent<C>(e, c);
 								}
 							} else {

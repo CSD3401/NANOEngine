@@ -39,6 +39,9 @@ namespace NE::ECS::Component {
         // Higher values render on top (layering of canvases)
         int sortingOrder = 0;
 
+        // Canvas-level opacity multiplied into all child element colors (0 = invisible, 1 = fully opaque)
+        float alpha = 1.0f;
+
         // Reflection
         NE_REFLECT_BEGIN(UICanvas)
             NE_REFLECT_FIELD_HIDDEN(luid),
@@ -50,11 +53,11 @@ namespace NE::ECS::Component {
             NE_REFLECT_FIELD(referenceHeight),
             NE_REFLECT_FIELD(pixelPerfect),
             NE_REFLECT_FIELD(isActive),
-            NE_REFLECT_FIELD(sortingOrder)
+            NE_REFLECT_FIELD(sortingOrder),
+            NE_REFLECT_FIELD(alpha)
         NE_REFLECT_END()
 
-        // Runtime only (not serialized — adding to NE_REFLECT would break existing scene files)
-        float alpha = 1.0f;   // Canvas-level opacity; set via inspector or script at runtime
+        // Runtime only (not serialized)
         float scaleFactor = 1.0f;
         RenderMode lastInitializedMode = RenderMode::SCREEN_SPACE_OVERLAY;
         bool hasBeenInitialized = false;
