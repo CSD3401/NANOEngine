@@ -1,19 +1,23 @@
 #pragma once
 
-#include "../Core/System.hpp"
-#include "../Core/ComponentManager.hpp"
-#include "../../Graphics/Core/Frustum.hpp"
-#include "../../Graphics/Core/EditorCamera.hpp"
+#include "ECS/Core/System.hpp"
+#include "Graphics/Core/Frustum.hpp"
+#include "Graphics/Core/EditorCamera.hpp"
 
 namespace NE::Core {
 	class LUIDRegistry;
+}
+
+namespace NE::ECS {
+	class ComponentManager;
+	class EntityManager;
 }
 
 namespace NE::ECS::Systems {
 
     class RenderSystem final : public System {
     public:
-		explicit RenderSystem(ComponentManager* cm, Core::LUIDRegistry* lr);
+		explicit RenderSystem(ComponentManager* cm, EntityManager* em, Core::LUIDRegistry* lr);
 
 		void OnEntityAdded(Entity entity) override;
 		void OnEntityRemoved(Entity entity) override;
@@ -26,6 +30,7 @@ namespace NE::ECS::Systems {
 
     private:
         ComponentManager* m_componentManager;
+		EntityManager* m_entityManager;
 		Core::LUIDRegistry* m_luidRegistry;
     };
 

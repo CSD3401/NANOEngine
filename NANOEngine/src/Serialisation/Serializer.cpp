@@ -538,6 +538,7 @@ namespace NE {
 				ReadT(it, end, layer);
 				ecs.GetEntityManager().SetLayer(e, layer);
 				bool entityActive = true;
+				ReadT(it, end, entityActive);
 
 				std::uint64_t maskU64 = 0;
 				if (!ReadT(it, end, maskU64)) return false;

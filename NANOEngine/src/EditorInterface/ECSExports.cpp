@@ -862,9 +862,9 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(_child, _newParent, _insertIndex, _keepWorldPos);
 		}
 
-		void SetActive(Entity entity, bool isActive) {
-			GetScene().GetECSCoordinator().m_hierarchySystem->SetActive(entity, isActive);
-		}
+		//void SetActive(Entity entity, bool isActive) {
+		//	GetScene().GetECSCoordinator().m_hierarchySystem->SetActive(entity, isActive);
+		//}
 
 		void AddLightComponent(uint32_t e) {
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Light{});

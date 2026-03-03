@@ -1,11 +1,11 @@
 #include "pch.h"
 #include "ColliderSystem.hpp"
-#include "../Components/Rigidbody.hpp"
-#include "../Components/CharacterController.hpp"
-#include "../Components/Transform.hpp"
-#include "../Components/Collider.hpp"
-#include "../Components/Renderer.hpp"
-#include "../Components/EntityMeta.hpp"
+#include "ECS/Components/Collider.hpp"
+#include "ECS/Components/Transform.hpp"
+#include "ECS/Components/Rigidbody.hpp"
+#include "ECS/Components/CharacterController.hpp"
+#include "ECS/Components/Renderer.hpp"
+#include "ECS/Components/EntityMeta.hpp"
 #include "Physics/PhysicsManager.hpp"
 #include "Core/LUIDGenerator.hpp"
 #include "Core/LUIDRegistry.hpp"
@@ -50,8 +50,15 @@ namespace NE::ECS::Systems {
 		Physics::PhysicsManager::GetInstance().RemoveShape(meta.luid);
 	}
 
-	void ColliderSystem::OnEntityActive(Entity /*entity*/) {}
-	void ColliderSystem::OnEntityInactive(Entity /*entity*/) {}
+	void ColliderSystem::OnEntityActive(Entity e) {
+		auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
+		Physics::PhysicsManager::GetInstance().UpdateBodyState(meta.luid, true);
+	}
+
+	void ColliderSystem::OnEntityInactive(Entity e) {
+		auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
+		Physics::PhysicsManager::GetInstance().UpdateBodyState(meta.luid, false);
+	}
 
 	void ColliderSystem::Init() {
 		auto& allEntities = m_entities.GetDenseContainer();

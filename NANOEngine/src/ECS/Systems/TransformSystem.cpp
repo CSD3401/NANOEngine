@@ -1,12 +1,8 @@
 #include "pch.h"
 #include "TransformSystem.hpp"
 
-//#include <vector>
-//#include <unordered_map>
-
-#include "../Components/Transform.hpp"
-#include "../Components/EntityMeta.hpp"
-#include "../Components/Hierarchy.hpp"
+#include "ECS/Components/Transform.hpp"
+#include "ECS/Components/Hierarchy.hpp"
 #include "Core/Profiler.hpp"
 #include "Core/LUIDGenerator.hpp"
 #include "Core/LUIDRegistry.hpp"

@@ -12,6 +12,7 @@ namespace NE::Core {
 namespace NE::ECS {
     class ComponentManager;
 	class EntityManager;
+	class ECSCoordinator;
 
     class SystemManager {
     public:
@@ -47,6 +48,15 @@ namespace NE::ECS {
             std::type_index typeIdx = typeid(T);
             assert(m_systems.find(typeIdx) == m_systems.end() && "System already registered.");
             auto system = std::make_shared<T>(cm, em, lr);
+            m_systems[typeIdx] = system;
+            return system;
+        }
+
+        template<typename T>
+        std::shared_ptr<T> RegisterSystem(ComponentManager* cm, ECSCoordinator* ec, Core::LUIDRegistry* lr) {
+            std::type_index typeIdx = typeid(T);
+            assert(m_systems.find(typeIdx) == m_systems.end() && "System already registered.");
+            auto system = std::make_shared<T>(cm, ec, lr);
             m_systems[typeIdx] = system;
             return system;
         }

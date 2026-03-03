@@ -7,7 +7,7 @@
 #include "Physics/PhysicsManager.hpp"
 #include "Core/LUIDGenerator.hpp"
 #include "Core/LUIDRegistry.hpp"
-#include <Core/Profiler.hpp>
+#include "Core/Profiler.hpp"
 
 namespace NE::ECS::Systems {
 
@@ -28,8 +28,15 @@ namespace NE::ECS::Systems {
 		m_luidRegistry->Unregister(rb.luid);
 	}
 
-	void RigidbodySystem::OnEntityActive(Entity /*entity*/) {}
-	void RigidbodySystem::OnEntityInactive(Entity /*entity*/) {}
+	void RigidbodySystem::OnEntityActive(Entity e) {
+		auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
+		Physics::PhysicsManager::GetInstance().UpdateBodyState(meta.luid, true);
+	}
+
+	void RigidbodySystem::OnEntityInactive(Entity e) {
+		auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
+		Physics::PhysicsManager::GetInstance().UpdateBodyState(meta.luid, false);
+	}
 
 	void RigidbodySystem::Init() {
 		auto& allEntities = m_entities.GetDenseContainer();
@@ -54,7 +61,7 @@ namespace NE::ECS::Systems {
 		for (auto& e : allEntities) {
 			auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
 			auto& t = m_componentManager->GetComponent<Component::Transform>(e);
-			Physics::PhysicsManager::GetInstance().SyncTransformToBodies(meta.luid, t);
+			Physics::PhysicsManager::GetInstance().SyncTransformToBodies(e, t);
 		}
 	}
 

@@ -250,8 +250,8 @@ namespace NE::ECS {
 		NANOENGINE_API void DestroyEntity(uint32_t e);
 		NANOENGINE_API void SetParent(Entity _child, Entity _newParent, int _insertIndex, bool _keepWorldPos = true);
 
-		[[deprecated("Refactor to use ToggleActive instead")]]
-		NANOENGINE_API void SetActive(Entity entity, bool isActive);
+		//[[deprecated("Refactor to use ToggleActive instead")]]
+		//NANOENGINE_API void SetActive(Entity entity, bool isActive);
 
 		//NANOENGINE_API void AddEntityMetaComponent(uint32_t e);
 		NANOENGINE_API void AddLightComponent(uint32_t e);
