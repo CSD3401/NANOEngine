@@ -438,6 +438,10 @@ namespace NE::ECS {
 
 			return 0;
 		}
+
+		bool GetActive(Entity e) {
+			return GetScene().GetECSCoordinator().GetEntityManager().GetActive(e);
+		}
 	}
 
 	namespace Command {
@@ -1625,6 +1629,10 @@ namespace NE::ECS {
 
 		void ClearUIViewportBounds() {
 			Systems::UIEventSystem::ClearViewportBounds();
+		}
+
+		void ToggleActive(Entity e, bool isActive) {
+			 GetScene().GetECSCoordinator().ToggleEntityActive(e, isActive);
 		}
 	}
 }

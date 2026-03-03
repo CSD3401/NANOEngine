@@ -81,8 +81,8 @@ namespace NE {
 		}
 
 		inline constexpr uint32_t NSCE_MAGIC = 0x4E534345;
-		inline constexpr int CURRENT_NANOSCENE_FORMAT_VERSION = 4;
-		inline constexpr int PREV_NANOSCENE_FORMAT_VERSION = 3;
+		inline constexpr int CURRENT_NANOSCENE_FORMAT_VERSION = 5;
+		inline constexpr int PREV_NANOSCENE_FORMAT_VERSION = 4;
 
 		inline constexpr uint32_t NFAB_MAGIC = 0x4E464142;
 		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 3;
@@ -287,6 +287,8 @@ namespace NE {
 			void WriteOneEntity(ECS::ECSCoordinator& ecs, ByteBuffer& buf, ECS::Entity e) {
 				const uint8_t layer = static_cast<uint8_t>(ecs.GetEntityManager().GetLayer(e));
 				ToBinary(buf, layer);
+				const bool active = ecs.GetEntityManager().GetActive(e);
+				ToBinary(buf, active);
 
 				ComponentMask mask = 0;
 				uint32_t idx = 0;
@@ -517,7 +519,8 @@ namespace NE {
 			if (magic != NSCE_MAGIC) return false;
 
 			if (!ReadT(it, end, version)) return false;
-			if (version != CURRENT_NANOSCENE_FORMAT_VERSION && version != PREV_NANOSCENE_FORMAT_VERSION)
+			if (version != CURRENT_NANOSCENE_FORMAT_VERSION &&
+				version != PREV_NANOSCENE_FORMAT_VERSION)
 				return false;
 
 			if (!ReadT(it, end, Graphics::GraphicsManager::renderSettings)) return false;
@@ -534,6 +537,7 @@ namespace NE {
 				uint8_t layer = 0;
 				ReadT(it, end, layer);
 				ecs.GetEntityManager().SetLayer(e, layer);
+				bool entityActive = true;
 
 				std::uint64_t maskU64 = 0;
 				if (!ReadT(it, end, maskU64)) return false;
@@ -641,6 +645,15 @@ namespace NE {
 					}
 					++idx;
 				});
+
+				//if (!hasEntityActiveBit && ecs.HasComponent<ECS::Component::EntityMeta>(e)) {
+				//	entityActive = ecs.GetComponent<ECS::Component::EntityMeta>(e).isActive;
+				//}
+
+				ecs.GetEntityManager().ToggleActive(e, entityActive);
+				if (ecs.HasComponent<ECS::Component::EntityMeta>(e)) {
+					ecs.GetComponent<ECS::Component::EntityMeta>(e).isActive = entityActive;
+				}
 			}
 			return true;
 		}

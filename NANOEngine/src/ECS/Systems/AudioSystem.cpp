@@ -350,9 +350,9 @@ namespace NE::ECS::Systems {
 					SPD_INFO("Loaded bank: " << displayName << " with " << bankAsset->GetEvents().size() << " events");
 
 					// Log all events in this bank
-					for (const auto& [eventPath, eventInfo] : bankAsset->GetEvents()) {
-						SPD_INFO("  - Event: " << eventPath);
-					}
+					//for (const auto& [eventPath, eventInfo] : bankAsset->GetEvents()) {
+					//	SPD_INFO("  - Event: " << eventPath);
+					//}
 				}
 				else
 				{

@@ -22,6 +22,7 @@ namespace NE::ECS {
 		Entity entity = m_availableEntities.back();
 		m_availableEntities.pop_back();
 		m_usedEntities.push_back(entity);
+		m_active.set(entity, true);
 
 		return entity;
 	}
@@ -38,6 +39,7 @@ namespace NE::ECS {
 
 		m_signatures[entity].reset();
 		m_layer[entity] = Core::LayerID{ 0 };
+		m_active.set(entity, false);
 		m_availableEntities.push_back(entity);
 	}
 

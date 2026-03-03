@@ -177,6 +177,7 @@ namespace Editor {
 					rapidjson::Value ent(rapidjson::kObjectType);
 
 					ent.AddMember("Layer", ToJSON(NE::ECS::Query::GetLayer(e), a), a);
+					ent.AddMember("Active", ToJSON(NE::ECS::Query::GetActive(e), a), a);
 					ForEachComponentType([&]<typename C>() {
 						WriteComponentIfPresent<C>(e, ent, a);
 					});
@@ -437,7 +438,7 @@ namespace Editor {
 				for (auto& entVal : doc["Entities"].GetArray()) {
 					NE::ECS::Entity e = NE::ECS::Command::CreateEntityNoComponents();
 
-					if (doc.HasMember("Layer")) {
+					if (entVal.HasMember("Layer")) {
 						uint8_t layer = 0;
 						FromJSON(entVal["Layer"], layer);
 						NE::ECS::Command::SetLayer(e, layer);
@@ -446,6 +447,18 @@ namespace Editor {
 					ForEachComponentType([&]<typename C>() {
 						ReadComponentIfPresent<C>(e, entVal);
 					});
+
+					bool isActive = true;
+					if (entVal.HasMember("Active")) {
+						FromJSON(entVal["Active"], isActive);
+					} else if (NE::ECS::Query::HasComponent<NE::ECS::Component::EntityMeta>(e)) {
+						isActive = NE::ECS::Query::GetComponent<NE::ECS::Component::EntityMeta>(e).isActive;
+					}
+
+					NE::ECS::Command::ToggleActive(e, isActive);
+					if (NE::ECS::Query::HasComponent<NE::ECS::Component::EntityMeta>(e)) {
+						NE::ECS::Command::GetComponent<NE::ECS::Component::EntityMeta>(e).isActive = isActive;
+					}
 				}
 			}
 
@@ -504,6 +517,18 @@ namespace Editor {
 							ReadComponentIfPresent<C>(e, entVal);
 						}
 					});
+
+					bool isActive = true;
+					if (entVal.HasMember("Active")) {
+						FromJSON(entVal["Active"], isActive);
+					} else if (NE::ECS::Query::HasComponent<NE::ECS::Component::EntityMeta>(e)) {
+						isActive = NE::ECS::Query::GetComponent<NE::ECS::Component::EntityMeta>(e).isActive;
+					}
+
+					NE::ECS::Command::ToggleActive(e, isActive);
+					if (NE::ECS::Query::HasComponent<NE::ECS::Component::EntityMeta>(e)) {
+						NE::ECS::Command::GetComponent<NE::ECS::Component::EntityMeta>(e).isActive = isActive;
+					}
 
 					if (NE::ECS::Query::HasComponent<NE::ECS::Component::Renderer>(e)) {
 						auto& renderer = NE::ECS::Query::GetComponent<NE::ECS::Component::Renderer>(e);
