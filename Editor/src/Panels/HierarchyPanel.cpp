@@ -424,7 +424,7 @@ namespace Editor {
 		const bool nameMatches = m_filtering && !m_searchLower.empty()
 			&& ToLower(meta.name).find(m_searchLower) != std::string::npos;
 
-		bool isActive = meta.isActive;
+		bool isActive = NE::ECS::Query::GetActive(e);
 		bool isPrefab = NE::ECS::Query::HasPrefabLink(e);
 
 		ImVec4 baseText = ImGui::GetStyleColorVec4(ImGuiCol_Text);
