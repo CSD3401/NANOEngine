@@ -17,6 +17,9 @@ namespace NE::ECS {
         virtual void OnEntityAdded(Entity entity) = 0;
         virtual void OnEntityRemoved(Entity entity) = 0;
 
+        virtual void OnEntityActive(Entity entity) = 0;
+		virtual void OnEntityInactive(Entity entity) = 0;
+
         virtual void Init() = 0;
         virtual void Update(double deltaTime) = 0; // override in concrete systems
         virtual void Exit() = 0;

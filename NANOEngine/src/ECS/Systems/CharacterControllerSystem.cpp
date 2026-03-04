@@ -30,6 +30,9 @@ namespace NE::ECS::Systems {
 		m_luidRegistry->Unregister(cc.luid);
 	}
 
+	void CharacterControllerSystem::OnEntityActive(Entity /*entity*/) {}
+	void CharacterControllerSystem::OnEntityInactive(Entity /*entity*/) {}
+
 	void CharacterControllerSystem::Init() {
 		auto& allEntities = m_entities.GetDenseContainer();
 

@@ -438,6 +438,10 @@ namespace NE::ECS {
 
 			return 0;
 		}
+
+		bool GetActive(Entity e) {
+			return GetScene().GetECSCoordinator().GetEntityManager().GetActive(e);
+		}
 	}
 
 	namespace Command {
@@ -858,9 +862,9 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(_child, _newParent, _insertIndex, _keepWorldPos);
 		}
 
-		void SetActive(Entity entity, bool isActive) {
-			GetScene().GetECSCoordinator().m_hierarchySystem->SetActive(entity, isActive);
-		}
+		//void SetActive(Entity entity, bool isActive) {
+		//	GetScene().GetECSCoordinator().m_hierarchySystem->SetActive(entity, isActive);
+		//}
 
 		void AddLightComponent(uint32_t e) {
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Light{});
@@ -1625,6 +1629,10 @@ namespace NE::ECS {
 
 		void ClearUIViewportBounds() {
 			Systems::UIEventSystem::ClearViewportBounds();
+		}
+
+		void ToggleActive(Entity e, bool isActive) {
+			 GetScene().GetECSCoordinator().ToggleEntityActive(e, isActive);
 		}
 	}
 }

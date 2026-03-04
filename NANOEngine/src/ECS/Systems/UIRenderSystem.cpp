@@ -85,6 +85,9 @@ namespace NE::ECS::Systems {
         m_textCache.erase(e);
     }
 
+    void UIRenderSystem::OnEntityActive(Entity /*entity*/) {}
+    void UIRenderSystem::OnEntityInactive(Entity /*entity*/) {}
+
     void UIRenderSystem::Init()
     {
         // Load UI sprite shader from .nanoshader asset file

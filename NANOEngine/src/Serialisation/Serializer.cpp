@@ -169,6 +169,8 @@ namespace NE {
 			void WriteOneEntity(ECS::ECSCoordinator& ecs, ByteBuffer& buf, ECS::Entity e) {
 				const uint8_t layer = static_cast<uint8_t>(ecs.GetEntityManager().GetLayer(e));
 				ToBinary(buf, layer);
+				const bool active = ecs.GetEntityManager().GetActive(e);
+				ToBinary(buf, active);
 
 				ComponentMask mask = 0;
 				uint32_t idx = 0;
@@ -414,6 +416,8 @@ namespace NE {
 				uint8_t layer = 0;
 				ReadT(it, end, layer);
 				ecs.GetEntityManager().SetLayer(e, layer);
+				bool entityActive = true;
+				ReadT(it, end, entityActive);
 
 				std::uint64_t maskU64 = 0;
 				if (!ReadT(it, end, maskU64)) return false;
@@ -428,6 +432,15 @@ namespace NE {
 					}
 					++idx;
 				});
+
+				//if (!hasEntityActiveBit && ecs.HasComponent<ECS::Component::EntityMeta>(e)) {
+				//	entityActive = ecs.GetComponent<ECS::Component::EntityMeta>(e).isActive;
+				//}
+
+				ecs.GetEntityManager().ToggleActive(e, entityActive);
+				if (ecs.HasComponent<ECS::Component::EntityMeta>(e)) {
+					ecs.GetComponent<ECS::Component::EntityMeta>(e).isActive = entityActive;
+				}
 			}
 			return true;
 		}

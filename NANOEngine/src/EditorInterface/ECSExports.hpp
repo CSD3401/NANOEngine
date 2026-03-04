@@ -29,7 +29,6 @@ namespace NE::ECS {
 		struct NativeScript;
 		struct Animator;
 		struct Camera;
-		struct PhysicsBody;
 		struct UIRectTransform;
 		struct UIImage;
 		struct UICanvas;
@@ -229,6 +228,8 @@ namespace NE::ECS {
 		// Resolve an EntityMeta LUID to its entity
 		// Returns INVALID_ENTITY if the LUID is not found
 		NANOENGINE_API Entity ResolveEntityMetaLuidToEntity(uint64_t luid);
+
+		NANOENGINE_API bool GetActive(Entity e);
 	}
 
 	namespace Command {
@@ -247,7 +248,9 @@ namespace NE::ECS {
 		NANOENGINE_API uint32_t CreateUIImageEntity(uint32_t parentCanvas);
 		NANOENGINE_API void DestroyEntity(uint32_t e);
 		NANOENGINE_API void SetParent(Entity _child, Entity _newParent, int _insertIndex, bool _keepWorldPos = true);
-		NANOENGINE_API void SetActive(Entity entity, bool isActive);
+
+		//[[deprecated("Refactor to use ToggleActive instead")]]
+		//NANOENGINE_API void SetActive(Entity entity, bool isActive);
 
 		//NANOENGINE_API void AddEntityMetaComponent(uint32_t e);
 		NANOENGINE_API void AddLightComponent(uint32_t e);
@@ -487,6 +490,8 @@ namespace NE::ECS {
 
 		/// Clear viewport bounds (use raw mouse coordinates)
 		NANOENGINE_API void ClearUIViewportBounds();
+
+		NANOENGINE_API void ToggleActive(Entity e, bool isActive);
 	}
 
 }

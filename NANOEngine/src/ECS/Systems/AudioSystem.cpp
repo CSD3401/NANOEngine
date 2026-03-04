@@ -350,9 +350,9 @@ namespace NE::ECS::Systems {
 					SPD_INFO("Loaded bank: " << displayName << " with " << bankAsset->GetEvents().size() << " events");
 
 					// Log all events in this bank
-					for (const auto& [eventPath, eventInfo] : bankAsset->GetEvents()) {
-						SPD_INFO("  - Event: " << eventPath);
-					}
+					//for (const auto& [eventPath, eventInfo] : bankAsset->GetEvents()) {
+					//	SPD_INFO("  - Event: " << eventPath);
+					//}
 				}
 				else
 				{
@@ -379,6 +379,9 @@ namespace NE::ECS::Systems {
 	void AudioSystem::OnEntityRemoved(Entity)
 	{
 	}
+
+	void AudioSystem::OnEntityActive(Entity /*entity*/) {}
+	void AudioSystem::OnEntityInactive(Entity /*entity*/) {}
 
 	void AudioSystem::Init()
 	{
@@ -692,6 +695,4 @@ namespace NE::ECS::Systems {
 		m_masterVolumeLevel = std::clamp(level, 0, 5);
 		ApplyMasterVolume();
 	}
-
-
 }

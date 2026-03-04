@@ -28,6 +28,17 @@ public:
     {
         lookRotation = Vec3::Zero();
         velocity = Vec3::Zero();
+        explosionCameraOffset = Vec3::Zero();
+    }
+
+    void SetExplosionCameraOffset(const Vec3& offset)
+    {
+        explosionCameraOffset = offset;
+    }
+
+    void ClearExplosionCameraOffset()
+    {
+        explosionCameraOffset = Vec3::Zero();
     }
 
     // === Lifecycle Methods ===
@@ -154,6 +165,7 @@ private:
 	GameObjectRef playerCameraRef;
 	Entity playerCameraEntity;
     Vec3 lookRotation;
+    Vec3 explosionCameraOffset = Vec3::Zero();
     float lookSensitivity;
 
     // === Movement ===

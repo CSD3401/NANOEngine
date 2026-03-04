@@ -97,7 +97,7 @@ namespace NE::ECS {
             Signature{}.set(GetComponentType<Component::Transform>())
         );
 
-        m_renderSystem = m_systemManager->RegisterSystem<Systems::RenderSystem>(m_componentManager.get(), m_luidRegistry.get());
+        m_renderSystem = m_systemManager->RegisterSystem<Systems::RenderSystem>(m_componentManager.get(), m_entityManager.get(), m_luidRegistry.get());
         {
             Signature sig;
             sig.set(GetComponentType<Component::Transform>());
@@ -188,7 +188,7 @@ namespace NE::ECS {
             SetSystemSignature<Systems::CameraSystem>(sig);
 		}
 
-        m_hierarchySystem = m_systemManager->RegisterSystem<Systems::HierarchySystem>(m_componentManager.get(), m_luidRegistry.get());
+        m_hierarchySystem = m_systemManager->RegisterSystem<Systems::HierarchySystem>(m_componentManager.get(), this, m_luidRegistry.get());
         {
             Signature sig;
             sig.set(GetComponentType<Component::Hierarchy>());
@@ -230,6 +230,11 @@ namespace NE::ECS {
         m_entityManager->DestroyEntity(e);
         m_systemManager->EntityDestroyed(e);
         m_componentManager->EntityDestroyed(e);
+    }
+
+    void ECSCoordinator::ToggleEntityActive(Entity e, bool active) {
+		m_entityManager->ToggleActive(e, active);
+		m_systemManager->EntityActiveStatusChanged(e, m_entityManager->GetSignature(e), active);
     }
 
     Signature ECSCoordinator::GetSignature(Entity entity) {

@@ -28,6 +28,8 @@ public:
 
     void Initialize(Entity entity) override {
         // Called to initialize the script with its entity
+
+        Puzzle_::Initialize(entity);
     }
 
     void Start() override {
@@ -73,10 +75,10 @@ public:
         // Called when this entity enters a trigger
         std::string name = GetEntityName(other);
         // when the grabbed object collides with the trigger box
-        if (name.find("Battery"))
+        if (name.find("Battery") != std::string::npos)
         {
             // Solve the puzzle
-            // Solve();
+            Solve();
             // turn the grabbed object off
             Events::Send("LetGo");
             // set the battery to the transform aligning to the panel
@@ -89,6 +91,7 @@ public:
 
             AlignTheBattery(other);
             SetActive(false, other);
+            RB_SetIsTrigger(true, other);
             SetActive(false, panelRef.GetEntity());
             SetActive(true, alignedBattery.GetEntity());
             // also send a message to whatever needs to be sent

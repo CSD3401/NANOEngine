@@ -31,7 +31,6 @@ namespace NE {
             struct NativeScript;
             struct Animator;
             struct Camera;
-            struct PhysicsBody;
             // UI Components
             struct UICanvas;
             struct UIRectTransform;

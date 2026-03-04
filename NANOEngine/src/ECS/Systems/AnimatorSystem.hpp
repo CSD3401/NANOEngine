@@ -20,9 +20,10 @@ namespace NE::ECS::Systems {
     public:
         explicit AnimatorSystem(ComponentManager* cm, EntityManager* em, Core::LUIDRegistry* lr);
 
-        void OnEntityAdded(Entity) override;
-        void OnEntityRemoved(Entity) override;
-
+        void OnEntityAdded(Entity entity) override;
+        void OnEntityRemoved(Entity entity) override;
+        void OnEntityActive(Entity entity) override;
+        void OnEntityInactive(Entity entity) override;
         void Init() override;
         void Update(double deltaTime) override;
         void Exit() override;

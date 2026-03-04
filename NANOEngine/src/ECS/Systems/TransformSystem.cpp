@@ -1,12 +1,8 @@
 #include "pch.h"
 #include "TransformSystem.hpp"
 
-//#include <vector>
-//#include <unordered_map>
-
-#include "../Components/Transform.hpp"
-#include "../Components/EntityMeta.hpp"
-#include "../Components/Hierarchy.hpp"
+#include "ECS/Components/Transform.hpp"
+#include "ECS/Components/Hierarchy.hpp"
 #include "Core/Profiler.hpp"
 #include "Core/LUIDGenerator.hpp"
 #include "Core/LUIDRegistry.hpp"
@@ -44,6 +40,9 @@ namespace NE::ECS::Systems {
 		auto& t = m_componentManager->GetComponent<Component::Transform>(e);
 		m_luidRegistry->Unregister(t.luid);
 	}
+
+	void TransformSystem::OnEntityActive(Entity /*entity*/) {}
+	void TransformSystem::OnEntityInactive(Entity /*entity*/) {}
 
 	void TransformSystem::Init() {
 		Update(0.0);
