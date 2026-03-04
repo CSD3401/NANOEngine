@@ -87,6 +87,7 @@ public:
             {
                 destinationReached = true;
                 isMoving = false;
+                RB_SetIsTrigger(true);
             }
         }
     }

@@ -50,6 +50,14 @@
 #include "Scripts/UI_Notes.hpp"
 #include "Scripts/PhoneBooth.hpp"
 #include "Scripts/Misc_TimeFogLighting.hpp"
+#include "Scripts/Cutscene_Controller.hpp"
+#include "Scripts/Dialouge_Marker.hpp"
+#include "Scripts/Misc_TimeAnimationController.hpp"
+#include "Scripts/Misc_TrolleyPush.hpp"
+#include "Scripts/Interactable_TeleportToTop.hpp"
+#include "Scripts/Misc_ExplosionCameraShakeOnCollision.hpp"
+#include "Scripts/Camera_ExplosionShake.hpp"
+
 
 
 
@@ -203,5 +211,32 @@ extern "C" {
         registrar->RegisterScript("Interactable_Battery", []() -> NE::Scripting::IScript* {
             return new Interactable_Battery();
             });
+        registrar->RegisterScript("Cutscene_Controller", []() -> NE::Scripting::IScript* {
+            return new Cutscene_Controller();
+            });
+        registrar->RegisterScript("Dialouge_Marker", []() -> NE::Scripting::IScript* {
+            return new DialogueMarker();
+            });
+
+        registrar->RegisterScript("Misc_TimeAnimationController", []() -> NE::Scripting::IScript* {
+            return new Misc_TimeAnimationController();
+            });
+
+        registrar->RegisterScript("Misc_TrolleyPush", []() -> NE::Scripting::IScript* {
+            return new Misc_TrolleyPush();
+            });
+
+        registrar->RegisterScript("Interactable_TeleportToTop", []() -> NE::Scripting::IScript* {
+            return new Interactable_TeleportToTop();
+            });
+        registrar->RegisterScript("Misc_ExplosionCameraShakeOnCollision", []() -> NE::Scripting::IScript* {
+            return new Misc_ExplosionCameraShakeOnCollision();
+            });
+        registrar->RegisterScript("Camera_ExplosionShake", []() -> NE::Scripting::IScript* {
+            return new Camera_ExplosionShake();
+            });
+
+       
+        
         }
 }

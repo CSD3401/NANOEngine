@@ -61,7 +61,7 @@ public:
         Vec3 targetPos = cameraPos + forward * distance;
 
         TransformRef selfTransform = GetTransformRef(currentlyGrabbing);
-        Vec3 currentPos = GetPosition(selfTransform);
+        Vec3 currentPos = TF_GetPosition(selfTransform.GetEntity());
 
         Vec3 toTarget = targetPos - currentPos;
         float dist = toTarget.Length();
