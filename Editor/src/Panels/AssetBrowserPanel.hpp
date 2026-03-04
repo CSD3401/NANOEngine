@@ -42,6 +42,7 @@ namespace Editor {
 		char m_renameBuffer[256] = { 0 };
 		bool m_confirmDeletePopupOpen = false;
 		bool m_confirmChangeScenePopupOpen = false;
+		bool m_selectedItemClickedThisFrame = false;
 
 		// Drag and drop state for moving files
 		std::filesystem::path m_draggedAssetPath;

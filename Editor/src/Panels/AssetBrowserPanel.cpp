@@ -59,6 +59,8 @@ namespace Editor {
 
 	void AssetBrowserPanel::OnImGuiRender() {
 		if (ImGui::Begin("Asset Browser", nullptr, ImGuiWindowFlags_MenuBar)) {
+			m_selectedItemClickedThisFrame = false;
+
 			// Search bar
 			ImGui::BeginMenuBar();
 			ImGui::InputTextWithHint("##Search", "Search...", m_searchBuffer, sizeof(m_searchBuffer));
@@ -71,8 +73,14 @@ namespace Editor {
 
 			ImGui::SameLine();
 
-			// Directory Contents
-			ImGui::BeginChild("Breadcrumbs", ImVec2(0, 0), true);
+			// Right side: main panel + (outside) path bar
+			ImGui::BeginGroup();
+			const float pathBarHeight = ImGui::GetFrameHeightWithSpacing();
+			const float pathBarSpacing = ImGui::GetStyle().ItemSpacing.y;
+			float rightPanelHeight = ImGui::GetContentRegionAvail().y - pathBarHeight - pathBarSpacing;
+			if (rightPanelHeight < 0.0f) rightPanelHeight = 0.0f;
+
+			ImGui::BeginChild("RightPanel", ImVec2(0, rightPanelHeight), true);
 			RenderBreadcrumbs();
 
 			ImGui::Separator();
@@ -114,6 +122,27 @@ namespace Editor {
 
 			ImGui::EndChild();
 			ImGui::EndChild();
+
+			ImGui::BeginChild(
+				"##SelectedPathBar",
+				ImVec2(0, pathBarHeight),
+				true,
+				ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar
+			);
+			{
+				std::string displayPath = "Assets/";
+				if (!m_selectedPath.empty()) {
+					std::error_code ec;
+					std::filesystem::path rel = std::filesystem::relative(m_selectedPath, m_rootDirectory, ec);
+					displayPath += ec ? m_selectedPath.generic_string() : rel.generic_string();
+				} else {
+					displayPath = "";
+				}
+
+				ImGui::TextUnformatted(displayPath.c_str());
+			}
+			ImGui::EndChild();
+			ImGui::EndGroup();
 
 			if (m_confirmDeletePopupOpen) {
 				ImGui::OpenPopup("Confirm Delete");
@@ -169,6 +198,23 @@ namespace Editor {
 				}
 
 				ImGui::EndPopup();
+			}
+
+			const bool hasAssetBrowserPopupOpen =
+				ImGui::IsPopupOpen("AssetContextMenu") ||
+				ImGui::IsPopupOpen("Confirm Delete") ||
+				ImGui::IsPopupOpen("Confirm Change Scene");
+
+			if (!hasAssetBrowserPopupOpen &&
+				!m_selectedItemClickedThisFrame &&
+				ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+				const bool hoveredAssetBrowser = ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows);
+				const bool hoveredAnyItem = ImGui::IsAnyItemHovered();
+
+				if (!hoveredAssetBrowser || (hoveredAssetBrowser && !hoveredAnyItem)) {
+					m_selectedPath.clear();
+					m_clickedOnItem = false;
+				}
 			}
 		}
 		ImGui::End();
@@ -356,6 +402,12 @@ namespace Editor {
 				ImVec2(thumbnailSize, thumbnailSize),
 				ImVec2(0, 1), ImVec2(1, 0)
 			);
+
+			if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+				m_selectedPath = entry.path();
+				m_clickedOnItem = true;
+				m_selectedItemClickedThisFrame = true;
+			}
 
 			// Universal drag source for moving files/folders
 			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
@@ -655,7 +707,6 @@ namespace Editor {
 	void AssetBrowserPanel::RenderPopups() {
 		if (ImGui::IsWindowHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right)) {
 			if (!ImGui::IsAnyItemHovered()) {
-				m_selectedPath.clear();
 				m_clickedOnItem = false;
 				ImGui::OpenPopup("AssetContextMenu");
 			}
