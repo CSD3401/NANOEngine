@@ -32,6 +32,8 @@ namespace NE::ECS::Systems {
         void Exit() override;
         void OnEntityAdded(Entity e) override;
         void OnEntityRemoved(Entity e) override;
+        void OnEntityActive(Entity e) override;
+        void OnEntityInactive(Entity e) override;
 
         Entity GetHoveredEntity() const { return m_hoveredEntity; }
         Entity GetPressedEntity() const { return m_pressedEntity; }
