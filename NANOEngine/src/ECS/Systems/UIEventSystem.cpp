@@ -1434,12 +1434,18 @@ namespace NE::ECS::Systems {
     // Input Field Handling
     //=========================================================================
 
-    bool UIEventSystem::IsCharAllowed(char32_t codepoint, const UIInputField& field) {
+    bool UIEventSystem::IsCharAllowed(char32_t codepoint, const UIInputField& field, int cursorPos, const std::string& currentText) {
         switch (field.contentType) {
         case UIInputField::ContentType::INTEGER:
-            return (codepoint >= '0' && codepoint <= '9') || codepoint == '-';
+            if (codepoint == '-')
+                return cursorPos == 0 && currentText.find('-') == std::string::npos;
+            return (codepoint >= '0' && codepoint <= '9');
         case UIInputField::ContentType::DECIMAL:
-            return (codepoint >= '0' && codepoint <= '9') || codepoint == '-' || codepoint == '.';
+            if (codepoint == '-')
+                return cursorPos == 0 && currentText.find('-') == std::string::npos;
+            if (codepoint == '.')
+                return currentText.find('.') == std::string::npos;
+            return (codepoint >= '0' && codepoint <= '9');
         case UIInputField::ContentType::ALPHA_NUMERIC:
             return (codepoint >= 'a' && codepoint <= 'z') ||
                    (codepoint >= 'A' && codepoint <= 'Z') ||
@@ -1580,9 +1586,14 @@ namespace NE::ECS::Systems {
                         // Filter pasted text through content type validation
                         std::string filteredText;
                         filteredText.reserve(pasteText.size());
+                        std::string simulated = field.text;
+                        int simPos = field.cursorPosition;
                         for (unsigned char ch : pasteText) {
-                            if (IsCharAllowed(static_cast<char32_t>(ch), field))
+                            if (IsCharAllowed(static_cast<char32_t>(ch), field, simPos, simulated)) {
+                                simulated.insert(simulated.begin() + simPos, static_cast<char>(ch));
+                                simPos++;
                                 filteredText += static_cast<char>(ch);
+                            }
                         }
                         if (!filteredText.empty()) {
                             InsertText(field, filteredText);
@@ -1620,7 +1631,7 @@ namespace NE::ECS::Systems {
             // Character input
             uint32_t codepoint;
             while ((codepoint = NE::InputManager::PopChar()) != 0) {
-                if (!ctrlHeld && IsCharAllowed(codepoint, field)) {
+                if (!ctrlHeld && IsCharAllowed(codepoint, field, field.cursorPosition, field.text)) {
                     // Convert codepoint to UTF-8 (full Unicode support)
                     // Characters not in the font atlas are dropped gracefully at render time
                     std::string utf8Text;

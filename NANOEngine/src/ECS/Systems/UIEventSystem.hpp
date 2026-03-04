@@ -153,7 +153,7 @@ namespace NE::ECS::Systems {
         void ProcessInputFieldKeyboard(Entity entity, Component::UIInputField& field, double deltaTime);
         void ApplyInputFieldColorToImage(Entity entity);
         void SyncInputFieldToText(Entity entity);
-        bool IsCharAllowed(char32_t codepoint, const Component::UIInputField& field);
+        bool IsCharAllowed(char32_t codepoint, const Component::UIInputField& field, int cursorPos, const std::string& currentText);
         void DeleteSelection(Component::UIInputField& field);
         void InsertText(Component::UIInputField& field, const std::string& text);
 
