@@ -272,6 +272,7 @@ namespace NE::ECS::Systems {
 
         // For each canvas, find interactable entities (buttons, sliders, toggles)
         for (const auto& [canvasEntity, canvasPtr] : canvases) {
+            if (!canvasPtr) continue;
             for (Entity e : allEntities) {
                 if (e == canvasEntity) continue;
                 if (!m_cm->HasComponent<UIRectTransform>(e)) continue;
@@ -348,6 +349,13 @@ namespace NE::ECS::Systems {
     }
 
     bool UIEventSystem::PointInRect(float px, float py, const UIElementInfo& element) {
+        // Helper: normalize bounds so negative sizes (from negative scale) work correctly
+        auto inBounds = [](float p, float origin, float size) {
+            float lo = std::min(origin, origin + size);
+            float hi = std::max(origin, origin + size);
+            return p >= lo && p <= hi;
+        };
+
         // Handle rotation by transforming point into the element's local space before AABB check
         if (std::abs(element.rotationZ) > 0.001f) {
             // Center of element based on pivot
@@ -365,16 +373,14 @@ namespace NE::ECS::Systems {
             float localX = dx * cos_a - dy * sin_a + centerX;
             float localY = dx * sin_a + dy * cos_a + centerY;
 
-            // AABB check in local space
-            return localX >= element.worldX && localX <= element.worldX + element.worldWidth &&
-                   localY >= element.worldY && localY <= element.worldY + element.worldHeight;
+            // AABB check in local space (handles negative scale)
+            return inBounds(localX, element.worldX, element.worldWidth) &&
+                   inBounds(localY, element.worldY, element.worldHeight);
         }
 
-        // No rotation: simple AABB
-        return px >= element.worldX &&
-               px <= element.worldX + element.worldWidth &&
-               py >= element.worldY &&
-               py <= element.worldY + element.worldHeight;
+        // No rotation: simple AABB (handles negative scale)
+        return inBounds(px, element.worldX, element.worldWidth) &&
+               inBounds(py, element.worldY, element.worldHeight);
     }
 
     void UIEventSystem::UpdateButtonStates() {
@@ -1560,8 +1566,17 @@ namespace NE::ECS::Systems {
                             pasteText.erase(std::remove(pasteText.begin(), pasteText.end(), '\n'), pasteText.end());
                             pasteText.erase(std::remove(pasteText.begin(), pasteText.end(), '\r'), pasteText.end());
                         }
-                        InsertText(field, pasteText);
-                        textChanged = true;
+                        // Filter pasted text through content type validation
+                        std::string filteredText;
+                        filteredText.reserve(pasteText.size());
+                        for (unsigned char ch : pasteText) {
+                            if (IsCharAllowed(static_cast<char32_t>(ch), field))
+                                filteredText += static_cast<char>(ch);
+                        }
+                        if (!filteredText.empty()) {
+                            InsertText(field, filteredText);
+                            textChanged = true;
+                        }
                     }
                 }
             }
@@ -1595,19 +1610,22 @@ namespace NE::ECS::Systems {
             uint32_t codepoint;
             while ((codepoint = NE::InputManager::PopChar()) != 0) {
                 if (!ctrlHeld && IsCharAllowed(codepoint, field)) {
-                    // Convert codepoint to UTF-8
-                    // Support ASCII (0-127) and Latin Extended (128-383)
-                    // Characters not in the atlas are dropped gracefully
+                    // Convert codepoint to UTF-8 (full Unicode support)
+                    // Characters not in the font atlas are dropped gracefully at render time
                     std::string utf8Text;
-                    if (codepoint < 128) {
+                    if (codepoint < 0x80) {
                         utf8Text = std::string(1, static_cast<char>(codepoint));
-                    } else if (codepoint < 256) {
-                        // Latin Extended-A (128-255): 2-byte UTF-8 sequence
+                    } else if (codepoint < 0x800) {
                         utf8Text += static_cast<char>(0xC0 | (codepoint >> 6));
                         utf8Text += static_cast<char>(0x80 | (codepoint & 0x3F));
-                    } else if (codepoint < 384) {
-                        // Latin Extended-B (256-383): 2-byte UTF-8 sequence
-                        utf8Text += static_cast<char>(0xC0 | (codepoint >> 6));
+                    } else if (codepoint < 0x10000) {
+                        utf8Text += static_cast<char>(0xE0 | (codepoint >> 12));
+                        utf8Text += static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
+                        utf8Text += static_cast<char>(0x80 | (codepoint & 0x3F));
+                    } else if (codepoint <= 0x10FFFF) {
+                        utf8Text += static_cast<char>(0xF0 | (codepoint >> 18));
+                        utf8Text += static_cast<char>(0x80 | ((codepoint >> 12) & 0x3F));
+                        utf8Text += static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
                         utf8Text += static_cast<char>(0x80 | (codepoint & 0x3F));
                     }
 
