@@ -880,9 +880,9 @@ namespace Editor {
 
 		auto& metaRO = NE::ECS::Command::GetEntityMeta(entity);
 
-		bool isActiveValue = metaRO.isActive;
+		bool isActiveValue = NE::ECS::Query::GetActive(entity);
 		if (DrawCheckbox("##isActive", isActiveValue)) {
-			NE::ECS::Command::SetActive(entity, isActiveValue);
+			NE::ECS::Command::ToggleActive(entity, isActiveValue);
 		}
 
 		ImGui::SameLine();

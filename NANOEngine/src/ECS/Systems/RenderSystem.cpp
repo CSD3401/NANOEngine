@@ -1,16 +1,17 @@
 #include "pch.h"
 #include "RenderSystem.hpp"
-#include "ECS/Components/Renderer.hpp"
-#include "ECS/Components/Transform.hpp"
-#include "ECS/Components/EntityMeta.hpp"
-#include "Graphics/Core/GraphicsManager.hpp"
-
-#include "Graphics/Core/Material.hpp"
-#include "Graphics/Core/DrawCommand.hpp"
 #include "Core/Profiler.hpp"
-#include "ResourceManagement/ResourceManager.hpp"
 #include "Core/LUIDGenerator.hpp"
 #include "Core/LUIDRegistry.hpp"
+#include "ECS/Core/ComponentManager.hpp"
+#include "ECS/Core/EntityManager.hpp"
+#include "ECS/Components/Renderer.hpp"
+#include "ECS/Components/Transform.hpp"
+#include "Graphics/Core/GraphicsManager.hpp"
+#include "Graphics/Core/Material.hpp"
+#include "Graphics/Core/DrawCommand.hpp"
+#include "ResourceManagement/ResourceManager.hpp"
+
 
 namespace NE::ECS::Systems {
     namespace {
@@ -62,10 +63,8 @@ namespace NE::ECS::Systems {
         }
     }
 
-    RenderSystem::RenderSystem(ComponentManager* cm, Core::LUIDRegistry* lr) 
-        : m_componentManager(cm), m_luidRegistry(lr)
-    {
-    }
+    RenderSystem::RenderSystem(ComponentManager* cm, EntityManager* em, Core::LUIDRegistry* lr)
+        : m_componentManager(cm), m_entityManager(em), m_luidRegistry(lr) {}
 
     void RenderSystem::OnEntityAdded(Entity entity) {
         auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
@@ -82,6 +81,9 @@ namespace NE::ECS::Systems {
         m_luidRegistry->Unregister(renderer.luid);
     }
 
+    void RenderSystem::OnEntityActive(Entity /*entity*/) {}
+    void RenderSystem::OnEntityInactive(Entity /*entity*/) {}
+
     void RenderSystem::Init() {
     }
 
@@ -92,10 +94,7 @@ namespace NE::ECS::Systems {
         const auto& entities = m_entities.GetDenseContainer();
 
         for (Entity entity : entities) {
-            const auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(entity);
-            if (!meta.isActive) {
-                continue;
-            }
+            if (!m_entityManager->GetActive(entity)) continue;
 
             auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
             if (renderer.isDirty) {

@@ -24,7 +24,7 @@ namespace NE::ECS::Component {
 
 		// Flag tracks the projection matrix needs to be rebuilt, view matrix is tracked via transform component
 		bool isDirty{ true }; 
-		uint64_t luid;
+		uint64_t luid = 0;
 
 		// The render view handle associated with this camera
 		std::vector<RenderViewHandle> renderViewHandles;

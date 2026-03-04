@@ -40,6 +40,9 @@ namespace NE::ECS::Systems {
         //);
     }
 
+    void LightSystem::OnEntityActive(Entity /*entity*/) {}
+    void LightSystem::OnEntityInactive(Entity /*entity*/) {}
+
     void LightSystem::Init() {
         Graphics::GraphicsManager::m_lights.reserve(12);
     }
@@ -73,5 +76,4 @@ namespace NE::ECS::Systems {
 
     void LightSystem::Exit() {
     }
-
 }

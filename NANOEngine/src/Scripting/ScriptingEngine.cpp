@@ -837,7 +837,7 @@ namespace NE::Scripting {
             instances.push_back(instance);
             anySuccess = true;
 
-            SPD_INFO("Created script instance '" << scriptName << "' for entity " << (int)entity);
+            //SPD_INFO("Created script instance '" << scriptName << "' for entity " << (int)entity);
         }
 
         if (anySuccess) {
@@ -943,7 +943,7 @@ namespace NE::Scripting {
             RestoreSerializedFields(entity, nsc);
         }
 
-        SPD_INFO("Initialized script instances for entity " << (int)entity);
+        //SPD_INFO("Initialized script instances for entity " << (int)entity);
     }
 
     void ScriptingEngine::SynchronizeScriptInstances(NE::ECS::Entity entity, NE::ECS::Component::NativeScript& nsc) {

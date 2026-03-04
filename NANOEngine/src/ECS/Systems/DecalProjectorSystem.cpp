@@ -81,6 +81,9 @@ namespace NE::ECS::Systems {
         m_luidRegistry->Unregister(decal.luid);
     }
 
+    void DecalProjectorSystem::OnEntityActive(Entity /*entity*/) {}
+    void DecalProjectorSystem::OnEntityInactive(Entity /*entity*/) {}
+
     void DecalProjectorSystem::Init() {
     }
 

@@ -26,6 +26,9 @@ namespace NE::ECS::Systems {
 			entity);
 	}
 
+	void PrefabSystem::OnEntityActive(Entity /*entity*/) {}
+	void PrefabSystem::OnEntityInactive(Entity /*entity*/) {}
+
 	void PrefabSystem::Init() {
 	}
 

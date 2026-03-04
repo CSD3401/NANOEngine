@@ -101,6 +101,8 @@
     <ClCompile Include="src\ECS\Systems\UILayoutSystem.cpp" />
     <ClCompile Include="src\Math\Vec3.cpp" />
     <ClCompile Include="src\ECS\Systems\DecalProjectorSystem.cpp" />
+    <ClCompile Include="src\pch.cpp" />
+    <ClCompile Include="src\ECS\Core\SystemManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
@@ -112,7 +114,6 @@
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoTexHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\ResourceManager.hpp" />
     <ClInclude Include="src\Graphics\Core\GizmosRenderer.hpp" />
-    <ClInclude Include="src\ECS\Components\PhysicsBody.hpp" />
     <ClInclude Include="src\EditorInterface\PhysicsExports.hpp" />
     <ClInclude Include="src\Graphics\Core\DrawCommand.hpp" />
     <ClInclude Include="src\Graphics\Core\DrawQueue.hpp" />
@@ -298,6 +299,7 @@
     <ClInclude Include="src\ECS\Systems\DecalProjectorSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\DecalGizmoCommand.hpp" />
     <ClInclude Include="src\Graphics\Core\DecalCommand.hpp" />
+    <ClInclude Include="src\pch.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">

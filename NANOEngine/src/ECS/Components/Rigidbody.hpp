@@ -19,7 +19,7 @@ namespace NE::ECS::Component {
 		bool freezePosY = false;
 		bool freezePosZ = false;
 
-		uint64_t luid;
+		uint64_t luid = 0;
 
 		// Dirty flag for editor changes
 		bool isDirty = false;

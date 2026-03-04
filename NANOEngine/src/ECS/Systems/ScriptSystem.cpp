@@ -67,8 +67,11 @@ namespace NE::ECS::Systems {
 		Scripting::ScriptingEngine::GetInstance().DestroyScriptInstances(entity);
 	}
 
+	void ScriptSystem::OnEntityActive(Entity /*entity*/) {}
+	void ScriptSystem::OnEntityInactive(Entity /*entity*/) {}
+
 	void ScriptSystem::Init() {
-		SPD_INFO("ScriptSystem::Init() - Starting initialization");
+		//SPD_INFO("ScriptSystem::Init() - Starting initialization");
 
 		// Initialize existing scripts in the scene
 		const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
@@ -103,15 +106,15 @@ namespace NE::ECS::Systems {
 					if (!scriptList.empty()) scriptList += ", ";
 					scriptList += nsc.ScriptNames[i];
 				}
-				SPD_INFO("Initialized existing scripts [" << scriptList
-					<< "] for entity " << (int)entity << " during ScriptSystem::Init()");
+				//SPD_INFO("Initialized existing scripts [" << scriptList
+				//	<< "] for entity " << (int)entity << " during ScriptSystem::Init()");
 			}
 			else {
 				SPD_WARNING("Failed to initialize scripts for entity " << (int)entity);
 			}
 		}
 
-		SPD_INFO("ScriptSystem::Init() - Completed");
+		//SPD_INFO("ScriptSystem::Init() - Completed");
 	}
 
 	void ScriptSystem::Exit() {

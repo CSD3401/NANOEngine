@@ -53,6 +53,10 @@ public:
             PlayAudio("event:/SWITCH_TO_PRESENT");
         }
 
+        if (Input::WasKeyPressed('3')) {
+            Events::Send("StartCutscene");
+        }
+
         return;
 
         float dt = static_cast<float>(deltaTime);

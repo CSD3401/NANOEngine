@@ -21,8 +21,10 @@ namespace NE::ECS::Systems {
 	{
 	}
 
-	void CameraSystem::Init()
-	{
+	void CameraSystem::OnEntityActive(Entity /*entity*/) {}
+	void CameraSystem::OnEntityInactive(Entity /*entity*/) {}
+
+	void CameraSystem::Init() {
 		const auto& entities = GetEntities();
 		for (Entity entity : entities) {
 			auto& camera = m_componentManager->GetComponent<Component::Camera>(entity);

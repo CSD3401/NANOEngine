@@ -112,7 +112,7 @@ namespace NE::Asset
 
 					m_events[eventPath] = eventInfo;
 
-					SPD_INFO("Found event: " << eventPath << " -> " << displayedName);
+					//SPD_INFO("Found event: " << eventPath << " -> " << displayedName);
 				}
 			}
 		}
