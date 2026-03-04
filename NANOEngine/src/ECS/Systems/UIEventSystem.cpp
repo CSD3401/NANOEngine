@@ -1244,6 +1244,9 @@ namespace NE::ECS::Systems {
             }
 
             // Apply inertia (when not dragging)
+            if (!scroll.isDragging && !scroll.inertia) {
+                scroll.velocity = Math::Vec2(0.f, 0.f);
+            }
             if (!scroll.isDragging && (std::abs(scroll.velocity.x) > 0.1f || std::abs(scroll.velocity.y) > 0.1f)) {
                 if (scroll.horizontal) contentRect.x += scroll.velocity.x * dt;
                 if (scroll.vertical) contentRect.y += scroll.velocity.y * dt;
@@ -1300,14 +1303,22 @@ namespace NE::ECS::Systems {
             }
 
             // Update normalized position
-            float maxScrollX = std::max(0.001f, scroll.contentWidth - scroll.viewportWidth);
-            float maxScrollY = std::max(0.001f, scroll.contentHeight - scroll.viewportHeight);
-            float halfVpW = scroll.viewportWidth * 0.5f;
-            float halfVpH = scroll.viewportHeight * 0.5f;
-            float baseX = halfVpW - scroll.contentWidth * contentRect.pivotX;
-            float baseY = halfVpH - scroll.contentHeight * contentRect.pivotY;
-            scroll.normalizedPosition.x = std::max(0.f, std::min(1.f, (baseX - contentRect.x) / maxScrollX));
-            scroll.normalizedPosition.y = std::max(0.f, std::min(1.f, (baseY - contentRect.y) / maxScrollY));
+            float scrollRangeX = scroll.contentWidth - scroll.viewportWidth;
+            float scrollRangeY = scroll.contentHeight - scroll.viewportHeight;
+            if (scrollRangeX <= 0.f) {
+                scroll.normalizedPosition.x = 0.f;
+            } else {
+                float halfVpW = scroll.viewportWidth * 0.5f;
+                float baseX = halfVpW - scroll.contentWidth * contentRect.pivotX;
+                scroll.normalizedPosition.x = std::max(0.f, std::min(1.f, (baseX - contentRect.x) / scrollRangeX));
+            }
+            if (scrollRangeY <= 0.f) {
+                scroll.normalizedPosition.y = 0.f;
+            } else {
+                float halfVpH = scroll.viewportHeight * 0.5f;
+                float baseY = halfVpH - scroll.contentHeight * contentRect.pivotY;
+                scroll.normalizedPosition.y = std::max(0.f, std::min(1.f, (baseY - contentRect.y) / scrollRangeY));
+            }
         }
     }
 

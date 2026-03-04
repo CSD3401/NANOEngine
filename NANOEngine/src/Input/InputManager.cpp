@@ -54,6 +54,7 @@ namespace NE {
             if (s_keys[key].down) s_keys[key].released = true;
             s_keys[key].down = false;
         } else if (action == 2) {
+            s_keys[key].pressed = true;
             s_keys[key].down = true;
         }
     }
