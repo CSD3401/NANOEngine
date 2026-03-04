@@ -737,6 +737,8 @@ namespace NE::Graphics {
 
     uint32_t GraphicsManager::s_ScreenWidth = 1920;
     uint32_t GraphicsManager::s_ScreenHeight = 1080;
+	uint32_t GraphicsManager::s_GameViewWidth = 1920;
+	uint32_t GraphicsManager::s_GameViewHeight = 1080;
     std::vector<ECS::Component::Light*> GraphicsManager::m_lights;
     int GraphicsManager::drawCount = 0;
     bool GraphicsManager::enableSorting = true;
@@ -826,9 +828,11 @@ namespace NE::Graphics {
 
         s_ScreenWidth = static_cast<uint32_t>(1920);
         s_ScreenHeight = static_cast<uint32_t>(1080);
+		s_GameViewWidth = s_ScreenWidth;
+		s_GameViewHeight = s_ScreenHeight;
 
         s_PostPipeline = std::make_unique<PostProcessPipeline>();
-        s_PostPipeline->Init(s_RenderViewManager.get(), s_ScreenWidth, s_ScreenHeight);
+        s_PostPipeline->Init(s_RenderViewManager.get(), s_GameViewWidth, s_GameViewHeight);
         s_PostPipeline->SetSettings(&postProcessingSettings);
     }
 
@@ -858,6 +862,14 @@ namespace NE::Graphics {
                 break;
             }
         }
+
+		// Keep the main game view framebuffer in sync with the Game panel resolution.
+		if (s_GameViewHandle != InvalidRenderView && s_RenderViewManager) {
+			auto fb = s_RenderViewManager->GetFramebuffer(s_GameViewHandle);
+			if (fb && (fb->GetWidth() != s_GameViewWidth || fb->GetHeight() != s_GameViewHeight)) {
+				s_RenderViewManager->Resize(s_GameViewHandle, s_GameViewWidth, s_GameViewHeight);
+			}
+		}
 
         for (const RenderViewHandle handle : orderedViewHandles) {
             auto it = allViews.find(handle);
@@ -1647,6 +1659,42 @@ namespace NE::Graphics {
     uint32_t GraphicsManager::GetScreenHeight() {
         return s_ScreenHeight;
     }
+
+	void GraphicsManager::SetGameViewResolution(uint32_t width, uint32_t height) {
+		width = std::max(1u, width);
+		height = std::max(1u, height);
+
+		if (width == s_GameViewWidth && height == s_GameViewHeight) {
+			return;
+		}
+
+		s_GameViewWidth = width;
+		s_GameViewHeight = height;
+
+		// Resize final game output target (what the Game panel displays) and post FX resources.
+		if (s_RenderViewManager && s_FinalGameOutputHandle != InvalidRenderView) {
+			s_RenderViewManager->Resize(s_FinalGameOutputHandle, width, height);
+		}
+		if (s_PostPipeline) {
+			s_PostPipeline->Resize(width, height);
+		}
+
+		// Avoid ghosting after a resolution change when TAA is enabled.
+		postProcessingSettings.taaSettings.resetHistory = true;
+	}
+
+	uint32_t GraphicsManager::GetGameViewWidth() {
+		return s_GameViewWidth;
+	}
+
+	uint32_t GraphicsManager::GetGameViewHeight() {
+		return s_GameViewHeight;
+	}
+
+	float GraphicsManager::GetGameViewAspect() {
+		if (s_GameViewHeight == 0) return 16.0f / 9.0f;
+		return static_cast<float>(s_GameViewWidth) / static_cast<float>(s_GameViewHeight);
+	}
 
     void GraphicsManager::InitDebugPrimitives() {
         DebugDrawSystem::Init();

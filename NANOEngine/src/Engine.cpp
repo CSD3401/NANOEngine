@@ -149,6 +149,18 @@ namespace NE {
 		return Graphics::GraphicsManager::GetGameColorAttachment();
 	}
 
+	void SetGameViewResolution(uint32_t width, uint32_t height) {
+		Graphics::GraphicsManager::SetGameViewResolution(width, height);
+	}
+
+	uint32_t GetGameViewWidth() {
+		return Graphics::GraphicsManager::GetGameViewWidth();
+	}
+
+	uint32_t GetGameViewHeight() {
+		return Graphics::GraphicsManager::GetGameViewHeight();
+	}
+
 	void UpdateEditorCameraData() {
 		Graphics::GraphicsManager::UpdateEditorCameraData();
 	}

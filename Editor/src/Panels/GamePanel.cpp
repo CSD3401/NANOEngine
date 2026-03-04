@@ -10,16 +10,16 @@ namespace Editor {
 	namespace {
 		struct ResolutionPreset {
 			const char* label;
-			float aspect;
+			uint32_t width;
+			uint32_t height;
 		};
 
 		constexpr ResolutionPreset kResolutionPresets[] = {
-			{ "16:9",  16.0f / 9.0f  },
-			{ "16:10", 16.0f / 10.0f },
-			{ "21:9",  21.0f / 9.0f  },
-			{ "4:3",   4.0f  / 3.0f  },
-			{ "9:16",  9.0f  / 16.0f },
-			{ "Fit Panel", 0.0f },
+			{ "1920 x 1080 (16:9)", 1920, 1080 },
+			{ "1920 x 1200 (16:10)", 1920, 1200 },
+			{ "1024 x 768 (4:3)",   1024, 768  },
+			{ "1080 x 1920 (16:9)", 1080, 1920 },
+			{ "2560 x 1080 (21:9)", 2560, 1080 }
 		};
 
 		ImVec2 FitRectToAspect(ImVec2 avail, float aspect) {
@@ -54,9 +54,18 @@ namespace Editor {
 			const int presetCount = static_cast<int>(sizeof(kResolutionPresets) / sizeof(kResolutionPresets[0]));
 			m_resolutionPresetIndex = std::clamp(m_resolutionPresetIndex, 0, presetCount - 1);
 
-			const char* currentLabel = kResolutionPresets[m_resolutionPresetIndex].label;
+			const uint32_t currentW = NE::GetGameViewWidth();
+			const uint32_t currentH = NE::GetGameViewHeight();
+
+			for (int i = 0; i < presetCount; ++i) {
+				if (kResolutionPresets[i].width == currentW && kResolutionPresets[i].height == currentH) {
+					m_resolutionPresetIndex = i;
+					break;
+				}
+			}
+
 			char buttonLabel[64]{};
-			std::snprintf(buttonLabel, sizeof(buttonLabel), "Resolution: %s", currentLabel);
+			std::snprintf(buttonLabel, sizeof(buttonLabel), "Resolution: %u x %u", currentW, currentH);
 
 			const bool openRes = ImGui::Button(buttonLabel);
 			const ImVec2 resMin = ImGui::GetItemRectMin();
@@ -73,6 +82,7 @@ namespace Editor {
 					const bool selected = (i == m_resolutionPresetIndex);
 					if (ImGui::MenuItem(kResolutionPresets[i].label, nullptr, selected)) {
 						m_resolutionPresetIndex = i;
+						NE::SetGameViewResolution(kResolutionPresets[i].width, kResolutionPresets[i].height);
 					}
 				}
 				ImGui::EndPopup();
@@ -88,13 +98,9 @@ namespace Editor {
 		const ImVec2 contentMin = ImGui::GetCursorScreenPos();
 		const ImVec2 avail = ImGui::GetContentRegionAvail();
 
-		const int presetCount = static_cast<int>(sizeof(kResolutionPresets) / sizeof(kResolutionPresets[0]));
-		m_resolutionPresetIndex = std::clamp(m_resolutionPresetIndex, 0, presetCount - 1);
-
-		float targetAspect = kResolutionPresets[m_resolutionPresetIndex].aspect;
-		if (targetAspect <= 0.0f) {
-			targetAspect = (avail.y > 0.0f) ? (avail.x / avail.y) : (16.0f / 9.0f);
-		}
+		const uint32_t currentW = NE::GetGameViewWidth();
+		const uint32_t currentH = NE::GetGameViewHeight();
+		const float targetAspect = (currentH > 0) ? (static_cast<float>(currentW) / static_cast<float>(currentH)) : (16.0f / 9.0f);
 
 		const ImVec2 imageSize = FitRectToAspect(avail, targetAspect);
 		const ImVec2 padding(
@@ -128,8 +134,8 @@ namespace Editor {
 		NE::ECS::Command::SetUIViewportBounds(
 			panelPosX, panelPosY,
 			imageSize.x, imageSize.y,
-			static_cast<float>(NE::GetUIScreenWidth()),
-			static_cast<float>(NE::GetUIScreenHeight())
+			static_cast<float>(currentW),
+			static_cast<float>(currentH)
 		);
 
 		ImGui::Image(

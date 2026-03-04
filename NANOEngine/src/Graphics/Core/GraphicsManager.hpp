@@ -77,6 +77,12 @@ namespace NE::Graphics {
 
         static uint32_t GetScreenWidth();
         static uint32_t GetScreenHeight();
+
+		// Game View (Editor/Game panel) resolution. Drives the main camera render target + post FX output.
+		static void SetGameViewResolution(uint32_t width, uint32_t height);
+		static uint32_t GetGameViewWidth();
+		static uint32_t GetGameViewHeight();
+		static float GetGameViewAspect();
         static IStateCache* GetStateCache();
         
 		static RenderViewHandle CreateRenderView(uint32_t width, uint32_t height, bool enablePicking = true);
@@ -147,6 +153,8 @@ namespace NE::Graphics {
     private:
         static uint32_t s_ScreenWidth;
         static uint32_t s_ScreenHeight;
+		static uint32_t s_GameViewWidth;
+		static uint32_t s_GameViewHeight;
 
         // Command Buffer
         static std::unique_ptr<ICommandBuffer> s_CommandBuffer;
