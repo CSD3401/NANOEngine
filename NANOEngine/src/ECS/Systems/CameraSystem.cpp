@@ -6,6 +6,7 @@
 #include "../../../src/Math/Mat4.hpp"
 #include "../../Graphics/Core/GraphicsManager.hpp"
 #include <Core/Profiler.hpp>
+#include <algorithm>
 #include <cmath>
 
 namespace NE::ECS::Systems {
@@ -171,26 +172,58 @@ namespace NE::ECS::Systems {
 		}
 	}
 
-	void CameraSystem::BuildProjection(Camera& cam)
-	{
-		// Build perspective projection matrix
-		// Convert FOV from degrees to radians
-		float fovYRadians = cam.fovY * Math::DEG_TO_RAD;
-		float f = 1.0f / std::tan(fovYRadians * 0.5f);
-		const float aspect = cam.isMain ? Graphics::GraphicsManager::GetGameViewAspect() : cam.aspectRatio;
+	void CameraSystem::BuildProjection(Camera& cam) {
+		const float aspectRaw = cam.isMain ? Graphics::GraphicsManager::GetGameViewAspect() : cam.aspectRatio;
+		const float aspect = std::max(1e-6f, aspectRaw);
 		float& nearPlane = cam.nearPlane;
 		float& farPlane = cam.farPlane;
 
-		cam.projectionMtx.SetToZero();
-		cam.projectionMtx.GetElement(0, 0) = f / aspect;
-		cam.projectionMtx.GetElement(1, 1) = f;
-		cam.projectionMtx.GetElement(2, 2) = (farPlane + nearPlane) / (nearPlane - farPlane);
-		cam.projectionMtx.GetElement(2, 3) = (2 * farPlane * nearPlane) / (nearPlane - farPlane);
-		cam.projectionMtx.GetElement(3, 2) = -1.0f;
-		cam.projectionMtx.GetElement(3, 3) = 0.0f;
+		if (cam.projectionType == Camera::ProjectionType::Orthographic) {
+			const float size = std::max(0.001f, cam.fovY);
+
+			float halfH = size;
+			float halfW = size;
+
+			if (cam.fovAxis == Camera::FieldOfViewAxis::Vertical) {
+				halfH = size;
+				halfW = size * aspect;
+			} else {
+				halfW = size;
+				halfH = (aspect > 1e-6f) ? (size / aspect) : size;
+			}
+
+			const float l = -halfW;
+			const float r = +halfW;
+			const float b = -halfH;
+			const float t = +halfH;
+
+			cam.projectionMtx = Mat4::BuildOrtho(l, r, b, t, nearPlane, farPlane);
+		} else {
+			const float fovDeg = std::clamp(cam.fovY, 1.0f, 179.0f);
+			const float fovRad = fovDeg * Math::DEG_TO_RAD;
+			const float invTan = 1.0f / std::tan(fovRad * 0.5f);
+
+			float xScale = 0.0f;
+			float yScale = 0.0f;
+
+			if (cam.fovAxis == Camera::FieldOfViewAxis::Vertical) {
+				yScale = invTan;
+				xScale = invTan / aspect;
+			} else {
+				xScale = invTan;
+				yScale = invTan * aspect;
+			}
+
+			cam.projectionMtx.SetToZero();
+			cam.projectionMtx.GetElement(0, 0) = xScale;
+			cam.projectionMtx.GetElement(1, 1) = yScale;
+			cam.projectionMtx.GetElement(2, 2) = (farPlane + nearPlane) / (nearPlane - farPlane);
+			cam.projectionMtx.GetElement(2, 3) = (2 * farPlane * nearPlane) / (nearPlane - farPlane);
+			cam.projectionMtx.GetElement(3, 2) = -1.0f;
+			cam.projectionMtx.GetElement(3, 3) = 0.0f;
+		}
 
 		cam.isDirty = false;
-		//cam.projectionMtx = Mat4::BuildOrtho(left, right, bottom, top, nearPlane, farPlane);
 	}
 
 	void CameraSystem::BuildView(Camera& cam, Transform& transform) {

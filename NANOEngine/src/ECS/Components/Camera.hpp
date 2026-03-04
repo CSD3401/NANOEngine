@@ -10,17 +10,17 @@ namespace NE::ECS::Component {
 
 	using RenderViewHandle = std::uint32_t;
 
-	enum class ProjectionType : uint8_t {
-		Perspective,
-		Orthographic
-	};
-
-	enum class FieldOfViewAxis : uint8_t {
-		Vertical,
-		Horizontal
-	};
-
 	struct Camera {
+		enum class ProjectionType : uint8_t {
+			Perspective,
+			Orthographic
+		};
+
+		enum class FieldOfViewAxis : uint8_t {
+			Vertical,
+			Horizontal
+		};
+
 		Mat4 viewMtx;
 		Mat4 projectionMtx;
 		uint64_t luid = 0;
