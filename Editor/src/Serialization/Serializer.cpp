@@ -378,6 +378,10 @@ namespace Editor {
 				doc.AddMember("sessionScenePath", ToJSON(EditorScene::s_currentScenePath, a), a);
 				doc.AddMember("sessionSceneUUID", ToJSON(EditorScene::s_currentSceneUUID, a), a);
 
+				// Game panel (main camera) resolution preference.
+				doc.AddMember("gameViewWidth", NE::GetGameViewWidth(), a);
+				doc.AddMember("gameViewHeight", NE::GetGameViewHeight(), a);
+
 				rapidjson::Value obj(rapidjson::kObjectType);
 				obj.AddMember("position", ToJSON(EditorScene::m_editorCamera.GetPosition(), a), a);
 				obj.AddMember("yaw", ToJSON(EditorScene::m_cameraYaw, a), a);
@@ -665,6 +669,14 @@ namespace Editor {
 
 				if (doc.HasMember("sessionSceneUUID") && doc["sessionSceneUUID"].IsString())
 					EditorScene::s_currentSceneUUID = doc["sessionSceneUUID"].GetString();
+
+				if (doc.HasMember("gameViewWidth") && doc["gameViewWidth"].IsUint() &&
+					doc.HasMember("gameViewHeight") && doc["gameViewHeight"].IsUint())
+				{
+					const uint32_t w = doc["gameViewWidth"].GetUint();
+					const uint32_t h = doc["gameViewHeight"].GetUint();
+					NE::SetGameViewResolution(w, h);
+				}
 
 				if (doc.HasMember("editorCamera") && doc["editorCamera"].IsObject()) {
 					auto& camObj = doc["editorCamera"];
