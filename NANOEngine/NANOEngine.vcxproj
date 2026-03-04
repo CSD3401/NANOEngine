@@ -119,7 +119,6 @@
     <ClInclude Include="src\ECS\Components\UIDropdown.hpp" />
     <ClInclude Include="src\ECS\Systems\UIRenderSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\GizmosRenderer.hpp" />
-    <ClInclude Include="src\ECS\Components\PhysicsBody.hpp" />
     <ClInclude Include="src\EditorInterface\PhysicsExports.hpp" />
     <ClInclude Include="src\Graphics\Core\DrawCommand.hpp" />
     <ClInclude Include="src\Graphics\Core\DrawQueue.hpp" />

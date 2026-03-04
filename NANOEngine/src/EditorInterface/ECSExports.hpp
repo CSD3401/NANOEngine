@@ -29,7 +29,6 @@ namespace NE::ECS {
 		struct NativeScript;
 		struct Animator;
 		struct Camera;
-		struct PhysicsBody;
 		struct UIRectTransform;
 		struct UIImage;
 		struct UICanvas;

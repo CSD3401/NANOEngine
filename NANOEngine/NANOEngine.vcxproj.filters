@@ -114,7 +114,6 @@
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoTexHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\ResourceManager.hpp" />
     <ClInclude Include="src\Graphics\Core\GizmosRenderer.hpp" />
-    <ClInclude Include="src\ECS\Components\PhysicsBody.hpp" />
     <ClInclude Include="src\EditorInterface\PhysicsExports.hpp" />
     <ClInclude Include="src\Graphics\Core\DrawCommand.hpp" />
     <ClInclude Include="src\Graphics\Core\DrawQueue.hpp" />
