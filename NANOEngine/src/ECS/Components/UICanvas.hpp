@@ -57,7 +57,7 @@ namespace NE::ECS::Component {
             NE_REFLECT_FIELD(alpha)
         NE_REFLECT_END()
 
-        // run time only
+        // Runtime only (not serialized)
         float scaleFactor = 1.0f;
         RenderMode lastInitializedMode = RenderMode::SCREEN_SPACE_OVERLAY;
         bool hasBeenInitialized = false;

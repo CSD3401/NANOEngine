@@ -668,28 +668,34 @@ namespace NE::ECS::Systems {
         const auto& entities = GetEntities();
 
         for (Entity e : entities) {
-            if (!m_cm->HasComponent<UIRectTransform>(e)) continue;
-            if (m_cm->HasComponent<UICanvas>(e)) continue; // Skip canvas entities themselves
+            if (!m_cm->HasComponent<UICanvas>(e)) continue;
+            CollectChildrenInOrder(e, e, m_canvasChildrenMap[e]);
+        }
+    }
 
-            bool hasImage = m_cm->HasComponent<UIImage>(e);
-            bool hasText = m_cm->HasComponent<UIText>(e);
-            if (!hasImage && !hasText) continue;
+    void UIRenderSystem::CollectChildrenInOrder(Entity canvasEntity, Entity node, CanvasChildren& out)
+    {
+        if (!m_cm->HasComponent<Hierarchy>(node)) return;
 
-            Entity canvasEntity = m_layoutEngine->FindOwningCanvas(e);
-            if (canvasEntity == NO_ENTITY) continue;
+        for (Entity child : m_cm->GetComponent<Hierarchy>(node).children) {
+            // Nested canvas — skip entirely (handled as its own canvas)
+            if (m_cm->HasComponent<UICanvas>(child)) continue;
 
-            // Check active state once
-            if (!IsActiveForUI(e, canvasEntity)) continue;
-
-            auto& children = m_canvasChildrenMap[canvasEntity];
-            if (hasImage) {
-                children.images.push_back(e);
-                m_frameUIElements++;
+            // Not a UI rect — skip this node but still recurse into its children
+            if (!m_cm->HasComponent<UIRectTransform>(child)) {
+                CollectChildrenInOrder(canvasEntity, child, out);
+                continue;
             }
-            if (hasText) {
-                children.texts.push_back(e);
-                m_frameUIElements++;
-            }
+
+            if (!IsActiveForUI(child, canvasEntity)) continue;
+
+            bool hasImage = m_cm->HasComponent<UIImage>(child);
+            bool hasText  = m_cm->HasComponent<UIText>(child);
+
+            if (hasImage) { out.images.push_back(child); m_frameUIElements++; }
+            if (hasText)  { out.texts.push_back(child);  m_frameUIElements++; }
+
+            CollectChildrenInOrder(canvasEntity, child, out);
         }
     }
 
