@@ -1675,27 +1675,34 @@ namespace Editor {
 		// Script selection dropdown (add new script)
 		ImGui::Text("Add Script:");
 		if (ImGui::BeginCombo("##ScriptType", "Add Script...")) {
-			// List all registered scripts
-			auto scriptNames = NE::ECS::Command::GetRegisteredScriptNames();
-			for (const auto& scriptName : scriptNames) {
-				// Check if script is already attached
-				bool alreadyAttached = false;
-				for (const auto& attachedName : comp.ScriptNames) {
-					if (attachedName == scriptName) {
-						alreadyAttached = true;
-						break;
-					}
+			if (ImSearch::BeginSearch(ImSearchFlags_NoTextHighlighting)) {
+				ImSearch::SearchBar();
+
+				auto scriptNames = NE::ECS::Command::GetRegisteredScriptNames();
+				for (const auto& scriptName : scriptNames) {
+					ImSearch::SearchableItem(scriptName.c_str(), [&, entity, scriptName](const char*) {
+						// Check if script is already attached
+						bool alreadyAttached = false;
+						for (const auto& attachedName : comp.ScriptNames) {
+							if (attachedName == scriptName) {
+								alreadyAttached = true;
+								break;
+							}
+						}
+
+						if (alreadyAttached) {
+							ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+							ImGui::Selectable(scriptName.c_str(), false, ImGuiSelectableFlags_Disabled);
+							ImGui::PopStyleColor();
+						}
+						else if (ImGui::Selectable(scriptName.c_str())) {
+							// Add this script to the list
+							NE::ECS::Command::AddEntityScript(entity, scriptName);
+						}
+					});
 				}
 
-				if (alreadyAttached) {
-					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-					ImGui::Selectable(scriptName.c_str(), false, ImGuiSelectableFlags_Disabled);
-					ImGui::PopStyleColor();
-				}
-				else if (ImGui::Selectable(scriptName.c_str())) {
-					// Add this script to the list
-					NE::ECS::Command::AddEntityScript(entity, scriptName);
-				}
+				ImSearch::EndSearch();
 			}
 			ImGui::EndCombo();
 		}
