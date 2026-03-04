@@ -851,6 +851,22 @@ namespace NE::ECS::Systems {
                     img.color, img.bindlessHandle
                 );
 
+            // Apply rotation to screen-space vertices (same as text path)
+            if (!verticesV2.empty() && std::abs(worldTransform.accumulatedRotationZ) > 0.0001f) {
+                float rot = worldTransform.accumulatedRotationZ * (3.1415926535f / 180.0f);
+                float pivotX = worldTransform.x + worldTransform.width * rect.pivotX;
+                float pivotY = worldTransform.y + worldTransform.height * rect.pivotY;
+                float c = std::cos(rot);
+                float s = std::sin(rot);
+
+                for (auto& v : verticesV2) {
+                    float rx = v.Position.x - pivotX;
+                    float ry = v.Position.y - pivotY;
+                    v.Position.x = pivotX + (rx * c - ry * s);
+                    v.Position.y = pivotY + (rx * s + ry * c);
+                }
+            }
+
             if (!verticesV2.empty()) {
                 std::optional<NE::Graphics::ScissorRect> scissor = ComputeScissorRect(e, canvasEntity, canvas);
 
