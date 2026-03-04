@@ -71,8 +71,10 @@ namespace NE::ECS::Systems {
 			bool hasColliderOnly = !(m_componentManager->HasComponent<Component::Rigidbody>(e) || 
 				m_componentManager->HasComponent<Component::CharacterController>(e));
 
-			if (hasColliderOnly)
+			if (hasColliderOnly) {
 				Physics::PhysicsManager::GetInstance().CreateBody(e, meta.luid, t, col, static_cast<uint8_t>(m_entityManager->GetLayer(e)));
+				if (!m_entityManager->GetActive(e)) Physics::PhysicsManager::GetInstance().UpdateBodyState(meta.luid, false);
+			}
 		}
 	}
 
@@ -81,7 +83,6 @@ namespace NE::ECS::Systems {
 
 		for (auto& e : allEntities) {
 			auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
-			//auto& t = m_componentManager->GetComponent<Component::Transform>(e);
 			auto& col = m_componentManager->GetComponent<Component::Collider>(e);
 
 			if (col.isDirty) {
@@ -94,5 +95,4 @@ namespace NE::ECS::Systems {
 	void ColliderSystem::Exit() {
 
 	}
-
 }

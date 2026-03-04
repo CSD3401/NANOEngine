@@ -25,7 +25,7 @@ namespace NE::ECS::Component {
 			NE_REFLECT_FIELD_NAMED(height, "Height"),
 			NE_REFLECT_FIELD_NAMED(depth, "Projection Depth"),
 			NE_REFLECT_FIELD_NAMED(pivot, "Pivot"),
-			NE_REFLECT_FIELD_HIDDEN(materialUUID, "Material"),
+			NE_REFLECT_FIELD_HIDDEN(materialUUID),
 			NE_REFLECT_FIELD_NAMED(tilling, "Tilling"),
 			NE_REFLECT_FIELD_NAMED(offset, "Offset"),
 			NE_REFLECT_FIELD_NAMED(opacity, "Opacity"),

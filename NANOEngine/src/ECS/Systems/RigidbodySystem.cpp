@@ -29,13 +29,14 @@ namespace NE::ECS::Systems {
 	}
 
 	void RigidbodySystem::OnEntityActive(Entity e) {
-		auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
-		Physics::PhysicsManager::GetInstance().UpdateBodyState(meta.luid, true);
+		// Not needed since every rb and cc will have a collider but not every collider will have rb or cc
+		//auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
+		//Physics::PhysicsManager::GetInstance().UpdateBodyState(meta.luid, true);
 	}
 
 	void RigidbodySystem::OnEntityInactive(Entity e) {
-		auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
-		Physics::PhysicsManager::GetInstance().UpdateBodyState(meta.luid, false);
+		//auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
+		//Physics::PhysicsManager::GetInstance().UpdateBodyState(meta.luid, false);
 	}
 
 	void RigidbodySystem::Init() {
@@ -61,7 +62,7 @@ namespace NE::ECS::Systems {
 		for (auto& e : allEntities) {
 			auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
 			auto& t = m_componentManager->GetComponent<Component::Transform>(e);
-			Physics::PhysicsManager::GetInstance().SyncTransformToBodies(e, t);
+			Physics::PhysicsManager::GetInstance().SyncTransformToBodies(meta.luid, t);
 		}
 	}
 
