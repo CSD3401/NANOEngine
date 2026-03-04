@@ -36,12 +36,14 @@ namespace NE::ECS::Systems {
         bool enableDepthTest;
         std::optional<NE::Graphics::ScissorRect> scissorRect;
         int sortingOrder;
+        uint64_t fontAtlasHandle = 0;
 
         bool operator<(const UIBatchKey& other) const {
             if (sortingOrder != other.sortingOrder) return sortingOrder < other.sortingOrder;
             if (isText != other.isText) return isText < other.isText;
             if (isWorldSpace != other.isWorldSpace) return isWorldSpace < other.isWorldSpace;
             if (enableDepthTest != other.enableDepthTest) return enableDepthTest < other.enableDepthTest;
+            if (fontAtlasHandle != other.fontAtlasHandle) return fontAtlasHandle < other.fontAtlasHandle;
 
             // Compare scissor rects field-by-field
             // If both are nullopt, they are equal (fall through to return false at end)

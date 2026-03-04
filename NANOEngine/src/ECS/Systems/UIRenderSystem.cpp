@@ -1123,6 +1123,9 @@ namespace NE::ECS::Systems {
             key.enableDepthTest = false;
             key.scissorRect = scissor;
             key.sortingOrder = rect.z + canvas.sortingOrder * 1000.0f;
+            if (auto it = m_textCache.find(entity); it != m_textCache.end()) {
+                key.fontAtlasHandle = it->second.fontAtlasHandle;
+            }
 
             UIBatch& batch = batchMap[key];
             uint32_t baseVertex = static_cast<uint32_t>(batch.vertices.size());
