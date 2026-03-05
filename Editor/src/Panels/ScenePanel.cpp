@@ -238,6 +238,53 @@ namespace Editor {
 			ImVec2 camMin = ImGui::GetItemRectMin();
 			ImVec2 camMax = ImGui::GetItemRectMax();
 
+			const char* previewModeNames[] = { "Shaded", "Normals", "UV0", "UV1" };
+			int previewMode = static_cast<int>(NE::GetScenePreviewMode());
+			previewMode = std::clamp(previewMode, 0, 3);
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(130.0f);
+			if (ImGui::BeginCombo("Preview", previewModeNames[previewMode])) {
+				for (int i = 0; i < 4; ++i) {
+					const bool selected = (previewMode == i);
+					if (ImGui::Selectable(previewModeNames[i], selected)) {
+						previewMode = i;
+						NE::SetScenePreviewMode(static_cast<uint8_t>(previewMode));
+					}
+					if (selected) ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
+
+			if (previewMode == 2 || previewMode == 3) {
+				const float uvScaleValues[] = { 1.0f, 4.0f, 10.0f, 20.0f };
+				const char* uvScaleLabels[] = { "1", "4", "10", "20" };
+
+				float uvScale = NE::GetScenePreviewUvScale();
+				int uvScaleIndex = 0;
+				bool matchedScale = false;
+				for (int i = 0; i < 4; ++i) {
+					if (fabsf(uvScale - uvScaleValues[i]) <= 0.001f) {
+						uvScaleIndex = i;
+						matchedScale = true;
+						break;
+					}
+				}
+
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(100.0f);
+				if (ImGui::BeginCombo("UV Scale", matchedScale ? uvScaleLabels[uvScaleIndex] : "Custom")) {
+					for (int i = 0; i < 4; ++i) {
+						const bool selected = (uvScaleIndex == i);
+						if (ImGui::Selectable(uvScaleLabels[i], selected)) {
+							uvScaleIndex = i;
+							NE::SetScenePreviewUvScale(uvScaleValues[i]);
+						}
+						if (selected) ImGui::SetItemDefaultFocus();
+					}
+					ImGui::EndCombo();
+				}
+			}
+
 			if (openGrid)   ImGui::OpenPopup("ToggleGridPopup");
 			if (openCamera) ImGui::OpenPopup("CameraSettingsPopup");
 
@@ -294,8 +341,16 @@ namespace Editor {
 			ImGui::EndMenuBar();
 		}
 
+		uint32_t sceneTexture = NE::GetSceneColorAttachment();
+		if (NE::GetScenePreviewMode() != 0) {
+			const uint32_t debugTexture = NE::GetSceneDebugAttachment();
+			if (debugTexture != 0) {
+				sceneTexture = debugTexture;
+			}
+		}
+
 		ImGui::Image(
-			(ImTextureID)(uintptr_t)NE::GetSceneColorAttachment(),
+			(ImTextureID)(uintptr_t)sceneTexture,
 			panelSize,
 			ImVec2(0, 1),
 			ImVec2(1, 0)

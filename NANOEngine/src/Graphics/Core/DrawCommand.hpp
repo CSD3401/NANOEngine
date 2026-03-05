@@ -30,6 +30,7 @@ namespace NE::Graphics {
 
         bool castsShadow = false;
         bool receivesShadow = false;
+        bool hasUv1 = false;
 
         // Optional scissor rect for UI clipping (RectMask2D)
         std::optional<ScissorRect> scissorRect;

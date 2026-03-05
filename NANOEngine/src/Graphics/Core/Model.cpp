@@ -114,6 +114,7 @@ namespace NE::Graphics {
             sub.vertices.resize(sm.vertexCount);
 
             const bool hasUv1 = (sm.vertexFlags & kNanoVertexFlag_HasUv1) != 0;
+            sub.hasUv1 = hasUv1;
             if (hasUv1) {
                 const auto* cv = reinterpret_cast<const CookVertexUv1*>(sm.vdata);
                 for (uint32_t i = 0; i < sm.vertexCount; ++i) {

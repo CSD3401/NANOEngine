@@ -733,6 +733,208 @@ namespace NE::Graphics {
 
             view.framebuffer->SetPickingWrite(view.framebuffer->HasPickingAttachment());
         }
+
+#ifndef PRODUCTION_BUILD
+        std::shared_ptr<OpenGL::GLShader> CreateEditorDebugViewShader()
+        {
+            constexpr const char* kVertexSource = R"(
+            #version 460 core
+            layout(location = 0) in vec3 aPos;
+            layout(location = 1) in vec3 aNormal;
+            layout(location = 2) in vec2 aUV0;
+            layout(location = 4) in vec2 aUV1;
+
+            uniform mat4 u_Model;
+            uniform mat4 u_View;
+            uniform mat4 u_Projection;
+
+            out vec3 vNormalWS;
+            out vec2 vUV0;
+            out vec2 vUV1;
+
+            void main() {
+                vec4 worldPos = u_Model * vec4(aPos, 1.0);
+                mat3 normalMtx = transpose(inverse(mat3(u_Model)));
+                vNormalWS = normalize(normalMtx * aNormal);
+                vUV0 = aUV0;
+                vUV1 = aUV1;
+                gl_Position = u_Projection * u_View * worldPos;
+            }
+            )";
+
+                        constexpr const char* kFragmentSource = R"(
+            #version 460 core
+            in vec3 vNormalWS;
+            in vec2 vUV0;
+            in vec2 vUV1;
+
+            layout(location = 0) out vec4 FragColor;
+
+            uniform int u_PreviewMode;
+            uniform float u_UvScale;
+
+            void main() {
+                vec3 outColor = vec3(0.0);
+                if (u_PreviewMode == 1) {
+                    outColor = normalize(vNormalWS) * 0.5 + 0.5;
+                } else if (u_PreviewMode == 2) {
+                    vec2 uv = fract(vUV0 * max(u_UvScale, 0.0001));
+                    outColor = vec3(uv, 0.0);
+                } else if (u_PreviewMode == 3) {
+                    vec2 uv = fract(vUV1 * max(u_UvScale, 0.0001));
+                    outColor = vec3(uv, 0.0);
+                }
+                FragColor = vec4(outColor, 1.0);
+            }
+            )";
+
+            auto compileStage = [](GLenum stage, const char* source) -> GLuint {
+                GLuint shader = glCreateShader(stage);
+                if (!shader) return 0;
+                glShaderSource(shader, 1, &source, nullptr);
+                glCompileShader(shader);
+
+                GLint ok = GL_FALSE;
+                glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
+                if (ok == GL_TRUE) {
+                    return shader;
+                }
+
+                GLint len = 0;
+                glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &len);
+                std::string log;
+                if (len > 1) {
+                    log.resize(static_cast<size_t>(len));
+                    glGetShaderInfoLog(shader, len, nullptr, log.data());
+                }
+                SPD_WARNING("EditorDebugView shader compile failed: " << log);
+                glDeleteShader(shader);
+                return 0;
+            };
+
+            GLuint vs = compileStage(GL_VERTEX_SHADER, kVertexSource);
+            GLuint fs = compileStage(GL_FRAGMENT_SHADER, kFragmentSource);
+            if (!vs || !fs) {
+                if (vs) glDeleteShader(vs);
+                if (fs) glDeleteShader(fs);
+                return nullptr;
+            }
+
+            GLuint program = glCreateProgram();
+            glAttachShader(program, vs);
+            glAttachShader(program, fs);
+            glLinkProgram(program);
+
+            glDetachShader(program, vs);
+            glDetachShader(program, fs);
+            glDeleteShader(vs);
+            glDeleteShader(fs);
+
+            GLint linked = GL_FALSE;
+            glGetProgramiv(program, GL_LINK_STATUS, &linked);
+            if (linked != GL_TRUE) {
+                GLint len = 0;
+                glGetProgramiv(program, GL_INFO_LOG_LENGTH, &len);
+                std::string log;
+                if (len > 1) {
+                    log.resize(static_cast<size_t>(len));
+                    glGetProgramInfoLog(program, len, nullptr, log.data());
+                }
+                SPD_WARNING("EditorDebugView shader link failed: " << log);
+                glDeleteProgram(program);
+                return nullptr;
+            }
+
+            return std::make_shared<OpenGL::GLShader>(program);
+        }
+
+        bool RenderEditorDebugViewPassForView(
+            RenderViewHandle handle,
+            RenderViewHandle sceneViewHandle,
+            const RenderView& view,
+            const std::vector<DrawCommand>& commands,
+            const Frustum& frustum,
+            const Mat4& camProj,
+            const Mat4& camView,
+            const std::shared_ptr<OpenGL::GLShader>& debugShader,
+            GraphicsManager::ScenePreviewMode previewMode,
+            float uvScale,
+            IStateCache* stateCache)
+        {
+            if (handle != sceneViewHandle || !view.framebuffer || !debugShader) {
+                return false;
+            }
+
+            if (previewMode == GraphicsManager::ScenePreviewMode::Shaded) {
+                return false;
+            }
+
+            const GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
+            const GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+            const GLboolean cullWasEnabled = glIsEnabled(GL_CULL_FACE);
+            GLboolean depthMaskWasEnabled = GL_TRUE;
+            glGetBooleanv(GL_DEPTH_WRITEMASK, &depthMaskWasEnabled);
+            GLint previousDepthFunc = GL_LESS;
+            glGetIntegerv(GL_DEPTH_FUNC, &previousDepthFunc);
+
+            view.framebuffer->SetPickingWrite(false);
+
+            const GLenum colorAttachment = GL_COLOR_ATTACHMENT0;
+            glDrawBuffers(1, &colorAttachment);
+
+            glDisable(GL_BLEND);
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LEQUAL);
+            glDepthMask(GL_FALSE);
+            glEnable(GL_CULL_FACE);
+            glCullFace(GL_BACK);
+
+            const float clearColor[4] = { 0.05f, 0.05f, 0.05f, 1.0f };
+            glClearBufferfv(GL_COLOR, 0, clearColor);
+
+            debugShader->Bind();
+            debugShader->SetUniformMat4("u_View", camView);
+            debugShader->SetUniformMat4("u_Projection", camProj);
+            debugShader->SetUniformInt("u_PreviewMode", static_cast<int>(previewMode));
+            debugShader->SetUniformFloat("u_UvScale", std::max(0.0001f, uvScale));
+
+            for (const auto& command : commands) {
+                if (!command.mesh) continue;
+                if (command.material && command.material->GetQueueBase() == RenderQueue::OVERLAY) continue;
+                if (!frustum.IntersectsSphere(command.boundsCenterWS, command.boundsRadiusWs)) continue;
+
+                debugShader->SetUniformMat4("u_Model", command.transform);
+
+                command.mesh->Bind();
+                if (command.hasUv1) {
+                    glEnableVertexAttribArray(4);
+                } else {
+                    glDisableVertexAttribArray(4);
+                    glVertexAttrib2f(4, 0.0f, 0.0f);
+                }
+
+                command.mesh->Draw();
+
+                if (!command.hasUv1) {
+                    glEnableVertexAttribArray(4);
+                }
+                command.mesh->Unbind();
+            }
+
+            if (stateCache) {
+                stateCache->InvalidateAll();
+            }
+
+            if (blendWasEnabled) glEnable(GL_BLEND); else glDisable(GL_BLEND);
+            if (depthWasEnabled) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
+            if (cullWasEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
+            glDepthFunc(previousDepthFunc);
+            glDepthMask(depthMaskWasEnabled);
+
+            view.framebuffer->SetPickingWrite(view.framebuffer->HasPickingAttachment());
+            return true;
+        }
+#endif
     }
 
     uint32_t GraphicsManager::s_ScreenWidth = 1920;
@@ -758,7 +960,12 @@ namespace NE::Graphics {
     std::unique_ptr<PostProcessPipeline> GraphicsManager::s_PostPipeline;
     std::shared_ptr<OpenGL::GLShader> GraphicsManager::s_NormalPrepassShader;
     std::shared_ptr<OpenGL::GLShader> GraphicsManager::s_SelectionOutlineProgram;
+#ifndef PRODUCTION_BUILD
+    std::shared_ptr<OpenGL::GLShader> GraphicsManager::s_EditorDebugViewShader;
+#endif
     std::unordered_set<uint32_t> GraphicsManager::s_SelectedEntityIds;
+    GraphicsManager::ScenePreviewMode GraphicsManager::s_ScenePreviewMode = GraphicsManager::ScenePreviewMode::Shaded;
+    float GraphicsManager::s_ScenePreviewUvScale = 1.0f;
 
 	std::unique_ptr<ShadowRenderer> GraphicsManager::s_shadowRenderer;
 
@@ -811,6 +1018,12 @@ namespace NE::Graphics {
         InitializeDecalGizmoResources();
         s_NormalPrepassShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("nenormalprepass");
         s_SelectionOutlineProgram = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("neselectionoutline");
+#ifndef PRODUCTION_BUILD
+        s_EditorDebugViewShader = CreateEditorDebugViewShader();
+        if (!s_EditorDebugViewShader) {
+            SPD_WARNING("Editor debug view shader failed to load.");
+        }
+#endif
 
         auto decalCubeModel = Resource::ResourceManager::GetInstance().LoadResource<Model>("builtin:model/cube");
         if (decalCubeModel && !decalCubeModel->meshes.empty()) {
@@ -1100,6 +1313,22 @@ namespace NE::Graphics {
                 skyboxView.projection = camProj;
                 s_skybox->Draw(skyboxView);
             }
+
+#ifndef PRODUCTION_BUILD
+            RenderEditorDebugViewPassForView(
+                handle,
+                s_SceneViewHandle,
+                view,
+                commands,
+                frustum,
+                camProj,
+                camView,
+                s_EditorDebugViewShader,
+                s_ScenePreviewMode,
+                s_ScenePreviewUvScale,
+                s_StateCache.get()
+            );
+#endif
 
             RenderSelectionHighlightForView(handle, view, camProj, camView, commands);
 
@@ -1525,6 +1754,9 @@ namespace NE::Graphics {
         s_DecalCubeMesh.reset();
         s_DecalQueue.clear();
         s_NormalPrepassShader.reset();
+#ifndef PRODUCTION_BUILD
+        s_EditorDebugViewShader.reset();
+#endif
         //if (s_SelectionOutlineProgram != 0) {
         //    glDeleteProgram(s_SelectionOutlineProgram);
         //    s_SelectionOutlineProgram = 0;
@@ -1614,6 +1846,14 @@ namespace NE::Graphics {
         return 0;
 	}
 
+    uint32_t GraphicsManager::GetSceneDebugAttachment() {
+        auto framebuffer = s_RenderViewManager->GetFramebuffer(s_SceneViewHandle);
+        if (framebuffer) {
+            return framebuffer->GetColorAttachment();
+        }
+        return 0;
+    }
+
     uint32_t GraphicsManager::GetGameColorAttachment() {
 		auto framebuffer = s_RenderViewManager->GetFramebuffer(s_FinalGameOutputHandle);
         if (framebuffer) {
@@ -1695,6 +1935,28 @@ namespace NE::Graphics {
 		if (s_GameViewHeight == 0) return 16.0f / 9.0f;
 		return static_cast<float>(s_GameViewWidth) / static_cast<float>(s_GameViewHeight);
 	}
+
+    void GraphicsManager::SetScenePreviewMode(uint8_t mode) {
+        if (mode > static_cast<uint8_t>(ScenePreviewMode::UV1)) {
+            mode = static_cast<uint8_t>(ScenePreviewMode::Shaded);
+        }
+        s_ScenePreviewMode = static_cast<ScenePreviewMode>(mode);
+    }
+
+    uint8_t GraphicsManager::GetScenePreviewMode() {
+        return static_cast<uint8_t>(s_ScenePreviewMode);
+    }
+
+    void GraphicsManager::SetScenePreviewUvScale(float scale) {
+        if (!std::isfinite(scale) || scale <= 0.0f) {
+            scale = 1.0f;
+        }
+        s_ScenePreviewUvScale = scale;
+    }
+
+    float GraphicsManager::GetScenePreviewUvScale() {
+        return s_ScenePreviewUvScale;
+    }
 
     void GraphicsManager::InitDebugPrimitives() {
         DebugDrawSystem::Init();

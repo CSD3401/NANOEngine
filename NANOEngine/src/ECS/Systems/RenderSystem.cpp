@@ -124,6 +124,7 @@ namespace NE::ECS::Systems {
 
             cmd.castsShadow = (renderer.shadowCastMode != Component::Renderer::ShadowCastMode::Off);
             cmd.receivesShadow = renderer.receiveShadows;
+            cmd.hasUv1 = renderer.model->meshes[renderer.subMeshIndex].hasUv1;
 
             Graphics::GraphicsManager::Submit(cmd);
         }
