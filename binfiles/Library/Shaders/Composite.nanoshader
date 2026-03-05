@@ -86,6 +86,7 @@ vec3 ACESFitted(vec3 color) {
     );
 
     color = color * ACESInputMat;
+    //color = ACESInputMat * color;
     
     // RRT
     vec3 a = color * (color + 0.0245786) - 0.000090537;
@@ -94,6 +95,7 @@ vec3 ACESFitted(vec3 color) {
     
     // ODT
     color = color * ACESOutputMat;
+    //color = ACESOutputMat * color;
     
     // Clamp for safety
     color = clamp(color, 0.0, 1.0);
