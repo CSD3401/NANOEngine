@@ -614,6 +614,7 @@ namespace Editor {
 						bgImg.color = NE::Math::Vec4{ 0.7f, 0.7f, 0.7f, 1.0f };
 						NE::ECS::Command::AddUIImageComponent(bgEnt, bgImg);
 						NE::ECS::Command::SetParent(bgEnt, entity, -1, false);
+						slider.backgroundRectLuid = hr.luid;
 					}
 					slider.backgroundRect = bgEnt;
 
@@ -636,6 +637,7 @@ namespace Editor {
 						faRect.offsetMaxY = 0.0f;
 						NE::ECS::Command::AddUIRectTransformComponent(fillAreaEnt, faRect);
 						NE::ECS::Command::SetParent(fillAreaEnt, entity, -1, false);
+						slider.fillAreaRectLuid = hr.luid;
 
 						// Fill grandchild: blue image, left-anchored, pivotX=0, starts at width=0
 						uint32_t fillEnt = NE::ECS::Command::CreateEntityNoComponents();
@@ -658,6 +660,7 @@ namespace Editor {
 							NE::ECS::Command::AddUIImageComponent(fillEnt, fillImg);
 							NE::ECS::Command::SetParent(fillEnt, fillAreaEnt, -1, false);
 							slider.fillRect = fillEnt;
+							slider.fillRectLuid = fhr.luid;
 						}
 					}
 					slider.fillAreaRect = fillAreaEnt;
@@ -681,6 +684,7 @@ namespace Editor {
 						haRect.offsetMaxY = 0.0f;
 						NE::ECS::Command::AddUIRectTransformComponent(handleAreaEnt, haRect);
 						NE::ECS::Command::SetParent(handleAreaEnt, entity, -1, false);
+						slider.handleSlideAreaRectLuid = hr.luid;
 
 						// Handle grandchild: white 20x20, center-anchored
 						uint32_t handleEnt = NE::ECS::Command::CreateEntityNoComponents();
@@ -704,6 +708,7 @@ namespace Editor {
 							NE::ECS::Command::AddUIImageComponent(handleEnt, handleImg);
 							NE::ECS::Command::SetParent(handleEnt, handleAreaEnt, -1, false);
 							slider.handleRect = handleEnt;
+							slider.handleRectLuid = hhr.luid;
 						}
 					}
 					slider.handleSlideAreaRect = handleAreaEnt;
