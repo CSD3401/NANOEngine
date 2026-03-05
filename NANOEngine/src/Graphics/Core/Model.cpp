@@ -1,16 +1,29 @@
 #include "pch.h"
 #include "Model.hpp"
 
+#include "Core/SpdLogger.hpp"
 #include "../OpenGL/GLVertexBuffer.hpp"
 #include "../OpenGL/GLIndexBuffer.hpp"
 #include "../OpenGL/GLGeometryBuffer.hpp"
 #include "ResourceManagement/BinaryHeaders/NanoModelHeader.hpp"
 
 namespace {
-    struct CookVertex {
+    constexpr uint8_t kNanoVertexFlag_HasUv1 = (1u << 1);
+
+    struct CookVertexLegacy {
         float px, py, pz;
         float nx, ny, nz;
-        float u, v;
+        float u0, v0;
+
+        float tx, ty, tz;
+        float tSign;
+    };
+
+    struct CookVertexUv1 {
+        float px, py, pz;
+        float nx, ny, nz;
+        float u0, v0;
+        float u1, v1;
 
         float tx, ty, tz;
         float tSign;
@@ -26,7 +39,12 @@ namespace NE::Graphics {
         if (!hdr) return false;
         if (hdr->magic != Resource::NMOD_MAGIC) return false;
 
-        if (hdr->version < 2 || hdr->version > Resource::CURRENT_NANOMODEL_FORMAT_VERSION) return false;
+        if (hdr->version != Resource::CURRENT_NANOMODEL_FORMAT_VERSION) {
+            SPD_ERROR("NanoModel version mismatch (got " << hdr->version
+                << ", expected " << Resource::CURRENT_NANOMODEL_FORMAT_VERSION
+                << "). Reimport/recook the model asset(s).");
+            return false;
+        }
 
         const size_t subTableOff = sizeof(Resource::NanoMeshHeader);
         const size_t subTableSize = static_cast<size_t>(hdr->submeshCount) * sizeof(Resource::NanoSubmeshDesc);
@@ -42,7 +60,10 @@ namespace NE::Graphics {
         for (uint16_t i = 0; i < hdr->submeshCount; ++i) {
             const auto& d = subdescs[i];
 
-            const size_t vbytes = static_cast<size_t>(d.vertexCount) * sizeof(CookVertex);
+            const bool hasUv1 = (d.vertexFlags & kNanoVertexFlag_HasUv1) != 0;
+            const size_t cookedVertexStride = hasUv1 ? sizeof(CookVertexUv1) : sizeof(CookVertexLegacy);
+
+            const size_t vbytes = static_cast<size_t>(d.vertexCount) * cookedVertexStride;
             const uint8_t* vptr = blob.at(d.vertexDataOffset, vbytes);
             if (!vptr) return false;
 
@@ -55,20 +76,19 @@ namespace NE::Graphics {
             sm.vertexCount = d.vertexCount;
             sm.idata = iptr;
             sm.indexCount = d.indexCount;
+            sm.vertexFlags = d.vertexFlags;
 
-            if (hdr->version >= 3 && d.colliderDataSize > 0) {
+            if (d.colliderDataSize > 0) {
                 const uint8_t* cptr = blob.at(d.colliderDataOffset, d.colliderDataSize);
                 if (!cptr) return false;
 
                 sm.cdata = cptr;
                 sm.colliderSize = d.colliderDataSize;
                 sm.colliderType = d.colliderType;
-                sm.vertexFlags = d.vertexFlags;
             } else {
                 sm.cdata = nullptr;
                 sm.colliderSize = 0;
                 sm.colliderType = 0;
-                sm.vertexFlags = 0;
             }
 
             if (hdr->version >= 2) {
@@ -91,14 +111,31 @@ namespace NE::Graphics {
         for (const auto& sm : m_staged) {
             SubMesh sub{};
 
-            const auto* cv = reinterpret_cast<const CookVertex*>(sm.vdata);
             sub.vertices.resize(sm.vertexCount);
-            for (uint32_t i = 0; i < sm.vertexCount; ++i) {
-                NE::Graphics::Vertex v{};
-                v.position = { cv[i].px, cv[i].py, cv[i].pz };
-                v.normal = { cv[i].nx, cv[i].ny, cv[i].nz };
-                v.texCoord0 = { cv[i].u,  cv[i].v };
-                sub.vertices[i] = v;
+
+            const bool hasUv1 = (sm.vertexFlags & kNanoVertexFlag_HasUv1) != 0;
+            if (hasUv1) {
+                const auto* cv = reinterpret_cast<const CookVertexUv1*>(sm.vdata);
+                for (uint32_t i = 0; i < sm.vertexCount; ++i) {
+                    NE::Graphics::Vertex v{};
+                    v.position = { cv[i].px, cv[i].py, cv[i].pz };
+                    v.normal = { cv[i].nx, cv[i].ny, cv[i].nz };
+                    v.tangents = { cv[i].tx, cv[i].ty, cv[i].tz };
+                    v.texCoord0 = { cv[i].u0,  cv[i].v0 };
+                    v.texCoord1 = { cv[i].u1,  cv[i].v1 };
+                    sub.vertices[i] = v;
+                }
+            } else {
+                const auto* cv = reinterpret_cast<const CookVertexLegacy*>(sm.vdata);
+                for (uint32_t i = 0; i < sm.vertexCount; ++i) {
+                    NE::Graphics::Vertex v{};
+                    v.position = { cv[i].px, cv[i].py, cv[i].pz };
+                    v.normal = { cv[i].nx, cv[i].ny, cv[i].nz };
+                    v.tangents = { cv[i].tx, cv[i].ty, cv[i].tz };
+                    v.texCoord0 = { cv[i].u0,  cv[i].v0 };
+                    v.texCoord1 = { 0.0f, 0.0f };
+                    sub.vertices[i] = v;
+                }
             }
 
             const auto* idx = reinterpret_cast<const uint32_t*>(sm.idata);

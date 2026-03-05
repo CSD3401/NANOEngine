@@ -111,6 +111,9 @@
     <ClCompile Include="vendor\include\imgui\widgets\imsearch\imsearch_demo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="vendor\include\xatlas\xatlas.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="vendor\include\imgui\widgets\imguizmo\ImGuizmo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

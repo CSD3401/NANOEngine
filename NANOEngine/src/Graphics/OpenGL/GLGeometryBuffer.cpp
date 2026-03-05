@@ -41,6 +41,14 @@ namespace NE::Graphics::OpenGL {
         glEnableVertexAttribArray(2);
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void*)offsetof(Vertex, texCoord0));
 
+        // Tangent (location = 3)
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, stride, (void*)offsetof(Vertex, tangents));
+
+        // TexCoord1 (location = 4)
+        glEnableVertexAttribArray(4);
+        glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, stride, (void*)offsetof(Vertex, texCoord1));
+
         // ---- Per-instance attributes ----
         if (s_InstanceVBO == 0) InitInstanceBuffer();
         EnableInstanceLayout(5, 9); // locations 5-8 for mat4, 9 for vec3

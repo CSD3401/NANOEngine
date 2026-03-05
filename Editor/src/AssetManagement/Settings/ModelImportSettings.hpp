@@ -69,12 +69,14 @@ namespace Editor::Assets {
         NormalMode  normalMode = NormalMode::Import;
         float smoothingAngle = 60.f;
         TangentMode tangentMode = TangentMode::Import;
-        bool swapUVs;
+        bool swapUVs = false;
+        bool generateLightmapUVs = false;
 
         NE_REFLECT_BEGIN(MeshImportSettings)
             NE_REFLECT_FIELD(weldVertices),
             NE_REFLECT_FIELD(keepQuads),
             NE_REFLECT_FIELD(swapUVs),
+            NE_REFLECT_FIELD(generateLightmapUVs),
             NE_REFLECT_FIELD(generateColliders),
             NE_REFLECT_FIELD(generateMeshLODs),
             NE_REFLECT_FIELD(smoothingAngle),

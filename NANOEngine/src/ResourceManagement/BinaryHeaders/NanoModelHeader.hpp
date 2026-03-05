@@ -4,7 +4,7 @@
 namespace NE::Resource {
 
     inline constexpr uint32_t NMOD_MAGIC = 0x4E4D4F44;
-    inline constexpr int CURRENT_NANOMODEL_FORMAT_VERSION = 3;
+    inline constexpr int CURRENT_NANOMODEL_FORMAT_VERSION = 4;
 
 #pragma pack(push, 1)
     struct NanoMeshHeader {
