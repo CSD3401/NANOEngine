@@ -4,8 +4,10 @@
 
 namespace NE::Graphics {
     struct Vertex {
-        NE::Math::Vec3 Position;
-        NE::Math::Vec3 Normal;
-        NE::Math::Vec2 TexCoord;
+        NE::Math::Vec3 position;
+        NE::Math::Vec3 normal;
+        NE::Math::Vec3 tangents;
+        NE::Math::Vec2 texCoord0;
+		NE::Math::Vec2 texCoord1;
     };
 }

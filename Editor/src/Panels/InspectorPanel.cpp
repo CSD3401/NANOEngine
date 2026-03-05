@@ -5070,7 +5070,7 @@ namespace Editor {
 			ImGui::SameLine(labelWidth);
 			ImGui::SetNextItemWidth(-1);
 			char buf[1024];
-			strncpy(buf, comp.text.c_str(), sizeof(buf) - 1);
+			strncpy_s(buf, comp.text.c_str(), sizeof(buf) - 1);
 			buf[sizeof(buf) - 1] = '\0';
 			if (ImGui::InputText("##InputFieldText", buf, sizeof(buf))) {
 				comp.text = buf;
@@ -5082,7 +5082,7 @@ namespace Editor {
 			ImGui::SameLine(labelWidth);
 			ImGui::SetNextItemWidth(-1);
 			char buf[512];
-			strncpy(buf, comp.placeholderText.c_str(), sizeof(buf) - 1);
+			strncpy_s(buf, comp.placeholderText.c_str(), sizeof(buf) - 1);
 			buf[sizeof(buf) - 1] = '\0';
 			if (ImGui::InputText("##Placeholder", buf, sizeof(buf))) {
 				comp.placeholderText = buf;

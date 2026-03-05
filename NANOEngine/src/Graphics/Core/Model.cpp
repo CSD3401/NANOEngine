@@ -95,9 +95,9 @@ namespace NE::Graphics {
             sub.vertices.resize(sm.vertexCount);
             for (uint32_t i = 0; i < sm.vertexCount; ++i) {
                 NE::Graphics::Vertex v{};
-                v.Position = { cv[i].px, cv[i].py, cv[i].pz };
-                v.Normal = { cv[i].nx, cv[i].ny, cv[i].nz };
-                v.TexCoord = { cv[i].u,  cv[i].v };
+                v.position = { cv[i].px, cv[i].py, cv[i].pz };
+                v.normal = { cv[i].nx, cv[i].ny, cv[i].nz };
+                v.texCoord0 = { cv[i].u,  cv[i].v };
                 sub.vertices[i] = v;
             }
 
