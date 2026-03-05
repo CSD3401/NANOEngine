@@ -4906,7 +4906,7 @@ namespace Editor {
 				ImGui::SetNextItemWidth(-40.0f);
 				char id[64]; snprintf(id, sizeof(id), "##DropOpt%d", i);
 				char buf[256];
-				strncpy(buf, comp.options[i].c_str(), sizeof(buf) - 1);
+				strncpy_s(buf, comp.options[i].c_str(), sizeof(buf) - 1);
 				buf[sizeof(buf) - 1] = '\0';
 				if (ImGui::InputText(id, buf, sizeof(buf))) {
 					comp.options[i] = buf;
