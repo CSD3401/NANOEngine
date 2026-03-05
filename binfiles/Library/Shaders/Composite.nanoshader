@@ -28,6 +28,15 @@ uniform sampler2D u_SSAO;
 uniform int       u_UseSSAO;
 uniform float     u_AOIntensity;
 
+uniform int   u_UseVignette;
+
+uniform float u_VignetteIntensity;
+uniform float u_VignetteRadius;
+uniform float u_VignetteSoftness;
+
+uniform vec3  u_VignetteTint;
+uniform float u_VignetteTintAmount;
+
 vec3 ACESApprox(vec3 x)
 {
     float a = 2.51;
@@ -130,6 +139,23 @@ vec3 Tonemap(vec3 x, int type)
     }
 }
 
+float ComputeVignetteMask(vec2 uv, float aspect, float radius, float softness)
+{
+    vec2 p = uv * 2.0 - 1.0;
+    p.x *= aspect;
+
+    float r2 = dot(p, p);
+
+    float r  = max(radius, 1e-4);
+    float s  = max(softness, 1e-4);
+
+    float inner = r * r;
+    float outerR = r + s;
+    float outer = outerR * outerR;
+
+    return 1.0 - smoothstep(inner, outer, r2);
+}
+
 void main()
 {
     vec3 scene  = texture(u_SceneHDR, vUV).rgb;
@@ -146,7 +172,36 @@ void main()
 	
     vec3 color = lit + bloom * u_BloomStrength;
 	
-	color *= u_Exposure;
+    float exposure = u_Exposure;
+
+    if (u_UseVignette == 1)
+    {
+        vec2 texSize = vec2(textureSize(u_SceneHDR, 0));
+        float aspect = texSize.x / max(texSize.y, 1.0);
+
+        float intensity = clamp(u_VignetteIntensity, 0.0, 1.0);
+
+        float mask = ComputeVignetteMask(vUV, aspect, u_VignetteRadius, u_VignetteSoftness);
+
+        float localExposure = exposure * mix(1.0, mask, intensity);
+        color *= localExposure;
+
+        float tintAmt = clamp(u_VignetteTintAmount, 0.0, 1.0);
+
+        if (tintAmt > 0.0)
+        {
+            float edge = 1.0 - mask;
+
+            float tintFactor = edge * intensity * tintAmt;
+
+            vec3 tint = max(u_VignetteTint, vec3(0.0));
+            color *= mix(vec3(1.0), tint, tintFactor);
+        }
+    }
+    else
+    {
+        color *= exposure;
+    }
 	
     color = Tonemap(color, u_ToneMapType);
 	

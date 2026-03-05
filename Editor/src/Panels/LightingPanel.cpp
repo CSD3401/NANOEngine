@@ -206,6 +206,33 @@ namespace Editor {
 			}
 			ImGui::PopID();
 
+			ImGui::PushID("Vignette");
+			if (ImGui::CollapsingHeader("Vignette##Header", ImGuiTreeNodeFlags_DefaultOpen)) {
+				Editor::DrawCheckbox("Enabled", postProcessingSettings.vignetteSettings.enabled);
+				Editor::DrawFloatField("Intensity", postProcessingSettings.vignetteSettings.intensity, 0.1f, true);
+				Editor::DrawFloatField("Radius", postProcessingSettings.vignetteSettings.radius, 0.1f, true);
+				Editor::DrawFloatField("Softness", postProcessingSettings.vignetteSettings.softness, 0.1f, true);
+				Editor::DrawVec3Control("Tint", postProcessingSettings.vignetteSettings.tint, 0.1f, true);
+				Editor::DrawFloatField("Tint Intensity", postProcessingSettings.vignetteSettings.tintIntensity, 0.1f, true);
+
+				// disable this temporarily until we can figure out a good way to do HDR colour picking without the ImGui HDR widget (which is very buggy and doesn't work well with our HDR colour implementation)
+				//HDRColor vignetteTintHDR = {
+				//	ImVec4(postProcessingSettings.vignetteSettings.tint.x,
+				//			postProcessingSettings.vignetteSettings.tint.y,
+				//			postProcessingSettings.vignetteSettings.tint.z,
+				//			1.0f),
+				//	postProcessingSettings.vignetteSettings.tintIntensity
+				//};
+
+				//if (DrawHDRColorField("Ambient Colour", vignetteTintHDR)) {
+				//	postProcessingSettings.vignetteSettings.tint.x = vignetteTintHDR.color.x;
+				//	postProcessingSettings.vignetteSettings.tint.y = vignetteTintHDR.color.y;
+				//	postProcessingSettings.vignetteSettings.tint.z = vignetteTintHDR.color.z;
+				//	postProcessingSettings.vignetteSettings.tintIntensity = vignetteTintHDR.intensity;
+				//}
+			}
+			ImGui::PopID();
+
 		} break;
 		case 3: {
 
