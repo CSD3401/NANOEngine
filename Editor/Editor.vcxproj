@@ -267,6 +267,11 @@
     <ClCompile Include="src\AssetManagement\Assets\IAsset.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\MaterialAsset.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\ModelAsset.cpp" />
+    <ClCompile Include="src\AssetManagement\Assets\ModelAsset\ModelAssetAssimpUtil.cpp" />
+    <ClCompile Include="src\AssetManagement\Assets\ModelAsset\ModelAssetMaterialImport.cpp" />
+    <ClCompile Include="src\AssetManagement\Assets\ModelAsset\ModelAssetMeshCook.cpp" />
+    <ClCompile Include="src\AssetManagement\Assets\ModelAsset\ModelAssetMetaIO.cpp" />
+    <ClCompile Include="src\AssetManagement\Assets\ModelAsset\ModelAssetPrefabGen.cpp" />
     <ClCompile Include="src\AssetManagement\Interfaces\MaterialEditor.cpp" />
     <ClCompile Include="src\EditorState.cpp" />
     <ClCompile Include="src\Layers\LayerModal.cpp" />
@@ -383,6 +388,11 @@
     <ClInclude Include="src\AssetManagement\Assets\IAsset.hpp" />
     <ClInclude Include="src\AssetManagement\Assets\MaterialAsset.hpp" />
     <ClInclude Include="src\AssetManagement\Assets\ModelAsset.hpp" />
+    <ClInclude Include="src\AssetManagement\Assets\ModelAsset\ModelAssetAssimpUtil.hpp" />
+    <ClInclude Include="src\AssetManagement\Assets\ModelAsset\ModelAssetMaterialImport.hpp" />
+    <ClInclude Include="src\AssetManagement\Assets\ModelAsset\ModelAssetMeshCook.hpp" />
+    <ClInclude Include="src\AssetManagement\Assets\ModelAsset\ModelAssetMetaIO.hpp" />
+    <ClInclude Include="src\AssetManagement\Assets\ModelAsset\ModelAssetPrefabGen.hpp" />
     <ClInclude Include="src\AssetManagement\Assets\PrefabAsset.hpp" />
     <ClInclude Include="src\AssetManagement\Assets\SceneAsset.hpp" />
     <ClInclude Include="src\AssetManagement\Assets\ShaderAsset.hpp" />
