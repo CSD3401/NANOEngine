@@ -498,7 +498,13 @@ namespace NE::ECS::Systems {
                 if (canvasEntity != NO_ENTITY && m_cm->HasComponent<UICanvas>(canvasEntity)) {
                     auto& canvas = m_cm->GetComponent<UICanvas>(canvasEntity);
                     float worldX, worldY, worldWidth, worldHeight;
-                    CalculateWorldRect(m_draggingSlider, canvasEntity, canvas, worldX, worldY, worldWidth, worldHeight);
+                    // Use handleSlideAreaRect for exact drag mapping (inset by handle width)
+                    Entity dragRectEntity = m_draggingSlider;
+                    if (slider.handleSlideAreaRect != UINT32_MAX &&
+                        m_cm->HasComponent<UIRectTransform>(slider.handleSlideAreaRect)) {
+                        dragRectEntity = slider.handleSlideAreaRect;
+                    }
+                    CalculateWorldRect(dragRectEntity, canvasEntity, canvas, worldX, worldY, worldWidth, worldHeight);
 
                     // Calculate normalized value based on mouse position
                     float normalized = 0.0f;
@@ -533,6 +539,35 @@ namespace NE::ECS::Systems {
             }
         }
 
+        // Scroll wheel support: adjust hovered slider value
+        if (m_hoveredEntity != NO_ENTITY && m_cm->HasComponent<UISlider>(m_hoveredEntity)) {
+            auto& hovSlider = m_cm->GetComponent<UISlider>(m_hoveredEntity);
+            if (hovSlider.interactable) {
+                auto [scrollX, scrollY] = NE::InputManager::ScrollDelta();
+                float scroll = hovSlider.IsHorizontal() ? static_cast<float>(scrollX + scrollY)
+                                                        : static_cast<float>(scrollY);
+                if (scroll != 0.0f) {
+                    float step = hovSlider.wholeNumbers
+                        ? 1.0f
+                        : (hovSlider.maxValue - hovSlider.minValue) * 0.1f;
+                    float oldValue = hovSlider.value;
+                    hovSlider.value += scroll * step;
+                    hovSlider.ClampValue();
+                    if (hovSlider.wholeNumbers) {
+                        hovSlider.value = static_cast<float>(static_cast<int>(hovSlider.value + 0.5f));
+                        hovSlider.ClampValue();
+                    }
+                    if (hovSlider.value != oldValue) {
+                        hovSlider.valueChanged = true;
+                        NANOEngine::Events::EventBus::Get().Dispatch(
+                            NANOEngine::Events::EventDomain::Engine,
+                            NANOEngine::Events::UISliderValueChangedEvent{ m_hoveredEntity, hovSlider.value, oldValue }
+                        );
+                    }
+                }
+            }
+        }
+
         // Every frame: sync fill rect and handle position for ALL sliders based on current value
         for (Entity e : entities) {
             if (!m_cm->HasComponent<UISlider>(e)) continue;
@@ -544,32 +579,36 @@ namespace NE::ECS::Systems {
             float fillNormalized = slider.GetNormalizedValue();
             float handleNormalized = fillNormalized;
 
-            // Update fill rect: grows from left (horizontal) or bottom (vertical)
-            if (slider.fillRect != UINT32_MAX && m_cm->HasComponent<UIRectTransform>(slider.fillRect)) {
-                auto& fillRect = m_cm->GetComponent<UIRectTransform>(slider.fillRect);
-
+            // Update fill rect via fill area (area-relative positioning)
+            if (slider.fillAreaRect != UINT32_MAX && slider.fillRect != UINT32_MAX &&
+                m_cm->HasComponent<UIRectTransform>(slider.fillAreaRect) &&
+                m_cm->HasComponent<UIRectTransform>(slider.fillRect)) {
+                auto& fillAreaRt = m_cm->GetComponent<UIRectTransform>(slider.fillAreaRect);
+                auto& fillRt = m_cm->GetComponent<UIRectTransform>(slider.fillRect);
+                // Compute effective area size from parent rect + offsets (stretch anchor formula)
                 if (slider.IsHorizontal()) {
-                    fillRect.width = rect.width * fillNormalized;
-                    // Keep left edge fixed: center x = left_edge + half_fill_width
-                    fillRect.x = -rect.width * 0.5f + fillRect.width * 0.5f;
+                    float areaWidth = rect.width + fillAreaRt.offsetMaxX - fillAreaRt.offsetMinX;
+                    fillRt.width = areaWidth * fillNormalized;
+                    // pivotX=0, left-anchored: x stays at 0
                 } else {
-                    fillRect.height = rect.height * fillNormalized;
-                    // Keep bottom edge fixed: center y = bottom_edge - half_fill_height
-                    // (y increases downward in UI space, so bottom = +height/2)
-                    fillRect.y = rect.height * 0.5f - fillRect.height * 0.5f;
+                    float areaHeight = rect.height + fillAreaRt.offsetMaxY - fillAreaRt.offsetMinY;
+                    fillRt.height = areaHeight * fillNormalized;
+                    // pivotY=0, bottom-anchored: y stays at 0
                 }
             }
 
-            // Update handle position along the track
-            if (slider.handleRect != UINT32_MAX && m_cm->HasComponent<UIRectTransform>(slider.handleRect)) {
-                auto& handleRect = m_cm->GetComponent<UIRectTransform>(slider.handleRect);
-
+            // Update handle position via handle slide area (area-relative positioning)
+            if (slider.handleSlideAreaRect != UINT32_MAX && slider.handleRect != UINT32_MAX &&
+                m_cm->HasComponent<UIRectTransform>(slider.handleSlideAreaRect) &&
+                m_cm->HasComponent<UIRectTransform>(slider.handleRect)) {
+                auto& handleAreaRt = m_cm->GetComponent<UIRectTransform>(slider.handleSlideAreaRect);
+                auto& handleRt = m_cm->GetComponent<UIRectTransform>(slider.handleRect);
                 if (slider.IsHorizontal()) {
-                    float trackWidth = rect.width - handleRect.width;
-                    handleRect.x = trackWidth * handleNormalized - trackWidth * 0.5f;
+                    float areaWidth = rect.width + handleAreaRt.offsetMaxX - handleAreaRt.offsetMinX;
+                    handleRt.x = areaWidth * handleNormalized - areaWidth * 0.5f;
                 } else {
-                    float trackHeight = rect.height - handleRect.height;
-                    handleRect.y = trackHeight * handleNormalized - trackHeight * 0.5f;
+                    float areaHeight = rect.height + handleAreaRt.offsetMaxY - handleAreaRt.offsetMinY;
+                    handleRt.y = areaHeight * handleNormalized - areaHeight * 0.5f;
                 }
             }
         }

@@ -290,6 +290,8 @@ namespace Component {
         uint32_t fillRect = UINT32_MAX;
         uint32_t handleRect = UINT32_MAX;
         uint32_t backgroundRect = UINT32_MAX;
+        uint32_t fillAreaRect = UINT32_MAX;
+        uint32_t handleSlideAreaRect = UINT32_MAX;
         bool interactable = true;
 
         // === RUNTIME FIELDS (managed by engine) ===

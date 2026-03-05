@@ -28,6 +28,8 @@ namespace NE::ECS::Component {
         uint32_t fillRect = UINT32_MAX;     // The fill image entity
         uint32_t handleRect = UINT32_MAX;   // The draggable handle entity
         uint32_t backgroundRect = UINT32_MAX; // The background image entity
+        uint32_t fillAreaRect = UINT32_MAX;       // The fill area container
+        uint32_t handleSlideAreaRect = UINT32_MAX; // The handle slide area container
 
         bool interactable = true;
 
@@ -47,6 +49,8 @@ namespace NE::ECS::Component {
             NE_REFLECT_FIELD(fillRect),
             NE_REFLECT_FIELD(handleRect),
             NE_REFLECT_FIELD(backgroundRect),
+            NE_REFLECT_FIELD(fillAreaRect),
+            NE_REFLECT_FIELD(handleSlideAreaRect),
             NE_REFLECT_FIELD(interactable)
         NE_REFLECT_END()
 

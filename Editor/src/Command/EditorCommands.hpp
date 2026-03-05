@@ -212,10 +212,12 @@ namespace Editor {
         void Undo() override;
         const char* GetName() const override { return "Create UI Slider"; }
     private:
-        uint32_t m_entity = NE::ECS::NO_ENTITY;           // Slider root
-        uint32_t m_backgroundEntity = NE::ECS::NO_ENTITY; // Background image
-        uint32_t m_fillEntity = NE::ECS::NO_ENTITY;       // Fill image
-        uint32_t m_handleEntity = NE::ECS::NO_ENTITY;     // Handle image
+        uint32_t m_entity = NE::ECS::NO_ENTITY;            // Slider root
+        uint32_t m_backgroundEntity = NE::ECS::NO_ENTITY;  // Background image
+        uint32_t m_fillAreaEntity = NE::ECS::NO_ENTITY;    // Fill area container
+        uint32_t m_fillEntity = NE::ECS::NO_ENTITY;        // Fill image
+        uint32_t m_handleAreaEntity = NE::ECS::NO_ENTITY;  // Handle slide area container
+        uint32_t m_handleEntity = NE::ECS::NO_ENTITY;      // Handle image
         uint32_t m_parentEntity;
         uint32_t m_canvasEntity = NE::ECS::NO_ENTITY;
         bool m_createdCanvas = false;
