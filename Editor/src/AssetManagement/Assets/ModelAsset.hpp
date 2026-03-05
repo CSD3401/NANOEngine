@@ -32,7 +32,7 @@ namespace Editor::Assets {
 
 		mutable std::string m_uuid;
 		mutable std::vector<SubmeshEntry> m_submeshes;
-		std::optional<ModelImportSettings> importSettings;
+		mutable std::optional<ModelImportSettings> importSettings;
 	};
 }
 

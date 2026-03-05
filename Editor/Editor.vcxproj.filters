@@ -144,6 +144,21 @@
     <ClCompile Include="src\AssetManagement\Assets\ModelAsset.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\AssetManagement\Assets\ModelAsset\ModelAssetAssimpUtil.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AssetManagement\Assets\ModelAsset\ModelAssetMaterialImport.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AssetManagement\Assets\ModelAsset\ModelAssetMeshCook.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AssetManagement\Assets\ModelAsset\ModelAssetMetaIO.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AssetManagement\Assets\ModelAsset\ModelAssetPrefabGen.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="src\AssetManagement\Assets\MaterialAsset.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -345,6 +360,21 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\AssetManagement\Assets\ModelAsset.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AssetManagement\Assets\ModelAsset\ModelAssetAssimpUtil.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AssetManagement\Assets\ModelAsset\ModelAssetMaterialImport.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AssetManagement\Assets\ModelAsset\ModelAssetMeshCook.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AssetManagement\Assets\ModelAsset\ModelAssetMetaIO.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AssetManagement\Assets\ModelAsset\ModelAssetPrefabGen.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\AssetManagement\Assets\PrefabAsset.hpp">
