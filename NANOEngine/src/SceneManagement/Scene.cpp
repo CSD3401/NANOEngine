@@ -17,6 +17,7 @@
 #include "ECS/Systems/UILayoutSystem.hpp"
 #include "ECS/Systems/CharacterControllerSystem.hpp"
 #include "ECS/Systems/DecalProjectorSystem.hpp"
+#include "ECS/Systems/ParticleSystem.hpp"
 #include "../Animation/TransformClipIO.hpp"
 #include "Core/Couroutine.hpp"
 #include "Physics/PhysicsManager.hpp"
@@ -36,8 +37,8 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_uiLayoutSystem->Init();
 		m_ecsCoordinator.m_uiEventSystem->Init();
 		m_ecsCoordinator.m_uiRenderSystem->Init();
-
 		m_ecsCoordinator.m_animatorSystem->Init();
+		m_ecsCoordinator.m_particleSystem->Init();
 	}
 
 	void Scene::InitRuntime() {
@@ -55,8 +56,8 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_uiLayoutSystem->Init();
 		m_ecsCoordinator.m_uiEventSystem->Init();
 		m_ecsCoordinator.m_uiRenderSystem->Init();
-
 		m_ecsCoordinator.m_animatorSystem->Init();
+		m_ecsCoordinator.m_particleSystem->Init();
 	}
 
 	void Scene::UpdateEdit(double dt) {
@@ -68,6 +69,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_renderSystem->Update(dt);
         m_ecsCoordinator.m_decalProjectorSystem->Update(dt);
 		m_ecsCoordinator.m_audioSystem->Update(dt);
+		m_ecsCoordinator.m_particleSystem->Update(dt);
 
 		m_ecsCoordinator.m_uiLayoutSystem->Update(dt);
 		m_ecsCoordinator.m_uiEventSystem->Update(dt);
@@ -86,6 +88,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_cameraSystem->Update(dt);
 		m_ecsCoordinator.m_renderSystem->Update(dt);
         m_ecsCoordinator.m_decalProjectorSystem->Update(dt);
+		m_ecsCoordinator.m_particleSystem->Update(dt);
 
 		m_ecsCoordinator.m_audioSystem->Update(dt);
 
@@ -94,6 +97,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_uiRenderSystem->Update(dt);
 		m_ecsCoordinator.m_animatorSystem->Update(dt);
 		m_ecsCoordinator.m_scriptSystem->Update(dt);
+
 		Engine_UpdateCoroutines(static_cast<float>(dt));
 	}
 
@@ -117,6 +121,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_uiEventSystem->Exit();
 		m_ecsCoordinator.m_uiRenderSystem->Exit();
 		m_ecsCoordinator.m_animatorSystem->Exit();
+		m_ecsCoordinator.m_particleSystem->Exit();
 	}
 
 	void Scene::ExitRuntime() {
@@ -133,6 +138,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_uiEventSystem->Exit();
 		m_ecsCoordinator.m_uiRenderSystem->Exit();
 		m_ecsCoordinator.m_animatorSystem->Exit();
+		m_ecsCoordinator.m_particleSystem->Exit();
 		Physics::PhysicsManager::GetInstance().OnStop();
 	}
 

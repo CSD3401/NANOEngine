@@ -30,6 +30,7 @@ namespace NE::ECS::Systems {
 
 		void OnEntityActive(Entity entity) override;
 		void OnEntityInactive(Entity entity) override;
+
 		void Init() override;
 		void Update(double deltaTime) override; // override in concrete systems
 		void Exit() override;

@@ -25,6 +25,7 @@ namespace NE::ECS::Systems {
     class PrefabSystem;
 	class CharacterControllerSystem;
     class DecalProjectorSystem;
+	class ParticleSystem;
 }
 
 namespace NE::ECS {
@@ -128,6 +129,7 @@ namespace NE::ECS {
         std::shared_ptr<Systems::PrefabSystem> m_prefabSystem;
 		std::shared_ptr<Systems::CharacterControllerSystem> m_characterControllerSystem;
         std::shared_ptr<Systems::DecalProjectorSystem> m_decalProjectorSystem;
+		std::shared_ptr<Systems::ParticleSystem> m_particleSystem;
 
     private:
 
