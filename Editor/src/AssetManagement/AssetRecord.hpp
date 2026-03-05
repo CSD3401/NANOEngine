@@ -22,7 +22,8 @@ namespace Editor::Assets {
 		Folder,
 		AnimationClip,
 		AnimatorController,
-		Font
+		Font,
+		Lighting
 	};
 
 	struct AssetRecord {

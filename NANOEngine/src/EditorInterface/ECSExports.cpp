@@ -4,6 +4,7 @@
 #include "../ECS/Components/EntityMeta.hpp"
 #include "../ECS/Components/Transform.hpp"
 #include "../ECS/Components/Renderer.hpp"
+#include "../ECS/Components/LightmapBinding.hpp"
 #include "../ECS/Components/Light.hpp"
 #include "../ECS/Components/Rigidbody.hpp"
 #include "../ECS/Components/Collider.hpp"
@@ -63,6 +64,10 @@ namespace NE::ECS {
 
 		const Component::Renderer& GetEntityRenderer(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
+		}
+
+		const Component::LightmapBinding& GetLightmapBinding(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::LightmapBinding>(e);
 		}
 
 		const Component::Light& GetEntityLight(uint32_t e) {
@@ -193,6 +198,10 @@ namespace NE::ECS {
 			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Renderer>(e);
 		}
 
+		bool HasLightmapBinding(uint32_t e) {
+			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::LightmapBinding>(e);
+		}
+
 		bool HasLight(uint32_t e) {
 			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Light>(e);
 		}
@@ -295,6 +304,10 @@ namespace NE::ECS {
 
 		ComponentType GetRendererComponentType() {
 			return GetScene().GetECSCoordinator().GetComponentType<Component::Renderer>();
+		}
+
+		ComponentType GetLightmapBindingComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::LightmapBinding>();
 		}
 
 		ComponentType GetLightComponentType() {
@@ -874,6 +887,10 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Renderer{});
 		}
 
+		void AddLightmapBindingComponent(uint32_t e) {
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::LightmapBinding{});
+		}
+
 		void AddRigidbodyComponent(uint32_t e) {
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Rigidbody{});
 		}
@@ -912,6 +929,10 @@ namespace NE::ECS {
 
 		void AddRendererComponent(uint32_t e, const Component::Renderer& c) {
 			GetScene().GetECSCoordinator().AddComponent<Component::Renderer>(e, c);
+		}
+
+		void AddLightmapBindingComponent(uint32_t e, const Component::LightmapBinding& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::LightmapBinding>(e, c);
 		}
 
 		void AddLightComponent(uint32_t e, const Component::Light& c) {
@@ -1064,6 +1085,10 @@ namespace NE::ECS {
 
 		Component::Renderer& GetEntityRenderer(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
+		}
+
+		Component::LightmapBinding& GetLightmapBinding(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::LightmapBinding>(e);
 		}
 
 		Component::Light& GetEntityLight(uint32_t e) {

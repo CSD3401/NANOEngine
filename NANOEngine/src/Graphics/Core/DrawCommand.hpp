@@ -1,9 +1,11 @@
 #pragma once
 #include <memory>
 #include <optional>
+#include <limits>
 #include "../Interfaces/IGeometryBuffer.hpp"
 #include "Material.hpp"
-#include "../../Math/Mat4.hpp"
+#include "Math/Mat4.hpp"
+#include "Math/Vec2.hpp"
 
 namespace NE::Graphics {
 
@@ -31,6 +33,10 @@ namespace NE::Graphics {
         bool castsShadow = false;
         bool receivesShadow = false;
         bool hasUv1 = false;
+        bool lightmapEnabled = false;
+        std::uint32_t lightmapPageSlot = std::numeric_limits<std::uint32_t>::max();
+        Math::Vec2 lightmapUvScale = Math::Vec2{ 1.0f, 1.0f };
+        Math::Vec2 lightmapUvOffset = Math::Vec2{ 0.0f, 0.0f };
 
         // Optional scissor rect for UI clipping (RectMask2D)
         std::optional<ScissorRect> scissorRect;

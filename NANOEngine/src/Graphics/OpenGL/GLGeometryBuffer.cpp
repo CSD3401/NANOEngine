@@ -51,7 +51,7 @@ namespace NE::Graphics::OpenGL {
 
         // ---- Per-instance attributes ----
         if (s_InstanceVBO == 0) InitInstanceBuffer();
-        EnableInstanceLayout(5, 9); // locations 5-8 for mat4, 9 for vec3
+        EnableInstanceLayout(5, 9); // locations 5-8 for mat4, 9 for idRGB, 10-13 for lightmap data
 
         glBindVertexArray(0);
     }
@@ -83,10 +83,14 @@ namespace NE::Graphics::OpenGL {
         glBindVertexArray(m_VAO);             // Select this mesh's VAO
         glBindBuffer(GL_ARRAY_BUFFER, s_InstanceVBO); // Source buffer for instance data
 
-        // InstanceDataRGB layout:
+        // InstanceData layout:
         //   64 bytes = mat4 model
         //   12 bytes = vec3 idRGB
-        //   4 bytes  = float pad
+        //   4 bytes  = float lightmapEnabled
+        //   8 bytes  = vec2 lightmapUvScale
+        //   8 bytes  = vec2 lightmapUvOffset
+        //   4 bytes  = uint lightmapPageSlot
+        //   4 bytes  = uint pad
         const GLsizei stride = static_cast<GLsizei>(sizeof(InstanceData));
         size_t offset = 0;
 
@@ -121,6 +125,55 @@ namespace NE::Graphics::OpenGL {
             (void*)(sizeof(float) * 16) // mat4 = 16 floats = 64 bytes
         );
         glVertexAttribDivisor(locIdRGB, 1);
+
+        const size_t idOffset = sizeof(float) * 16;
+        const size_t enabledOffset = idOffset + sizeof(float) * 3;
+        const size_t scaleOffset = enabledOffset + sizeof(float);
+        const size_t offsetOffset = scaleOffset + sizeof(float) * 2;
+        const size_t pageSlotOffset = offsetOffset + sizeof(float) * 2;
+
+        glEnableVertexAttribArray(locIdRGB + 1);
+        glVertexAttribPointer(
+            locIdRGB + 1,
+            1,
+            GL_FLOAT,
+            GL_FALSE,
+            stride,
+            reinterpret_cast<void*>(enabledOffset)
+        );
+        glVertexAttribDivisor(locIdRGB + 1, 1);
+
+        glEnableVertexAttribArray(locIdRGB + 2);
+        glVertexAttribPointer(
+            locIdRGB + 2,
+            2,
+            GL_FLOAT,
+            GL_FALSE,
+            stride,
+            reinterpret_cast<void*>(scaleOffset)
+        );
+        glVertexAttribDivisor(locIdRGB + 2, 1);
+
+        glEnableVertexAttribArray(locIdRGB + 3);
+        glVertexAttribPointer(
+            locIdRGB + 3,
+            2,
+            GL_FLOAT,
+            GL_FALSE,
+            stride,
+            reinterpret_cast<void*>(offsetOffset)
+        );
+        glVertexAttribDivisor(locIdRGB + 3, 1);
+
+        glEnableVertexAttribArray(locIdRGB + 4);
+        glVertexAttribIPointer(
+            locIdRGB + 4,
+            1,
+            GL_UNSIGNED_INT,
+            stride,
+            reinterpret_cast<void*>(pageSlotOffset)
+        );
+        glVertexAttribDivisor(locIdRGB + 4, 1);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);

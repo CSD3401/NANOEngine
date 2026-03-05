@@ -152,6 +152,14 @@ namespace NE::SceneManagement {
 		return m_ecsCoordinator;
 	}
 
+	LightingContainer& Scene::GetLightingContainer() {
+		return m_lightingContainer;
+	}
+
+	const LightingContainer& Scene::GetLightingContainer() const {
+		return m_lightingContainer;
+	}
+
 	void Scene::CameraEnter() {
 		m_ecsCoordinator.m_cameraSystem->Init();
 	}

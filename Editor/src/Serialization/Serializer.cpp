@@ -11,6 +11,7 @@
 #include <ECS/Components/EntityMeta.hpp>
 #include <ECS/Components/Transform.hpp>
 #include <ECS/Components/Renderer.hpp>
+#include <ECS/Components/LightmapBinding.hpp>
 #include <ECS/Components/Light.hpp>
 #include <ECS/Components/Collider.hpp>
 #include <ECS/Components/Rigidbody.hpp>
@@ -55,7 +56,46 @@ namespace Editor {
 		inline constexpr uint32_t NFAB_MAGIC = 0x4E464142;
 		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 2;
 
-		using ComponentTypes = std::tuple<
+		using SceneComponentTypes = std::tuple<
+			NE::ECS::Component::EntityMeta,
+			NE::ECS::Component::Hierarchy,
+			NE::ECS::Component::PrefabInstance,
+			NE::ECS::Component::PrefabLink,
+			NE::ECS::Component::Transform,
+			NE::ECS::Component::Renderer,
+			NE::ECS::Component::LightmapBinding,
+			NE::ECS::Component::Light,
+			NE::ECS::Component::Collider,
+			NE::ECS::Component::Rigidbody,
+			NE::ECS::Component::NativeScript,
+			NE::ECS::Component::Camera,
+			NE::ECS::Component::UIRectTransform,
+			NE::ECS::Component::UICanvas,
+			NE::ECS::Component::UIImage,
+			NE::ECS::Component::UIText,
+			NE::ECS::Component::UIButton,
+			NE::ECS::Component::UISlider,
+			NE::ECS::Component::UIToggle,
+			NE::ECS::Component::UILayoutGroup,
+			NE::ECS::Component::UIGridLayoutGroup,
+			NE::ECS::Component::UILayoutElement,
+			NE::ECS::Component::UIScrollRect,
+			NE::ECS::Component::UIAutoSize,
+			NE::ECS::Component::UIInputField,
+			NE::ECS::Component::UIDropdown,
+			NE::ECS::Component::CharacterController,
+			NE::ECS::Component::Animator,
+			NE::ECS::Component::DecalProjector
+		>;
+
+		template <class F>
+		void ForEachSceneComponentType(F&& f) {
+			std::apply([&](auto&&... t) {
+				(f.template operator() < std::decay_t<decltype(t)> > (), ...);
+				}, SceneComponentTypes{});
+		}
+
+		using PrefabComponentTypes = std::tuple<
 			NE::ECS::Component::EntityMeta,
 			NE::ECS::Component::Hierarchy,
 			NE::ECS::Component::PrefabInstance,
@@ -87,10 +127,10 @@ namespace Editor {
 		>;
 
 		template <class F>
-		void ForEachComponentType(F&& f) {
+		void ForEachPrefabComponentType(F&& f) {
 			std::apply([&](auto&&... t) {
 				(f.template operator() < std::decay_t<decltype(t)> > (), ...);
-				}, ComponentTypes{});
+				}, PrefabComponentTypes{});
 		}
 
 		std::string projectSettingsLoc = "ProjectSettings/";
@@ -173,21 +213,28 @@ namespace Editor {
 				rapidjson::Value WriteEntityRecursive(
 					NE::ECS::Entity e,
 					rapidjson::Value& entities,
-					rapidjson::Document::AllocatorType& a) {
+					rapidjson::Document::AllocatorType& a,
+					bool includeSceneOnlyComponents) {
 					rapidjson::Value ent(rapidjson::kObjectType);
 
 					ent.AddMember("Layer", ToJSON(NE::ECS::Query::GetLayer(e), a), a);
 					ent.AddMember("Active", ToJSON(NE::ECS::Query::GetActive(e), a), a);
-					ForEachComponentType([&]<typename C>() {
-						WriteComponentIfPresent<C>(e, ent, a);
-					});
+					if (includeSceneOnlyComponents) {
+						ForEachSceneComponentType([&]<typename C>() {
+							WriteComponentIfPresent<C>(e, ent, a);
+						});
+					} else {
+						ForEachPrefabComponentType([&]<typename C>() {
+							WriteComponentIfPresent<C>(e, ent, a);
+						});
+					}
 
 					entities.PushBack(ent, a);
 
 					auto& h = NE::ECS::Query::GetEntityHierarchy(e);
 					for (auto childId : h.children) {
 						NE::ECS::Entity child = static_cast<NE::ECS::Entity>(childId);
-						WriteEntityRecursive(child, entities, a);
+						WriteEntityRecursive(child, entities, a, includeSceneOnlyComponents);
 					}
 
 					return ent;
@@ -221,10 +268,12 @@ namespace Editor {
 				auto& postProcessingSettings = NE::Renderer::Query::GetPostProcessingSettings();
 				doc.AddMember("PostProcessingSettings", ToJSON(postProcessingSettings, a), a);
 
+				doc.AddMember("LightingContainer", ToJSON(NE::GetScene().GetLightingContainer(), a), a);
+
 				Value entities(rapidjson::Type::kArrayType);
 				const auto& sceneRoots = EditorScene::s_rootOrder;
 				for (auto e : sceneRoots) {
-					WriteEntityRecursive(e, entities, a);
+					WriteEntityRecursive(e, entities, a, true);
 				}
 				doc.AddMember("Entities", entities, a);
 
@@ -248,9 +297,9 @@ namespace Editor {
 				Value entities(rapidjson::Type::kArrayType);
 				if (!isScene) {
 					const auto& prefabRoot = EditorScene::s_selection.GetLastDropped();
-					WriteEntityRecursive(prefabRoot, entities, a);
+					WriteEntityRecursive(prefabRoot, entities, a, false);
 				} else {
-					WriteEntityRecursive(EditorScene::s_rootOrder[0], entities, a);
+					WriteEntityRecursive(EditorScene::s_rootOrder[0], entities, a, false);
 				}
 				doc.AddMember("Entities", entities, a);
 
@@ -288,7 +337,7 @@ namespace Editor {
 
 					uint64_t mask = 0;
 					uint32_t bitIdx = 0;
-					ForEachComponentType([&]<typename C>() {
+					ForEachPrefabComponentType([&]<typename C>() {
 						if (entVal.HasMember(ComponentKey<C>::value)) {
 							mask |= (uint64_t(1) << bitIdx);
 						}
@@ -297,7 +346,7 @@ namespace Editor {
 
 					NE::Serialization::ToBinary(outputBuffer, mask);
 
-					ForEachComponentType([&]<typename C>() {
+					ForEachPrefabComponentType([&]<typename C>() {
 						const char* key = ComponentKey<C>::value;
 						if (entVal.HasMember(key)) {
 							C tempComp{};
@@ -437,6 +486,12 @@ namespace Editor {
 					FromJSON(doc["PostProcessingSettings"], pps);
 				}
 
+				if (doc.HasMember("LightingContainer")) {
+					FromJSON(doc["LightingContainer"], NE::GetScene().GetLightingContainer());
+				} else {
+					NE::GetScene().GetLightingContainer() = {};
+				}
+
 				if (!doc.IsObject() || !doc.HasMember("Entities")) return;
 
 				for (auto& entVal : doc["Entities"].GetArray()) {
@@ -448,7 +503,7 @@ namespace Editor {
 						NE::ECS::Command::SetLayer(e, layer);
 					}
 
-					ForEachComponentType([&]<typename C>() {
+					ForEachSceneComponentType([&]<typename C>() {
 						ReadComponentIfPresent<C>(e, entVal);
 					});
 
@@ -514,7 +569,7 @@ namespace Editor {
 						NE::ECS::Command::SetLayer(e, layer);
 					}
 
-					ForEachComponentType([&]<typename C>() {
+					ForEachPrefabComponentType([&]<typename C>() {
 						if constexpr (std::is_same_v<C, NE::ECS::Component::Hierarchy>) {
 							return;
 						} else {

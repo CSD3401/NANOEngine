@@ -89,6 +89,17 @@ namespace NE::Graphics {
             return { v.x, v.y, v.z };
         }
 
+        inline InstanceData BuildInstanceData(const DrawCommand& command) {
+            InstanceData instance{};
+            instance.model = command.transform;
+            instance.idRGB = command.idRGB;
+            instance.lightmapEnabled = command.lightmapEnabled ? 1.0f : 0.0f;
+            instance.lightmapUvScale = command.lightmapUvScale;
+            instance.lightmapUvOffset = command.lightmapUvOffset;
+            instance.lightmapPageSlot = command.lightmapPageSlot;
+            return instance;
+        }
+
         inline size_t ToLightTypeIndex(ECS::Component::Light::Type type) {
             const uint8_t raw = static_cast<uint8_t>(type);
             return (raw < s_LightGizmoMaterials.size()) ? static_cast<size_t>(raw) : static_cast<size_t>(0);
@@ -638,8 +649,7 @@ namespace NE::Graphics {
                     currentMaterial = command.material;
                 }
 
-                InstanceData instance{};
-                instance.model = command.transform;
+                InstanceData instance = BuildInstanceData(command);
                 instance.idRGB = { 0.0f, 0.0f, 0.0f };
                 instanceData.push_back(instance);
             }
@@ -1294,11 +1304,7 @@ namespace NE::Graphics {
                     currentReceiveShadows = receives;
                 }
 
-                NE::Graphics::InstanceData instance{};
-                instance.model = command.transform;
-                instance.idRGB = command.idRGB;
-
-                instanceData.push_back(instance);
+                instanceData.push_back(BuildInstanceData(command));
             }
 
             if (!instanceData.empty()) {
@@ -1683,11 +1689,7 @@ namespace NE::Graphics {
                     currentDepthTest = command.enableDepthTest;
                 }
 
-                NE::Graphics::InstanceData instance{};
-                instance.model = command.transform;
-                instance.idRGB = command.idRGB;
-
-                instanceData.push_back(instance);
+                instanceData.push_back(BuildInstanceData(command));
             }
 
             if (!instanceData.empty()) {

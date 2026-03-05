@@ -3,6 +3,7 @@
 
 #include "../Components/Transform.hpp"
 #include "../Components/Renderer.hpp"
+#include "../Components/LightmapBinding.hpp"
 #include "../Components/Light.hpp"
 #include "../Components/Rigidbody.hpp"
 #include "../Components/Collider.hpp"
@@ -65,6 +66,7 @@ namespace NE::ECS {
         RegisterComponent<Component::EntityMeta>();
         RegisterComponent<Component::Transform>();
         RegisterComponent<Component::Renderer>();
+        RegisterComponent<Component::LightmapBinding>();
         RegisterComponent<Component::Collider>();
         RegisterComponent<Component::Rigidbody>();
         RegisterComponent<Component::Light>();

@@ -1,8 +1,12 @@
 #include "pch.h"
+#include <cmath>
+#include <limits>
+
 #include "RenderSystem.hpp"
 #include "Core/Profiler.hpp"
 #include "Core/LUIDGenerator.hpp"
 #include "Core/LUIDRegistry.hpp"
+#include "Engine.hpp"
 #include "ECS/Core/ComponentManager.hpp"
 #include "ECS/Core/EntityManager.hpp"
 #include "ECS/Components/Renderer.hpp"
@@ -10,8 +14,9 @@
 #include "Graphics/Core/GraphicsManager.hpp"
 #include "Graphics/Core/Material.hpp"
 #include "Graphics/Core/DrawCommand.hpp"
+#include "SceneManagement/SceneLightmapRuntime.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
-
+#include "ECS/Components/LightmapBinding.hpp"
 
 namespace NE::ECS::Systems {
     namespace {
@@ -61,6 +66,17 @@ namespace NE::ECS::Systems {
             NE::Math::Vec4 v = M * NE::Math::Vec4(p.x, p.y, p.z, 1.0f);
             return { v.x, v.y, v.z };
         }
+
+        inline bool IsFiniteMatrix(const NE::Math::Mat4& matrix) {
+            for (float value : matrix.a) {
+                if (!std::isfinite(value)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
     }
 
     RenderSystem::RenderSystem(ComponentManager* cm, EntityManager* em, Core::LUIDRegistry* lr)
@@ -126,6 +142,39 @@ namespace NE::ECS::Systems {
             cmd.receivesShadow = renderer.receiveShadows;
             cmd.hasUv1 = renderer.model->meshes[renderer.subMeshIndex].hasUv1;
 
+            const bool hasLightmapBinding = m_componentManager->HasComponent<Component::LightmapBinding>(entity);
+            if (hasLightmapBinding) {
+                auto& binding = m_componentManager->GetComponent<Component::LightmapBinding>(entity);
+                binding.pageResolved = false;
+                binding.resolvedPageSlot = Component::INVALID_LIGHTMAP_PAGE_SLOT;
+            }
+
+            const auto* lightmapState = SceneManagement::GetSceneLightmapRuntimeState(&NE::GetScene());
+            if (lightmapState &&
+                lightmapState->lightingUsable &&
+                cmd.hasUv1 &&
+                IsFiniteMatrix(transform.worldMatrix) &&
+                hasLightmapBinding)
+            {
+                auto& binding = m_componentManager->GetComponent<Component::LightmapBinding>(entity);
+                if (binding.enabled) {
+                    const Math::Vec2 uvScale = binding.uvScale;
+                    const Math::Vec2 uvOffset = binding.uvOffset;
+                    const std::string& pageId = binding.pageId;
+
+                    std::uint32_t pageSlot = std::numeric_limits<std::uint32_t>::max();
+                    if (SceneManagement::IsFiniteLightmapTransform(uvScale, uvOffset) &&
+                        SceneManagement::TryResolveSceneLightmapPageSlot(NE::GetScene(), pageId, pageSlot))
+                    {
+                        binding.pageResolved = true;
+                        binding.resolvedPageSlot = pageSlot;
+                        cmd.lightmapEnabled = true;
+                        cmd.lightmapPageSlot = pageSlot;
+                        cmd.lightmapUvScale = uvScale;
+                        cmd.lightmapUvOffset = uvOffset;
+                    }
+                }
+            }
             Graphics::GraphicsManager::Submit(cmd);
         }
     }
