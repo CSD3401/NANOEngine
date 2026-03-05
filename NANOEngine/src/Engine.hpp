@@ -34,6 +34,12 @@ namespace NE {
 	NANOENGINE_API bool WindowShouldClose();
 	NANOENGINE_API uint32_t GetSceneColorAttachment();
 	NANOENGINE_API uint32_t GetGameColorAttachment();
+
+	// Game View (Editor/Game panel) render resolution.
+	// This controls the main camera render target size and post-processing output size.
+	NANOENGINE_API void SetGameViewResolution(uint32_t width, uint32_t height);
+	NANOENGINE_API uint32_t GetGameViewWidth();
+	NANOENGINE_API uint32_t GetGameViewHeight();
 	NANOENGINE_API void UpdateEditorCameraData();
 	NANOENGINE_API void SetEditorCamera(void* camera);
 

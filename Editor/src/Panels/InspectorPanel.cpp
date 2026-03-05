@@ -60,10 +60,26 @@
 #include "../Layers/LayerModal.hpp"
 #include <Events/EventBus.hpp>
 #include "../EditorEvents.hpp"
+#include "Engine.hpp"
+#include <algorithm>
+#include <cmath>
 
 bool openLayerSettings = false;
 
 namespace {
+	float DegToRad(float deg) { return deg * 3.14159265358979323846f / 180.0f; }
+	float RadToDeg(float rad) { return rad * 180.0f / 3.14159265358979323846f; }
+
+	// Convert an FOV value between vertical/horizontal for a given aspect ratio while preserving the view.
+	float ConvertFovDegrees(float fovDeg, float aspect, bool fromVerticalToHorizontal) {
+		aspect = std::max(1e-6f, aspect);
+		fovDeg = std::clamp(fovDeg, 1.0f, 179.0f);
+
+		const float half = std::tan(DegToRad(fovDeg) * 0.5f);
+		const float halfOut = fromVerticalToHorizontal ? (half * aspect) : (half / aspect);
+		return RadToDeg(2.0f * std::atan(halfOut));
+	}
+
 	// the widget maker
 	// takes a field and draws the right UI widget for it
 	// bool -> checkbox
@@ -2768,7 +2784,7 @@ namespace Editor {
 	}
 
 	void InspectorPanel::DrawCameraComponent(uint32_t entity) {
-		auto& comp = NE::ECS::Query::GetEntityCamera(entity);
+		auto& comp = NE::ECS::Command::GetEntityCamera(entity);
 
 		bool copyComp = false;
 		bool deleteComp = false;
@@ -2790,7 +2806,52 @@ namespace Editor {
 		if (!open)
 			return;
 
-		ImGui::SeparatorText("Camera");
+		static const char* ProjectionTypeNames[] = { "Perspective", "Orthographic" };
+		int currProjectionType = static_cast<int>(comp.projectionType);
+
+		if (DrawEnumPillCombo("Projection", currProjectionType, ProjectionTypeNames, IM_ARRAYSIZE(ProjectionTypeNames), 100.0f)) {
+			comp.projectionType = static_cast<NE::ECS::Component::Camera::ProjectionType>(currProjectionType);
+			comp.isDirty = true;
+		}
+
+		static const char* fovAxis[] = { "Vertical", "Horizontal" };
+		const auto prevAxis = comp.fovAxis;
+		int currAxis = static_cast<int>(comp.fovAxis);
+
+		if (DrawEnumPillCombo("FOV Axis", currAxis, fovAxis, IM_ARRAYSIZE(fovAxis), 100.0f)) {
+			const auto newAxis = static_cast<NE::ECS::Component::Camera::FieldOfViewAxis>(currAxis);
+
+			if (newAxis != prevAxis) {
+				float aspect = comp.aspectRatio;
+				if (comp.isMain) {
+					const uint32_t w = NE::GetGameViewWidth();
+					const uint32_t h = NE::GetGameViewHeight();
+					aspect = (h > 0) ? (static_cast<float>(w) / static_cast<float>(h)) : (16.0f / 9.0f);
+				}
+
+				if (comp.projectionType == NE::ECS::Component::Camera::ProjectionType::Perspective) {
+					if (prevAxis == NE::ECS::Component::Camera::FieldOfViewAxis::Vertical &&
+						newAxis == NE::ECS::Component::Camera::FieldOfViewAxis::Horizontal) {
+						comp.fovY = ConvertFovDegrees(comp.fovY, aspect, true);
+					} else if (prevAxis == NE::ECS::Component::Camera::FieldOfViewAxis::Horizontal &&
+						newAxis == NE::ECS::Component::Camera::FieldOfViewAxis::Vertical) {
+						comp.fovY = ConvertFovDegrees(comp.fovY, aspect, false);
+					}
+				} else {
+					aspect = std::max(1e-6f, aspect);
+					if (prevAxis == NE::ECS::Component::Camera::FieldOfViewAxis::Vertical &&
+						newAxis == NE::ECS::Component::Camera::FieldOfViewAxis::Horizontal) {
+						comp.fovY *= aspect;
+					} else if (prevAxis == NE::ECS::Component::Camera::FieldOfViewAxis::Horizontal &&
+						newAxis == NE::ECS::Component::Camera::FieldOfViewAxis::Vertical) {
+						comp.fovY /= aspect;
+					}
+				}
+			}
+
+			comp.fovAxis = newAxis;
+			comp.isDirty = true;
+		}
 
 		NE::Core::ForEachFieldView<NE::ECS::Component::Camera>(comp,
 			[&](auto const& desc, auto const& currentValue) {
