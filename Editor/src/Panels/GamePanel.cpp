@@ -3,6 +3,7 @@
 #include <imgui/imgui.h>
 #include "Engine.hpp"
 #include <EditorInterface/ECSExports.hpp>
+#include "../EditorState.hpp"
 #include <algorithm>
 #include <cstdio>
 
@@ -130,13 +131,18 @@ namespace Editor {
 		float panelPosX = imagePos.x - mainViewportPos.x;
 		float panelPosY = imagePos.y - mainViewportPos.y;
 
-		// Set viewport bounds for UI interaction system
-		NE::ECS::Command::SetUIViewportBounds(
-			panelPosX, panelPosY,
-			imageSize.x, imageSize.y,
-			static_cast<float>(currentW),
-			static_cast<float>(currentH)
-		);
+		// Only feed UI interaction bounds during play/paused — in edit mode the game panel
+		// is display-only and clicks should not trigger runtime UI events.
+		if (g_EditorState != EditorState::Edit) {
+			NE::ECS::Command::SetUIViewportBounds(
+				panelPosX, panelPosY,
+				imageSize.x, imageSize.y,
+				static_cast<float>(currentW),
+				static_cast<float>(currentH)
+			);
+		} else {
+			NE::ECS::Command::ClearUIViewportBounds();
+		}
 
 		ImGui::Image(
 			(ImTextureID)(uintptr_t)NE::GetGameColorAttachment(),

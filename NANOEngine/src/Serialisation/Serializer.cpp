@@ -81,7 +81,7 @@ namespace NE {
 		}
 
 		inline constexpr uint32_t NSCE_MAGIC = 0x4E534345;
-		inline constexpr int CURRENT_NANOSCENE_FORMAT_VERSION = 6;
+		inline constexpr int CURRENT_NANOSCENE_FORMAT_VERSION = 7;
 
 		inline constexpr uint32_t NFAB_MAGIC = 0x4E464142;
 		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 5;
@@ -167,6 +167,7 @@ namespace NE {
 			}
 
 			void WriteOneEntity(ECS::ECSCoordinator& ecs, ByteBuffer& buf, ECS::Entity e) {
+				ToBinary(buf, static_cast<uint32_t>(e));
 				const uint8_t layer = static_cast<uint8_t>(ecs.GetEntityManager().GetLayer(e));
 				ToBinary(buf, layer);
 				const bool active = ecs.GetEntityManager().GetActive(e);
@@ -411,7 +412,10 @@ namespace NE {
 			if (!ReadT(it, end, entityCount)) return false;
 
 			for (std::uint64_t i = 0; i < entityCount; ++i) {
-				ECS::Entity e = ecs.CreateEntity();
+				uint32_t savedId = 0;
+				if (!ReadT(it, end, savedId)) return false;
+				ECS::Entity e = ecs.GetEntityManager().CreateEntityWithId(static_cast<ECS::Entity>(savedId));
+				if (e == ECS::NO_ENTITY) e = ecs.CreateEntity(); // fallback if ID already taken
 
 				uint8_t layer = 0;
 				ReadT(it, end, layer);

@@ -198,8 +198,14 @@ namespace NE::ECS {
                 result.posZ += rect.z;
             }
             else {
-                result.posX += localX;
-                result.posY += localY;
+                // Non-target: contribute this entity's TOP-LEFT corner, not its pivot point.
+                // result.scaleX has already been multiplied by rect.scaleX, so parent scale = result.scaleX / rect.scaleX.
+                float parentScaleX = result.scaleX / rect.scaleX;
+                float parentScaleY = result.scaleY / rect.scaleY;
+                float posX = rect.IsStretchedX() ? localX : (localX - rect.width  * rect.pivotX * parentScaleX);
+                float posY = rect.IsStretchedY() ? localY : (localY - rect.height * rect.pivotY * parentScaleY);
+                result.posX += posX;
+                result.posY += posY;
                 result.posZ += rect.z;
             }
         }

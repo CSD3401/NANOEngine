@@ -456,14 +456,21 @@ namespace NE::ECS::Systems {
     void UIEventSystem::UpdateSliderStates(float mouseX, float mouseY, bool mouseDown, bool mousePressed, bool mouseReleased) {
         const auto& entities = GetEntities();
 
-        // Handle mouse press on slider
+        // Handle mouse press on slider — walk up from pressed entity to find owning slider
+        // (pressing the Background or Handle image lands on a child, not the slider root itself)
         if (mousePressed && m_pressedEntity != NO_ENTITY) {
-            if (m_cm->HasComponent<UISlider>(m_pressedEntity)) {
-                auto& slider = m_cm->GetComponent<UISlider>(m_pressedEntity);
-                if (slider.interactable) {
-                    m_draggingSlider = m_pressedEntity;
-                    slider.isDragging = true;
+            Entity candidate = m_pressedEntity;
+            while (candidate != NO_ENTITY) {
+                if (m_cm->HasComponent<UISlider>(candidate)) {
+                    auto& slider = m_cm->GetComponent<UISlider>(candidate);
+                    if (slider.interactable) {
+                        m_draggingSlider = candidate;
+                        slider.isDragging = true;
+                    }
+                    break;
                 }
+                if (!m_cm->HasComponent<Hierarchy>(candidate)) break;
+                candidate = m_cm->GetComponent<Hierarchy>(candidate).parent;
             }
         }
 
@@ -539,9 +546,18 @@ namespace NE::ECS::Systems {
             }
         }
 
-        // Scroll wheel support: adjust hovered slider value
-        if (m_hoveredEntity != NO_ENTITY && m_cm->HasComponent<UISlider>(m_hoveredEntity)) {
-            auto& hovSlider = m_cm->GetComponent<UISlider>(m_hoveredEntity);
+        // Scroll wheel support: adjust hovered slider value — walk up to find owning slider
+        Entity scrollSliderEnt = NO_ENTITY;
+        {
+            Entity candidate = m_hoveredEntity;
+            while (candidate != NO_ENTITY) {
+                if (m_cm->HasComponent<UISlider>(candidate)) { scrollSliderEnt = candidate; break; }
+                if (!m_cm->HasComponent<Hierarchy>(candidate)) break;
+                candidate = m_cm->GetComponent<Hierarchy>(candidate).parent;
+            }
+        }
+        if (scrollSliderEnt != NO_ENTITY) {
+            auto& hovSlider = m_cm->GetComponent<UISlider>(scrollSliderEnt);
             if (hovSlider.interactable) {
                 auto [scrollX, scrollY] = NE::InputManager::ScrollDelta();
                 float scroll = hovSlider.IsHorizontal() ? static_cast<float>(scrollX + scrollY)
@@ -561,7 +577,7 @@ namespace NE::ECS::Systems {
                         hovSlider.valueChanged = true;
                         NANOEngine::Events::EventBus::Get().Dispatch(
                             NANOEngine::Events::EventDomain::Engine,
-                            NANOEngine::Events::UISliderValueChangedEvent{ m_hoveredEntity, hovSlider.value, oldValue }
+                            NANOEngine::Events::UISliderValueChangedEvent{ scrollSliderEnt, hovSlider.value, oldValue }
                         );
                     }
                 }
@@ -605,7 +621,8 @@ namespace NE::ECS::Systems {
                 auto& handleRt = m_cm->GetComponent<UIRectTransform>(slider.handleRect);
                 if (slider.IsHorizontal()) {
                     float areaWidth = rect.width + handleAreaRt.offsetMaxX - handleAreaRt.offsetMinX;
-                    handleRt.x = areaWidth * handleNormalized - areaWidth * 0.5f;
+                    float newX = areaWidth * handleNormalized - areaWidth * 0.5f;
+                    handleRt.x = newX;
                 } else {
                     float areaHeight = rect.height + handleAreaRt.offsetMaxY - handleAreaRt.offsetMinY;
                     handleRt.y = areaHeight * handleNormalized - areaHeight * 0.5f;

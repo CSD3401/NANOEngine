@@ -376,6 +376,22 @@ namespace NE::ECS::Systems {
 
             // Render text entities with batching
             RenderCanvasTextChildren(canvasEntity, canvas);
+
+            // Cache world rects for container entities (UIRectTransform-only, no UIImage/UIText).
+            // Without this pass their cachedWorldX/Y stay at 0 and the editor gizmo draws at top-left.
+            for (Entity e : m_canvasChildrenMap[canvasEntity].containers) {
+                auto& rect = m_cm->GetComponent<UIRectTransform>(e);
+                AccumulatedTransform accumulated = m_layoutEngine->AccumulateParentTransforms(e, canvasEntity, canvas);
+                WorldTransform worldTransform = m_layoutEngine->CalculateWorldTransformFromAccumulated(e, canvas, accumulated);
+                rect.cachedWorldX      = worldTransform.x;
+                rect.cachedWorldY      = worldTransform.y;
+                rect.cachedWorldWidth  = worldTransform.width;
+                rect.cachedWorldHeight = worldTransform.height;
+                rect.cachedWorldRotZ   = worldTransform.accumulatedRotationZ;
+                rect.cachedWorldScaleX = worldTransform.accumulatedScaleX;
+                rect.cachedWorldScaleY = worldTransform.accumulatedScaleY;
+                rect.worldRectCached   = true;
+            }
         }
     }
 
@@ -694,6 +710,7 @@ namespace NE::ECS::Systems {
 
             if (hasImage) { out.images.push_back(child); m_frameUIElements++; }
             if (hasText)  { out.texts.push_back(child);  m_frameUIElements++; }
+            if (!hasImage && !hasText) { out.containers.push_back(child); }
 
             CollectChildrenInOrder(canvasEntity, child, out);
         }

@@ -171,6 +171,7 @@ namespace NE::ECS::Systems {
         struct CanvasChildren {
             std::vector<Entity> images;
             std::vector<Entity> texts;
+            std::vector<Entity> containers; // UIRectTransform-only — world rect cached each frame for editor gizmos
         };
 
         // Built once per frame in Update(), keyed by canvas entity

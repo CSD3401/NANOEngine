@@ -27,6 +27,15 @@ namespace NE::ECS {
 		return entity;
 	}
 
+	Entity EntityManager::CreateEntityWithId(Entity id) {
+		auto it = std::find(m_availableEntities.begin(), m_availableEntities.end(), id);
+		if (it == m_availableEntities.end()) return NO_ENTITY;
+		m_availableEntities.erase(it);
+		m_usedEntities.push_back(id);
+		m_active.set(id, true);
+		return id;
+	}
+
 	void EntityManager::DestroyEntity(Entity entity) {
 		auto it = std::find_if(m_usedEntities.begin(), m_usedEntities.end(),
 			[id = entity](const Entity& entt) {
