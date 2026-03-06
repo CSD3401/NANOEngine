@@ -4,15 +4,18 @@
 /*
 * Miscellaneous_ICOSwitcher:
 * - Listens for ChronoActivated/ChronoDeactivated events
-* - Toggles two referenced GameObjects (idle vs running)
+* - Toggles two referenced GameObjects (present vs past)
 * - Destroys itself if references are invalid
+*
+* NOTE: Both Activate() and Deactivate() defer coroutine creation
+* to next frame via Update() to avoid re-entrancy crashes in the
+* coroutine system (Coroutines::Create() cannot be called from
+* inside a coroutine action callback).
 */
 
 class Misc_ICOSwitcher : public IScript {
 public:
     Misc_ICOSwitcher() {
-        //SCRIPT_GAMEOBJECT_REF(objectsIdle);
-        //SCRIPT_GAMEOBJECT_REF(objectsRunning);
         SCRIPT_GAMEOBJECT_REF(presentObj);
         SCRIPT_GAMEOBJECT_REF(pastObj);
     }
@@ -26,17 +29,14 @@ public:
     }
 
     void Initialize(Entity entity) override {}
-    void Start() override {
-        // Addition: Ensure a consistent initial state at play start (running on, idle off).
-        
-		// RF - Start the game in the present state aka presentObj - active  , pastObj - inactive
-        //Activate();
 
+    void Start() override {
         // Irwen - mouse visibility here for now
         NE::Scripting::SetMouseVisible(false);
 
         if (!CheckObjectsValid()) return;
 
+        // Start in present state
         SetActive(true, presentObj.GetEntity());
         SetActive(false, pastObj.GetEntity());
 
@@ -46,7 +46,23 @@ public:
         Coroutines::AddAction(h, []() { Events::Send("TimePastDisabled", nullptr); });
         Coroutines::Start(h);
     }
-    void Update(double deltaTime) override {}
+
+    void Update(double deltaTime) override {
+        if (m_pendingPastEnabled) {
+            m_pendingPastEnabled = false;
+            Coroutines::Handle h = Coroutines::Create();
+            Coroutines::AddWait(h, 0.0f);
+            Coroutines::AddAction(h, []() { Events::Send("TimePastEnabled", nullptr); });
+            Coroutines::Start(h);
+        }
+        if (m_pendingPastDisabled) {
+            m_pendingPastDisabled = false;
+            Coroutines::Handle h = Coroutines::Create();
+            Coroutines::AddWait(h, 0.0f);
+            Coroutines::AddAction(h, []() { Events::Send("TimePastDisabled", nullptr); });
+            Coroutines::Start(h);
+        }
+    }
 
     void OnDestroy() override {
         listeningEnabled = false;
@@ -78,12 +94,12 @@ public:
     void OnTriggerStay(Entity other) override { (void)other; }
 
 private:
-    //GameObjectRef objectsIdle; // list of past obj
-    //GameObjectRef objectsRunning; // list of present obj
-    GameObjectRef presentObj; // list of past obj -> put a empty parent to contain all present obj
-    GameObjectRef pastObj; // list of past obj -> put a empty parent to contain all present obj
+    GameObjectRef presentObj;
+    GameObjectRef pastObj;
     bool eventsRegistered = false;
     bool listeningEnabled = false;
+    bool m_pendingPastEnabled = false;
+    bool m_pendingPastDisabled = false;
 
     void RegisterEventListeners() {
         if (eventsRegistered) {
@@ -96,7 +112,7 @@ private:
                 return;
             }
             Activate();
-        });
+            });
 
         Events::Listen("ChronoDeactivated", [this](void*) {
             if (!listeningEnabled) {
@@ -104,7 +120,7 @@ private:
                 return;
             }
             Deactivate();
-        });
+            });
 
         eventsRegistered = true;
     }
@@ -124,11 +140,7 @@ private:
         SetActive(false, presentObj.GetEntity());
         SetActive(true, pastObj.GetEntity());
 
-        // Send on next tick so scripts under pastObj have Awake() called + listeners registered
-        Coroutines::Handle h = Coroutines::Create();
-        Coroutines::AddWait(h, 0.0f);
-        Coroutines::AddAction(h, []() { Events::Send("TimePastEnabled", nullptr); });
-        Coroutines::Start(h);
+        m_pendingPastEnabled = true;
     }
 
     void Deactivate() {
@@ -142,11 +154,6 @@ private:
         SetActive(true, presentObj.GetEntity());
         SetActive(false, pastObj.GetEntity());
 
-        // Send on next tick for consistency
-        Coroutines::Handle h = Coroutines::Create();
-        Coroutines::AddWait(h, 0.0f);
-        Coroutines::AddAction(h, []() { Events::Send("TimePastDisabled", nullptr); });
-        Coroutines::Start(h);
+        m_pendingPastDisabled = true;
     }
-
 };

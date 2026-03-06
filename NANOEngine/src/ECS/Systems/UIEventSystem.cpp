@@ -8,7 +8,6 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
-#include "../Components/EntityMeta.hpp"
 #include "../Components/UIRectTransform.hpp"
 // UIRectMask2D folded into UIRectTransform (enableMask + maskPadding fields)
 #include "../Components/UIScrollRect.hpp"
@@ -41,7 +40,7 @@ namespace NE::ECS::Systems {
     float UIEventSystem::s_uiWidth = 1920.0f;
     float UIEventSystem::s_uiHeight = 1080.0f;
 
-    UIEventSystem::UIEventSystem(ComponentManager* cm) : m_cm(cm) {}
+    UIEventSystem::UIEventSystem(ComponentManager* cm, EntityManager* em) : m_cm(cm), m_em(em) {}
 
     void UIEventSystem::Init() {}
     Entity UIEventSystem::FindOwningCanvas(Entity entity) const
@@ -64,7 +63,7 @@ namespace NE::ECS::Systems {
 
     bool UIEventSystem::IsActiveForUI(Entity entity, Entity canvasEntity) const
     {
-        return UIUtil::IsActiveForUI(m_cm, entity, canvasEntity);
+        return UIUtil::IsActiveForUI(m_cm, m_em, entity, canvasEntity);
     }
 
     void UIEventSystem::OnEntityAdded(Entity e) {}
@@ -110,12 +109,14 @@ namespace NE::ECS::Systems {
             if (m_cm->HasComponent<UIDropdown>(e)) {
                 auto& dropdown = m_cm->GetComponent<UIDropdown>(e);
                 if (!dropdown.isExpanded && dropdown.optionsPanelEntity != UINT32_MAX) {
-                    if (m_cm->HasComponent<EntityMeta>(dropdown.optionsPanelEntity)) {
-                        auto& panelMeta = m_cm->GetComponent<EntityMeta>(dropdown.optionsPanelEntity);
-                        if (panelMeta.isActive && m_expandedDropdown != e) {
-                            panelMeta.isActive = false;
-                        }
-                    }
+                    //auto& panelMeta = m_cm->GetComponent<EntityMeta>(dropdown.optionsPanelEntity);
+                    //if (panelMeta.isActive && m_expandedDropdown != e) {
+                    //    panelMeta.isActive = false;
+                    //}
+
+                    // might need to rewire to use ECSCoordinator->ToggleActive to properly do OnEnable callbacks
+                    if (m_em->GetActive(dropdown.optionsPanelEntity) && m_expandedDropdown != e)
+                        m_em->ToggleActive(dropdown.optionsPanelEntity, false);
                 }
                 // Always keep caption text up to date
                 SyncDropdownCaptionText(e);
@@ -259,10 +260,7 @@ namespace NE::ECS::Systems {
             if (m_cm->HasComponent<UICanvas>(e)) {
                 auto& canvas = m_cm->GetComponent<UICanvas>(e);
                 // Only process screen space canvases for hit testing
-                bool metaActive = true;
-                if (m_cm->HasComponent<NE::ECS::Component::EntityMeta>(e)) {
-                    metaActive = m_cm->GetComponent<NE::ECS::Component::EntityMeta>(e).isActive;
-                }
+                bool metaActive = m_em->GetActive(e);
 
                 if (canvas.isActive && metaActive &&
                     (canvas.renderMode == UICanvas::RenderMode::SCREEN_SPACE_OVERLAY ||
@@ -397,10 +395,11 @@ namespace NE::ECS::Systems {
             }
             else {
                 // If it's not on a canvas, still respect its EntityMeta
-                if (m_cm->HasComponent<NE::ECS::Component::EntityMeta>(e) &&
-                    !m_cm->GetComponent<NE::ECS::Component::EntityMeta>(e).isActive) {
-                    continue;
-                }
+                //if (m_cm->HasComponent<NE::ECS::Component::EntityMeta>(e) &&
+                //    !m_cm->GetComponent<NE::ECS::Component::EntityMeta>(e).isActive) {
+                //    continue;
+                //}
+                if (!m_em->GetActive(e)) continue;
             }
 
             auto& button = m_cm->GetComponent<UIButton>(e);
@@ -1901,9 +1900,10 @@ namespace NE::ECS::Systems {
         if (panelEntity == UINT32_MAX) return;
 
         // Activate the panel entity
-        if (m_cm->HasComponent<EntityMeta>(panelEntity)) {
-            m_cm->GetComponent<EntityMeta>(panelEntity).isActive = true;
-        }
+        //if (m_cm->HasComponent<EntityMeta>(panelEntity)) {
+        //    m_cm->GetComponent<EntityMeta>(panelEntity).isActive = true;
+        //}
+        m_em->ToggleActive(panelEntity, true); // Might need to rewire to ECSCoordinator as well ~Irwen
 
         dropdown.isExpanded = true;
         dropdown.hoveredOptionIndex = -1;
@@ -1924,9 +1924,10 @@ namespace NE::ECS::Systems {
         Entity panelEntity = dropdown.optionsPanelEntity;
 
         // Deactivate the panel entity
-        if (panelEntity != UINT32_MAX && m_cm->HasComponent<EntityMeta>(panelEntity)) {
-            m_cm->GetComponent<EntityMeta>(panelEntity).isActive = false;
-        }
+        //if (panelEntity != UINT32_MAX && m_cm->HasComponent<EntityMeta>(panelEntity)) {
+        //    m_cm->GetComponent<EntityMeta>(panelEntity).isActive = false;
+        //}
+        if (panelEntity != ECS::NO_ENTITY) m_em->ToggleActive(panelEntity, false);
 
         dropdown.isExpanded = false;
         dropdown.hoveredOptionIndex = -1;
@@ -1947,16 +1948,18 @@ namespace NE::ECS::Systems {
 
             // Hide children that exceed option count
             if (i >= dropdown.options.size()) {
-                if (m_cm->HasComponent<EntityMeta>(child)) {
-                    m_cm->GetComponent<EntityMeta>(child).isActive = false;
-                }
+                //if (m_cm->HasComponent<EntityMeta>(child)) {
+                //    m_cm->GetComponent<EntityMeta>(child).isActive = false;
+                //}
+                m_em->ToggleActive(child, false);
                 continue;
             }
 
             // Show and set text for valid options
-            if (m_cm->HasComponent<EntityMeta>(child)) {
-                m_cm->GetComponent<EntityMeta>(child).isActive = true;
-            }
+            //if (m_cm->HasComponent<EntityMeta>(child)) {
+            //    m_cm->GetComponent<EntityMeta>(child).isActive = true;
+            //}
+            m_em->ToggleActive(child, true);
 
             // Set text — check child directly or its first UIText child
             if (m_cm->HasComponent<UIText>(child)) {

@@ -11,10 +11,14 @@
  * the shared UI panel activates and shows dialogueText.
  * A left-click dismisses it.
  *
+ * If another DialogueMarker is already playing audio, it will be
+ * stopped automatically when this one triggers.
+ *
  * Setup:
  *   1. Assign playerRef     -- drag the Player entity in
  *   2. Assign dialogueUI    -- drag the shared UIText/panel GameObject in
  *   3. Set dialogueText     -- the line(s) to display
+ *   4. Set audioName        -- FMOD event path (optional)
  */
 class DialogueMarker : public IScript {
 public:
@@ -22,7 +26,7 @@ public:
         SCRIPT_GAMEOBJECT_REF(playerRef);
         SCRIPT_GAMEOBJECT_REF(dialogueUI);
         SCRIPT_FIELD(dialogueText, String);
-        SCRIPT_FIELD(audioName, String); // FMOD event path, played on enter, stopped on dismiss
+        SCRIPT_FIELD(audioName, String);
     }
 
     ~DialogueMarker() override = default;
@@ -52,10 +56,9 @@ public:
     }
 
     void Update(double) override {
-        // Only runs after trigger fires, waiting for click to dismiss
         if (!dismissing) return;
 
-        if (Input::WasMousePressed(GLFW_MOUSE_BUTTON_LEFT)) {
+        if (Input::WasKeyPressed('0')) {
             if (ignoreNextClick) {
                 ignoreNextClick = false;
                 return;
@@ -71,7 +74,6 @@ public:
     void OnCollisionStay(Entity o)  override { (void)o; }
 
     void OnTriggerEnter(Entity other) override {
-        // Ignore if already triggered, or it's not the player
         if (triggered) return;
         if (!playerRef.IsValid()) return;
         if (other != playerRef.GetEntity()) return;
@@ -97,18 +99,40 @@ private:
     bool dismissing = false;
     bool ignoreNextClick = false;
 
+    // Static: tracks whichever marker is currently playing audio
+    static DialogueMarker* s_activeMarker;
+
     void ShowDialogue() {
+        // Stop the previous marker's audio if one is playing
+        if (s_activeMarker != nullptr && s_activeMarker != this) {
+            s_activeMarker->StopCurrentAudio();
+        }
+        s_activeMarker = this;
+
         if (!dialogueUI.IsValid()) return;
         NE::Scripting::SetUIText(dialogueUI.GetEntity(), dialogueText.c_str());
         SetActive(true, dialogueUI.GetEntity());
+
         if (!audioName.empty())
             PlayAudio("event:/" + audioName);
     }
 
     void HideDialogue() {
+        StopCurrentAudio();
+
+        // Clear ourselves as active marker
+        if (s_activeMarker == this)
+            s_activeMarker = nullptr;
+
         if (!dialogueUI.IsValid()) return;
         SetActive(false, dialogueUI.GetEntity());
+    }
+
+    void StopCurrentAudio() {
         if (!audioName.empty())
             StopAudio("event:/" + audioName);
     }
 };
+
+// Initialize static member
+DialogueMarker* DialogueMarker::s_activeMarker = nullptr;
