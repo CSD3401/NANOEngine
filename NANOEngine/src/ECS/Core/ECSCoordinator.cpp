@@ -105,7 +105,7 @@ namespace NE::ECS {
             SetSystemSignature<Systems::RenderSystem>(sig);
         }
 
-        m_lightSystem = m_systemManager->RegisterSystem<Systems::LightSystem>(m_componentManager.get());
+        m_lightSystem = m_systemManager->RegisterSystem<Systems::LightSystem>(m_componentManager.get(), m_entityManager.get());
         {
             Signature sig;
             sig.set(GetComponentType<Component::Transform>());
