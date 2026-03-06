@@ -81,7 +81,7 @@ namespace NE {
 		}
 
 		inline constexpr uint32_t NSCE_MAGIC = 0x4E534345;
-		inline constexpr int CURRENT_NANOSCENE_FORMAT_VERSION = 8;
+		inline constexpr int CURRENT_NANOSCENE_FORMAT_VERSION = 9;
 
 		inline constexpr uint32_t NFAB_MAGIC = 0x4E464142;
 		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 6;
@@ -167,7 +167,7 @@ namespace NE {
 			}
 
 			void WriteOneEntity(ECS::ECSCoordinator& ecs, ByteBuffer& buf, ECS::Entity e) {
-				ToBinary(buf, static_cast<uint32_t>(e));
+				//ToBinary(buf, static_cast<uint32_t>(e));
 				const uint8_t layer = static_cast<uint8_t>(ecs.GetEntityManager().GetLayer(e));
 				ToBinary(buf, layer);
 				const bool active = ecs.GetEntityManager().GetActive(e);
@@ -447,24 +447,24 @@ namespace NE {
 					ecs.GetComponent<ECS::Component::EntityMeta>(e).isActive = entityActive;
 				}
 			}
-			// Resolve UISlider child entity refs from Hierarchy luids (registered by HierarchySystem)
-			{
-				auto& luidReg = ecs.GetLUIDRegistry();
-				auto resolve = [&](uint64_t luid) -> uint32_t {
-					if (luid == 0) return UINT32_MAX;
-					const auto* rec = luidReg.Find(luid);
-					return rec ? static_cast<uint32_t>(rec->m_entityOwner) : UINT32_MAX;
-				};
-				for (ECS::Entity e : ecs.GetEntityManager().GetUsedEntities()) {
-					if (!ecs.HasComponent<ECS::Component::UISlider>(e)) continue;
-					auto& slider = ecs.GetComponent<ECS::Component::UISlider>(e);
-					slider.fillRect            = resolve(slider.fillRectLuid);
-					slider.handleRect          = resolve(slider.handleRectLuid);
-					slider.backgroundRect      = resolve(slider.backgroundRectLuid);
-					slider.fillAreaRect        = resolve(slider.fillAreaRectLuid);
-					slider.handleSlideAreaRect = resolve(slider.handleSlideAreaRectLuid);
-				}
-			}
+			//// Resolve UISlider child entity refs from Hierarchy luids (registered by HierarchySystem)
+			//{
+			//	auto& luidReg = ecs.GetLUIDRegistry();
+			//	auto resolve = [&](uint64_t luid) -> uint32_t {
+			//		if (luid == 0) return UINT32_MAX;
+			//		const auto* rec = luidReg.Find(luid);
+			//		return rec ? static_cast<uint32_t>(rec->m_entityOwner) : UINT32_MAX;
+			//	};
+			//	for (ECS::Entity e : ecs.GetEntityManager().GetUsedEntities()) {
+			//		if (!ecs.HasComponent<ECS::Component::UISlider>(e)) continue;
+			//		auto& slider = ecs.GetComponent<ECS::Component::UISlider>(e);
+			//		slider.fillRect            = resolve(slider.fillRectLuid);
+			//		slider.handleRect          = resolve(slider.handleRectLuid);
+			//		slider.backgroundRect      = resolve(slider.backgroundRectLuid);
+			//		slider.fillAreaRect        = resolve(slider.fillAreaRectLuid);
+			//		slider.handleSlideAreaRect = resolve(slider.handleSlideAreaRectLuid);
+			//	}
+			//}
 			return true;
 		}
 
@@ -587,24 +587,24 @@ namespace NE {
 				parentH.children.push_back(p.e);
 			}
 
-			// Patch UISlider child entity refs using remapped Hierarchy luids
-			for (ECS::Entity slEnt : created) {
-				if (!ecs.HasComponent<ECS::Component::UISlider>(slEnt)) continue;
-				auto& slider = ecs.GetComponent<ECS::Component::UISlider>(slEnt);
-				auto remap = [&](uint64_t& luidField, uint32_t& entityField) {
-					uint64_t oldLuid = luidField;
-					if (oldLuid == 0) { entityField = UINT32_MAX; return; }
-					auto eit = oldLuidToEntity.find(oldLuid);
-					auto lit = oldLuidToNewLuid.find(oldLuid);
-					entityField = (eit != oldLuidToEntity.end()) ? static_cast<uint32_t>(eit->second) : UINT32_MAX;
-					if (lit != oldLuidToNewLuid.end()) luidField = lit->second;
-				};
-				remap(slider.fillRectLuid,            slider.fillRect);
-				remap(slider.handleRectLuid,          slider.handleRect);
-				remap(slider.backgroundRectLuid,      slider.backgroundRect);
-				remap(slider.fillAreaRectLuid,        slider.fillAreaRect);
-				remap(slider.handleSlideAreaRectLuid, slider.handleSlideAreaRect);
-			}
+			//// Patch UISlider child entity refs using remapped Hierarchy luids
+			//for (ECS::Entity slEnt : created) {
+			//	if (!ecs.HasComponent<ECS::Component::UISlider>(slEnt)) continue;
+			//	auto& slider = ecs.GetComponent<ECS::Component::UISlider>(slEnt);
+			//	auto remap = [&](uint64_t& luidField, uint32_t& entityField) {
+			//		uint64_t oldLuid = luidField;
+			//		if (oldLuid == 0) { entityField = UINT32_MAX; return; }
+			//		auto eit = oldLuidToEntity.find(oldLuid);
+			//		auto lit = oldLuidToNewLuid.find(oldLuid);
+			//		entityField = (eit != oldLuidToEntity.end()) ? static_cast<uint32_t>(eit->second) : UINT32_MAX;
+			//		if (lit != oldLuidToNewLuid.end()) luidField = lit->second;
+			//	};
+			//	remap(slider.fillRectLuid,            slider.fillRect);
+			//	remap(slider.handleRectLuid,          slider.handleRect);
+			//	remap(slider.backgroundRectLuid,      slider.backgroundRect);
+			//	remap(slider.fillAreaRectLuid,        slider.fillAreaRect);
+			//	remap(slider.handleSlideAreaRectLuid, slider.handleSlideAreaRect);
+			//}
 
 			return outNewRoot;
 		}
