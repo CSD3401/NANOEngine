@@ -967,9 +967,7 @@ namespace NE::ECS {
 		}
 
 		void AddUISliderComponent(uint32_t e, const Component::UISlider& c) {
-			auto comp = c;
-			if (comp.luid == 0) comp.luid = Core::LUIDGenerator::Generate("sl");
-			GetScene().GetECSCoordinator().AddComponent<Component::UISlider>(e, comp);
+			GetScene().GetECSCoordinator().AddComponent<Component::UISlider>(e, c);
 		}
 
 		void AddUIToggleComponent(uint32_t e, const Component::UIToggle& c) {

@@ -582,136 +582,63 @@ namespace Editor {
 				}
 				if (ImGui::MenuItem("UI Slider")) {
 					uint32_t entity = EditorScene::s_selection.GetLastClicked();
-
-					// Root slider entity: UIRectTransform + UISlider (no UIImage on root)
+					// Slider entity: track background (grey bar)
 					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
 						NE::ECS::Component::UIRectTransform rect{};
 						rect.width = 200.0f;
 						rect.height = 20.0f;
 						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
 					}
+					if (!NE::ECS::Query::HasUIImage(entity)) {
+						NE::ECS::Component::UIImage img{};
+						img.color = NE::Math::Vec4{ 0.7f, 0.7f, 0.7f, 1.0f }; // Grey track
+						NE::ECS::Command::AddUIImageComponent(entity, img);
+					}
 
 					NE::ECS::Component::UISlider slider{};
 					slider.luid = NE::Core::LUIDGenerator::Generate("sl");
 
-					// Background child: grey image, stretch-fill parent
-					uint32_t bgEnt = NE::ECS::Command::CreateEntityNoComponents();
+					// Create Fill child entity
+					uint32_t fillEnt = NE::ECS::Command::CreateEntityNoComponents();
 					{
 						NE::ECS::Component::EntityMeta meta{};
-						meta.name = "Background";
+						meta.name = "Fill";
 						meta.luid = NE::Core::LUIDGenerator::Generate("em");
-						NE::ECS::Command::AddEntityMetaComponent(bgEnt, meta);
+						NE::ECS::Command::AddEntityMetaComponent(fillEnt, meta);
 						NE::ECS::Component::Hierarchy hr{};
 						hr.luid = NE::Core::LUIDGenerator::Generate("hr");
-						NE::ECS::Command::AddHierarchyComponent(bgEnt, hr);
-						NE::ECS::Component::UIRectTransform bgRect{};
-						bgRect.anchorMinX = 0.0f; bgRect.anchorMinY = 0.0f;
-						bgRect.anchorMaxX = 1.0f; bgRect.anchorMaxY = 1.0f;
-						bgRect.offsetMinX = 0.0f; bgRect.offsetMinY = 0.0f;
-						bgRect.offsetMaxX = 0.0f; bgRect.offsetMaxY = 0.0f;
-						NE::ECS::Command::AddUIRectTransformComponent(bgEnt, bgRect);
-						NE::ECS::Component::UIImage bgImg{};
-						bgImg.color = NE::Math::Vec4{ 0.7f, 0.7f, 0.7f, 1.0f };
-						NE::ECS::Command::AddUIImageComponent(bgEnt, bgImg);
-						NE::ECS::Command::SetParent(bgEnt, entity, -1, false);
-						slider.backgroundRectLuid = hr.luid;
+						NE::ECS::Command::AddHierarchyComponent(fillEnt, hr);
+						NE::ECS::Component::UIRectTransform fillRect{};
+						fillRect.width = 0.0f;   // Starts empty
+						fillRect.height = 20.0f;
+						NE::ECS::Command::AddUIRectTransformComponent(fillEnt, fillRect);
+						NE::ECS::Component::UIImage fillImg{};
+						fillImg.color = NE::Math::Vec4{ 0.2f, 0.6f, 1.0f, 1.0f }; // Blue fill
+						NE::ECS::Command::AddUIImageComponent(fillEnt, fillImg);
+						NE::ECS::Command::SetParent(fillEnt, entity, -1, false);
 					}
-					slider.backgroundRect = bgEnt;
+					slider.fillRect = fillEnt;
 
-					// Fill Area child: stretch-fill, inset 10px on each side (half handle width)
-					uint32_t fillAreaEnt = NE::ECS::Command::CreateEntityNoComponents();
+					// Create Handle child entity
+					uint32_t handleEnt = NE::ECS::Command::CreateEntityNoComponents();
 					{
 						NE::ECS::Component::EntityMeta meta{};
-						meta.name = "Fill Area";
+						meta.name = "Handle";
 						meta.luid = NE::Core::LUIDGenerator::Generate("em");
-						NE::ECS::Command::AddEntityMetaComponent(fillAreaEnt, meta);
+						NE::ECS::Command::AddEntityMetaComponent(handleEnt, meta);
 						NE::ECS::Component::Hierarchy hr{};
 						hr.luid = NE::Core::LUIDGenerator::Generate("hr");
-						NE::ECS::Command::AddHierarchyComponent(fillAreaEnt, hr);
-						NE::ECS::Component::UIRectTransform faRect{};
-						faRect.anchorMinX = 0.0f; faRect.anchorMinY = 0.0f;
-						faRect.anchorMaxX = 1.0f; faRect.anchorMaxY = 1.0f;
-						faRect.offsetMinX = 10.0f;  // left inset (half handle width)
-						faRect.offsetMinY = 0.0f;
-						faRect.offsetMaxX = -10.0f; // right inset
-						faRect.offsetMaxY = 0.0f;
-						NE::ECS::Command::AddUIRectTransformComponent(fillAreaEnt, faRect);
-						NE::ECS::Command::SetParent(fillAreaEnt, entity, -1, false);
-						slider.fillAreaRectLuid = hr.luid;
-
-						// Fill grandchild: blue image, left-anchored, pivotX=0, starts at width=0
-						uint32_t fillEnt = NE::ECS::Command::CreateEntityNoComponents();
-						{
-							NE::ECS::Component::EntityMeta fmeta{};
-							fmeta.name = "Fill";
-							fmeta.luid = NE::Core::LUIDGenerator::Generate("em");
-							NE::ECS::Command::AddEntityMetaComponent(fillEnt, fmeta);
-							NE::ECS::Component::Hierarchy fhr{};
-							fhr.luid = NE::Core::LUIDGenerator::Generate("hr");
-							NE::ECS::Command::AddHierarchyComponent(fillEnt, fhr);
-							NE::ECS::Component::UIRectTransform fillRect{};
-							fillRect.anchorMinX = 0.0f; fillRect.anchorMinY = 0.0f;
-							fillRect.anchorMaxX = 0.0f; fillRect.anchorMaxY = 1.0f;
-							fillRect.pivotX = 0.0f; fillRect.pivotY = 0.5f;
-							fillRect.width = 0.0f;
-							NE::ECS::Command::AddUIRectTransformComponent(fillEnt, fillRect);
-							NE::ECS::Component::UIImage fillImg{};
-							fillImg.color = NE::Math::Vec4{ 0.2f, 0.6f, 1.0f, 1.0f };
-							NE::ECS::Command::AddUIImageComponent(fillEnt, fillImg);
-							NE::ECS::Command::SetParent(fillEnt, fillAreaEnt, -1, false);
-							slider.fillRect = fillEnt;
-							slider.fillRectLuid = fhr.luid;
-						}
+						NE::ECS::Command::AddHierarchyComponent(handleEnt, hr);
+						NE::ECS::Component::UIRectTransform handleRect{};
+						handleRect.width = 20.0f;
+						handleRect.height = 20.0f;
+						NE::ECS::Command::AddUIRectTransformComponent(handleEnt, handleRect);
+						NE::ECS::Component::UIImage handleImg{};
+						handleImg.color = NE::Math::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f }; // White handle
+						NE::ECS::Command::AddUIImageComponent(handleEnt, handleImg);
+						NE::ECS::Command::SetParent(handleEnt, entity, -1, false);
 					}
-					slider.fillAreaRect = fillAreaEnt;
-
-					// Handle Slide Area child: same insets as Fill Area
-					uint32_t handleAreaEnt = NE::ECS::Command::CreateEntityNoComponents();
-					{
-						NE::ECS::Component::EntityMeta meta{};
-						meta.name = "Handle Slide Area";
-						meta.luid = NE::Core::LUIDGenerator::Generate("em");
-						NE::ECS::Command::AddEntityMetaComponent(handleAreaEnt, meta);
-						NE::ECS::Component::Hierarchy hr{};
-						hr.luid = NE::Core::LUIDGenerator::Generate("hr");
-						NE::ECS::Command::AddHierarchyComponent(handleAreaEnt, hr);
-						NE::ECS::Component::UIRectTransform haRect{};
-						haRect.anchorMinX = 0.0f; haRect.anchorMinY = 0.0f;
-						haRect.anchorMaxX = 1.0f; haRect.anchorMaxY = 1.0f;
-						haRect.offsetMinX = 10.0f;
-						haRect.offsetMinY = 0.0f;
-						haRect.offsetMaxX = -10.0f;
-						haRect.offsetMaxY = 0.0f;
-						NE::ECS::Command::AddUIRectTransformComponent(handleAreaEnt, haRect);
-						NE::ECS::Command::SetParent(handleAreaEnt, entity, -1, false);
-						slider.handleSlideAreaRectLuid = hr.luid;
-
-						// Handle grandchild: white 20x20, center-anchored
-						uint32_t handleEnt = NE::ECS::Command::CreateEntityNoComponents();
-						{
-							NE::ECS::Component::EntityMeta hmeta{};
-							hmeta.name = "Handle";
-							hmeta.luid = NE::Core::LUIDGenerator::Generate("em");
-							NE::ECS::Command::AddEntityMetaComponent(handleEnt, hmeta);
-							NE::ECS::Component::Hierarchy hhr{};
-							hhr.luid = NE::Core::LUIDGenerator::Generate("hr");
-							NE::ECS::Command::AddHierarchyComponent(handleEnt, hhr);
-							NE::ECS::Component::UIRectTransform handleRect{};
-							handleRect.anchorMinX = 0.5f; handleRect.anchorMinY = 0.5f;
-							handleRect.anchorMaxX = 0.5f; handleRect.anchorMaxY = 0.5f;
-							handleRect.pivotX = 0.5f; handleRect.pivotY = 0.5f;
-							handleRect.width = 20.0f;
-							handleRect.height = 20.0f;
-							NE::ECS::Command::AddUIRectTransformComponent(handleEnt, handleRect);
-							NE::ECS::Component::UIImage handleImg{};
-							handleImg.color = NE::Math::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
-							NE::ECS::Command::AddUIImageComponent(handleEnt, handleImg);
-							NE::ECS::Command::SetParent(handleEnt, handleAreaEnt, -1, false);
-							slider.handleRect = handleEnt;
-							slider.handleRectLuid = hhr.luid;
-						}
-					}
-					slider.handleSlideAreaRect = handleAreaEnt;
+					slider.handleRect = handleEnt;
 
 					NE::ECS::Command::AddUISliderComponent(entity, slider);
 				}
@@ -4192,6 +4119,10 @@ namespace Editor {
 			return;
 
 		ImGui::Indent();
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.8f, 0.2f, 1.0f));
+		ImGui::TextWrapped("(!) UISlider is not production-ready. Handle positioning and value clamping may behave incorrectly.");
+		ImGui::PopStyleColor();
+		ImGui::Spacing();
 
 		float labelWidth = 120.0f;
 
@@ -4285,24 +4216,6 @@ namespace Editor {
 			ImGui::SameLine(labelWidth);
 			ImGui::SetNextItemWidth(-1);
 			ImGui::TextDisabled("Entity %u", comp.handleRect);
-		}
-
-		// Fill Area (entity reference - read only)
-		{
-			ImGui::AlignTextToFramePadding();
-			ImGui::Text("Fill Area");
-			ImGui::SameLine(labelWidth);
-			ImGui::SetNextItemWidth(-1);
-			ImGui::TextDisabled("Entity %u", comp.fillAreaRect);
-		}
-
-		// Handle Area (entity reference - read only)
-		{
-			ImGui::AlignTextToFramePadding();
-			ImGui::Text("Handle Area");
-			ImGui::SameLine(labelWidth);
-			ImGui::SetNextItemWidth(-1);
-			ImGui::TextDisabled("Entity %u", comp.handleSlideAreaRect);
 		}
 
 		if (deleteComp) {
