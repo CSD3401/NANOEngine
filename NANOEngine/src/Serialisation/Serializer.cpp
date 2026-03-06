@@ -413,9 +413,10 @@ namespace NE {
 
 			for (std::uint64_t i = 0; i < entityCount; ++i) {
 				uint32_t savedId = 0;
-				if (!ReadT(it, end, savedId)) return false;
-				ECS::Entity e = ecs.GetEntityManager().CreateEntityWithId(static_cast<ECS::Entity>(savedId));
-				if (e == ECS::NO_ENTITY) e = ecs.CreateEntity(); // fallback if ID already taken
+				//if (!ReadT(it, end, savedId)) return false;
+				//ECS::Entity e = ecs.GetEntityManager().CreateEntityWithId(static_cast<ECS::Entity>(savedId));
+				//if (e == ECS::NO_ENTITY) e = ecs.CreateEntity(); // fallback if ID already taken
+				ECS::Entity e = ecs.CreateEntity();
 
 				uint8_t layer = 0;
 				ReadT(it, end, layer);
