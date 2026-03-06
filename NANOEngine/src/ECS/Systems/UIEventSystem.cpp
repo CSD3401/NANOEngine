@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "UIEventSystem.hpp"
+#include "../Core/EntityManager.hpp"
 #include "../../Input/InputManager.hpp"
 #include "../../Graphics/Core/GraphicsManager.hpp"
 #include "../../Graphics/Core/EditorCamera.hpp"
@@ -41,7 +42,7 @@ namespace NE::ECS::Systems {
     float UIEventSystem::s_uiWidth = 1920.0f;
     float UIEventSystem::s_uiHeight = 1080.0f;
 
-    UIEventSystem::UIEventSystem(ComponentManager* cm) : m_cm(cm) {}
+    UIEventSystem::UIEventSystem(ComponentManager* cm, EntityManager* em) : m_cm(cm), m_entityManager(em) {}
 
     void UIEventSystem::Init() {}
     Entity UIEventSystem::FindOwningCanvas(Entity entity) const
@@ -64,7 +65,7 @@ namespace NE::ECS::Systems {
 
     bool UIEventSystem::IsActiveForUI(Entity entity, Entity canvasEntity) const
     {
-        return UIUtil::IsActiveForUI(m_cm, entity, canvasEntity);
+        return UIUtil::IsActiveForUI(m_cm, m_entityManager, entity, canvasEntity);
     }
 
     void UIEventSystem::OnEntityAdded(Entity e) {}

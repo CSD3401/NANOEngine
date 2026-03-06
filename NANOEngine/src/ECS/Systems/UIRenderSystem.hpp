@@ -3,6 +3,7 @@
 
 #include "../Core/System.hpp"
 #include "../Core/ComponentManager.hpp"
+#include "../Core/EntityManager.hpp"
 #include "../Components/UICanvas.hpp"
 #include "../Components/UIRectTransform.hpp"
 #include "../Components/UIImage.hpp"
@@ -103,7 +104,7 @@ namespace NE::ECS::Systems {
         // Lifecycle
         //=================================================================
 
-        explicit UIRenderSystem(ComponentManager* cm);
+        explicit UIRenderSystem(ComponentManager* cm, EntityManager* em);
 
         void SetLayoutEngine(UILayoutEngine* engine) { m_layoutEngine = engine; }
 
@@ -213,6 +214,7 @@ namespace NE::ECS::Systems {
 
     private:
         ComponentManager* m_cm;
+        EntityManager* m_entityManager;
         UILayoutEngine* m_layoutEngine = nullptr;
 
         // Text render cache keyed by entity (moved off the UIText component)

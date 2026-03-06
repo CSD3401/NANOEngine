@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "UIRenderSystem.hpp"
+#include "../Core/EntityManager.hpp"
 #include "../Components/UIRectTransform.hpp"
 #include "../Components/UIImage.hpp"
 #include "../Components/UIText.hpp"
@@ -45,14 +46,14 @@ namespace NE::ECS::Systems {
     // Lifecycle
     //=========================================================================
 
-    UIRenderSystem::UIRenderSystem(ComponentManager* cm) : m_cm(cm)
+    UIRenderSystem::UIRenderSystem(ComponentManager* cm, EntityManager* em) : m_cm(cm), m_entityManager(em)
     {
         m_currentView.SetToIdentity();
         m_currentProj.SetToIdentity();
     }
     bool UIRenderSystem::IsActiveForUI(Entity entity, Entity canvasEntity) const
     {
-        return UIUtil::IsActiveForUI(m_cm, entity, canvasEntity);
+        return UIUtil::IsActiveForUI(m_cm, m_entityManager, entity, canvasEntity);
     }
 
     void UIRenderSystem::OnEntityAdded(Entity e)

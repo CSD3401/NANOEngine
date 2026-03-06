@@ -3,6 +3,7 @@
 
 #include "../Core/System.hpp"
 #include "../Core/ComponentManager.hpp"
+#include "../Core/EntityManager.hpp"
 #include "../Components/UICanvas.hpp"
 #include "../Components/UIRectTransform.hpp"
 #include "../Components/UIButton.hpp"
@@ -23,7 +24,7 @@ namespace NE::ECS::Systems {
 
     class UIEventSystem final : public System {
     public:
-        explicit UIEventSystem(ComponentManager* cm);
+        explicit UIEventSystem(ComponentManager* cm, EntityManager* em);
 
         void SetLayoutEngine(UILayoutEngine* engine) { m_layoutEngine = engine; }
 
@@ -51,6 +52,7 @@ namespace NE::ECS::Systems {
         bool IsActiveForUI(Entity entity, Entity canvasEntity) const;
         Entity FindOwningCanvas(Entity entity) const;
         ComponentManager* m_cm = nullptr;
+        EntityManager* m_entityManager = nullptr;
         UILayoutEngine* m_layoutEngine = nullptr;
 
         Entity m_hoveredEntity = NO_ENTITY;
