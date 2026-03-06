@@ -754,13 +754,6 @@ namespace NE::Graphics {
     std::shared_ptr<IClusteredLighting> GraphicsManager::s_clusteredLighting;
     std::unique_ptr<PostProcessPipeline> GraphicsManager::s_PostPipeline;
     std::shared_ptr<OpenGL::GLShader> GraphicsManager::s_NormalPrepassShader;
-#ifndef PRODUCTION_BUILD
-    std::shared_ptr<OpenGL::GLShader> GraphicsManager::s_SelectionMaskShader;
-    uint32_t GraphicsManager::s_SelectionMaskTexture = 0;
-    uint32_t GraphicsManager::s_SelectionMaskFBO = 0;
-    uint32_t GraphicsManager::s_SelectionMaskWidth = 0;
-    uint32_t GraphicsManager::s_SelectionMaskHeight = 0;
-#endif
     std::unordered_set<uint32_t> GraphicsManager::s_SelectedEntityIds;
 
 	std::unique_ptr<ShadowRenderer> GraphicsManager::s_shadowRenderer;
@@ -814,9 +807,6 @@ namespace NE::Graphics {
         InitializeLightGizmoResources();
         InitializeDecalGizmoResources();
         s_NormalPrepassShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("nenormalprepass");
-#ifndef PRODUCTION_BUILD
-        s_SelectionMaskShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("neselectionmask");
-#endif
 
         auto decalCubeModel = Resource::ResourceManager::GetInstance().LoadResource<Model>("builtin:model/cube");
         if (decalCubeModel && !decalCubeModel->meshes.empty()) {
@@ -1165,18 +1155,13 @@ namespace NE::Graphics {
                 }
 
                 Math::Mat4 invProj = sceneProj.Inverse();
-                const uint32_t selectionMaskInput =
-                    (selectionHighlightSettings.enabled && !s_SelectedEntityIds.empty())
-                    ? s_SelectionMaskTexture
-                    : 0;
                 s_PostPipeline->Execute(
                     s_SceneViewHandle,
                     s_FinalOutputViewHandle,
                     invProj,
                     sceneView,
                     sceneProj,
-                    true,
-                    selectionMaskInput
+                    true
                 );
             }
 #endif
@@ -1199,7 +1184,7 @@ namespace NE::Graphics {
                 }
 
                 Math::Mat4 gameInvProj = gameProj.Inverse();
-                s_PostPipeline->Execute(s_GameViewHandle, s_FinalGameOutputHandle, gameInvProj, gameView, gameProj, false, 0);
+                s_PostPipeline->Execute(s_GameViewHandle, s_FinalGameOutputHandle, gameInvProj, gameView, gameProj, false);
             }
         }
 
@@ -1231,7 +1216,7 @@ namespace NE::Graphics {
         return s_SelectedEntityIds.find(entityId) != s_SelectedEntityIds.end();
     }
 
-#ifndef PRODUCTION_BUILD
+#if 0 // Legacy geometry-based selection mask (removed). Selection highlight now derives from picking.
     void GraphicsManager::EnsureSelectionMaskResources(const RenderView& view)
     {
         if (!view.framebuffer) return;
@@ -1466,7 +1451,7 @@ namespace NE::Graphics {
             glDisable(GL_CULL_FACE);
         }
     }
-#endif
+#endif // 0
 
     void GraphicsManager::Submit(const DrawCommand& command) {
 		s_DrawQueue->Submit(command);
@@ -1668,10 +1653,6 @@ namespace NE::Graphics {
         s_DecalCubeMesh.reset();
         s_DecalQueue.clear();
         s_NormalPrepassShader.reset();
-#ifndef PRODUCTION_BUILD
-        ReleaseSelectionMaskResources();
-        s_SelectionMaskShader.reset();
-#endif
         s_SelectedEntityIds.clear();
         for (auto& material : s_LightGizmoMaterials) {
             material.reset();

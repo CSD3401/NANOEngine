@@ -114,8 +114,6 @@ namespace NE::Resource {
 					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/SSRApply.nanoshader"));
                 if (id == "nedecalprojected")
                     return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/Decal_Projected.nanoshader"));
-				if (id == "neselectionmask")
-					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/SelectionMask.nanoshader"));
 				if (id == "neselectionmaskfrompicking")
 					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/SelectionMaskFromPicking.nanoshader"));
 				if (id == "neselectioncomposite")

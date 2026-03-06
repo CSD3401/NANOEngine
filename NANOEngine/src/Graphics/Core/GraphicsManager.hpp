@@ -187,29 +187,11 @@ namespace NE::Graphics {
         // Post-processing
         static std::unique_ptr<PostProcessPipeline> s_PostPipeline;
         static std::shared_ptr<OpenGL::GLShader> s_NormalPrepassShader;
-#ifndef PRODUCTION_BUILD
-        static std::shared_ptr<OpenGL::GLShader> s_SelectionMaskShader;
-		static uint32_t s_SelectionMaskTexture;
-		static uint32_t s_SelectionMaskFBO;
-		static uint32_t s_SelectionMaskWidth;
-		static uint32_t s_SelectionMaskHeight;
-#endif
         static std::unordered_set<uint32_t> s_SelectedEntityIds;
         
         static std::unique_ptr<ShadowRenderer> s_shadowRenderer;
         static uint32_t DecodeEntityIdFromRGB(const Math::Vec3& idRGB);
         static bool IsSelectedDrawCommand(const DrawCommand& command);
-#ifndef PRODUCTION_BUILD
-        static void EnsureSelectionMaskResources(const RenderView& view);
-        static void ReleaseSelectionMaskResources();
-        static void RenderSelectionMaskForView(
-            RenderViewHandle handle,
-            const RenderView& view,
-            const Frustum& frustum,
-            const Math::Mat4& camProj,
-            const Math::Mat4& camView,
-            const std::vector<DrawCommand>& commands);
-#endif
 
         // UI Rendering
         static void RenderUIOverlay();

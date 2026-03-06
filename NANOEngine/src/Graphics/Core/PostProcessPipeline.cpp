@@ -120,8 +120,7 @@ namespace NE::Graphics {
 		const Math::Mat4& invProj,
 		const Math::Mat4& currView,
 		const Math::Mat4& currProj,
-		bool isSceneView,
-		uint32_t selectionMaskTexture
+		bool isSceneView
 	) {
 #ifndef PRODUCTION_BUILD
 		NE_PROFILE_FUNCTION();
@@ -143,7 +142,7 @@ namespace NE::Graphics {
 		m_context.isSceneView = isSceneView;
 		m_context.currViewProjInv = (currProj * currView).Inverse();
 
-		SetupGraph(sourceView, destView, invProj, currView, currProj, isSceneView, selectionMaskTexture);
+		SetupGraph(sourceView, destView, invProj, currView, currProj, isSceneView);
 		m_graph->Execute();
 		++m_frameIndex;
 	}
@@ -616,11 +615,9 @@ namespace NE::Graphics {
 		const Math::Mat4& invProj,
 		const Math::Mat4& currView,
 		const Math::Mat4& currProj,
-		bool isSceneView,
-		uint32_t selectionMaskTexture)
+		bool isSceneView)
 	{
 		if (!m_rvm || !m_graph) return;
-		(void)selectionMaskTexture;
 
 		m_graph->Clear();
 

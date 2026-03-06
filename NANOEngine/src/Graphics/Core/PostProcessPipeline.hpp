@@ -36,8 +36,7 @@ namespace NE::Graphics {
 			const Math::Mat4& invProj,
 			const Math::Mat4& currView,
 			const Math::Mat4& currProj,
-			bool isSceneView,
-			uint32_t selectionMaskTexture = 0);
+			bool isSceneView);
 
 		void SetSettings(PostProcessingSettings* settings);
 		void SetSelectionSettings(SelectionHighlightSettings* settings);
@@ -62,8 +61,7 @@ namespace NE::Graphics {
 			const Math::Mat4& invProj,
 			const Math::Mat4& currView,
 			const Math::Mat4& currProj,
-			bool isSceneView,
-			uint32_t selectionMaskTexture);
+			bool isSceneView);
 		void DestroyResources(bool destroyQuad);
 
 	private:
