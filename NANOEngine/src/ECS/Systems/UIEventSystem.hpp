@@ -1,29 +1,33 @@
 #ifndef UI_EVENT_SYSTEM_HPP
 #define UI_EVENT_SYSTEM_HPP
 
-#include "../Core/System.hpp"
-#include "../Core/ComponentManager.hpp"
-#include "../Components/UICanvas.hpp"
-#include "../Components/UIRectTransform.hpp"
-#include "../Components/UIButton.hpp"
-#include "../Components/UISlider.hpp"
-#include "../Components/UIToggle.hpp"
-#include "../Components/UIImage.hpp"
-#include "../Components/UIScrollRect.hpp"
-#include "../Components/UIInputField.hpp"
-#include "../Components/UIDropdown.hpp"
+#include "ECS/Core/System.hpp"
+#include "ECS/Components/UICanvas.hpp"
+#include "ECS/Components/UIRectTransform.hpp"
+#include "ECS/Components/UIButton.hpp"
+#include "ECS/Components/UISlider.hpp"
+#include "ECS/Components/UIToggle.hpp"
+#include "ECS/Components/UIImage.hpp"
+#include "ECS/Components/UIScrollRect.hpp"
+#include "ECS/Components/UIInputField.hpp"
+#include "ECS/Components/UIDropdown.hpp"
 #include "UILayoutEngine.hpp"
-#include "../../Math/Vec3.hpp"
-#include "../../Math/Vec4.hpp"
-#include "../../Math/Mat4.hpp"
-#include "../../Math/Vec2.hpp"
+#include "Math/Vec3.hpp"
+#include "Math/Vec4.hpp"
+#include "Math/Mat4.hpp"
+#include "Math/Vec2.hpp"
 #include <vector>
+
+namespace NE::ECS {
+    class ComponentManager;
+    class EntityManager;
+}
 
 namespace NE::ECS::Systems {
 
     class UIEventSystem final : public System {
     public:
-        explicit UIEventSystem(ComponentManager* cm);
+        explicit UIEventSystem(ComponentManager* cm, EntityManager* em);
 
         void SetLayoutEngine(UILayoutEngine* engine) { m_layoutEngine = engine; }
 
@@ -51,6 +55,7 @@ namespace NE::ECS::Systems {
         bool IsActiveForUI(Entity entity, Entity canvasEntity) const;
         Entity FindOwningCanvas(Entity entity) const;
         ComponentManager* m_cm = nullptr;
+        EntityManager* m_em = nullptr;
         UILayoutEngine* m_layoutEngine = nullptr;
 
         Entity m_hoveredEntity = NO_ENTITY;

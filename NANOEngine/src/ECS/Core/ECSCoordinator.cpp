@@ -107,7 +107,7 @@ namespace NE::ECS {
             SetSystemSignature<Systems::RenderSystem>(sig);
         }
 
-        m_lightSystem = m_systemManager->RegisterSystem<Systems::LightSystem>(m_componentManager.get());
+        m_lightSystem = m_systemManager->RegisterSystem<Systems::LightSystem>(m_componentManager.get(), m_entityManager.get());
         {
             Signature sig;
             sig.set(GetComponentType<Component::Transform>());
@@ -151,7 +151,7 @@ namespace NE::ECS {
         m_uiLayoutEngine = std::make_unique<UILayoutEngine>(m_componentManager.get());
 
         // UIEventSystem processes input before rendering - handles button states and hit testing
-        m_uiEventSystem = m_systemManager->RegisterSystem<Systems::UIEventSystem>(m_componentManager.get());
+        m_uiEventSystem = m_systemManager->RegisterSystem<Systems::UIEventSystem>(m_componentManager.get(), m_entityManager.get());
         {
             Signature sig;
             sig.set(GetComponentType<Component::UIRectTransform>());
@@ -159,7 +159,7 @@ namespace NE::ECS {
         }
         m_uiEventSystem->SetLayoutEngine(m_uiLayoutEngine.get());
 
-        m_uiRenderSystem = m_systemManager->RegisterSystem<Systems::UIRenderSystem>(m_componentManager.get());
+        m_uiRenderSystem = m_systemManager->RegisterSystem<Systems::UIRenderSystem>(m_componentManager.get(), m_entityManager.get());
         {
             Signature sig;
             sig.set(m_componentManager->GetComponentType<NE::ECS::Component::UIRectTransform>());

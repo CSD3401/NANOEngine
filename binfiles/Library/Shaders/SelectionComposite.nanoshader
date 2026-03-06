@@ -1,0 +1,141 @@
+Selection Composite
+
+#type vertex
+#version 460 core
+
+layout(location = 0) in vec2 a_Position;
+
+void main()
+{
+    gl_Position = vec4(a_Position, 0.0, 1.0);
+}
+
+#type fragment
+#version 460 core
+
+layout(location = 0) out vec4 FragColor;
+
+uniform sampler2D  u_SceneColor;
+uniform sampler2D  u_SelectionMask;
+
+uniform vec4  u_OutlineColor;
+uniform float u_OutlineThicknessPx;
+uniform float u_OutlineOpacity;
+uniform float u_OutlineSoftness;
+
+uniform int   u_FillEnabled;
+uniform vec4  u_FillColor;
+uniform float u_FillIntensity;
+
+uniform int   u_DebugShowMask;
+uniform int   u_DebugOutlineOnly;
+
+float SampleMask(ivec2 coord, ivec2 size)
+{
+    ivec2 clampedCoord = clamp(coord, ivec2(0), size - ivec2(1));
+    return texelFetch(u_SelectionMask, clampedCoord, 0).r;
+}
+
+vec4 SampleScene(ivec2 coord, ivec2 size)
+{
+    ivec2 clampedCoord = clamp(coord, ivec2(0), size - ivec2(1));
+    return texelFetch(u_SceneColor, clampedCoord, 0);
+}
+
+void main()
+{
+    ivec2 sceneSize = textureSize(u_SceneColor, 0);
+    ivec2 maskSize  = textureSize(u_SelectionMask, 0);
+
+    // The composite now runs in the same pixel space as both source textures,
+    // so the current fragment maps directly to the same texel in each input.
+    ivec2 fragCoord = ivec2(gl_FragCoord.xy);
+    ivec2 sceneCoord = clamp(fragCoord, ivec2(0), sceneSize - ivec2(1));
+    ivec2 maskCoord = clamp(fragCoord, ivec2(0), maskSize - ivec2(1));
+
+    // If your final image appears vertically flipped relative to the mask,
+    // flip both coords here once and keep the rest of the shader unchanged:
+    //
+    // sceneCoord.y = sceneSize.y - 1 - sceneCoord.y;
+    // maskCoord.y  = maskSize.y  - 1 - maskCoord.y;
+
+    vec4 scene = SampleScene(sceneCoord, sceneSize);
+
+    bool isSelected = (SampleMask(maskCoord, maskSize) > 0.5);
+
+    if (u_DebugShowMask != 0)
+    {
+        float v = isSelected ? 1.0 : 0.0;
+        FragColor = vec4(v, v, v, 1.0);
+        return;
+    }
+
+    // No fill + selected interior => pass scene through unchanged.
+    if (u_FillEnabled == 0 && isSelected)
+    {
+        FragColor = scene;
+        return;
+    }
+
+    float maxRadiusPx = max(u_OutlineThicknessPx + u_OutlineSoftness, 1.0);
+    int radius = clamp(int(ceil(maxRadiusPx)), 1, 6);
+
+    float minDistance = 1e9;
+
+    // Only outside pixels are eligible for outline.
+    if (!isSelected)
+    {
+        for (int y = -radius; y <= radius; ++y)
+        {
+            for (int x = -radius; x <= radius; ++x)
+            {
+                vec2 offset = vec2(float(x), float(y));
+                float distPx = length(offset);
+
+                if (distPx > maxRadiusPx)
+                    continue;
+
+                if (SampleMask(maskCoord + ivec2(x, y), maskSize) > 0.5)
+                    minDistance = min(minDistance, distPx);
+            }
+        }
+    }
+
+    float outlineAlpha = 0.0;
+    if (!isSelected && minDistance < 1e8)
+    {
+        float soft = max(u_OutlineSoftness, 0.001);
+        float solidEdge = max(u_OutlineThicknessPx - soft, 0.0);
+
+        if (minDistance <= solidEdge)
+        {
+            outlineAlpha = u_OutlineOpacity;
+        }
+        else
+        {
+            float fade = 1.0 - smoothstep(solidEdge, u_OutlineThicknessPx + soft, minDistance);
+            outlineAlpha = fade * u_OutlineOpacity;
+        }
+    }
+
+    vec3 color = scene.rgb;
+
+    if (u_DebugOutlineOnly != 0)
+    {
+        color = vec3(outlineAlpha);
+    }
+    else
+    {
+        if (isSelected && u_FillEnabled != 0)
+        {
+            float fillAlpha = clamp(u_FillIntensity * u_FillColor.a, 0.0, 1.0);
+            color = mix(color, u_FillColor.rgb, fillAlpha);
+        }
+
+        //float outlineMix = clamp(outlineAlpha * u_OutlineOpacity * u_OutlineColor.a, 0.0, 1.0);
+		float outlineMix = clamp(outlineAlpha * u_OutlineColor.a, 0.0, 1.0);
+        color = mix(color, u_OutlineColor.rgb, outlineMix);
+    }
+
+    FragColor = vec4(color, 1.0);
+}

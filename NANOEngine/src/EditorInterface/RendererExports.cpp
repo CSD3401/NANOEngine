@@ -69,6 +69,10 @@ namespace NE::Renderer {
 			return Graphics::GraphicsManager::postProcessingSettings;
 		}
 
+		const Graphics::SelectionHighlightSettings& GetSelectionHighlightSettings() {
+			return Graphics::GraphicsManager::selectionHighlightSettings;
+		}
+
 		Graphics::RenderGraph* GetRenderGraph() {
 			return Graphics::GraphicsManager::GetRenderGraph();
 		}
@@ -131,6 +135,7 @@ namespace NE::Renderer {
 
 		Graphics::RenderSettings& GetRenderSettings() { return Graphics::GraphicsManager::renderSettings; }
 		Graphics::PostProcessingSettings& GetPostProcessingSettings() { return Graphics::GraphicsManager::postProcessingSettings; }
+		Graphics::SelectionHighlightSettings& GetSelectionHighlightSettings() { return Graphics::GraphicsManager::selectionHighlightSettings; }
 
 		void DrawSelectedLightGizmos(const NE::ECS::Component::Light& lightComponent) {
 			Graphics::GraphicsManager::DrawSelectedLightGizmos(lightComponent);

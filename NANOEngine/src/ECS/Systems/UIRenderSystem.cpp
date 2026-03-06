@@ -4,26 +4,26 @@
 #include "../Components/UIImage.hpp"
 #include "../Components/UIText.hpp"
 #include "../Components/Hierarchy.hpp"
-#include "../../Graphics/Core/GraphicsManager.hpp"
-#include "../../Graphics/Core/EditorCamera.hpp"
-#include "../../Graphics/Core/UITextMeshGenerator.hpp"
-#include "../../Graphics/OpenGL/GLVertexBuffer.hpp"
-#include "../../Graphics/OpenGL/GLIndexBuffer.hpp"
-#include "../../Graphics/OpenGL/GLGeometryBuffer.hpp"
-#include "../../Graphics/OpenGL/GLPipeline.hpp"
-#include "../../Graphics/OpenGL/GLShader.hpp"
-#include "../../Graphics/Core/Material.hpp"
-#include "../../Graphics/Core/UIGeometryBuffer.hpp"
-#include "../../Graphics/Core/DrawCommand.hpp"
-#include "../../Graphics/Core/Vertex.hpp"
-#include "../../Graphics/Core/InstanceData.hpp"
-#include "../../Graphics/Core/PipelineCache.hpp"
+#include "Graphics/Core/GraphicsManager.hpp"
+#include "Graphics/Core/EditorCamera.hpp"
+#include "Graphics/Core/UITextMeshGenerator.hpp"
+#include "Graphics/OpenGL/GLVertexBuffer.hpp"
+#include "Graphics/OpenGL/GLIndexBuffer.hpp"
+#include "Graphics/OpenGL/GLGeometryBuffer.hpp"
+#include "Graphics/OpenGL/GLPipeline.hpp"
+#include "Graphics/OpenGL/GLShader.hpp"
+#include "Graphics/Core/Material.hpp"
+#include "Graphics/Core/UIGeometryBuffer.hpp"
+#include "Graphics/Core/DrawCommand.hpp"
+#include "Graphics/Core/Vertex.hpp"
+#include "Graphics/Core/InstanceData.hpp"
+#include "Graphics/Core/PipelineCache.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
 #include <iostream>
 #include <algorithm>
 #include <cmath>
 #include <map>
-#include "../Components/EntityMeta.hpp"
+
 // UIRectMask2D folded into UIRectTransform (enableMask + maskPadding fields)
 #include "UITransformUtilities.hpp"
 using namespace NE::ECS;
@@ -45,14 +45,15 @@ namespace NE::ECS::Systems {
     // Lifecycle
     //=========================================================================
 
-    UIRenderSystem::UIRenderSystem(ComponentManager* cm) : m_cm(cm)
+    UIRenderSystem::UIRenderSystem(ComponentManager* cm, EntityManager* em) : m_cm(cm), m_em(em)
     {
         m_currentView.SetToIdentity();
         m_currentProj.SetToIdentity();
     }
+
     bool UIRenderSystem::IsActiveForUI(Entity entity, Entity canvasEntity) const
     {
-        return UIUtil::IsActiveForUI(m_cm, entity, canvasEntity);
+        return UIUtil::IsActiveForUI(m_cm, m_em, entity, canvasEntity);
     }
 
     void UIRenderSystem::OnEntityAdded(Entity e)
@@ -299,10 +300,10 @@ namespace NE::ECS::Systems {
 
             auto& canvas = m_cm->GetComponent<UICanvas>(e);
 
-            bool metaActive = true;
-            if (m_cm->HasComponent<NE::ECS::Component::EntityMeta>(e)) {
-                metaActive = m_cm->GetComponent<NE::ECS::Component::EntityMeta>(e).isActive;
-            }
+            bool metaActive = m_em->GetActive(e);
+            //if (m_cm->HasComponent<NE::ECS::Component::EntityMeta>(e)) {
+            //    metaActive = m_cm->GetComponent<NE::ECS::Component::EntityMeta>(e).isActive;
+            //}
 
             if (canvas.isActive && metaActive) {
                 canvases.push_back({ canvas.sortingOrder, e });
