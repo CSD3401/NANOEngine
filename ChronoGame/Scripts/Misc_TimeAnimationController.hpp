@@ -18,7 +18,13 @@
 * Usage:
 *   1. Attach this script to the animated object, OR assign targetObject.
 *   2. Make sure the target entity has an Animator component.
+* 
+* Remarks (by RF):
+* 
+* 
 */
+
+
 class Misc_TimeAnimationController : public IScript {
 public:
     Misc_TimeAnimationController() {
@@ -40,6 +46,8 @@ public:
     }
 
     void Start() override {
+        LOG_ERROR("Misc_TimeAnimationController attached on " + GetEntityName());
+
         listeningEnabled = true;
         CacheTargetEntity();
 
@@ -111,15 +119,15 @@ private:
             HandlePresent();
         });
 
-        Events::Listen("TimePastEnabled", [this](void*) {
-            if (!listeningEnabled) return;
-            HandlePast();
-        });
+        //Events::Listen("TimePastEnabled", [this](void*) {
+        //    if (!listeningEnabled) return;
+        //    HandlePast();
+        //});
 
-        Events::Listen("TimePastDisabled", [this](void*) {
-            if (!listeningEnabled) return;
-            HandlePresent();
-        });
+        //Events::Listen("TimePastDisabled", [this](void*) {
+        //    if (!listeningEnabled) return;
+        //    HandlePresent();
+        //});
 
         listenersRegistered = true;
     }

@@ -1,8 +1,9 @@
 #pragma once
-#include "../Core/ComponentManager.hpp"
+#include "ECS/Core/ComponentManager.hpp"
+#include "ECS/Core/EntityManager.hpp"
 #include "../Components/UICanvas.hpp"
 #include "../Components/UIRectTransform.hpp"
-#include "../Components/EntityMeta.hpp"
+//#include "../Components/EntityMeta.hpp"
 #include "../Components/Hierarchy.hpp"
 #include "../../Graphics/Core/GraphicsManager.hpp"
 #include <algorithm>
@@ -12,6 +13,7 @@ namespace NE::ECS::UIUtil {
     // Check if an entity (and all parents up to the canvas) are active
     inline bool IsActiveForUI(
         ComponentManager* cm,
+        EntityManager* em,
         Entity entity,
         Entity canvasEntity
     )
@@ -20,11 +22,13 @@ namespace NE::ECS::UIUtil {
 
         while (cur != NO_ENTITY)
         {
-            if (cm->HasComponent<Component::EntityMeta>(cur)) {
-                if (!cm->GetComponent<Component::EntityMeta>(cur).isActive) {
-                    return false;
-                }
-            }
+            //if (cm->HasComponent<Component::EntityMeta>(cur)) {
+            //    if (!cm->GetComponent<Component::EntityMeta>(cur).isActive) {
+            //        return false;
+            //    }
+            //}
+
+            if (!em->GetActive(cur)) return false;
 
             if (cur == canvasEntity) break;
 
@@ -36,10 +40,10 @@ namespace NE::ECS::UIUtil {
         if (canvasEntity != NO_ENTITY && cm->HasComponent<Component::UICanvas>(canvasEntity)) {
             const auto& canvas = cm->GetComponent<Component::UICanvas>(canvasEntity);
 
-            bool metaActive = true;
-            if (cm->HasComponent<Component::EntityMeta>(canvasEntity)) {
-                metaActive = cm->GetComponent<Component::EntityMeta>(canvasEntity).isActive;
-            }
+            bool metaActive = em->GetActive(canvasEntity);
+            //metaActive = 
+            //if (cm->HasComponent<Component::EntityMeta>(canvasEntity)) {
+            //}
 
             if (!canvas.isActive || !metaActive) return false;
         }
