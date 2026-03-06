@@ -48,6 +48,8 @@ namespace NE::ECS {
 		struct UIAutoSize;
 		struct UIInputField;
 		struct UIDropdown;
+		struct ParticleEmitter;
+		struct PERenderer;
 	}
 
 	namespace Query {
@@ -85,6 +87,8 @@ namespace NE::ECS {
 		NANOENGINE_API const Component::UIAutoSize& GetUIAutoSize(uint32_t e);
 		NANOENGINE_API const Component::UIInputField& GetUIInputField(uint32_t e);
 		NANOENGINE_API const Component::UIDropdown& GetUIDropdown(uint32_t e);
+		NANOENGINE_API const Component::ParticleEmitter& GetParticleEmitter(uint32_t e);
+		NANOENGINE_API const Component::PERenderer& GetPERenderer(uint32_t e);
 
 		// to move to this in the future
 		// also need to find a way to enforce C as component
@@ -215,6 +219,8 @@ namespace NE::ECS {
 		NANOENGINE_API ComponentType GetUIAutoSizeComponentType();
 		NANOENGINE_API ComponentType GetUIInputFieldComponentType();
 		NANOENGINE_API ComponentType GetUIDropdownComponentType();
+		NANOENGINE_API ComponentType GetParticleEmitterComponentType();
+		NANOENGINE_API ComponentType GetPERendererComponentType();
 
 		NANOENGINE_API uint32_t GetParent(uint32_t child);
 
@@ -261,6 +267,8 @@ namespace NE::ECS {
 		NANOENGINE_API void AddScriptComponent(uint32_t e);
 		NANOENGINE_API void AddCameraComponent(uint32_t e);
         NANOENGINE_API void AddDecalProjectorComponent(uint32_t e);
+		NANOENGINE_API void AddParticleEmitterComponent(uint32_t e);
+		NANOENGINE_API void AddPERendererComponent(uint32_t e);
 
 		template <typename C>
 		void AddComponent(Entity e) {
@@ -296,6 +304,8 @@ namespace NE::ECS {
 		NANOENGINE_API void AddUIAutoSizeComponent(uint32_t e, const Component::UIAutoSize& c);
 		NANOENGINE_API void AddUIInputFieldComponent(uint32_t e, const Component::UIInputField& c);
 		NANOENGINE_API void AddUIDropdownComponent(uint32_t e, const Component::UIDropdown& c);
+		NANOENGINE_API void AddParticleEmitterComponent(uint32_t e, const Component::ParticleEmitter& c);
+		NANOENGINE_API void AddPERendererComponent(uint32_t e, const Component::PERenderer& c);
 
 		template <typename C>
 		void AddComponent(Entity e, const C& component);
@@ -328,6 +338,8 @@ namespace NE::ECS {
 		template<> inline void AddComponent<Component::UIAutoSize>(uint32_t e, const Component::UIAutoSize& component) { AddUIAutoSizeComponent(e, component); }
 		template<> inline void AddComponent<Component::UIInputField>(uint32_t e, const Component::UIInputField& component) { AddUIInputFieldComponent(e, component); }
 		template<> inline void AddComponent<Component::UIDropdown>(uint32_t e, const Component::UIDropdown& component) { AddUIDropdownComponent(e, component); }
+		template<> inline void AddComponent<Component::ParticleEmitter>(uint32_t e, const Component::ParticleEmitter& component) { AddParticleEmitterComponent(e, component); }
+		template<> inline void AddComponent<Component::PERenderer>(uint32_t e, const Component::PERenderer& component) { AddPERendererComponent(e, component); }
 
 		NANOENGINE_API void RemoveLightComponent(uint32_t e);
 		NANOENGINE_API void RemoveRendererComponent(uint32_t e);
@@ -337,6 +349,8 @@ namespace NE::ECS {
 		NANOENGINE_API void RemoveAudioSourceComponent(uint32_t e);
 		NANOENGINE_API void RemoveCameraComponent(uint32_t e);
         NANOENGINE_API void RemoveDecalProjectorComponent(uint32_t e);
+		NANOENGINE_API void RemoveParticleEmitterComponent(uint32_t e);
+		NANOENGINE_API void RemovePERendererComponent(uint32_t e);
 
 		// --- Editor Component Mutators --- //
 		//NANOENGINE_API Component::EntityMeta& GetEntityMeta(uint32_t e);
@@ -383,6 +397,8 @@ namespace NE::ECS {
 		NANOENGINE_API Component::UIAutoSize& GetUIAutoSize(uint32_t e);
 		NANOENGINE_API Component::UIInputField& GetUIInputField(uint32_t e);
 		NANOENGINE_API Component::UIDropdown& GetUIDropdown(uint32_t e);
+		NANOENGINE_API Component::ParticleEmitter& GetParticleEmitter(uint32_t e);
+		NANOENGINE_API Component::PERenderer& GetPERenderer(uint32_t e);
 
 		template <typename C>
 		C& GetComponent(Entity e);

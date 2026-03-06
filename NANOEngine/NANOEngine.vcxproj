@@ -28,7 +28,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ECS\Components\ParticleEmitter.hpp" />
-    <ClInclude Include="src\ECS\Components\PERenderer.h" />
+    <ClInclude Include="src\ECS\Components\PERenderer.hpp" />
     <ClInclude Include="src\ECS\Systems\ParticleSystem.hpp" />
     <ClInclude Include="src\pch.h" />
   </ItemGroup>

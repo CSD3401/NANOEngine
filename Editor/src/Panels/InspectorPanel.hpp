@@ -59,6 +59,8 @@ namespace Editor {
 		void DrawInputFieldComponent(uint32_t entity);
 		void DrawDropdownComponent(uint32_t entity);
 		void DrawCharacterControllerComponent(uint32_t entity);
+		void DrawParticleEmitterComponent(uint32_t entity);
+		void DrawPERendererComponent(uint32_t entity);
 		
 
 		std::unique_ptr<MaterialEditor> m_materialEditor;

@@ -2,7 +2,7 @@
 #include "ParticleSystem.hpp"
 #include "../Components/ParticleEmitter.hpp"
 #include "../Components/Transform.hpp"
-#include "../Components/PERenderer.h"
+#include "../Components/PERenderer.hpp"
 #include "../../Math/Vec3.hpp"
 #include "../../Math/Mat4.hpp"
 #include "Graphics/Core/GraphicsManager.hpp"

@@ -5,6 +5,7 @@
 #include "Math/Vec4.hpp"
 #include "Graphics/Core/DrawCommand.hpp"
 #include "Graphics/Core/InstanceData.hpp"
+#include "Core/Reflection.hpp"
 
 namespace NE::ECS::Component {
 
@@ -142,6 +143,52 @@ namespace NE::ECS::Component {
 			spawnAccumulator = 0.0f;
 			emitterTime = 0.0f;
 		}
+
+		bool isDirty = true;
+
+		NE_REFLECT_BEGIN(ParticleEmitter)
+			NE_REFLECT_FIELD(enabled),
+			NE_REFLECT_FIELD(looping),
+			NE_REFLECT_FIELD(maxParticles),
+			NE_REFLECT_FIELD(spawnRate),
+			NE_REFLECT_FIELD(duration),
+			NE_REFLECT_FIELD(playOnStart),
+			NE_REFLECT_FIELD(localSpace),
+
+			NE_REFLECT_FIELD(lifetimeMin),
+			NE_REFLECT_FIELD(lifetimeMax),
+
+			NE_REFLECT_FIELD(speedMin),
+			NE_REFLECT_FIELD(speedMax),
+
+			NE_REFLECT_FIELD(sizeMin),
+			NE_REFLECT_FIELD(sizeMax),
+
+			NE_REFLECT_FIELD(startColor),
+			NE_REFLECT_FIELD(endColor),
+
+			NE_REFLECT_FIELD(enableGravity),
+			NE_REFLECT_FIELD(gravity),
+
+			NE_REFLECT_FIELD(enableDrag),
+			NE_REFLECT_FIELD(drag),
+
+			NE_REFLECT_FIELD(enableCollision),
+			NE_REFLECT_FIELD(collisionRadius),
+			NE_REFLECT_FIELD(bounceFactor),
+			NE_REFLECT_FIELD(killOnCollision),
+
+			NE_REFLECT_FIELD(shape),
+			NE_REFLECT_FIELD(sphereRadius),
+			NE_REFLECT_FIELD(coneAngle),
+			NE_REFLECT_FIELD(boxExtents),
+
+			NE_REFLECT_FIELD(billboard),
+			NE_REFLECT_FIELD(stretchWithVelocity),
+			NE_REFLECT_FIELD(stretchFactor),
+
+			NE_REFLECT_FIELD_HIDDEN(isDirty)
+		NE_REFLECT_END()
 	};
 
 }
