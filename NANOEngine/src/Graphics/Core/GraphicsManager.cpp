@@ -64,9 +64,6 @@
 
 namespace NE::Graphics {
     namespace {
-        constexpr float SELECTION_OUTLINE_SCALE = 1.05f;
-        constexpr Math::Vec4 SELECTION_OUTLINE_COLOR = { 0.89f, 0.61f, 0.06f, 1.0f };
-
         constexpr float ICON_GIZMO_PIXEL_SIZE = 128.f;
         constexpr uint32_t TAA_HALTON_PERIOD = 8;
 
@@ -757,7 +754,13 @@ namespace NE::Graphics {
     std::shared_ptr<IClusteredLighting> GraphicsManager::s_clusteredLighting;
     std::unique_ptr<PostProcessPipeline> GraphicsManager::s_PostPipeline;
     std::shared_ptr<OpenGL::GLShader> GraphicsManager::s_NormalPrepassShader;
-    std::shared_ptr<OpenGL::GLShader> GraphicsManager::s_SelectionOutlineProgram;
+#ifndef PRODUCTION_BUILD
+    std::shared_ptr<OpenGL::GLShader> GraphicsManager::s_SelectionMaskShader;
+    uint32_t GraphicsManager::s_SelectionMaskTexture = 0;
+    uint32_t GraphicsManager::s_SelectionMaskFBO = 0;
+    uint32_t GraphicsManager::s_SelectionMaskWidth = 0;
+    uint32_t GraphicsManager::s_SelectionMaskHeight = 0;
+#endif
     std::unordered_set<uint32_t> GraphicsManager::s_SelectedEntityIds;
 
 	std::unique_ptr<ShadowRenderer> GraphicsManager::s_shadowRenderer;
@@ -765,6 +768,7 @@ namespace NE::Graphics {
     RenderSettings GraphicsManager::renderSettings;
 
     PostProcessingSettings GraphicsManager::postProcessingSettings;
+    SelectionHighlightSettings GraphicsManager::selectionHighlightSettings;
 
     void GraphicsManager::Init() {
         s_CommandBuffer = std::make_unique<OpenGL::GLCommandBuffer>();
@@ -784,7 +788,7 @@ namespace NE::Graphics {
             desc.enablePicking = true;
             desc.enableMiniGBuffer = true;
             desc.enableDepth = true;
-            desc.enableStencil = true;
+            desc.enableStencil = false;
             desc.format = RenderViewFormat::HDR;
             s_SceneViewHandle = s_RenderViewManager->Create(desc);
         }
@@ -810,7 +814,9 @@ namespace NE::Graphics {
         InitializeLightGizmoResources();
         InitializeDecalGizmoResources();
         s_NormalPrepassShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("nenormalprepass");
-        s_SelectionOutlineProgram = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("neselectionoutline");
+#ifndef PRODUCTION_BUILD
+        s_SelectionMaskShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("neselectionmask");
+#endif
 
         auto decalCubeModel = Resource::ResourceManager::GetInstance().LoadResource<Model>("builtin:model/cube");
         if (decalCubeModel && !decalCubeModel->meshes.empty()) {
@@ -834,6 +840,10 @@ namespace NE::Graphics {
         s_PostPipeline = std::make_unique<PostProcessPipeline>();
         s_PostPipeline->Init(s_RenderViewManager.get(), s_GameViewWidth, s_GameViewHeight);
         s_PostPipeline->SetSettings(&postProcessingSettings);
+        s_PostPipeline->SetSelectionSettings(&selectionHighlightSettings);
+#ifndef PRODUCTION_BUILD
+		s_PostPipeline->SetSelectedEntityIds(&s_SelectedEntityIds);
+#endif
     }
 
     void GraphicsManager::BeginFrame() {
@@ -884,6 +894,14 @@ namespace NE::Graphics {
 
 			// Invalidate cached state per view
 			s_StateCache->InvalidateAll();
+			if (view.framebuffer) {
+				view.framebuffer->SetPickingWrite(view.framebuffer->HasPickingAttachment());
+				if (view.framebuffer->HasPickingAttachment()) {
+					// Prevent stale IDs when generating selection masks from the picking buffer.
+					const float clearId[4] = { 0, 0, 0, 0 };
+					glClearBufferfv(GL_COLOR, 1, clearId);
+				}
+			}
 
             Mat4 camProj = view.projection;
             const Mat4& camView = view.view;
@@ -1101,13 +1119,16 @@ namespace NE::Graphics {
                 s_skybox->Draw(skyboxView);
             }
 
-            RenderSelectionHighlightForView(handle, view, camProj, camView, commands);
-
             RenderLightGizmosForView(handle, view, camProj, camView, camPos, s_StateCache.get(), s_SceneViewHandle);
             RenderDecalGizmosForView(handle, view, camProj, camView, camPos, s_StateCache.get(), s_SceneViewHandle);
 
-            if (handle == s_SceneViewHandle)
-                DrawAllDebugGeometry();
+            if (handle == s_SceneViewHandle) {
+				if (view.framebuffer) {
+					// Debug rendering doesn't write an entity ID output; prevent it from corrupting the picking buffer.
+					view.framebuffer->SetPickingWrite(false);
+				}
+				DrawAllDebugGeometry();
+			}
 
             s_RenderViewManager->Unbind();
             if (ranPrepass) {
@@ -1118,6 +1139,7 @@ namespace NE::Graphics {
         s_StateCache->Reset();
 
         if (s_PostPipeline) {
+#ifndef PRODUCTION_BUILD
             // Scene View
             const auto sceneSourceFramebuffer = s_RenderViewManager->GetFramebuffer(s_SceneViewHandle);
             const auto sceneDestFramebuffer = s_RenderViewManager->GetFramebuffer(s_FinalOutputViewHandle);
@@ -1143,8 +1165,21 @@ namespace NE::Graphics {
                 }
 
                 Math::Mat4 invProj = sceneProj.Inverse();
-                s_PostPipeline->Execute(s_SceneViewHandle, s_FinalOutputViewHandle, invProj, sceneView, sceneProj, true);
+                const uint32_t selectionMaskInput =
+                    (selectionHighlightSettings.enabled && !s_SelectedEntityIds.empty())
+                    ? s_SelectionMaskTexture
+                    : 0;
+                s_PostPipeline->Execute(
+                    s_SceneViewHandle,
+                    s_FinalOutputViewHandle,
+                    invProj,
+                    sceneView,
+                    sceneProj,
+                    true,
+                    selectionMaskInput
+                );
             }
+#endif
 
             // Game View
             auto it = allViews.find(s_GameViewHandle);
@@ -1164,7 +1199,7 @@ namespace NE::Graphics {
                 }
 
                 Math::Mat4 gameInvProj = gameProj.Inverse();
-                s_PostPipeline->Execute(s_GameViewHandle, s_FinalGameOutputHandle, gameInvProj, gameView, gameProj, false);
+                s_PostPipeline->Execute(s_GameViewHandle, s_FinalGameOutputHandle, gameInvProj, gameView, gameProj, false, 0);
             }
         }
 
@@ -1196,134 +1231,242 @@ namespace NE::Graphics {
         return s_SelectedEntityIds.find(entityId) != s_SelectedEntityIds.end();
     }
 
-    void GraphicsManager::RenderSelectionHighlightForView(
+#ifndef PRODUCTION_BUILD
+    void GraphicsManager::EnsureSelectionMaskResources(const RenderView& view)
+    {
+        if (!view.framebuffer) return;
+
+        const uint32_t width = view.framebuffer->GetWidth();
+        const uint32_t height = view.framebuffer->GetHeight();
+        if (width == 0 || height == 0) return;
+        if (s_SelectionMaskTexture != 0 && s_SelectionMaskFBO != 0 &&
+            s_SelectionMaskWidth == width && s_SelectionMaskHeight == height) {
+            return;
+        }
+
+        ReleaseSelectionMaskResources();
+
+        glGenTextures(1, &s_SelectionMaskTexture);
+        glBindTexture(GL_TEXTURE_2D, s_SelectionMaskTexture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8UI, static_cast<GLsizei>(width), static_cast<GLsizei>(height), 0, GL_RED_INTEGER, GL_UNSIGNED_BYTE, nullptr);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        glGenFramebuffers(1, &s_SelectionMaskFBO);
+        glBindFramebuffer(GL_FRAMEBUFFER, s_SelectionMaskFBO);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, s_SelectionMaskTexture, 0);
+        const GLenum attachment = GL_COLOR_ATTACHMENT0;
+        glDrawBuffers(1, &attachment);
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+            SPD_ERROR("Selection mask framebuffer is incomplete.");
+            ReleaseSelectionMaskResources();
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        s_SelectionMaskWidth = width;
+        s_SelectionMaskHeight = height;
+    }
+
+    void GraphicsManager::ReleaseSelectionMaskResources()
+    {
+        if (s_SelectionMaskFBO != 0) {
+            glDeleteFramebuffers(1, &s_SelectionMaskFBO);
+            s_SelectionMaskFBO = 0;
+        }
+        if (s_SelectionMaskTexture != 0) {
+            glDeleteTextures(1, &s_SelectionMaskTexture);
+            s_SelectionMaskTexture = 0;
+        }
+        s_SelectionMaskWidth = 0;
+        s_SelectionMaskHeight = 0;
+    }
+
+    void GraphicsManager::RenderSelectionMaskForView(
         RenderViewHandle handle,
         const RenderView& view,
+        const Frustum& frustum,
         const Math::Mat4& camProj,
         const Math::Mat4& camView,
         const std::vector<DrawCommand>& commands)
     {
         if (handle != s_SceneViewHandle) return;
+        if (!selectionHighlightSettings.enabled) return;
         if (s_SelectedEntityIds.empty()) return;
-        if (s_SelectionOutlineProgram == 0) return;
-        if (!view.framebuffer || !view.framebuffer->HasStencil()) return;
+        if (!view.framebuffer || !view.framebuffer->HasDepth()) return;
+        if (view.framebuffer->GetDepthAttachment() == 0) return;
+        if (!s_SelectionMaskShader) return;
 
-        std::vector<const DrawCommand*> selectedCommands;
-        selectedCommands.reserve(s_SelectedEntityIds.size());
-        for (const auto& command : commands) {
-            if (IsSelectedDrawCommand(command)) {
-                selectedCommands.push_back(&command);
-            }
-        }
-        if (selectedCommands.empty()) return;
+        EnsureSelectionMaskResources(view);
+        if (s_SelectionMaskTexture == 0 || s_SelectionMaskFBO == 0) return;
 
-        const GLboolean stencilWasEnabled = glIsEnabled(GL_STENCIL_TEST);
         const GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
         const GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
         const GLboolean cullWasEnabled = glIsEnabled(GL_CULL_FACE);
-        GLboolean colorMask[4] = { GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE };
-        glGetBooleanv(GL_COLOR_WRITEMASK, colorMask);
         GLboolean depthWriteWasEnabled = GL_TRUE;
         glGetBooleanv(GL_DEPTH_WRITEMASK, &depthWriteWasEnabled);
-
         GLint depthFunc = GL_LESS;
-        GLint previousProgram = 0;
-        GLint stencilFunc = GL_ALWAYS;
-        GLint stencilRef = 0;
-        GLint stencilValueMask = 0xFF;
-        GLint stencilWriteMask = 0xFF;
-        GLint stencilFail = GL_KEEP;
-        GLint stencilPassDepthFail = GL_KEEP;
-        GLint stencilPassDepthPass = GL_KEEP;
         GLint cullFaceMode = GL_BACK;
         glGetIntegerv(GL_DEPTH_FUNC, &depthFunc);
-        glGetIntegerv(GL_CURRENT_PROGRAM, &previousProgram);
-        glGetIntegerv(GL_STENCIL_FUNC, &stencilFunc);
-        glGetIntegerv(GL_STENCIL_REF, &stencilRef);
-        glGetIntegerv(GL_STENCIL_VALUE_MASK, &stencilValueMask);
-        glGetIntegerv(GL_STENCIL_WRITEMASK, &stencilWriteMask);
-        glGetIntegerv(GL_STENCIL_FAIL, &stencilFail);
-        glGetIntegerv(GL_STENCIL_PASS_DEPTH_FAIL, &stencilPassDepthFail);
-        glGetIntegerv(GL_STENCIL_PASS_DEPTH_PASS, &stencilPassDepthPass);
         if (cullWasEnabled) {
             glGetIntegerv(GL_CULL_FACE_MODE, &cullFaceMode);
         }
 
-        glEnable(GL_STENCIL_TEST);
-        glClearStencil(0);
-        glClear(GL_STENCIL_BUFFER_BIT);
-        glStencilMask(0xFF);
-        glStencilFunc(GL_ALWAYS, 1, 0xFF);
-        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        const GLenum attachment = GL_COLOR_ATTACHMENT0;
+        glBindFramebuffer(GL_FRAMEBUFFER, s_SelectionMaskFBO);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, s_SelectionMaskTexture, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, view.framebuffer->GetDepthAttachment(), 0);
+        glDrawBuffers(1, &attachment);
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+            SPD_ERROR("Selection mask pass framebuffer is incomplete.");
+            glBindFramebuffer(GL_FRAMEBUFFER, view.framebuffer->GetFramebuffer());
+            return;
+        }
 
-        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-        //glEnable(GL_DEPTH_TEST);
-        //glDepthMask(GL_FALSE);
-        glDisable(GL_DEPTH_TEST);
+        glViewport(0, 0, static_cast<GLsizei>(view.framebuffer->GetWidth()), static_cast<GLsizei>(view.framebuffer->GetHeight()));
+        const GLuint clearMask[4] = { 0u, 0u, 0u, 0u };
+        glClearBufferuiv(GL_COLOR, 0, clearMask);
+        glDisable(GL_BLEND);
+        glEnable(GL_DEPTH_TEST);
+        // This pass re-renders visible selected geometry against the populated scene depth buffer,
+        // so equal-depth fragments must pass to reproduce the visible footprint reliably.
+        glDepthFunc(GL_LEQUAL);
         glDepthMask(GL_FALSE);
-        glDisable(GL_BLEND);
-        glDisable(GL_CULL_FACE);
-        glUseProgram(s_SelectionOutlineProgram->GetProgramID());
 
-        const GLint viewLocation = glGetUniformLocation(s_SelectionOutlineProgram->GetProgramID(), "u_View");
-        const GLint projLocation = glGetUniformLocation(s_SelectionOutlineProgram->GetProgramID(), "u_Projection");
-        const GLint modelLocation = glGetUniformLocation(s_SelectionOutlineProgram->GetProgramID(), "u_Model");
-        const GLint colorLocation = glGetUniformLocation(s_SelectionOutlineProgram->GetProgramID(), "u_Color");
-        glUniformMatrix4fv(viewLocation, 1, GL_FALSE, camView.Data());
-        glUniformMatrix4fv(projLocation, 1, GL_FALSE, camProj.Data());
-        glUniform4f(colorLocation, SELECTION_OUTLINE_COLOR.x, SELECTION_OUTLINE_COLOR.y, SELECTION_OUTLINE_COLOR.z, SELECTION_OUTLINE_COLOR.w);
+        s_SelectionMaskShader->Bind();
+        s_SelectionMaskShader->SetUniformMat4("u_View", camView);
+        s_SelectionMaskShader->SetUniformMat4("u_Projection", camProj);
 
-        for (const DrawCommand* command : selectedCommands) {
-            glUniformMatrix4fv(modelLocation, 1, GL_FALSE, command->transform.Data());
-            command->mesh->Bind();
-            command->mesh->Draw();
-            command->mesh->Unbind();
-        }
+        std::vector<InstanceData> instanceData;
+        instanceData.reserve(64);
+        std::shared_ptr<IGeometryBuffer> currentMesh;
+        std::shared_ptr<Material> currentMaterial;
 
-        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-        glStencilMask(0x00);
-        glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-        glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-        //glDisable(GL_DEPTH_TEST);
-        //glDisable(GL_BLEND);
-        glDisable(GL_DEPTH_TEST);
-        glDisable(GL_BLEND);
+        auto flushBatch = [&]() {
+            if (instanceData.empty() || !currentMesh) return;
 
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_FRONT);
+            float opacity = 1.0f;
+            int hasOpacityMap = 0;
+            int alphaClip = 0;
+            float alphaCutoff = 0.5f;
+            Math::Vec3 tiling{ 1.0f, 1.0f, 1.0f };
+            Math::Vec3 offset{ 0.0f, 0.0f, 0.0f };
+            GLenum cullMode = GL_BACK;
+            bool enableCull = true;
 
+            if (currentMaterial) {
+                const auto& floatUniforms = currentMaterial->GetFloatUniforms();
+                auto getFloat = [&floatUniforms](const char* key, float defaultValue) {
+                    auto it = floatUniforms.find(key);
+                    return it != floatUniforms.end() ? it->second : defaultValue;
+                };
 
-        for (const DrawCommand* command : selectedCommands) {
-            const Math::Mat4 scaledTransform = command->transform * Math::Mat4::BuildScaling(
-                SELECTION_OUTLINE_SCALE,
-                SELECTION_OUTLINE_SCALE,
-                SELECTION_OUTLINE_SCALE
+                opacity = getFloat("u_Opacity", opacity);
+                alphaCutoff = getFloat("u_AlphaCutoff", alphaCutoff);
+
+                const auto& intUniforms = currentMaterial->m_IntUniforms;
+                auto getInt = [&intUniforms](const char* key, int defaultValue) {
+                    auto it = intUniforms.find(key);
+                    return it != intUniforms.end() ? it->second : defaultValue;
+                };
+
+                hasOpacityMap = getInt("h_HasOpacityMap", 0);
+                alphaClip = getInt("u_AlphaClip", 0);
+
+                const auto& vec3Uniforms = currentMaterial->GetVec3Uniforms();
+                auto getVec3 = [&vec3Uniforms](const char* key, const Math::Vec3& defaultValue) {
+                    auto it = vec3Uniforms.find(key);
+                    return it != vec3Uniforms.end() ? it->second : defaultValue;
+                };
+
+                tiling = getVec3("u_Tiling", tiling);
+                offset = getVec3("u_Offset", offset);
+
+                if (auto pipeline = currentMaterial->GetPipeline()) {
+                    cullMode = pipeline->GetSpecification().CullMode;
+                    enableCull = (cullMode != GL_NONE);
+                }
+
+                const auto& textures = currentMaterial->GetTextures();
+                auto opacityTexIt = textures.find("u_OpacityMap");
+                if (opacityTexIt != textures.end() && opacityTexIt->second) {
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, opacityTexIt->second->GLName());
+                } else {
+                    hasOpacityMap = 0;
+                }
+            }
+
+            if (enableCull) {
+                glEnable(GL_CULL_FACE);
+                glCullFace(cullMode);
+            } else {
+                glDisable(GL_CULL_FACE);
+            }
+
+            s_SelectionMaskShader->SetUniformFloat("u_Opacity", opacity);
+            s_SelectionMaskShader->SetUniformInt("u_OpacityMap", 0);
+            s_SelectionMaskShader->SetUniformInt("h_HasOpacityMap", hasOpacityMap);
+            s_SelectionMaskShader->SetUniformInt("u_AlphaClip", alphaClip);
+            s_SelectionMaskShader->SetUniformFloat("u_AlphaCutoff", alphaCutoff);
+            s_SelectionMaskShader->SetUniformVec3("u_Tiling", tiling);
+            s_SelectionMaskShader->SetUniformVec3("u_Offset", offset);
+
+            OpenGL::GLGeometryBuffer::UpdateInstanceBuffer(
+                instanceData.data(),
+                instanceData.size() * sizeof(InstanceData)
             );
-            glUniformMatrix4fv(modelLocation, 1, GL_FALSE, scaledTransform.Data());
-            command->mesh->Bind();
-            command->mesh->Draw();
-            command->mesh->Unbind();
+
+            currentMesh->Bind();
+            currentMesh->DrawInstanced(instanceData.size());
+            currentMesh->Unbind();
+            instanceData.clear();
+        };
+
+        for (const auto& command : commands) {
+            if (!IsSelectedDrawCommand(command)) continue;
+            if (!command.material) continue;
+            const RenderQueue queue = command.material->GetQueueBase();
+            if (queue != RenderQueue::GEOMETRY && queue != RenderQueue::ALPHATEST) continue;
+            if (!frustum.IntersectsSphere(command.boundsCenterWS, command.boundsRadiusWs)) continue;
+            if (!command.mesh) continue;
+
+            if ((command.mesh != currentMesh || command.material != currentMaterial) && !instanceData.empty()) {
+                flushBatch();
+            }
+
+            if (command.mesh != currentMesh || command.material != currentMaterial) {
+                currentMesh = command.mesh;
+                currentMaterial = command.material;
+            }
+
+            InstanceData instance{};
+            instance.model = command.transform;
+            instance.idRGB = { 0.0f, 0.0f, 0.0f };
+            instanceData.push_back(instance);
         }
 
-        if (stencilWasEnabled) glEnable(GL_STENCIL_TEST); else glDisable(GL_STENCIL_TEST);
-        if (depthWasEnabled) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
+        flushBatch();
+
+        glBindFramebuffer(GL_FRAMEBUFFER, view.framebuffer->GetFramebuffer());
+        view.framebuffer->SetPickingWrite(view.framebuffer->HasPickingAttachment());
+        if (s_StateCache) {
+            s_StateCache->InvalidateAll();
+        }
+        glDepthMask(depthWriteWasEnabled);
+        glDepthFunc(depthFunc);
         if (blendWasEnabled) glEnable(GL_BLEND); else glDisable(GL_BLEND);
+        if (depthWasEnabled) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
         if (cullWasEnabled) {
             glEnable(GL_CULL_FACE);
             glCullFace(cullFaceMode);
-        }
-        else {
+        } else {
             glDisable(GL_CULL_FACE);
         }
-
-        glColorMask(colorMask[0], colorMask[1], colorMask[2], colorMask[3]);
-        glDepthMask(depthWriteWasEnabled);
-        glDepthFunc(depthFunc);
-        glStencilMask(stencilWriteMask);
-        glStencilFunc(stencilFunc, stencilRef, stencilValueMask);
-        glStencilOp(stencilFail, stencilPassDepthFail, stencilPassDepthPass);
-        glUseProgram(previousProgram);
     }
+#endif
 
     void GraphicsManager::Submit(const DrawCommand& command) {
 		s_DrawQueue->Submit(command);
@@ -1525,10 +1668,10 @@ namespace NE::Graphics {
         s_DecalCubeMesh.reset();
         s_DecalQueue.clear();
         s_NormalPrepassShader.reset();
-        //if (s_SelectionOutlineProgram != 0) {
-        //    glDeleteProgram(s_SelectionOutlineProgram);
-        //    s_SelectionOutlineProgram = 0;
-        //}
+#ifndef PRODUCTION_BUILD
+        ReleaseSelectionMaskResources();
+        s_SelectionMaskShader.reset();
+#endif
         s_SelectedEntityIds.clear();
         for (auto& material : s_LightGizmoMaterials) {
             material.reset();

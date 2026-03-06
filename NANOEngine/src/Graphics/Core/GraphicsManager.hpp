@@ -14,6 +14,7 @@
 #include "RenderViewManager.hpp"
 #include "RenderSettings.hpp"
 #include "PostProcessingSettings.hpp"
+#include "SelectionHighlightSettings.hpp"
 #include <vector>
 #include <unordered_set>
 
@@ -31,6 +32,7 @@ namespace NE {
         class RenderGraph;
         class TexturePool;
         class PostProcessPipeline;
+        struct Frustum;
         struct DrawCommand;
         struct LightGizmoCommand;
         struct RenderView;
@@ -142,9 +144,12 @@ namespace NE::Graphics {
         static RenderViewHandle s_FinalGameOutputHandle;
         static RenderViewHandle s_GameViewHandle;
 
-        static RenderSettings renderSettings;
+		static RenderSettings renderSettings;
         // Experimental here for now
         static PostProcessingSettings postProcessingSettings;
+#ifndef PRODUCTION_BUILD
+		static SelectionHighlightSettings selectionHighlightSettings;
+#endif
 
         // Render Graph
         static RenderGraph* GetRenderGraph();
@@ -182,18 +187,29 @@ namespace NE::Graphics {
         // Post-processing
         static std::unique_ptr<PostProcessPipeline> s_PostPipeline;
         static std::shared_ptr<OpenGL::GLShader> s_NormalPrepassShader;
-        static std::shared_ptr<OpenGL::GLShader> s_SelectionOutlineProgram;
+#ifndef PRODUCTION_BUILD
+        static std::shared_ptr<OpenGL::GLShader> s_SelectionMaskShader;
+		static uint32_t s_SelectionMaskTexture;
+		static uint32_t s_SelectionMaskFBO;
+		static uint32_t s_SelectionMaskWidth;
+		static uint32_t s_SelectionMaskHeight;
+#endif
         static std::unordered_set<uint32_t> s_SelectedEntityIds;
         
         static std::unique_ptr<ShadowRenderer> s_shadowRenderer;
         static uint32_t DecodeEntityIdFromRGB(const Math::Vec3& idRGB);
         static bool IsSelectedDrawCommand(const DrawCommand& command);
-        static void RenderSelectionHighlightForView(
+#ifndef PRODUCTION_BUILD
+        static void EnsureSelectionMaskResources(const RenderView& view);
+        static void ReleaseSelectionMaskResources();
+        static void RenderSelectionMaskForView(
             RenderViewHandle handle,
             const RenderView& view,
+            const Frustum& frustum,
             const Math::Mat4& camProj,
             const Math::Mat4& camView,
             const std::vector<DrawCommand>& commands);
+#endif
 
         // UI Rendering
         static void RenderUIOverlay();

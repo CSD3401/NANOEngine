@@ -6,6 +6,7 @@
 #include <ECS/Core/Entity.hpp>
 #include "../AssetManagement/AssetManager.hpp"
 #include <EditorInterface/RendererExports.hpp>
+#include <Graphics/Core/SelectionHighlightSettings.hpp>
 #include "../EditorUI.hpp"
 #include "../EditorScene.hpp"
 #include "Engine.hpp"
@@ -238,8 +239,15 @@ namespace Editor {
 			ImVec2 camMin = ImGui::GetItemRectMin();
 			ImVec2 camMax = ImGui::GetItemRectMax();
 
+			ImGui::SameLine();
+
+			bool openSelection = ImGui::Button("Selection Settings");
+			ImVec2 selectionMin = ImGui::GetItemRectMin();
+			ImVec2 selectionMax = ImGui::GetItemRectMax();
+
 			if (openGrid)   ImGui::OpenPopup("ToggleGridPopup");
 			if (openCamera) ImGui::OpenPopup("CameraSettingsPopup");
+			if (openSelection) ImGui::OpenPopup("SelectionSettingsPopup");
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
@@ -284,6 +292,35 @@ namespace Editor {
 				Editor::DrawFloatField("Min", EditorScene::m_cameraMinSpeed, 0.01f, true);
 				Editor::DrawFloatField("Max", EditorScene::m_cameraMaxSpeed, 0.01f, true);
 				ImGui::Unindent(50.f);
+
+				ImGui::EndPopup();
+			}
+
+			ImGui::SetNextWindowPos(ImVec2(selectionMin.x, selectionMax.y), ImGuiCond_Appearing);
+			ImGui::SetNextWindowSize(ImVec2(420.f, 320.f));
+			if (ImGui::BeginPopup("SelectionSettingsPopup")) {
+				auto& selectionSettings = NE::Renderer::Command::GetSelectionHighlightSettings();
+
+				ImGui::Text("Selection Highlight");
+				Editor::DrawCheckbox("Enabled", selectionSettings.enabled);
+				Editor::DrawCheckbox("Fill Tint", selectionSettings.fillEnabled);
+
+				ImGui::Spacing();
+				ImGui::Text("Outline");
+				ImGui::ColorEdit4("Outline Color", &selectionSettings.outlineColor.x);
+				Editor::DrawFloatSliderWithField("Thickness (px)", selectionSettings.outlineThicknessPx, 1.0f, 7.0f, 0.01f, true);
+				Editor::DrawFloatSliderWithField("Opacity", selectionSettings.outlineOpacity, 0.0f, 1.0f, 0.01f, true);
+				Editor::DrawFloatSliderWithField("Softness", selectionSettings.outlineSoftness, 0.0f, 3.0f, 0.01f, true);
+
+				ImGui::Spacing();
+				ImGui::Text("Fill");
+				ImGui::ColorEdit4("Fill Color", &selectionSettings.fillColor.x);
+				Editor::DrawFloatSliderWithField("Fill Intensity", selectionSettings.fillIntensity, 0.0f, 0.5f, 0.01f, true);
+
+				selectionSettings.outlineThicknessPx = std::clamp(selectionSettings.outlineThicknessPx, 1.0f, 4.0f);
+				selectionSettings.outlineOpacity = std::clamp(selectionSettings.outlineOpacity, 0.0f, 1.0f);
+				selectionSettings.outlineSoftness = std::clamp(selectionSettings.outlineSoftness, 0.0f, 3.0f);
+				selectionSettings.fillIntensity = std::clamp(selectionSettings.fillIntensity, 0.0f, 0.5f);
 
 				ImGui::EndPopup();
 			}

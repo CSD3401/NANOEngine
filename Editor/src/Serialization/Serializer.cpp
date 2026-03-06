@@ -44,6 +44,7 @@
 
 #include <Graphics/Core/RenderSettings.hpp>
 #include <Graphics/Core/PostProcessingSettings.hpp>
+#include <Graphics/Core/SelectionHighlightSettings.hpp>
 
 #include "JSONReflection.hpp"
 #include "../EditorScene.hpp"
@@ -394,6 +395,9 @@ namespace Editor {
 
 				doc.AddMember("editorCamera", obj, a);
 
+				auto& selectionSettings = NE::Renderer::Command::GetSelectionHighlightSettings();
+				doc.AddMember("selectionHighlight", ToJSON(selectionSettings, a), a);
+
 				rapidjson::StringBuffer sb;
 				rapidjson::PrettyWriter<rapidjson::StringBuffer> w(sb);
 				doc.Accept(w);
@@ -699,6 +703,11 @@ namespace Editor {
 						FromJSON(camObj["hasEasing"], EditorScene::m_cameraUseEasing);
 					if (camObj.HasMember("hasAcceleration"))
 						FromJSON(camObj["hasAcceleration"], EditorScene::m_cameraUseAcceleration);
+				}
+
+				if (doc.HasMember("selectionHighlight") && doc["selectionHighlight"].IsObject()) {
+					auto& selectionSettings = NE::Renderer::Command::GetSelectionHighlightSettings();
+					FromJSON(doc["selectionHighlight"], selectionSettings);
 				}
 			}
 		}

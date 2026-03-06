@@ -1,0 +1,45 @@
+#type vertex
+#version 460 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 2) in vec2 a_TexCoord;
+layout(location = 5) in mat4 i_Model;
+
+uniform mat4 u_View;
+uniform mat4 u_Projection;
+
+out vec2 v_UV;
+
+void main() {
+    v_UV = a_TexCoord;
+    gl_Position = u_Projection * u_View * i_Model * vec4(aPos, 1.0);
+}
+
+#type fragment
+#version 460 core
+
+in vec2 v_UV;
+
+layout(location = 0) out uint OutMask;
+
+uniform float u_Opacity;
+uniform sampler2D u_OpacityMap;
+uniform int h_HasOpacityMap;
+uniform int u_AlphaClip;
+uniform float u_AlphaCutoff;
+uniform vec3 u_Tiling;
+uniform vec3 u_Offset;
+
+void main() {
+    vec2 uv = v_UV * u_Tiling.xy + u_Offset.xy;
+    float alpha = clamp(u_Opacity, 0.0, 1.0);
+    if (h_HasOpacityMap != 0) {
+        alpha *= clamp(texture(u_OpacityMap, uv).r, 0.0, 1.0);
+    }
+
+    if (u_AlphaClip != 0 && alpha < u_AlphaCutoff) {
+        discard;
+    }
+
+    OutMask = 1u;
+}
