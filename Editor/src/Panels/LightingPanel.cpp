@@ -6,6 +6,7 @@
 #include <Graphics/Core/PostProcessingSettings.hpp>
 #include <EditorInterface/RendererExports.hpp>
 #include "../EditorUI.hpp"
+#include "../Lighting/LightmapAtlasAllocator.hpp"
 #include <algorithm>
 
 
@@ -235,7 +236,109 @@ namespace Editor {
 
 		} break;
 		case 3: {
+			auto& previewState = Editor::Lightmapping::GetLightmapAllocationPreviewState();
 
+			ImGui::TextWrapped("Atlas allocation is editor-only in Part 3. This pass computes deterministic page placement and UV transforms, then writes them into per-entity LightmapBinding data.");
+			ImGui::Spacing();
+
+			ImGui::Text("Texels Per Unit");
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(140.0f);
+			ImGui::DragFloat("##TexelsPerUnit", &m_texelsPerUnit, 0.25f, 0.25f, 256.0f, "%.2f");
+			m_texelsPerUnit = std::max(0.25f, m_texelsPerUnit);
+
+			ImGui::Text("Page Size");
+			ImGui::SameLine();
+			ImGui::TextDisabled("%d x %d", Editor::Lightmapping::kDefaultLightmapPageSize, Editor::Lightmapping::kDefaultLightmapPageSize);
+
+			ImGui::Text("Padding");
+			ImGui::SameLine();
+			ImGui::TextDisabled("%d px", Editor::Lightmapping::kDefaultLightmapPadding);
+
+			if (ImGui::Button("Run Allocation")) {
+				Editor::Lightmapping::LightmapAllocationSettings settings{};
+				settings.texelsPerUnit = m_texelsPerUnit;
+				Editor::Lightmapping::RunSceneLightmapAllocation(settings);
+			}
+
+			ImGui::Spacing();
+			ImGui::Separator();
+
+			if (!previewState.hasRun) {
+				ImGui::TextDisabled("Run allocation to generate atlas pages, UV transforms, and skip diagnostics.");
+				break;
+			}
+
+			const auto& report = previewState.report;
+			ImGui::Text("Eligible Entities");
+			ImGui::SameLine();
+			ImGui::TextDisabled("%zu", report.eligibleEntityCount);
+
+			ImGui::Text("Allocated Entities");
+			ImGui::SameLine();
+			ImGui::TextDisabled("%zu", report.allocatedEntityCount);
+
+			ImGui::Text("Skipped Entities");
+			ImGui::SameLine();
+			ImGui::TextDisabled("%zu", report.skippedEntityCount);
+
+			ImGui::Text("Opted Out");
+			ImGui::SameLine();
+			ImGui::TextDisabled("%zu", report.optedOutEntityCount);
+
+			ImGui::Text("Total Pages");
+			ImGui::SameLine();
+			ImGui::TextDisabled("%zu", report.totalPages);
+
+			ImGui::Spacing();
+			if (ImGui::CollapsingHeader("Per-Page Occupancy", ImGuiTreeNodeFlags_DefaultOpen)) {
+				if (previewState.pages.empty()) {
+					ImGui::TextDisabled("No atlas pages were created.");
+				}
+
+				for (const auto& page : previewState.pages) {
+					const float occupancy =
+						page.width > 0 && page.height > 0
+						? static_cast<float>(page.usedArea) / static_cast<float>(page.width * page.height)
+						: 0.0f;
+					ImGui::Text("%s", page.pageId.c_str());
+					ImGui::SameLine();
+					ImGui::TextDisabled("%d placements", static_cast<int>(page.placements.size()));
+					ImGui::ProgressBar(std::clamp(occupancy, 0.0f, 1.0f), ImVec2(-1.0f, 0.0f));
+				}
+			}
+
+			if (ImGui::CollapsingHeader("Allocation Warnings", ImGuiTreeNodeFlags_DefaultOpen)) {
+				if (report.failureCounts.empty()) {
+					ImGui::TextDisabled("No warnings. All considered entities allocated cleanly.");
+				} else {
+					for (const auto& [reason, count] : report.failureCounts) {
+						ImGui::BulletText("%s: %d", reason.c_str(), count);
+					}
+				}
+			}
+
+			if (ImGui::CollapsingHeader("Example Results", ImGuiTreeNodeFlags_DefaultOpen)) {
+				int shown = 0;
+				for (const auto& entry : report.entries) {
+					if (entry.status == Editor::Lightmapping::LightmapEntityStatusKind::Allocated) {
+						continue;
+					}
+
+					ImGui::BulletText(
+						"%s [%s] %s",
+						entry.entityName.c_str(),
+						Editor::Lightmapping::ToString(entry.status),
+						entry.message.c_str());
+					if (++shown >= 12) {
+						break;
+					}
+				}
+
+				if (shown == 0) {
+					ImGui::TextDisabled("No skipped or unresolved entities to report.");
+				}
+			}
 		} break;
 		}
 

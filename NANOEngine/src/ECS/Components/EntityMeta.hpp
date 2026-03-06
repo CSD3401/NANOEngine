@@ -7,10 +7,12 @@ namespace NE::ECS::Component {
 		std::string name = "Empty Entity";
 		uint64_t luid = 0;
 		bool isActive = true;
+		bool isStatic = false;
 
 		NE_REFLECT_BEGIN(EntityMeta)
 			NE_REFLECT_FIELD(name),
 			NE_REFLECT_FIELD(isActive),
+			NE_REFLECT_FIELD(isStatic),
 			NE_REFLECT_FIELD_HIDDEN(luid)
 		NE_REFLECT_END()
 	};
