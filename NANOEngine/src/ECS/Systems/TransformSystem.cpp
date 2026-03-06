@@ -108,7 +108,8 @@ namespace NE::ECS::Systems {
 		}
 
 		for (uint32_t child : h.children) {
-			UpdateWorldRecursive(child, t.worldMatrix, worldDirty);
+			//if (m_componentManager->HasComponent<Component::Transform>(child))
+				UpdateWorldRecursive(child, t.worldMatrix, worldDirty);
 		}
 	}
 }

@@ -287,12 +287,19 @@ namespace Component {
         float maxValue = 1.0f;
         bool wholeNumbers = false;
         Direction direction = Direction::LEFT_TO_RIGHT;
+        uint64_t fillRectLuid = 0;
+        uint64_t handleRectLuid = 0;
+        uint64_t backgroundRectLuid = 0;
+        uint64_t fillAreaRectLuid = 0;
+        uint64_t handleSlideAreaRectLuid = 0;
+        bool interactable = true;
+
+        // === RUNTIME FIELDS (managed by engine, resolved from luids after load) ===
         uint32_t fillRect = UINT32_MAX;
         uint32_t handleRect = UINT32_MAX;
         uint32_t backgroundRect = UINT32_MAX;
-        bool interactable = true;
-
-        // === RUNTIME FIELDS (managed by engine) ===
+        uint32_t fillAreaRect = UINT32_MAX;
+        uint32_t handleSlideAreaRect = UINT32_MAX;
         bool isDragging = false;
         bool valueChanged = false;      ///< True for one frame when value changes
         float previousValue = 0.0f;

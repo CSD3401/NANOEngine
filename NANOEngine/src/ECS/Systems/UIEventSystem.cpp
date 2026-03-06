@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "UIEventSystem.hpp"
+#include "../Core/EntityManager.hpp"
 #include "../../Input/InputManager.hpp"
 #include "../../Graphics/Core/GraphicsManager.hpp"
 #include "../../Graphics/Core/EditorCamera.hpp"
@@ -41,7 +42,7 @@ namespace NE::ECS::Systems {
     float UIEventSystem::s_uiWidth = 1920.0f;
     float UIEventSystem::s_uiHeight = 1080.0f;
 
-    UIEventSystem::UIEventSystem(ComponentManager* cm) : m_cm(cm) {}
+    UIEventSystem::UIEventSystem(ComponentManager* cm, EntityManager* em) : m_cm(cm), m_entityManager(em) {}
 
     void UIEventSystem::Init() {}
     Entity UIEventSystem::FindOwningCanvas(Entity entity) const
@@ -64,7 +65,7 @@ namespace NE::ECS::Systems {
 
     bool UIEventSystem::IsActiveForUI(Entity entity, Entity canvasEntity) const
     {
-        return UIUtil::IsActiveForUI(m_cm, entity, canvasEntity);
+        return UIUtil::IsActiveForUI(m_cm, m_entityManager, entity, canvasEntity);
     }
 
     void UIEventSystem::OnEntityAdded(Entity e) {}
@@ -456,14 +457,21 @@ namespace NE::ECS::Systems {
     void UIEventSystem::UpdateSliderStates(float mouseX, float mouseY, bool mouseDown, bool mousePressed, bool mouseReleased) {
         const auto& entities = GetEntities();
 
-        // Handle mouse press on slider
+        // Handle mouse press on slider — walk up from pressed entity to find owning slider
+        // (pressing the Background or Handle image lands on a child, not the slider root itself)
         if (mousePressed && m_pressedEntity != NO_ENTITY) {
-            if (m_cm->HasComponent<UISlider>(m_pressedEntity)) {
-                auto& slider = m_cm->GetComponent<UISlider>(m_pressedEntity);
-                if (slider.interactable) {
-                    m_draggingSlider = m_pressedEntity;
-                    slider.isDragging = true;
+            Entity candidate = m_pressedEntity;
+            while (candidate != NO_ENTITY) {
+                if (m_cm->HasComponent<UISlider>(candidate)) {
+                    auto& slider = m_cm->GetComponent<UISlider>(candidate);
+                    if (slider.interactable) {
+                        m_draggingSlider = candidate;
+                        slider.isDragging = true;
+                    }
+                    break;
                 }
+                if (!m_cm->HasComponent<Hierarchy>(candidate)) break;
+                candidate = m_cm->GetComponent<Hierarchy>(candidate).parent;
             }
         }
 
@@ -498,7 +506,13 @@ namespace NE::ECS::Systems {
                 if (canvasEntity != NO_ENTITY && m_cm->HasComponent<UICanvas>(canvasEntity)) {
                     auto& canvas = m_cm->GetComponent<UICanvas>(canvasEntity);
                     float worldX, worldY, worldWidth, worldHeight;
-                    CalculateWorldRect(m_draggingSlider, canvasEntity, canvas, worldX, worldY, worldWidth, worldHeight);
+                    // Use handleSlideAreaRect for exact drag mapping (inset by handle width)
+                    Entity dragRectEntity = m_draggingSlider;
+                    if (slider.handleSlideAreaRect != UINT32_MAX &&
+                        m_cm->HasComponent<UIRectTransform>(slider.handleSlideAreaRect)) {
+                        dragRectEntity = slider.handleSlideAreaRect;
+                    }
+                    CalculateWorldRect(dragRectEntity, canvasEntity, canvas, worldX, worldY, worldWidth, worldHeight);
 
                     // Calculate normalized value based on mouse position
                     float normalized = 0.0f;
@@ -533,6 +547,44 @@ namespace NE::ECS::Systems {
             }
         }
 
+        // Scroll wheel support: adjust hovered slider value — walk up to find owning slider
+        Entity scrollSliderEnt = NO_ENTITY;
+        {
+            Entity candidate = m_hoveredEntity;
+            while (candidate != NO_ENTITY) {
+                if (m_cm->HasComponent<UISlider>(candidate)) { scrollSliderEnt = candidate; break; }
+                if (!m_cm->HasComponent<Hierarchy>(candidate)) break;
+                candidate = m_cm->GetComponent<Hierarchy>(candidate).parent;
+            }
+        }
+        if (scrollSliderEnt != NO_ENTITY) {
+            auto& hovSlider = m_cm->GetComponent<UISlider>(scrollSliderEnt);
+            if (hovSlider.interactable) {
+                auto [scrollX, scrollY] = NE::InputManager::ScrollDelta();
+                float scroll = hovSlider.IsHorizontal() ? static_cast<float>(scrollX + scrollY)
+                                                        : static_cast<float>(scrollY);
+                if (scroll != 0.0f) {
+                    float step = hovSlider.wholeNumbers
+                        ? 1.0f
+                        : (hovSlider.maxValue - hovSlider.minValue) * 0.1f;
+                    float oldValue = hovSlider.value;
+                    hovSlider.value += scroll * step;
+                    hovSlider.ClampValue();
+                    if (hovSlider.wholeNumbers) {
+                        hovSlider.value = static_cast<float>(static_cast<int>(hovSlider.value + 0.5f));
+                        hovSlider.ClampValue();
+                    }
+                    if (hovSlider.value != oldValue) {
+                        hovSlider.valueChanged = true;
+                        NANOEngine::Events::EventBus::Get().Dispatch(
+                            NANOEngine::Events::EventDomain::Engine,
+                            NANOEngine::Events::UISliderValueChangedEvent{ scrollSliderEnt, hovSlider.value, oldValue }
+                        );
+                    }
+                }
+            }
+        }
+
         // Every frame: sync fill rect and handle position for ALL sliders based on current value
         for (Entity e : entities) {
             if (!m_cm->HasComponent<UISlider>(e)) continue;
@@ -544,32 +596,37 @@ namespace NE::ECS::Systems {
             float fillNormalized = slider.GetNormalizedValue();
             float handleNormalized = fillNormalized;
 
-            // Update fill rect: grows from left (horizontal) or bottom (vertical)
-            if (slider.fillRect != UINT32_MAX && m_cm->HasComponent<UIRectTransform>(slider.fillRect)) {
-                auto& fillRect = m_cm->GetComponent<UIRectTransform>(slider.fillRect);
-
+            // Update fill rect via fill area (area-relative positioning)
+            if (slider.fillAreaRect != UINT32_MAX && slider.fillRect != UINT32_MAX &&
+                m_cm->HasComponent<UIRectTransform>(slider.fillAreaRect) &&
+                m_cm->HasComponent<UIRectTransform>(slider.fillRect)) {
+                auto& fillAreaRt = m_cm->GetComponent<UIRectTransform>(slider.fillAreaRect);
+                auto& fillRt = m_cm->GetComponent<UIRectTransform>(slider.fillRect);
+                // Compute effective area size from parent rect + offsets (stretch anchor formula)
                 if (slider.IsHorizontal()) {
-                    fillRect.width = rect.width * fillNormalized;
-                    // Keep left edge fixed: center x = left_edge + half_fill_width
-                    fillRect.x = -rect.width * 0.5f + fillRect.width * 0.5f;
+                    float areaWidth = rect.width + fillAreaRt.offsetMaxX - fillAreaRt.offsetMinX;
+                    fillRt.width = areaWidth * fillNormalized;
+                    // pivotX=0, left-anchored: x stays at 0
                 } else {
-                    fillRect.height = rect.height * fillNormalized;
-                    // Keep bottom edge fixed: center y = bottom_edge - half_fill_height
-                    // (y increases downward in UI space, so bottom = +height/2)
-                    fillRect.y = rect.height * 0.5f - fillRect.height * 0.5f;
+                    float areaHeight = rect.height + fillAreaRt.offsetMaxY - fillAreaRt.offsetMinY;
+                    fillRt.height = areaHeight * fillNormalized;
+                    // pivotY=0, bottom-anchored: y stays at 0
                 }
             }
 
-            // Update handle position along the track
-            if (slider.handleRect != UINT32_MAX && m_cm->HasComponent<UIRectTransform>(slider.handleRect)) {
-                auto& handleRect = m_cm->GetComponent<UIRectTransform>(slider.handleRect);
-
+            // Update handle position via handle slide area (area-relative positioning)
+            if (slider.handleSlideAreaRect != UINT32_MAX && slider.handleRect != UINT32_MAX &&
+                m_cm->HasComponent<UIRectTransform>(slider.handleSlideAreaRect) &&
+                m_cm->HasComponent<UIRectTransform>(slider.handleRect)) {
+                auto& handleAreaRt = m_cm->GetComponent<UIRectTransform>(slider.handleSlideAreaRect);
+                auto& handleRt = m_cm->GetComponent<UIRectTransform>(slider.handleRect);
                 if (slider.IsHorizontal()) {
-                    float trackWidth = rect.width - handleRect.width;
-                    handleRect.x = trackWidth * handleNormalized - trackWidth * 0.5f;
+                    float areaWidth = rect.width + handleAreaRt.offsetMaxX - handleAreaRt.offsetMinX;
+                    float newX = areaWidth * handleNormalized - areaWidth * 0.5f;
+                    handleRt.x = newX;
                 } else {
-                    float trackHeight = rect.height - handleRect.height;
-                    handleRect.y = trackHeight * handleNormalized - trackHeight * 0.5f;
+                    float areaHeight = rect.height + handleAreaRt.offsetMaxY - handleAreaRt.offsetMinY;
+                    handleRt.y = areaHeight * handleNormalized - areaHeight * 0.5f;
                 }
             }
         }
@@ -1247,6 +1304,9 @@ namespace NE::ECS::Systems {
             }
 
             // Apply inertia (when not dragging)
+            if (!scroll.isDragging && !scroll.inertia) {
+                scroll.velocity = Math::Vec2(0.f, 0.f);
+            }
             if (!scroll.isDragging && (std::abs(scroll.velocity.x) > 0.1f || std::abs(scroll.velocity.y) > 0.1f)) {
                 if (scroll.horizontal) contentRect.x += scroll.velocity.x * dt;
                 if (scroll.vertical) contentRect.y += scroll.velocity.y * dt;
@@ -1303,14 +1363,22 @@ namespace NE::ECS::Systems {
             }
 
             // Update normalized position
-            float maxScrollX = std::max(0.001f, scroll.contentWidth - scroll.viewportWidth);
-            float maxScrollY = std::max(0.001f, scroll.contentHeight - scroll.viewportHeight);
-            float halfVpW = scroll.viewportWidth * 0.5f;
-            float halfVpH = scroll.viewportHeight * 0.5f;
-            float baseX = halfVpW - scroll.contentWidth * contentRect.pivotX;
-            float baseY = halfVpH - scroll.contentHeight * contentRect.pivotY;
-            scroll.normalizedPosition.x = std::max(0.f, std::min(1.f, (baseX - contentRect.x) / maxScrollX));
-            scroll.normalizedPosition.y = std::max(0.f, std::min(1.f, (baseY - contentRect.y) / maxScrollY));
+            float scrollRangeX = scroll.contentWidth - scroll.viewportWidth;
+            float scrollRangeY = scroll.contentHeight - scroll.viewportHeight;
+            if (scrollRangeX <= 0.f) {
+                scroll.normalizedPosition.x = 0.f;
+            } else {
+                float halfVpW = scroll.viewportWidth * 0.5f;
+                float baseX = halfVpW - scroll.contentWidth * contentRect.pivotX;
+                scroll.normalizedPosition.x = std::max(0.f, std::min(1.f, (baseX - contentRect.x) / scrollRangeX));
+            }
+            if (scrollRangeY <= 0.f) {
+                scroll.normalizedPosition.y = 0.f;
+            } else {
+                float halfVpH = scroll.viewportHeight * 0.5f;
+                float baseY = halfVpH - scroll.contentHeight * contentRect.pivotY;
+                scroll.normalizedPosition.y = std::max(0.f, std::min(1.f, (baseY - contentRect.y) / scrollRangeY));
+            }
         }
     }
 
@@ -1426,12 +1494,18 @@ namespace NE::ECS::Systems {
     // Input Field Handling
     //=========================================================================
 
-    bool UIEventSystem::IsCharAllowed(char32_t codepoint, const UIInputField& field) {
+    bool UIEventSystem::IsCharAllowed(char32_t codepoint, const UIInputField& field, int cursorPos, const std::string& currentText) {
         switch (field.contentType) {
         case UIInputField::ContentType::INTEGER:
-            return (codepoint >= '0' && codepoint <= '9') || codepoint == '-';
+            if (codepoint == '-')
+                return cursorPos == 0 && currentText.find('-') == std::string::npos;
+            return (codepoint >= '0' && codepoint <= '9');
         case UIInputField::ContentType::DECIMAL:
-            return (codepoint >= '0' && codepoint <= '9') || codepoint == '-' || codepoint == '.';
+            if (codepoint == '-')
+                return cursorPos == 0 && currentText.find('-') == std::string::npos;
+            if (codepoint == '.')
+                return currentText.find('.') == std::string::npos;
+            return (codepoint >= '0' && codepoint <= '9');
         case UIInputField::ContentType::ALPHA_NUMERIC:
             return (codepoint >= 'a' && codepoint <= 'z') ||
                    (codepoint >= 'A' && codepoint <= 'Z') ||
@@ -1572,9 +1646,14 @@ namespace NE::ECS::Systems {
                         // Filter pasted text through content type validation
                         std::string filteredText;
                         filteredText.reserve(pasteText.size());
+                        std::string simulated = field.text;
+                        int simPos = field.cursorPosition;
                         for (unsigned char ch : pasteText) {
-                            if (IsCharAllowed(static_cast<char32_t>(ch), field))
+                            if (IsCharAllowed(static_cast<char32_t>(ch), field, simPos, simulated)) {
+                                simulated.insert(simulated.begin() + simPos, static_cast<char>(ch));
+                                simPos++;
                                 filteredText += static_cast<char>(ch);
+                            }
                         }
                         if (!filteredText.empty()) {
                             InsertText(field, filteredText);
@@ -1612,7 +1691,7 @@ namespace NE::ECS::Systems {
             // Character input
             uint32_t codepoint;
             while ((codepoint = NE::InputManager::PopChar()) != 0) {
-                if (!ctrlHeld && IsCharAllowed(codepoint, field)) {
+                if (!ctrlHeld && IsCharAllowed(codepoint, field, field.cursorPosition, field.text)) {
                     // Convert codepoint to UTF-8 (full Unicode support)
                     // Characters not in the font atlas are dropped gracefully at render time
                     std::string utf8Text;

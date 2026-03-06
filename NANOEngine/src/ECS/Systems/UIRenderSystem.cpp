@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "UIRenderSystem.hpp"
+#include "../Core/EntityManager.hpp"
 #include "../Components/UIRectTransform.hpp"
 #include "../Components/UIImage.hpp"
 #include "../Components/UIText.hpp"
@@ -45,14 +46,14 @@ namespace NE::ECS::Systems {
     // Lifecycle
     //=========================================================================
 
-    UIRenderSystem::UIRenderSystem(ComponentManager* cm) : m_cm(cm)
+    UIRenderSystem::UIRenderSystem(ComponentManager* cm, EntityManager* em) : m_cm(cm), m_entityManager(em)
     {
         m_currentView.SetToIdentity();
         m_currentProj.SetToIdentity();
     }
     bool UIRenderSystem::IsActiveForUI(Entity entity, Entity canvasEntity) const
     {
-        return UIUtil::IsActiveForUI(m_cm, entity, canvasEntity);
+        return UIUtil::IsActiveForUI(m_cm, m_entityManager, entity, canvasEntity);
     }
 
     void UIRenderSystem::OnEntityAdded(Entity e)
@@ -376,6 +377,22 @@ namespace NE::ECS::Systems {
 
             // Render text entities with batching
             RenderCanvasTextChildren(canvasEntity, canvas);
+
+            // Cache world rects for container entities (UIRectTransform-only, no UIImage/UIText).
+            // Without this pass their cachedWorldX/Y stay at 0 and the editor gizmo draws at top-left.
+            for (Entity e : m_canvasChildrenMap[canvasEntity].containers) {
+                auto& rect = m_cm->GetComponent<UIRectTransform>(e);
+                AccumulatedTransform accumulated = m_layoutEngine->AccumulateParentTransforms(e, canvasEntity, canvas);
+                WorldTransform worldTransform = m_layoutEngine->CalculateWorldTransformFromAccumulated(e, canvas, accumulated);
+                rect.cachedWorldX      = worldTransform.x;
+                rect.cachedWorldY      = worldTransform.y;
+                rect.cachedWorldWidth  = worldTransform.width;
+                rect.cachedWorldHeight = worldTransform.height;
+                rect.cachedWorldRotZ   = worldTransform.accumulatedRotationZ;
+                rect.cachedWorldScaleX = worldTransform.accumulatedScaleX;
+                rect.cachedWorldScaleY = worldTransform.accumulatedScaleY;
+                rect.worldRectCached   = true;
+            }
         }
     }
 
@@ -694,6 +711,7 @@ namespace NE::ECS::Systems {
 
             if (hasImage) { out.images.push_back(child); m_frameUIElements++; }
             if (hasText)  { out.texts.push_back(child);  m_frameUIElements++; }
+            if (!hasImage && !hasText) { out.containers.push_back(child); }
 
             CollectChildrenInOrder(canvasEntity, child, out);
         }
@@ -853,6 +871,22 @@ namespace NE::ECS::Systems {
                     worldTransform.width, worldTransform.height,
                     img.color, img.bindlessHandle
                 );
+
+            // Apply rotation to screen-space vertices (same as text path)
+            if (!verticesV2.empty() && std::abs(worldTransform.accumulatedRotationZ) > 0.0001f) {
+                float rot = worldTransform.accumulatedRotationZ * (3.1415926535f / 180.0f);
+                float pivotX = worldTransform.x + worldTransform.width * rect.pivotX;
+                float pivotY = worldTransform.y + worldTransform.height * rect.pivotY;
+                float c = std::cos(rot);
+                float s = std::sin(rot);
+
+                for (auto& v : verticesV2) {
+                    float rx = v.Position.x - pivotX;
+                    float ry = v.Position.y - pivotY;
+                    v.Position.x = pivotX + (rx * c - ry * s);
+                    v.Position.y = pivotY + (rx * s + ry * c);
+                }
+            }
 
             if (!verticesV2.empty()) {
                 std::optional<NE::Graphics::ScissorRect> scissor = ComputeScissorRect(e, canvasEntity, canvas);
@@ -1126,6 +1160,9 @@ namespace NE::ECS::Systems {
             key.enableDepthTest = false;
             key.scissorRect = scissor;
             key.sortingOrder = rect.z + canvas.sortingOrder * 1000.0f;
+            if (auto it = m_textCache.find(entity); it != m_textCache.end()) {
+                key.fontAtlasHandle = it->second.fontAtlasHandle;
+            }
 
             UIBatch& batch = batchMap[key];
             uint32_t baseVertex = static_cast<uint32_t>(batch.vertices.size());

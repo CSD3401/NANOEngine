@@ -1165,6 +1165,13 @@ namespace NE::Graphics {
 
                 Math::Mat4 gameInvProj = gameProj.Inverse();
                 s_PostPipeline->Execute(s_GameViewHandle, s_FinalGameOutputHandle, gameInvProj, gameView, gameProj, false);
+            } else if (gameDestFramebuffer) {
+                // No game camera — clear the game output FBO so stale content
+                // from previous frames doesn't bleed through behind UI overlays
+                s_RenderViewManager->Bind(s_FinalGameOutputHandle);
+                glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                s_RenderViewManager->Unbind();
             }
         }
 
