@@ -390,105 +390,83 @@ namespace Editor {
 		uint32_t parentForSlider = (m_parentEntity != NE::ECS::NO_ENTITY && NE::ECS::Query::HasUIRectTransform(m_parentEntity))
 			? m_parentEntity : canvasEntity;
 
-		// Create root slider entity: UIRectTransform + UISlider (no UIImage on root)
+		// Create the slider root entity
 		m_entity = NE::ECS::Command::CreateEntityNoComponents();
+
 		NE::ECS::Command::AddEntityMetaComponent(m_entity,
 			NE::ECS::Component::EntityMeta{ .name = "Slider", .luid = NE::Core::LUIDGenerator::Generate("em") });
+
 		NE::ECS::Command::AddHierarchyComponent(m_entity, NE::ECS::Component::Hierarchy{});
+
+		// Setup UIRectTransform for slider root
 		NE::ECS::Component::UIRectTransform sliderRect{};
-		sliderRect.width = 200.0f;
+		sliderRect.width = 160.0f;
 		sliderRect.height = 20.0f;
+		sliderRect.x = 0.0f;
+		sliderRect.y = 0.0f;
+		// NOTE: Parent relationship now managed by Hierarchy component via SetParent call below
 		NE::ECS::Command::AddUIRectTransformComponent(m_entity, sliderRect);
+
+		// Setup UIImage for background
+		NE::ECS::Component::UIImage bgImg{};
+		bgImg.color = NE::Math::Vec4(0.3f, 0.3f, 0.3f, 1.0f);
+		bgImg.raycastTarget = true;
+		NE::ECS::Command::AddUIImageComponent(m_entity, bgImg);
+
+		// Set hierarchy parent for slider root
 		NE::ECS::Command::SetParent(m_entity, parentForSlider, -1, false);
 
-		// Background child: grey image, stretch-fill parent
-		m_backgroundEntity = NE::ECS::Command::CreateEntityNoComponents();
-		NE::ECS::Command::AddEntityMetaComponent(m_backgroundEntity,
-			NE::ECS::Component::EntityMeta{ .name = "Background", .luid = NE::Core::LUIDGenerator::Generate("em") });
-		NE::ECS::Command::AddHierarchyComponent(m_backgroundEntity, NE::ECS::Component::Hierarchy{});
-		{
-			NE::ECS::Component::UIRectTransform r{};
-			r.anchorMinX = 0.0f; r.anchorMinY = 0.0f;
-			r.anchorMaxX = 1.0f; r.anchorMaxY = 1.0f;
-			NE::ECS::Command::AddUIRectTransformComponent(m_backgroundEntity, r);
-		}
-		{
-			NE::ECS::Component::UIImage img{};
-			img.color = NE::Math::Vec4(0.7f, 0.7f, 0.7f, 1.0f);
-			img.raycastTarget = true;
-			NE::ECS::Command::AddUIImageComponent(m_backgroundEntity, img);
-		}
-		NE::ECS::Command::SetParent(m_backgroundEntity, m_entity, -1, false);
-
-		// Fill Area child: stretch-fill, inset 10px on each side
-		m_fillAreaEntity = NE::ECS::Command::CreateEntityNoComponents();
-		NE::ECS::Command::AddEntityMetaComponent(m_fillAreaEntity,
-			NE::ECS::Component::EntityMeta{ .name = "Fill Area", .luid = NE::Core::LUIDGenerator::Generate("em") });
-		NE::ECS::Command::AddHierarchyComponent(m_fillAreaEntity, NE::ECS::Component::Hierarchy{});
-		{
-			NE::ECS::Component::UIRectTransform r{};
-			r.anchorMinX = 0.0f; r.anchorMinY = 0.0f;
-			r.anchorMaxX = 1.0f; r.anchorMaxY = 1.0f;
-			r.offsetMinX = 10.0f; r.offsetMaxX = -10.0f;
-			NE::ECS::Command::AddUIRectTransformComponent(m_fillAreaEntity, r);
-		}
-		NE::ECS::Command::SetParent(m_fillAreaEntity, m_entity, -1, false);
-
-		// Fill grandchild: blue image, left-anchored, pivotX=0
+		// Create Fill Area entity
 		m_fillEntity = NE::ECS::Command::CreateEntityNoComponents();
+
 		NE::ECS::Command::AddEntityMetaComponent(m_fillEntity,
 			NE::ECS::Component::EntityMeta{ .name = "Fill", .luid = NE::Core::LUIDGenerator::Generate("em") });
+
 		NE::ECS::Command::AddHierarchyComponent(m_fillEntity, NE::ECS::Component::Hierarchy{});
-		{
-			NE::ECS::Component::UIRectTransform r{};
-			r.anchorMinX = 0.0f; r.anchorMinY = 0.0f;
-			r.anchorMaxX = 0.0f; r.anchorMaxY = 1.0f;
-			r.pivotX = 0.0f; r.pivotY = 0.5f;
-			r.width = 0.0f;
-			NE::ECS::Command::AddUIRectTransformComponent(m_fillEntity, r);
-		}
-		{
-			NE::ECS::Component::UIImage img{};
-			img.color = NE::Math::Vec4(0.2f, 0.6f, 1.0f, 1.0f);
-			img.raycastTarget = false;
-			NE::ECS::Command::AddUIImageComponent(m_fillEntity, img);
-		}
-		NE::ECS::Command::SetParent(m_fillEntity, m_fillAreaEntity, -1, false);
 
-		// Handle Slide Area child: same insets as Fill Area
-		m_handleAreaEntity = NE::ECS::Command::CreateEntityNoComponents();
-		NE::ECS::Command::AddEntityMetaComponent(m_handleAreaEntity,
-			NE::ECS::Component::EntityMeta{ .name = "Handle Slide Area", .luid = NE::Core::LUIDGenerator::Generate("em") });
-		NE::ECS::Command::AddHierarchyComponent(m_handleAreaEntity, NE::ECS::Component::Hierarchy{});
-		{
-			NE::ECS::Component::UIRectTransform r{};
-			r.anchorMinX = 0.0f; r.anchorMinY = 0.0f;
-			r.anchorMaxX = 1.0f; r.anchorMaxY = 1.0f;
-			r.offsetMinX = 10.0f; r.offsetMaxX = -10.0f;
-			NE::ECS::Command::AddUIRectTransformComponent(m_handleAreaEntity, r);
-		}
-		NE::ECS::Command::SetParent(m_handleAreaEntity, m_entity, -1, false);
+		// Setup UIRectTransform for fill
+		NE::ECS::Component::UIRectTransform fillRect{};
+		fillRect.anchorMinX = 0.0f; fillRect.anchorMinY = 0.0f;
+		fillRect.anchorMaxX = 0.0f; fillRect.anchorMaxY = 1.0f;  // Fill from left
+		fillRect.offsetMinX = 2.0f; fillRect.offsetMinY = 2.0f;
+		fillRect.offsetMaxX = 0.0f; fillRect.offsetMaxY = -2.0f;
+		fillRect.width = 0.0f;  // Will be controlled by slider value
+		fillRect.height = 16.0f;
+		// NOTE: Parent relationship now managed by Hierarchy component via SetParent call below
+		NE::ECS::Command::AddUIRectTransformComponent(m_fillEntity, fillRect);
 
-		// Handle grandchild: white 20x20, center-anchored
+		// Setup UIImage for fill
+		NE::ECS::Component::UIImage fillImg{};
+		fillImg.color = NE::Math::Vec4(0.2f, 0.6f, 1.0f, 1.0f);  // Blue fill
+		fillImg.raycastTarget = false;
+		NE::ECS::Command::AddUIImageComponent(m_fillEntity, fillImg);
+
+		NE::ECS::Command::SetParent(m_fillEntity, m_entity, -1, false);
+
+		// Create Handle entity
 		m_handleEntity = NE::ECS::Command::CreateEntityNoComponents();
+
 		NE::ECS::Command::AddEntityMetaComponent(m_handleEntity,
 			NE::ECS::Component::EntityMeta{ .name = "Handle", .luid = NE::Core::LUIDGenerator::Generate("em") });
+
 		NE::ECS::Command::AddHierarchyComponent(m_handleEntity, NE::ECS::Component::Hierarchy{});
-		{
-			NE::ECS::Component::UIRectTransform r{};
-			r.anchorMinX = 0.5f; r.anchorMinY = 0.5f;
-			r.anchorMaxX = 0.5f; r.anchorMaxY = 0.5f;
-			r.pivotX = 0.5f; r.pivotY = 0.5f;
-			r.width = 20.0f; r.height = 20.0f;
-			NE::ECS::Command::AddUIRectTransformComponent(m_handleEntity, r);
-		}
-		{
-			NE::ECS::Component::UIImage img{};
-			img.color = NE::Math::Vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			img.raycastTarget = true;
-			NE::ECS::Command::AddUIImageComponent(m_handleEntity, img);
-		}
-		NE::ECS::Command::SetParent(m_handleEntity, m_handleAreaEntity, -1, false);
+
+		// Setup UIRectTransform for handle
+		NE::ECS::Component::UIRectTransform handleRect{};
+		handleRect.width = 20.0f;
+		handleRect.height = 20.0f;
+		handleRect.x = 0.0f;  // Will be controlled by slider value
+		handleRect.y = 0.0f;
+		// NOTE: Parent relationship now managed by Hierarchy component via SetParent call below
+		NE::ECS::Command::AddUIRectTransformComponent(m_handleEntity, handleRect);
+
+		// Setup UIImage for handle
+		NE::ECS::Component::UIImage handleImg{};
+		handleImg.color = NE::Math::Vec4(1.0f, 1.0f, 1.0f, 1.0f);  // White handle
+		handleImg.raycastTarget = true;
+		NE::ECS::Command::AddUIImageComponent(m_handleEntity, handleImg);
+
+		NE::ECS::Command::SetParent(m_handleEntity, m_entity, -1, false);
 
 		// Setup UISlider component on root
 		NE::ECS::Component::UISlider slider{};
@@ -496,11 +474,9 @@ namespace Editor {
 		slider.value = 0.0f;
 		slider.minValue = 0.0f;
 		slider.maxValue = 1.0f;
-		slider.backgroundRect = m_backgroundEntity;
-		slider.fillAreaRect = m_fillAreaEntity;
 		slider.fillRect = m_fillEntity;
-		slider.handleSlideAreaRect = m_handleAreaEntity;
 		slider.handleRect = m_handleEntity;
+		slider.backgroundRect = m_entity;
 		NE::ECS::Command::AddUISliderComponent(m_entity, slider);
 
 		EditorScene::s_selection.SetSingle(m_entity);
@@ -508,10 +484,7 @@ namespace Editor {
 
 	void CreateUISliderCommand::Undo() {
 		NE::ECS::Command::DestroyEntity(m_handleEntity);
-		NE::ECS::Command::DestroyEntity(m_handleAreaEntity);
 		NE::ECS::Command::DestroyEntity(m_fillEntity);
-		NE::ECS::Command::DestroyEntity(m_fillAreaEntity);
-		NE::ECS::Command::DestroyEntity(m_backgroundEntity);
 		NE::ECS::Command::DestroyEntity(m_entity);
 		if (m_createdCanvas && m_canvasEntity != NE::ECS::NO_ENTITY) {
 			EditorScene::UnregisterRoot(m_canvasEntity);

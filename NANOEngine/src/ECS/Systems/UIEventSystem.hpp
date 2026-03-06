@@ -3,7 +3,6 @@
 
 #include "../Core/System.hpp"
 #include "../Core/ComponentManager.hpp"
-#include "../Core/EntityManager.hpp"
 #include "../Components/UICanvas.hpp"
 #include "../Components/UIRectTransform.hpp"
 #include "../Components/UIButton.hpp"
@@ -24,7 +23,7 @@ namespace NE::ECS::Systems {
 
     class UIEventSystem final : public System {
     public:
-        explicit UIEventSystem(ComponentManager* cm, EntityManager* em);
+        explicit UIEventSystem(ComponentManager* cm);
 
         void SetLayoutEngine(UILayoutEngine* engine) { m_layoutEngine = engine; }
 
@@ -33,9 +32,9 @@ namespace NE::ECS::Systems {
         void Exit() override;
         void OnEntityAdded(Entity e) override;
         void OnEntityRemoved(Entity e) override;
-        void OnEntityActive(Entity e) override;
-        void OnEntityInactive(Entity e) override;
-
+
+        void OnEntityActive(Entity entity) override;
+        void OnEntityInactive(Entity entity) override;
         Entity GetHoveredEntity() const { return m_hoveredEntity; }
         Entity GetPressedEntity() const { return m_pressedEntity; }
         Entity GetFocusedEntity() const { return m_focusedEntity; }
@@ -52,7 +51,6 @@ namespace NE::ECS::Systems {
         bool IsActiveForUI(Entity entity, Entity canvasEntity) const;
         Entity FindOwningCanvas(Entity entity) const;
         ComponentManager* m_cm = nullptr;
-        EntityManager* m_entityManager = nullptr;
         UILayoutEngine* m_layoutEngine = nullptr;
 
         Entity m_hoveredEntity = NO_ENTITY;
@@ -157,7 +155,7 @@ namespace NE::ECS::Systems {
         void ProcessInputFieldKeyboard(Entity entity, Component::UIInputField& field, double deltaTime);
         void ApplyInputFieldColorToImage(Entity entity);
         void SyncInputFieldToText(Entity entity);
-        bool IsCharAllowed(char32_t codepoint, const Component::UIInputField& field, int cursorPos, const std::string& currentText);
+        bool IsCharAllowed(char32_t codepoint, const Component::UIInputField& field);
         void DeleteSelection(Component::UIInputField& field);
         void InsertText(Component::UIInputField& field, const std::string& text);
 

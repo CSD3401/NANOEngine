@@ -1,6 +1,5 @@
 #pragma once
 #include "../Core/ComponentManager.hpp"
-#include "../Core/EntityManager.hpp"
 #include "../Components/UICanvas.hpp"
 #include "../Components/UIRectTransform.hpp"
 #include "../Components/EntityMeta.hpp"
@@ -13,7 +12,6 @@ namespace NE::ECS::UIUtil {
     // Check if an entity (and all parents up to the canvas) are active
     inline bool IsActiveForUI(
         ComponentManager* cm,
-        EntityManager* em,
         Entity entity,
         Entity canvasEntity
     )
@@ -22,7 +20,11 @@ namespace NE::ECS::UIUtil {
 
         while (cur != NO_ENTITY)
         {
-            if (!em->GetActive(cur)) return false;
+            if (cm->HasComponent<Component::EntityMeta>(cur)) {
+                if (!cm->GetComponent<Component::EntityMeta>(cur).isActive) {
+                    return false;
+                }
+            }
 
             if (cur == canvasEntity) break;
 
@@ -30,10 +32,16 @@ namespace NE::ECS::UIUtil {
             cur = cm->GetComponent<Component::Hierarchy>(cur).parent;
         }
 
-        // Also require canvas itself to be active (UICanvas.isActive is a separate canvas-level flag)
+        // Also require canvas itself to be active
         if (canvasEntity != NO_ENTITY && cm->HasComponent<Component::UICanvas>(canvasEntity)) {
             const auto& canvas = cm->GetComponent<Component::UICanvas>(canvasEntity);
-            if (!canvas.isActive || !em->GetActive(canvasEntity)) return false;
+
+            bool metaActive = true;
+            if (cm->HasComponent<Component::EntityMeta>(canvasEntity)) {
+                metaActive = cm->GetComponent<Component::EntityMeta>(canvasEntity).isActive;
+            }
+
+            if (!canvas.isActive || !metaActive) return false;
         }
 
         return true;

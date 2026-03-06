@@ -8,7 +8,6 @@
 #include <EditorInterface/RendererExports.hpp>
 #include "../EditorUI.hpp"
 #include "../EditorScene.hpp"
-#include "../EditorState.hpp"
 #include "Engine.hpp"
 #include <imgui/widgets/imguizmo/ImGuizmo.h>
 #include <EditorInterface/ECSExports.hpp>
@@ -203,9 +202,13 @@ namespace Editor {
 		float panelPosX = panelPos.x - mainViewportPos.x;
 		float panelPosY = panelPos.y - mainViewportPos.y;
 
-		// NOTE: ScenePanel is the editor view — it does NOT set UIViewportBounds.
-		// Runtime UI interaction (buttons, sliders) is handled through the GamePanel,
-		// which sets UIViewportBounds only during Play/Paused mode.
+		// Set viewport bounds for UI interaction system
+		NE::ECS::Command::SetUIViewportBounds(
+			panelPosX, panelPosY,
+			panelSize.x, panelSize.y,
+			static_cast<float>(NE::GetUIScreenWidth()),
+			static_cast<float>(NE::GetUIScreenHeight())
+		);
 
 		float newAspect = (panelSize.y > 0.0f) ? (panelSize.x / panelSize.y) : (16.0f / 9.0f);
 
@@ -801,8 +804,8 @@ namespace Editor {
 					}
 				}
 			} else {
-				// UI element selected - use UIGizmoHandler for interactive handles (edit mode only)
-				if (NE::ECS::Query::HasUIRectTransform(last) && g_EditorState == EditorState::Edit) {
+				// UI element selected - use UIGizmoHandler for interactive handles
+				if (NE::ECS::Query::HasUIRectTransform(last)) {
 					// Find the canvas this UI element belongs to
 					uint32_t canvasEntity = NE::ECS::NO_ENTITY;
 					uint32_t current = last;

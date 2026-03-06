@@ -132,80 +132,37 @@ namespace NE::ECS {
                 parentHeight = static_cast<float>(NE::Graphics::GraphicsManager::GetScreenHeight()) / canvas.scaleFactor;
             }
 
-            // Compute anchor-based position
-            float localX, localY;
-
-            if (rect.IsStretchedX()) {
-                // Stretched: anchors define a region, offsets inset from edges
-                float anchoredLeft  = parentWidth * rect.anchorMinX + rect.offsetMinX;
-                float anchoredRight = parentWidth * rect.anchorMaxX - rect.offsetMaxX;
-                float anchoredWidth = std::max(0.f, anchoredRight - anchoredLeft);
-                rect.width = anchoredWidth;
-                // Position = left edge of anchored region (pivot applied later for target)
-                localX = anchoredLeft;
-            } else {
-                // Point anchor
-                float anchorX = parentWidth * rect.anchorMinX;
-                localX = anchorX + rect.x;
-            }
-
-            if (rect.IsStretchedY()) {
-                float anchoredTop    = parentHeight * rect.anchorMinY + rect.offsetMinY;
-                float anchoredBottom = parentHeight * rect.anchorMaxY - rect.offsetMaxY;
-                float anchoredHeight = std::max(0.f, anchoredBottom - anchoredTop);
-                rect.height = anchoredHeight;
-                localY = anchoredTop;
-            } else {
-                float anchorY = parentHeight * rect.anchorMinY;
-                localY = anchorY + rect.y;
-            }
+            float anchorX = parentWidth * DEFAULT_ANCHOR_X;
+            float anchorY = parentHeight * DEFAULT_ANCHOR_Y;
 
             if (isTarget) {
                 float scaledWidth = rect.width * result.scaleX;
                 float scaledHeight = rect.height * result.scaleY;
 
-                // For point anchors: localX is anchor + offset, subtract pivot
-                // For stretched: localX is left edge, add (1-pivot)*width to get pivot position, subtract pivot*scaledWidth
-                float finalX, finalY;
-                if (rect.IsStretchedX()) {
-                    // Stretched: position at left edge + (1-pivot)*width centers correctly
-                    finalX = localX;
-                } else {
-                    finalX = localX - scaledWidth * rect.pivotX;
-                }
-                if (rect.IsStretchedY()) {
-                    finalY = localY;
-                } else {
-                    finalY = localY - scaledHeight * rect.pivotY;
-                }
+                float localX = anchorX + rect.x - scaledWidth * rect.pivotX;
+                float localY = anchorY + rect.y - scaledHeight * rect.pivotY;
 
                 float parentRotation = result.rotationZ - rect.rotationZ;
                 if (std::abs(parentRotation) > ROTATION_EPSILON) {
                     float rad = parentRotation * PI / 180.0f;
                     float cosR = std::cos(rad);
                     float sinR = std::sin(rad);
-                    float rotatedX = finalX * cosR - finalY * sinR;
-                    float rotatedY = finalX * sinR + finalY * cosR;
-                    finalX = rotatedX;
-                    finalY = rotatedY;
+                    float rotatedX = localX * cosR - localY * sinR;
+                    float rotatedY = localX * sinR + localY * cosR;
+                    localX = rotatedX;
+                    localY = rotatedY;
                 }
 
                 float parentScaleX = result.scaleX / rect.scaleX;
                 float parentScaleY = result.scaleY / rect.scaleY;
 
-                result.posX += finalX * parentScaleX;
-                result.posY += finalY * parentScaleY;
+                result.posX += localX * parentScaleX;
+                result.posY += localY * parentScaleY;
                 result.posZ += rect.z;
             }
             else {
-                // Non-target: contribute this entity's TOP-LEFT corner, not its pivot point.
-                // result.scaleX has already been multiplied by rect.scaleX, so parent scale = result.scaleX / rect.scaleX.
-                float parentScaleX = result.scaleX / rect.scaleX;
-                float parentScaleY = result.scaleY / rect.scaleY;
-                float posX = rect.IsStretchedX() ? localX : (localX - rect.width  * rect.pivotX * parentScaleX);
-                float posY = rect.IsStretchedY() ? localY : (localY - rect.height * rect.pivotY * parentScaleY);
-                result.posX += posX;
-                result.posY += posY;
+                result.posX += anchorX + rect.x;
+                result.posY += anchorY + rect.y;
                 result.posZ += rect.z;
             }
         }

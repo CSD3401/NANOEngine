@@ -24,14 +24,17 @@ namespace NE::ECS::Component {
         bool wholeNumbers = false;
         Direction direction = Direction::LEFT_TO_RIGHT;
 
-        // Child entity references — stored as Hierarchy luids for stable cross-load identity
-        uint64_t fillRectLuid = 0;
-        uint64_t handleRectLuid = 0;
-        uint64_t backgroundRectLuid = 0;
-        uint64_t fillAreaRectLuid = 0;
-        uint64_t handleSlideAreaRectLuid = 0;
+        // Child entity references (set during creation)
+        uint32_t fillRect = UINT32_MAX;     // The fill image entity
+        uint32_t handleRect = UINT32_MAX;   // The draggable handle entity
+        uint32_t backgroundRect = UINT32_MAX; // The background image entity
 
         bool interactable = true;
+
+        // === RUNTIME-ONLY FIELDS (not serialized) ===
+        bool isDragging = false;
+        bool valueChanged = false;  // True for one frame when value changes (for script polling)
+        float previousValue = 0.0f; // For detecting changes
 
         // Reflection
         NE_REFLECT_BEGIN(UISlider)
@@ -41,24 +44,11 @@ namespace NE::ECS::Component {
             NE_REFLECT_FIELD(maxValue),
             NE_REFLECT_FIELD(wholeNumbers),
             NE_REFLECT_FIELD(direction),
-            NE_REFLECT_FIELD_HIDDEN(fillRectLuid),
-            NE_REFLECT_FIELD_HIDDEN(handleRectLuid),
-            NE_REFLECT_FIELD_HIDDEN(backgroundRectLuid),
-            NE_REFLECT_FIELD_HIDDEN(fillAreaRectLuid),
-            NE_REFLECT_FIELD_HIDDEN(handleSlideAreaRectLuid),
+            NE_REFLECT_FIELD(fillRect),
+            NE_REFLECT_FIELD(handleRect),
+            NE_REFLECT_FIELD(backgroundRect),
             NE_REFLECT_FIELD(interactable)
         NE_REFLECT_END()
-
-        // === RUNTIME-ONLY FIELDS (resolved from luids after load, not serialized) ===
-        uint32_t fillRect = UINT32_MAX;
-        uint32_t handleRect = UINT32_MAX;
-        uint32_t backgroundRect = UINT32_MAX;
-        uint32_t fillAreaRect = UINT32_MAX;
-        uint32_t handleSlideAreaRect = UINT32_MAX;
-
-        bool isDragging = false;
-        bool valueChanged = false;  // True for one frame when value changes (for script polling)
-        float previousValue = 0.0f; // For detecting changes
 
         // Helper functions
         float GetNormalizedValue() const {

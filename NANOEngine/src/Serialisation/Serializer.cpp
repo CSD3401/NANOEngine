@@ -84,7 +84,7 @@ namespace NE {
 		inline constexpr int CURRENT_NANOSCENE_FORMAT_VERSION = 9;
 
 		inline constexpr uint32_t NFAB_MAGIC = 0x4E464142;
-		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 6;
+		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 9;
 
 		void AppendPreorder(ECS::ECSCoordinator& ecs, ECS::Entity e, std::vector<ECS::Entity>& out) {
 			out.push_back(e);
@@ -167,7 +167,6 @@ namespace NE {
 			}
 
 			void WriteOneEntity(ECS::ECSCoordinator& ecs, ByteBuffer& buf, ECS::Entity e) {
-				//ToBinary(buf, static_cast<uint32_t>(e));
 				const uint8_t layer = static_cast<uint8_t>(ecs.GetEntityManager().GetLayer(e));
 				ToBinary(buf, layer);
 				const bool active = ecs.GetEntityManager().GetActive(e);
@@ -412,10 +411,6 @@ namespace NE {
 			if (!ReadT(it, end, entityCount)) return false;
 
 			for (std::uint64_t i = 0; i < entityCount; ++i) {
-				uint32_t savedId = 0;
-				//if (!ReadT(it, end, savedId)) return false;
-				//ECS::Entity e = ecs.GetEntityManager().CreateEntityWithId(static_cast<ECS::Entity>(savedId));
-				//if (e == ECS::NO_ENTITY) e = ecs.CreateEntity(); // fallback if ID already taken
 				ECS::Entity e = ecs.CreateEntity();
 
 				uint8_t layer = 0;
@@ -741,25 +736,6 @@ namespace NE {
 				parentH.children.push_back(p.e);
 			}
 
-			// Patch UISlider child entity refs using remapped Hierarchy luids
-			for (ECS::Entity slEnt : created) {
-				if (!ecs.HasComponent<ECS::Component::UISlider>(slEnt)) continue;
-				auto& slider = ecs.GetComponent<ECS::Component::UISlider>(slEnt);
-				auto remap = [&](uint64_t& luidField, uint32_t& entityField) {
-					uint64_t oldLuid = luidField;
-					if (oldLuid == 0) { entityField = UINT32_MAX; return; }
-					auto eit = oldLuidToEntity.find(oldLuid);
-					auto lit = oldLuidToNewLuid.find(oldLuid);
-					entityField = (eit != oldLuidToEntity.end()) ? static_cast<uint32_t>(eit->second) : UINT32_MAX;
-					if (lit != oldLuidToNewLuid.end()) luidField = lit->second;
-				};
-				remap(slider.fillRectLuid,            slider.fillRect);
-				remap(slider.handleRectLuid,          slider.handleRect);
-				remap(slider.backgroundRectLuid,      slider.backgroundRect);
-				remap(slider.fillAreaRectLuid,        slider.fillAreaRect);
-				remap(slider.handleSlideAreaRectLuid, slider.handleSlideAreaRect);
-			}
-
 			return true;
 		}
 
@@ -866,25 +842,6 @@ namespace NE {
 				childH.parent = parentE;
 				childH.parentLuid = newParentLuidIt->second;
 				parentH.children.push_back(p.e);
-			}
-
-			// Patch UISlider child entity refs using remapped Hierarchy luids
-			for (ECS::Entity slEnt : created) {
-				if (!ecs.HasComponent<ECS::Component::UISlider>(slEnt)) continue;
-				auto& slider = ecs.GetComponent<ECS::Component::UISlider>(slEnt);
-				auto remap = [&](uint64_t& luidField, uint32_t& entityField) {
-					uint64_t oldLuid = luidField;
-					if (oldLuid == 0) { entityField = UINT32_MAX; return; }
-					auto eit = oldLuidToEntity.find(oldLuid);
-					auto lit = oldLuidToNewLuid.find(oldLuid);
-					entityField = (eit != oldLuidToEntity.end()) ? static_cast<uint32_t>(eit->second) : UINT32_MAX;
-					if (lit != oldLuidToNewLuid.end()) luidField = lit->second;
-				};
-				remap(slider.fillRectLuid,            slider.fillRect);
-				remap(slider.handleRectLuid,          slider.handleRect);
-				remap(slider.backgroundRectLuid,      slider.backgroundRect);
-				remap(slider.fillAreaRectLuid,        slider.fillAreaRect);
-				remap(slider.handleSlideAreaRectLuid, slider.handleSlideAreaRect);
 			}
 
 			return outNewRoot;
