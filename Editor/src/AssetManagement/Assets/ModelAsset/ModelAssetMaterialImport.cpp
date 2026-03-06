@@ -179,6 +179,10 @@ namespace Editor::Assets::ModelAssetInternal {
 			const std::string safe = SanitizeFileName(desc.name);
 			fs::path matPath = targetDir / (safe + ".nanomat");
 
+			if (std::filesystem::exists(matPath)) {
+				return AssetManager::GetInstance().RetrieveUUID(matPath.string());
+			}
+
 			rapidjson::Document doc;
 			doc.SetObject();
 			auto& alloc = doc.GetAllocator();
