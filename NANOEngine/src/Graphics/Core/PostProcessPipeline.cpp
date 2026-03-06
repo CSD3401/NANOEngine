@@ -1523,6 +1523,13 @@ namespace NE::Graphics {
 				m_compositeShader->SetUniformInt("u_UseSSAO", ssaoEnabled ? 1 : 0);
 				m_compositeShader->SetUniformFloat("u_AOIntensity", m_settings->ssaoSettings.intensity);
 
+				m_compositeShader->SetUniformInt("u_UseVignette", m_settings->vignetteSettings.enabled);
+				m_compositeShader->SetUniformFloat("u_VignetteIntensity", m_settings->vignetteSettings.intensity);
+				m_compositeShader->SetUniformFloat("u_VignetteRadius", m_settings->vignetteSettings.radius);
+				m_compositeShader->SetUniformFloat("u_VignetteSoftness", m_settings->vignetteSettings.softness);
+				m_compositeShader->SetUniformVec3("u_VignetteTint", m_settings->vignetteSettings.tint);
+				m_compositeShader->SetUniformFloat("u_VignetteTintAmount", m_settings->vignetteSettings.tintIntensity);
+
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(sceneColor));
 
