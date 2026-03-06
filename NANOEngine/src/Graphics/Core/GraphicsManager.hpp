@@ -201,7 +201,6 @@ namespace NE::Graphics {
         // Post-processing
         static std::unique_ptr<PostProcessPipeline> s_PostPipeline;
         static std::shared_ptr<OpenGL::GLShader> s_NormalPrepassShader;
-        static std::shared_ptr<OpenGL::GLShader> s_SelectionOutlineProgram;
 #ifndef PRODUCTION_BUILD
         static std::shared_ptr<OpenGL::GLShader> s_EditorDebugViewShader;
 #endif

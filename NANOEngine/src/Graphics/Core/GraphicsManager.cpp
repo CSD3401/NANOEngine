@@ -966,7 +966,6 @@ namespace NE::Graphics {
     std::shared_ptr<IClusteredLighting> GraphicsManager::s_clusteredLighting;
     std::unique_ptr<PostProcessPipeline> GraphicsManager::s_PostPipeline;
     std::shared_ptr<OpenGL::GLShader> GraphicsManager::s_NormalPrepassShader;
-    std::shared_ptr<OpenGL::GLShader> GraphicsManager::s_SelectionOutlineProgram;
 #ifndef PRODUCTION_BUILD
     std::shared_ptr<OpenGL::GLShader> GraphicsManager::s_EditorDebugViewShader;
 #endif
@@ -1025,7 +1024,6 @@ namespace NE::Graphics {
         InitializeLightGizmoResources();
         InitializeDecalGizmoResources();
         s_NormalPrepassShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("nenormalprepass");
-        s_SelectionOutlineProgram = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("neselectionoutline");
 #ifndef PRODUCTION_BUILD
         s_EditorDebugViewShader = CreateEditorDebugViewShader();
         if (!s_EditorDebugViewShader) {
@@ -1344,12 +1342,9 @@ namespace NE::Graphics {
                 s_ScenePreviewUvScale,
                 s_StateCache.get()
             );
-#endif
-
-            RenderSelectionHighlightForView(handle, view, camProj, camView, commands);
-
             RenderLightGizmosForView(handle, view, camProj, camView, camPos, s_StateCache.get(), s_SceneViewHandle);
             RenderDecalGizmosForView(handle, view, camProj, camView, camPos, s_StateCache.get(), s_SceneViewHandle);
+#endif
 
             if (handle == s_SceneViewHandle) {
 				if (view.framebuffer) {
