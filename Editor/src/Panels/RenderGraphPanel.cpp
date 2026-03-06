@@ -4,6 +4,7 @@
 #include <imgui/imgui.h>
 #include <Graphics/Core/RenderGraph.hpp>
 #include <Graphics/Core/PostProcessingSettings.hpp>
+#include <Graphics/Core/SelectionHighlightSettings.hpp>
 #include <EditorInterface/RendererExports.hpp>
 #include <Graphics/Interfaces/IFrameBuffer.hpp>
 #include <Graphics/Core/RenderGraph/TexturePool.hpp>
@@ -58,6 +59,23 @@ namespace Editor {
         bool ssrEnabled = ppSettings.ssrSettings.enabled;
         if (ImGui::Checkbox("SSR Enabled", &ssrEnabled)) {
             ppSettings.ssrSettings.enabled = ssrEnabled;
+        }
+
+        auto& selectionSettings = NE::Renderer::Command::GetSelectionHighlightSettings();
+        bool showSelectionMask = selectionSettings.debugShowMask;
+        if (ImGui::Checkbox("Show Selection Mask", &showSelectionMask)) {
+            selectionSettings.debugShowMask = showSelectionMask;
+            if (showSelectionMask) {
+                selectionSettings.debugOutlineOnly = false;
+            }
+        }
+        ImGui::SameLine();
+        bool showSelectionOutlineOnly = selectionSettings.debugOutlineOnly;
+        if (ImGui::Checkbox("Show Outline Only", &showSelectionOutlineOnly)) {
+            selectionSettings.debugOutlineOnly = showSelectionOutlineOnly;
+            if (showSelectionOutlineOnly) {
+                selectionSettings.debugShowMask = false;
+            }
         }
 
         bool poolingEnabled = m_RenderGraph->IsPoolingEnabled();

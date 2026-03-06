@@ -3,10 +3,12 @@
 #include <array>
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "RenderGraph/TexturePool.hpp"
 #include "RenderGraph.hpp"
 #include "RenderViewManager.hpp"
+#include "SelectionHighlightSettings.hpp"
 
 namespace NE {
 	namespace Math {
@@ -37,6 +39,10 @@ namespace NE::Graphics {
 			bool isSceneView);
 
 		void SetSettings(PostProcessingSettings* settings);
+		void SetSelectionSettings(SelectionHighlightSettings* settings);
+#ifndef PRODUCTION_BUILD
+		void SetSelectedEntityIds(const std::unordered_set<uint32_t>* selectedIds);
+#endif
 
 		RenderGraph* GetRenderGraph() const { return m_graph.get(); }
 		TexturePool* GetTexturePool() const { return m_pool.get(); }
@@ -102,6 +108,7 @@ namespace NE::Graphics {
 
 		RenderViewManager* m_rvm = nullptr;
 		PostProcessingSettings* m_settings = nullptr;
+		SelectionHighlightSettings* m_selectionSettings = nullptr;
 
 		std::unique_ptr<RenderGraph> m_graph;
 		std::unique_ptr<TexturePool> m_pool;
@@ -123,6 +130,13 @@ namespace NE::Graphics {
 		std::shared_ptr<OpenGL::GLShader> m_downSampleShader;
 		std::shared_ptr<OpenGL::GLShader> m_upSampleShader;
 		std::shared_ptr<OpenGL::GLShader> m_compositeShader;
+		std::shared_ptr<OpenGL::GLShader> m_selectionCompositeShader;
+#ifndef PRODUCTION_BUILD
+		std::shared_ptr<OpenGL::GLShader> m_selectionMaskFromPickingShader;
+		unsigned int m_selectedIdsSSBO = 0;
+		size_t m_selectedIdsCapacity = 0;
+		const std::unordered_set<uint32_t>* m_selectedEntityIds = nullptr;
+#endif
 		std::shared_ptr<OpenGL::GLShader> m_taaShader;
 		std::shared_ptr<OpenGL::GLShader> m_ssrShader;
 		std::shared_ptr<OpenGL::GLShader> m_ssrResolveShader;
