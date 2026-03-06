@@ -1,8 +1,12 @@
+#include "pch.h"
 #include "ParticleSystem.hpp"
 #include "../Components/ParticleEmitter.hpp"
 #include "../Components/Transform.hpp"
+#include "../Components/PERenderer.h"
 #include "../../Math/Vec3.hpp"
 #include "../../Math/Mat4.hpp"
+#include "Graphics/Core/GraphicsManager.hpp"
+#include "Graphics/Core/InstanceData.hpp"
 
 namespace NE::ECS::Systems {
 	ParticleSystem::ParticleSystem(ComponentManager* cm) : m_componentManager(cm)
@@ -190,6 +194,44 @@ namespace NE::ECS::Systems {
 				e.colors[i] = Lerp(e.startColor, e.endColor, t);
 
 				i++;
+			}
+
+			// Renderer module
+			if (m_componentManager->HasComponent<NE::ECS::Component::PERenderer>(entity))
+			{
+				auto& per = m_componentManager->GetComponent<NE::ECS::Component::PERenderer>(entity);
+
+				if (!per.material)
+					continue;
+
+				// Choice B requires localSpace
+				if (!e.localSpace)
+					continue;
+
+				// Build instances (stored in emitter so memory stays valid)
+				e.renderInstances.clear();
+				e.renderInstances.reserve(e.aliveCount);
+
+				for (uint32_t i = 0; i < e.aliveCount; ++i)
+				{
+					NE::Graphics::ParticleInstanceData inst{};
+					inst.posLS = e.positions[i];
+					inst.size = e.sizes[i];
+					inst.color = e.colors[i];
+					e.renderInstances.push_back(inst);
+				}
+
+				NE::Graphics::ParticleDrawCommand cmd{};
+				cmd.emitterModel = tr.worldMatrix;
+				cmd.mesh = NE::Graphics::GraphicsManager::GetGlobalParticleQuadMesh();
+				cmd.material = per.material;
+				cmd.instances = e.renderInstances.data();
+				cmd.instanceCount = (uint32_t)e.renderInstances.size();
+
+				cmd.boundsCenterWS = tr.worldMatrix.GetTranslation();
+				cmd.boundsRadiusWS = e.sphereRadius + e.sizeMax; // conservative
+
+				NE::Graphics::GraphicsManager::Submit(cmd);
 			}
 		}
 	}

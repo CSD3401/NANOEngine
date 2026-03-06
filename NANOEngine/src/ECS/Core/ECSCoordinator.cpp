@@ -222,7 +222,7 @@ namespace NE::ECS {
             SetSystemSignature<Systems::DecalProjectorSystem>(sig);
         }
 
-        m_particleSystem = m_systemManager->RegisterSystem<Systems::ParticleSystem>(m_componentManager.get(), m_entityManager.get(), m_luidRegistry.get());
+        m_particleSystem = m_systemManager->RegisterSystem<Systems::ParticleSystem>(m_componentManager.get());
         {
             Signature sig;
             sig.set(GetComponentType<Component::Transform>());

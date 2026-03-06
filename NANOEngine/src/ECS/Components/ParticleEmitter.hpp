@@ -3,6 +3,8 @@
 #include <vector>
 #include "Math/Vec3.hpp"
 #include "Math/Vec4.hpp"
+#include "Graphics/Core/DrawCommand.hpp"
+#include "Graphics/Core/InstanceData.hpp"
 
 namespace NE::ECS::Component {
 
@@ -111,6 +113,8 @@ namespace NE::ECS::Component {
 
 		float spawnAccumulator = 0.0f;
 		float emitterTime = 0.0f;
+
+		std::vector<NE::Graphics::ParticleInstanceData> renderInstances;
 
 		void EnsureCapacity()
 		{

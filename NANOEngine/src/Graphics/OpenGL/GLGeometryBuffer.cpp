@@ -11,6 +11,7 @@
 namespace NE::Graphics::OpenGL {
 
     unsigned int GLGeometryBuffer::s_InstanceVBO = 0;
+	unsigned int GLGeometryBuffer::s_ParticleInstanceVBO = 0;
 
     GLGeometryBuffer::GLGeometryBuffer(std::shared_ptr<IVertexBuffer> vb, std::shared_ptr<IIndexBuffer> ib)
         : m_VertexBuffer(vb), m_IndexBuffer(ib)
@@ -126,6 +127,42 @@ namespace NE::Graphics::OpenGL {
         glBindVertexArray(0);
     }
 
+    void GLGeometryBuffer::EnableParticleInstanceLayout(int locPosLS, int locSize, int locColor)
+    {
+        // Ensure the buffer exists
+        if (s_ParticleInstanceVBO == 0) InitParticleInstanceBuffer();
+
+        glBindVertexArray(m_VAO);
+        glBindBuffer(GL_ARRAY_BUFFER, s_ParticleInstanceVBO);
+
+        // ParticleInstanceData layout:
+        //   Vec3 posLS  (3 floats) -> 12 bytes
+        //   float size  (1 float)  -> 4 bytes
+        //   Vec4 color  (4 floats) -> 16 bytes
+        const GLsizei stride = static_cast<GLsizei>(sizeof(NE::Graphics::ParticleInstanceData));
+        size_t offset = 0;
+
+        // vec3 i_PosLS
+        glEnableVertexAttribArray(locPosLS);
+        glVertexAttribPointer(locPosLS, 3, GL_FLOAT, GL_FALSE, stride, (void*)offset);
+        glVertexAttribDivisor(locPosLS, 1);
+        offset += sizeof(float) * 3;
+
+        // float i_Size
+        glEnableVertexAttribArray(locSize);
+        glVertexAttribPointer(locSize, 1, GL_FLOAT, GL_FALSE, stride, (void*)offset);
+        glVertexAttribDivisor(locSize, 1);
+        offset += sizeof(float) * 1;
+
+        // vec4 i_Color
+        glEnableVertexAttribArray(locColor);
+        glVertexAttribPointer(locColor, 4, GL_FLOAT, GL_FALSE, stride, (void*)offset);
+        glVertexAttribDivisor(locColor, 1);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+    }
+
     void GLGeometryBuffer::DrawInstanced(size_t instanceCount) const
     {
         glBindVertexArray(m_VAO);
@@ -178,5 +215,45 @@ namespace NE::Graphics::OpenGL {
 
         glDeleteBuffers(1, &s_InstanceVBO);
         s_InstanceVBO = 0;
+    }
+
+    void GLGeometryBuffer::InitParticleInstanceBuffer()
+    {
+        if (s_ParticleInstanceVBO != 0) return;
+
+        glGenBuffers(1, &s_ParticleInstanceVBO);
+        glBindBuffer(GL_ARRAY_BUFFER, s_ParticleInstanceVBO);
+
+        // allocate minimal size; will grow as needed
+        glBufferData(GL_ARRAY_BUFFER, sizeof(NE::Graphics::ParticleInstanceData), nullptr, GL_STREAM_DRAW);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+
+    void GLGeometryBuffer::UpdateParticleInstanceBuffer(const void* instanceData, size_t instanceDataSize)
+    {
+        if (s_ParticleInstanceVBO == 0 || instanceData == nullptr || instanceDataSize == 0) return;
+
+        glBindBuffer(GL_ARRAY_BUFFER, s_ParticleInstanceVBO);
+
+        GLint currentSize = 0;
+        glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &currentSize);
+
+        if (instanceDataSize > static_cast<size_t>(currentSize)) {
+            glBufferData(GL_ARRAY_BUFFER, instanceDataSize, instanceData, GL_STREAM_DRAW);
+        }
+        else {
+            glBufferSubData(GL_ARRAY_BUFFER, 0, instanceDataSize, instanceData);
+        }
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+
+    void GLGeometryBuffer::ShutdownParticleInstanceBuffer()
+    {
+        if (s_ParticleInstanceVBO == 0) return;
+
+        glDeleteBuffers(1, &s_ParticleInstanceVBO);
+        s_ParticleInstanceVBO = 0;
     }
 }

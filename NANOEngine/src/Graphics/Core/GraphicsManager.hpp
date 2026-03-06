@@ -42,6 +42,7 @@ namespace NE {
         namespace OpenGL {
             class GLShader;
         }
+		struct Frustum;
 	}
     namespace ECS {
         namespace Component {
@@ -64,6 +65,7 @@ namespace NE::Graphics {
         static void BeginFrame();
 		static void DrawFrame();
         static void Submit(const DrawCommand& command);
+		static void Submit(const ParticleDrawCommand& command);
         static void SubmitDecal(const DecalCommand& command);
         static void SubmitDecalGizmo(const DecalGizmoCommand& command);
         static void SubmitLightGizmo(const LightGizmoCommand& command);
@@ -150,6 +152,9 @@ namespace NE::Graphics {
         static RenderGraph* GetRenderGraph();
         static TexturePool* GetTexturePool();
 
+		// Global quad mesh for particle rendering
+        static std::shared_ptr<IGeometryBuffer> GetGlobalParticleQuadMesh();
+
     private:
         static uint32_t s_ScreenWidth;
         static uint32_t s_ScreenHeight;
@@ -198,5 +203,16 @@ namespace NE::Graphics {
         // UI Rendering
         static void RenderUIOverlay();
 
+        // Global particle quad mesh
+        static std::shared_ptr<IGeometryBuffer> s_particleQuadMesh;
+
+        static void RenderParticlesForView(
+            const RenderView& view,
+            const Math::Mat4& camProj,
+            const Math::Mat4& camView,
+            const Math::Vec3& camPos,
+            const Frustum& frustum,
+            int& drawCount // increments for main game view like your other draws
+        );
     };
 }
