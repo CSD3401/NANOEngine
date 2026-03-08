@@ -421,6 +421,10 @@ namespace Editor {
 				std::string uuid = Assets::AssetManager::GetInstance().GetRecordBySource(dropped)->id;
 
 				auto newRootEntt = NE::LoadPrefab(uuid);
+				if (newRootEntt == NE::ECS::NO_ENTITY) {
+					ImGui::EndDragDropTarget();
+					return;
+				}
 				EditorScene::s_rootOrder.push_back(newRootEntt);
 				EditorScene::s_selection.SetSingle(newRootEntt);
 

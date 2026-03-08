@@ -55,7 +55,7 @@
 namespace Editor {
 	namespace {
 		inline constexpr uint32_t NFAB_MAGIC = 0x4E464142;
-		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 2;
+		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 9;
 
 		using SceneComponentTypes = std::tuple<
 			NE::ECS::Component::EntityMeta,
@@ -335,6 +335,12 @@ namespace Editor {
 						Deserialization::FromJSON(entVal["Layer"], layer);
 					}
 					NE::Serialization::ToBinary(outputBuffer, layer);
+
+					bool active = true;
+					if (entVal.HasMember("Active")) {
+						Deserialization::FromJSON(entVal["Active"], active);
+					}
+					NE::Serialization::ToBinary(outputBuffer, active);
 
 					uint64_t mask = 0;
 					uint32_t bitIdx = 0;
