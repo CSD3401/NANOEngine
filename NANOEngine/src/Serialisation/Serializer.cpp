@@ -199,6 +199,8 @@ namespace NE {
 			{
 				const uint8_t layer = static_cast<uint8_t>(ecs.GetEntityManager().GetLayer(e));
 				ToBinary(buf, layer);
+				const bool active = ecs.GetEntityManager().GetActive(e);
+				ToBinary(buf, active);
 
 				ComponentMask mask = 0;
 				uint32_t idx = 0;
@@ -516,6 +518,10 @@ namespace NE {
 				ReadT(it, end, layer);
 				ecs.GetEntityManager().SetLayer(e, layer);
 
+				bool active;
+				ReadT(it, end, active);
+				ecs.GetEntityManager().ToggleActive(e, active);
+
 				std::uint64_t maskU64 = 0;
 				ok = ReadT(it, end, maskU64);
 				if (!ok) break;
@@ -777,6 +783,10 @@ namespace NE {
 				uint8_t layer;
 				ReadT(it, end, layer);
 				ecs.GetEntityManager().SetLayer(e, layer);
+
+				bool active;
+				ReadT(it, end, active);
+				ecs.GetEntityManager().ToggleActive(e, active);
 
 				uint64_t mask64 = 0;
 				ok = FromBinary(it, end, mask64);
