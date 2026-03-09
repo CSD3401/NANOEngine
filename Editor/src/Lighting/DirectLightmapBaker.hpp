@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "LightmapAtlasAllocator.hpp"
+#include "LightmapUvRasterizer.hpp"
 
 #include <Math/Vec3.hpp>
 
@@ -54,6 +55,13 @@ namespace Editor::Lightmapping {
 		size_t bakeInstanceCount = 0;
 		size_t pageCount = 0;
 		size_t supportedLightCount = 0;
+		size_t rasterTriangleCount = 0;
+		size_t rasterDegenerateUvTriangleCount = 0;
+		size_t rasterUncoveredTexelCount = 0;
+		size_t rasterOwnershipConflictCount = 0;
+		size_t rasterInvalidBarycentricTexelCount = 0;
+		size_t rasterInvalidSampleTexelCount = 0;
+		size_t rasterInnerRectClampedTriangleCount = 0;
 		size_t coveredTexelCount = 0;
 		size_t skippedTexelCount = 0;
 		size_t raysCast = 0;
@@ -63,6 +71,7 @@ namespace Editor::Lightmapping {
 		size_t pointLightCount = 0;
 		size_t spotLightCount = 0;
 		double setupMs = 0.0;
+		double rasterizationMs = 0.0;
 		double evaluationMs = 0.0;
 	};
 
@@ -73,6 +82,7 @@ namespace Editor::Lightmapping {
 		std::vector<DirectLightBakePageBuffers> pages;
 		std::vector<std::string> warnings;
 		std::unordered_map<std::string, size_t> warningCounts;
+		std::shared_ptr<const LightmapUvRasterResult> rasterResult;
 	};
 
 	struct DirectLightBakeSessionState {

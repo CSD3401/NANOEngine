@@ -294,6 +294,7 @@
     <ClCompile Include="src\Panels\InspectorPanel.cpp" />
     <ClCompile Include="src\Lighting\BakeGeometryCollector.cpp" />
     <ClCompile Include="src\Lighting\DirectLightmapBaker.cpp" />
+    <ClCompile Include="src\Lighting\LightmapUvRasterizer.cpp" />
     <ClCompile Include="src\Lighting\SceneBakeBVH.cpp" />
     <ClCompile Include="src\Panels\LightingPanel.cpp" />
     <ClCompile Include="src\Panels\LoggerPanel.cpp" />

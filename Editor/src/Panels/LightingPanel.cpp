@@ -30,6 +30,10 @@ namespace Editor {
 				glDeleteTextures(1, &textures.validityTexture);
 				textures.validityTexture = 0;
 			}
+			if (textures.ownerTexture != 0) {
+				glDeleteTextures(1, &textures.ownerTexture);
+				textures.ownerTexture = 0;
+			}
 		}
 		m_previewTextures.clear();
 	}
@@ -71,12 +75,27 @@ namespace Editor {
 			return texture;
 		};
 
+		const auto rasterResult = sessionState.result->rasterResult;
 		for (const auto& page : sessionState.result->pages) {
 			PreviewTextureSet textures{};
 			textures.lightingTexture =
 				uploadTexture(page.preview.lightingRgba8, page.preview.width, page.preview.height);
-			textures.validityTexture =
-				uploadTexture(page.preview.validityRgba8, page.preview.width, page.preview.height);
+			if (rasterResult) {
+				const auto rasterPageIt = std::find_if(
+					rasterResult->pageBuffers.begin(),
+					rasterResult->pageBuffers.end(),
+					[&](const auto& rasterPage) { return rasterPage.pageId == page.pageId; });
+				if (rasterPageIt != rasterResult->pageBuffers.end()) {
+					textures.validityTexture =
+						uploadTexture(rasterPageIt->preview.validityRgba8, rasterPageIt->preview.width, rasterPageIt->preview.height);
+					textures.ownerTexture =
+						uploadTexture(rasterPageIt->preview.ownerRgba8, rasterPageIt->preview.width, rasterPageIt->preview.height);
+				}
+			}
+			if (textures.validityTexture == 0) {
+				textures.validityTexture =
+					uploadTexture(page.preview.validityRgba8, page.preview.width, page.preview.height);
+			}
 			m_previewTextures[page.pageId] = textures;
 		}
 	}
@@ -602,6 +621,18 @@ namespace Editor {
 				if (ImGui::Button("Cancel Direct Bake")) {
 					Editor::Lightmapping::CancelSceneDirectLightBake();
 				}
+				ImGui::SameLine();
+				if (ImGui::Button("Run Raster Self-Check")) {
+					m_rasterSelfCheckPassed = Editor::Lightmapping::RunLightmapUvRasterizerSelfCheck(m_rasterSelfCheckMessage);
+				}
+
+				if (!m_rasterSelfCheckMessage.empty()) {
+					if (m_rasterSelfCheckPassed) {
+						ImGui::TextColored(ImVec4(0.35f, 0.85f, 0.45f, 1.0f), "%s", m_rasterSelfCheckMessage.c_str());
+					} else {
+						ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.35f, 1.0f), "%s", m_rasterSelfCheckMessage.c_str());
+					}
+				}
 
 				if (!directBakeState.statusMessage.empty()) {
 					ImGui::TextWrapped("%s", directBakeState.statusMessage.c_str());
@@ -627,9 +658,37 @@ namespace Editor {
 					ImGui::SameLine();
 					ImGui::TextDisabled("%zu", stats.supportedLightCount);
 
+					ImGui::Text("Raster Triangles");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.rasterTriangleCount);
+
+					ImGui::Text("Degenerate UV Tris");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.rasterDegenerateUvTriangleCount);
+
 					ImGui::Text("Covered Texels");
 					ImGui::SameLine();
 					ImGui::TextDisabled("%zu", stats.coveredTexelCount);
+
+					ImGui::Text("Uncovered Texels");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.rasterUncoveredTexelCount);
+
+					ImGui::Text("Ownership Conflicts");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.rasterOwnershipConflictCount);
+
+					ImGui::Text("Invalid Barycentrics");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.rasterInvalidBarycentricTexelCount);
+
+					ImGui::Text("Invalid Samples");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.rasterInvalidSampleTexelCount);
+
+					ImGui::Text("Clamped Triangles");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.rasterInnerRectClampedTriangleCount);
 
 					ImGui::Text("Skipped Texels");
 					ImGui::SameLine();
@@ -651,9 +710,28 @@ namespace Editor {
 					ImGui::SameLine();
 					ImGui::TextDisabled("%.3f ms", stats.setupMs);
 
+					ImGui::Text("Raster Time");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%.3f ms", stats.rasterizationMs);
+
 					ImGui::Text("Evaluation Time");
 					ImGui::SameLine();
 					ImGui::TextDisabled("%.3f ms", stats.evaluationMs);
+
+					if (bakeResult.rasterResult && ImGui::CollapsingHeader("Raster Coverage", ImGuiTreeNodeFlags_DefaultOpen)) {
+						for (const auto& page : bakeResult.rasterResult->pageBuffers) {
+							const float coverage =
+								page.allocatedInnerTexelCount > 0
+								? static_cast<float>(page.validTexelCount) / static_cast<float>(page.allocatedInnerTexelCount)
+								: 0.0f;
+							ImGui::BulletText(
+								"%s: %zu / %zu texels (%.1f%%)",
+								page.pageId.c_str(),
+								page.validTexelCount,
+								page.allocatedInnerTexelCount,
+								coverage * 100.0f);
+						}
+					}
 
 					if (ImGui::CollapsingHeader("Direct Bake Warnings", ImGuiTreeNodeFlags_DefaultOpen)) {
 						if (bakeResult.warningCounts.empty()) {
@@ -684,6 +762,10 @@ namespace Editor {
 									if (textures.validityTexture != 0) {
 										ImGui::SameLine();
 										ImGui::Image((ImTextureID)(intptr_t)textures.validityTexture, ImVec2(192.0f, 192.0f));
+									}
+									if (textures.ownerTexture != 0) {
+										ImGui::SameLine();
+										ImGui::Image((ImTextureID)(intptr_t)textures.ownerTexture, ImVec2(192.0f, 192.0f));
 									}
 								}
 							}

@@ -18,6 +18,7 @@ namespace Editor {
 		struct PreviewTextureSet {
 			unsigned int lightingTexture = 0;
 			unsigned int validityTexture = 0;
+			unsigned int ownerTexture = 0;
 		};
 
 		void ReleasePreviewTextures();
@@ -32,6 +33,8 @@ namespace Editor {
 		float m_directBakeFiniteLightEpsilon = 1e-3f;
 		float m_directBakePreviewExposure = 1.0f;
 		uint64_t m_cachedBakeRevision = 0;
+		bool m_rasterSelfCheckPassed = false;
+		std::string m_rasterSelfCheckMessage;
 		std::unordered_map<std::string, PreviewTextureSet> m_previewTextures;
 	};
 }

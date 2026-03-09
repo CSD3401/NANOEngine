@@ -144,6 +144,9 @@
     <ClCompile Include="src\Lighting\DirectLightmapBaker.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Lighting\LightmapUvRasterizer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="src\Lighting\SceneBakeBVH.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
