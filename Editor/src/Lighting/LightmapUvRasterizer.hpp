@@ -61,6 +61,7 @@ namespace Editor::Lightmapping {
 		uint32_t height = 0;
 		size_t validTexelCount = 0;
 		size_t allocatedInnerTexelCount = 0;
+		float coverage01 = 0.0f;
 		std::vector<uint8_t> validityRgba8;
 		std::vector<uint8_t> ownerRgba8;
 	};
@@ -72,6 +73,7 @@ namespace Editor::Lightmapping {
 		uint32_t height = 0;
 		size_t validTexelCount = 0;
 		size_t allocatedInnerTexelCount = 0;
+		float coverage01 = 0.0f;
 		std::vector<uint8_t> validMask;
 		std::vector<uint32_t> ownerReceiverIndex;
 		std::vector<uint32_t> ownerTriangleIndex;
@@ -97,9 +99,21 @@ namespace Editor::Lightmapping {
 		size_t coveredTexelCount = 0;
 		size_t uncoveredTexelCount = 0;
 		size_t ownershipConflictCount = 0;
+		size_t sameReceiverOwnershipConflictCount = 0;
+		size_t crossReceiverOwnershipConflictCount = 0;
 		size_t invalidBarycentricTexelCount = 0;
+		size_t outOfRangeTexelCount = 0;
 		size_t invalidSampleTexelCount = 0;
 		size_t innerRectClampedTriangleCount = 0;
+	};
+
+	struct LightmapBakeReceiverCollectionStats {
+		size_t discardedTriangleCount = 0;
+		size_t outOfRangeIndexTriangleCount = 0;
+		size_t nonFiniteUvTriangleCount = 0;
+		size_t nonFiniteWorldPositionTriangleCount = 0;
+		size_t degenerateWorldTriangleCount = 0;
+		size_t receiversWithDiscardedTriangles = 0;
 	};
 
 	struct LightmapUvRasterResult {
@@ -136,7 +150,8 @@ namespace Editor::Lightmapping {
 	std::vector<LightmapBakeReceiverSnapshot> CollectLightmapBakeReceiverSnapshots(
 		const std::vector<LightmapPlacement>& placements,
 		const std::vector<LightmapAtlasPage>& pages,
-		std::vector<std::string>& warnings);
+		std::vector<std::string>& warnings,
+		LightmapBakeReceiverCollectionStats* outStats = nullptr);
 
 	LightmapUvRasterResult RasterizeLightmapUv1Atlas(
 		const std::vector<LightmapAtlasPage>& pages,

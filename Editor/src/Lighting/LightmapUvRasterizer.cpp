@@ -20,6 +20,8 @@
 namespace Editor::Lightmapping {
 	namespace {
 		constexpr float kFiniteEpsilon = 1e-6f;
+		constexpr float kBarycentricRangeTolerance = 1e-3f;
+		constexpr float kBarycentricSumTolerance = 1e-3f;
 		constexpr size_t kMaxWarningExamples = 64;
 
 		struct PageInfo {
@@ -33,7 +35,10 @@ namespace Editor::Lightmapping {
 			size_t degenerateUvTriangleCount = 0;
 			size_t coveredTexelCount = 0;
 			size_t ownershipConflictCount = 0;
+			size_t sameReceiverOwnershipConflictCount = 0;
+			size_t crossReceiverOwnershipConflictCount = 0;
 			size_t invalidBarycentricTexelCount = 0;
+			size_t outOfRangeTexelCount = 0;
 			size_t invalidSampleTexelCount = 0;
 			size_t innerRectClampedTriangleCount = 0;
 		};
@@ -123,10 +128,74 @@ namespace Editor::Lightmapping {
 			}
 		}
 
+		bool AreBarycentricsSane(const NE::Math::Vec3& barycentrics) {
+			if (!IsFiniteVec3(barycentrics)) {
+				return false;
+			}
+
+			const float sum = barycentrics.x + barycentrics.y + barycentrics.z;
+			if (!std::isfinite(sum) || std::fabs(sum - 1.0f) > kBarycentricSumTolerance) {
+				return false;
+			}
+
+			return barycentrics.x >= -kBarycentricRangeTolerance &&
+				barycentrics.y >= -kBarycentricRangeTolerance &&
+				barycentrics.z >= -kBarycentricRangeTolerance &&
+				barycentrics.x <= 1.0f + kBarycentricRangeTolerance &&
+				barycentrics.y <= 1.0f + kBarycentricRangeTolerance &&
+				barycentrics.z <= 1.0f + kBarycentricRangeTolerance;
+		}
+
+		bool AreBarycentricsNearlyEqual(const NE::Math::Vec3& lhs, const NE::Math::Vec3& rhs) {
+			return std::fabs(lhs.x - rhs.x) <= kFiniteEpsilon &&
+				std::fabs(lhs.y - rhs.y) <= kFiniteEpsilon &&
+				std::fabs(lhs.z - rhs.z) <= kFiniteEpsilon;
+		}
+
+		std::string CategorizeRasterWarning(const std::string& warning) {
+			if (warning.find("invalid page index") != std::string::npos) {
+				return "Invalid atlas page index";
+			}
+			if (warning.find("allocated inner rect is empty") != std::string::npos) {
+				return "Empty inner rect";
+			}
+			if (warning.find("allocated inner rect lies outside its page") != std::string::npos) {
+				return "Inner rect outside page";
+			}
+			if (warning.find("required components are missing") != std::string::npos) {
+				return "Missing required receiver components";
+			}
+			if (warning.find("no longer marked static") != std::string::npos) {
+				return "Receiver no longer static";
+			}
+			if (warning.find("is inactive") != std::string::npos) {
+				return "Inactive receiver";
+			}
+			if (warning.find("cooked model is unavailable") != std::string::npos) {
+				return "Cooked model unavailable";
+			}
+			if (warning.find("does not resolve to one valid baked submesh") != std::string::npos) {
+				return "Invalid baked submesh";
+			}
+			if (warning.find("world transform is non-finite") != std::string::npos) {
+				return "Non-finite world transform";
+			}
+			if (warning.find("UV1 triangle data is unavailable") != std::string::npos) {
+				return "Missing UV1 triangle data";
+			}
+			if (warning.find("no valid world-space UV1 triangles remained after validation") != std::string::npos) {
+				return "No valid UV1 triangles after validation";
+			}
+			if (warning.find("page buffer could not be resolved") != std::string::npos) {
+				return "Missing raster page buffer";
+			}
+			return "Other raster warning";
+		}
+
 		void TallyWarningCounts(LightmapUvRasterResult& result) {
 			result.warningCounts.clear();
 			for (const auto& warning : result.warnings) {
-				result.warningCounts[warning]++;
+				result.warningCounts[CategorizeRasterWarning(warning)]++;
 			}
 		}
 
@@ -178,6 +247,7 @@ namespace Editor::Lightmapping {
 				page.preview.height = page.height;
 				page.preview.validTexelCount = page.validTexelCount;
 				page.preview.allocatedInnerTexelCount = page.allocatedInnerTexelCount;
+				page.preview.coverage01 = page.coverage01;
 				page.preview.validityRgba8.resize(static_cast<size_t>(page.width) * static_cast<size_t>(page.height) * 4u, 0u);
 				page.preview.ownerRgba8.resize(static_cast<size_t>(page.width) * static_cast<size_t>(page.height) * 4u, 0u);
 
@@ -252,7 +322,7 @@ namespace Editor::Lightmapping {
 
 			const auto& triangle = receiver.triangles[triangleIndex];
 			const NE::Math::Vec3 barycentrics = page.barycentrics[linearIndex];
-			if (!IsFiniteVec3(barycentrics)) {
+			if (!AreBarycentricsSane(barycentrics)) {
 				return false;
 			}
 
@@ -295,9 +365,11 @@ namespace Editor::Lightmapping {
 	std::vector<LightmapBakeReceiverSnapshot> CollectLightmapBakeReceiverSnapshots(
 		const std::vector<LightmapPlacement>& placements,
 		const std::vector<LightmapAtlasPage>& pages,
-		std::vector<std::string>& warnings) {
+		std::vector<std::string>& warnings,
+		LightmapBakeReceiverCollectionStats* outStats) {
 		std::vector<LightmapBakeReceiverSnapshot> receivers;
 		receivers.reserve(placements.size());
+		LightmapBakeReceiverCollectionStats collectionStats{};
 
 		std::unordered_map<int, PageInfo> pageInfoByIndex;
 		pageInfoByIndex.reserve(pages.size());
@@ -388,11 +460,15 @@ namespace Editor::Lightmapping {
 				: transform.worldMatrix;
 
 			receiver.triangles.reserve(submesh.indices.size() / 3u);
+			bool receiverDiscardedTriangles = false;
 			for (size_t index = 0; index + 2 < submesh.indices.size(); index += 3) {
 				const uint32_t ia = submesh.indices[index + 0];
 				const uint32_t ib = submesh.indices[index + 1];
 				const uint32_t ic = submesh.indices[index + 2];
 				if (ia >= submesh.vertices.size() || ib >= submesh.vertices.size() || ic >= submesh.vertices.size()) {
+					receiverDiscardedTriangles = true;
+					++collectionStats.discardedTriangleCount;
+					++collectionStats.outOfRangeIndexTriangleCount;
 					continue;
 				}
 
@@ -400,6 +476,9 @@ namespace Editor::Lightmapping {
 				const auto& vb = submesh.vertices[ib];
 				const auto& vc = submesh.vertices[ic];
 				if (!IsFiniteVec2(va.texCoord1) || !IsFiniteVec2(vb.texCoord1) || !IsFiniteVec2(vc.texCoord1)) {
+					receiverDiscardedTriangles = true;
+					++collectionStats.discardedTriangleCount;
+					++collectionStats.nonFiniteUvTriangleCount;
 					continue;
 				}
 
@@ -407,12 +486,18 @@ namespace Editor::Lightmapping {
 				const NE::Math::Vec3 p1 = TransformPoint(transform.worldMatrix, vb.position);
 				const NE::Math::Vec3 p2 = TransformPoint(transform.worldMatrix, vc.position);
 				if (!IsFiniteVec3(p0) || !IsFiniteVec3(p1) || !IsFiniteVec3(p2)) {
+					receiverDiscardedTriangles = true;
+					++collectionStats.discardedTriangleCount;
+					++collectionStats.nonFiniteWorldPositionTriangleCount;
 					continue;
 				}
 
 				const NE::Math::Vec3 geometricCross = (p1 - p0).Cross(p2 - p0);
 				const float doubleArea = geometricCross.Length();
 				if (!std::isfinite(doubleArea) || doubleArea <= kFiniteEpsilon) {
+					receiverDiscardedTriangles = true;
+					++collectionStats.discardedTriangleCount;
+					++collectionStats.degenerateWorldTriangleCount;
 					continue;
 				}
 
@@ -431,6 +516,10 @@ namespace Editor::Lightmapping {
 				receiver.triangles.push_back(triangle);
 			}
 
+			if (receiverDiscardedTriangles) {
+				++collectionStats.receiversWithDiscardedTriangles;
+			}
+
 			if (receiver.triangles.empty()) {
 				PushWarning(warnings, entityName + ": skipped bake receiver because no valid world-space UV1 triangles remained after validation.");
 				continue;
@@ -446,6 +535,9 @@ namespace Editor::Lightmapping {
 				}
 				return lhs.stableId < rhs.stableId;
 			});
+		if (outStats) {
+			*outStats = collectionStats;
+		}
 		return receivers;
 	}
 
@@ -602,19 +694,25 @@ namespace Editor::Lightmapping {
 							edge1 / signedArea,
 							edge2 / signedArea
 						};
-						if (!IsFiniteVec3(barycentrics)) {
+						if (!AreBarycentricsSane(barycentrics)) {
 							++localStats.invalidBarycentricTexelCount;
 							continue;
 						}
 
 						const size_t linearIndex = static_cast<size_t>(y) * static_cast<size_t>(page.width) + static_cast<size_t>(x);
 						if (linearIndex >= page.validMask.size()) {
-							++localStats.invalidBarycentricTexelCount;
+							++localStats.outOfRangeTexelCount;
 							continue;
 						}
 
 						if (page.validMask[linearIndex] != 0u) {
 							++localStats.ownershipConflictCount;
+							const uint32_t priorReceiverIndex = page.ownerReceiverIndex[linearIndex];
+							if (priorReceiverIndex == static_cast<uint32_t>(receiverIndex)) {
+								++localStats.sameReceiverOwnershipConflictCount;
+							} else {
+								++localStats.crossReceiverOwnershipConflictCount;
+							}
 							continue;
 						}
 
@@ -647,7 +745,10 @@ namespace Editor::Lightmapping {
 			result.stats.degenerateUvTriangleCount += localStats.degenerateUvTriangleCount;
 			result.stats.coveredTexelCount += localStats.coveredTexelCount;
 			result.stats.ownershipConflictCount += localStats.ownershipConflictCount;
+			result.stats.sameReceiverOwnershipConflictCount += localStats.sameReceiverOwnershipConflictCount;
+			result.stats.crossReceiverOwnershipConflictCount += localStats.crossReceiverOwnershipConflictCount;
 			result.stats.invalidBarycentricTexelCount += localStats.invalidBarycentricTexelCount;
+			result.stats.outOfRangeTexelCount += localStats.outOfRangeTexelCount;
 			result.stats.invalidSampleTexelCount += localStats.invalidSampleTexelCount;
 			result.stats.innerRectClampedTriangleCount += localStats.innerRectClampedTriangleCount;
 		}
@@ -662,6 +763,9 @@ namespace Editor::Lightmapping {
 
 		for (auto& page : result.pageBuffers) {
 			page.validTexelCount = static_cast<size_t>(std::count(page.validMask.begin(), page.validMask.end(), static_cast<uint8_t>(1u)));
+			page.coverage01 = page.allocatedInnerTexelCount > 0
+				? std::clamp(static_cast<float>(page.validTexelCount) / static_cast<float>(page.allocatedInnerTexelCount), 0.0f, 1.0f)
+				: 0.0f;
 		}
 
 		BuildPagePreviews(result);
@@ -838,6 +942,18 @@ namespace Editor::Lightmapping {
 				determinismA.pageBuffers[i].ownerSourceTriangleIndex != determinismB.pageBuffers[i].ownerSourceTriangleIndex) {
 				outMessage = "Self-check failed: repeated rasterization produced non-deterministic ownership buffers.";
 				return false;
+			}
+			if (determinismA.pageBuffers[i].barycentrics.size() != determinismB.pageBuffers[i].barycentrics.size()) {
+				outMessage = "Self-check failed: repeated rasterization produced non-deterministic barycentric buffer sizes.";
+				return false;
+			}
+			for (size_t baryIndex = 0; baryIndex < determinismA.pageBuffers[i].barycentrics.size(); ++baryIndex) {
+				if (!AreBarycentricsNearlyEqual(
+					determinismA.pageBuffers[i].barycentrics[baryIndex],
+					determinismB.pageBuffers[i].barycentrics[baryIndex])) {
+					outMessage = "Self-check failed: repeated rasterization produced non-deterministic barycentric buffers.";
+					return false;
+				}
 			}
 		}
 

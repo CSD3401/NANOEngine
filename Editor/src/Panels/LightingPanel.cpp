@@ -662,6 +662,30 @@ namespace Editor {
 					ImGui::SameLine();
 					ImGui::TextDisabled("%zu", stats.rasterTriangleCount);
 
+					ImGui::Text("Collected Triangle Drops");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.collectedDiscardedTriangleCount);
+
+					ImGui::Text("Dropped Index Errors");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.collectedOutOfRangeIndexTriangleCount);
+
+					ImGui::Text("Dropped Non-Finite UV1");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.collectedNonFiniteUvTriangleCount);
+
+					ImGui::Text("Dropped Non-Finite Positions");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.collectedNonFiniteWorldPositionTriangleCount);
+
+					ImGui::Text("Dropped Degenerate World Tris");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.collectedDegenerateWorldTriangleCount);
+
+					ImGui::Text("Receivers With Triangle Drops");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.receiversWithCollectedDiscardedTriangles);
+
 					ImGui::Text("Degenerate UV Tris");
 					ImGui::SameLine();
 					ImGui::TextDisabled("%zu", stats.rasterDegenerateUvTriangleCount);
@@ -678,9 +702,21 @@ namespace Editor {
 					ImGui::SameLine();
 					ImGui::TextDisabled("%zu", stats.rasterOwnershipConflictCount);
 
+					ImGui::Text("Same-Receiver Conflicts");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.rasterSameReceiverConflictCount);
+
+					ImGui::Text("Cross-Receiver Conflicts");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.rasterCrossReceiverConflictCount);
+
 					ImGui::Text("Invalid Barycentrics");
 					ImGui::SameLine();
 					ImGui::TextDisabled("%zu", stats.rasterInvalidBarycentricTexelCount);
+
+					ImGui::Text("Out-of-Range Texels");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.rasterOutOfRangeTexelCount);
 
 					ImGui::Text("Invalid Samples");
 					ImGui::SameLine();
@@ -720,16 +756,12 @@ namespace Editor {
 
 					if (bakeResult.rasterResult && ImGui::CollapsingHeader("Raster Coverage", ImGuiTreeNodeFlags_DefaultOpen)) {
 						for (const auto& page : bakeResult.rasterResult->pageBuffers) {
-							const float coverage =
-								page.allocatedInnerTexelCount > 0
-								? static_cast<float>(page.validTexelCount) / static_cast<float>(page.allocatedInnerTexelCount)
-								: 0.0f;
 							ImGui::BulletText(
 								"%s: %zu / %zu texels (%.1f%%)",
 								page.pageId.c_str(),
 								page.validTexelCount,
 								page.allocatedInnerTexelCount,
-								coverage * 100.0f);
+								page.coverage01 * 100.0f);
 						}
 					}
 
@@ -745,13 +777,27 @@ namespace Editor {
 
 					if (ImGui::CollapsingHeader("Page Previews", ImGuiTreeNodeFlags_DefaultOpen)) {
 						for (const auto& page : bakeResult.pages) {
-							const float coverage =
-								page.width > 0 && page.height > 0
-								? static_cast<float>(page.validTexelCount) / static_cast<float>(page.width * page.height)
-								: 0.0f;
+							float coverage = 0.0f;
+							if (bakeResult.rasterResult) {
+								const auto rasterPageIt = std::find_if(
+									bakeResult.rasterResult->pageBuffers.begin(),
+									bakeResult.rasterResult->pageBuffers.end(),
+									[pageIndex = page.pageIndex](const auto& rasterPage) {
+										return rasterPage.pageIndex == pageIndex;
+									});
+								if (rasterPageIt != bakeResult.rasterResult->pageBuffers.end()) {
+									coverage = rasterPageIt->coverage01;
+								}
+							} else if (page.width > 0 && page.height > 0) {
+								coverage = static_cast<float>(page.validTexelCount) / static_cast<float>(page.width * page.height);
+							}
 							ImGui::Text("%s", page.pageId.c_str());
 							ImGui::SameLine();
 							ImGui::TextDisabled("%ux%u", page.width, page.height);
+							if (bakeResult.rasterResult) {
+								ImGui::SameLine();
+								ImGui::TextDisabled("allocated coverage");
+							}
 							ImGui::ProgressBar(std::clamp(coverage, 0.0f, 1.0f), ImVec2(-1.0f, 0.0f));
 
 							const auto previewIt = m_previewTextures.find(page.pageId);

@@ -47,6 +47,7 @@ namespace Editor::Lightmapping {
 			DirectLightBakeSettings settings{};
 			std::vector<LightmapAtlasPage> pages;
 			std::vector<LightmapBakeReceiverSnapshot> receivers;
+			LightmapBakeReceiverCollectionStats receiverCollectionStats{};
 			std::vector<BakeLightSnapshot> lights;
 			std::vector<std::string> warnings;
 			BakeAABB sceneBounds{};
@@ -112,6 +113,61 @@ namespace Editor::Lightmapping {
 			if (warnings.size() < kMaxWarningExamples) {
 				warnings.push_back(message);
 			}
+		}
+
+		std::string CategorizeBakeWarning(const std::string& warning) {
+			if (warning.find("invalid page index") != std::string::npos) {
+				return "Invalid atlas page index";
+			}
+			if (warning.find("duplicate page indices") != std::string::npos) {
+				return "Duplicate atlas page indices";
+			}
+			if (warning.find("required components are missing") != std::string::npos) {
+				return "Missing required receiver components";
+			}
+			if (warning.find("allocated inner rect is empty") != std::string::npos) {
+				return "Empty inner rect";
+			}
+			if (warning.find("allocated inner rect lies outside its page") != std::string::npos) {
+				return "Inner rect outside page";
+			}
+			if (warning.find("skipped light because the world transform is non-finite") != std::string::npos) {
+				return "Non-finite light transform";
+			}
+			if (warning.find("world transform is non-finite") != std::string::npos) {
+				return "Non-finite world transform";
+			}
+			if (warning.find("spot light because its cone angles are non-finite") != std::string::npos) {
+				return "Non-finite spot cone angles";
+			}
+			if (warning.find("spot light because inner cone angle exceeds outer cone angle") != std::string::npos) {
+				return "Invalid spot cone ordering";
+			}
+			if (warning.find("skipped light because its range is invalid") != std::string::npos) {
+				return "Invalid finite light range";
+			}
+			if (warning.find("no longer marked static") != std::string::npos) {
+				return "Receiver no longer static";
+			}
+			if (warning.find("is inactive") != std::string::npos) {
+				return "Inactive receiver";
+			}
+			if (warning.find("cooked model is unavailable") != std::string::npos) {
+				return "Cooked model unavailable";
+			}
+			if (warning.find("does not resolve to one valid baked submesh") != std::string::npos) {
+				return "Invalid baked submesh";
+			}
+			if (warning.find("UV1 triangle data is unavailable") != std::string::npos) {
+				return "Missing UV1 triangle data";
+			}
+			if (warning.find("no valid world-space UV1 triangles remained after validation") != std::string::npos) {
+				return "No valid UV1 triangles after validation";
+			}
+			if (warning.find("page buffer could not be resolved") != std::string::npos) {
+				return "Missing raster page buffer";
+			}
+			return "Other bake warning";
 		}
 
 		std::vector<LightmapPlacement> CollectPlacements(const LightmapAllocationPreviewState& previewState) {
@@ -280,7 +336,7 @@ namespace Editor::Lightmapping {
 				return false;
 			}
 
-			outInput.receivers = CollectLightmapBakeReceiverSnapshots(placements, outInput.pages, outInput.warnings);
+			outInput.receivers = CollectLightmapBakeReceiverSnapshots(placements, outInput.pages, outInput.warnings, &outInput.receiverCollectionStats);
 			outInput.directionalShadowDistance = std::max(GetSceneBakeBVHSessionState().sceneDiagonalLength + 1.0f, 1.0f);
 			outInput.sceneBounds = GetSceneBakeBVHSessionState().sceneBounds;
 			outInput.lights = CollectBakeLights(outInput.warnings);
@@ -371,7 +427,7 @@ namespace Editor::Lightmapping {
 		void TallyWarningCounts(DirectLightBakeResult& result) {
 			result.warningCounts.clear();
 			for (const auto& warning : result.warnings) {
-				result.warningCounts[warning]++;
+				result.warningCounts[CategorizeBakeWarning(warning)]++;
 			}
 		}
 
@@ -389,6 +445,12 @@ namespace Editor::Lightmapping {
 				[](const BakeLightSnapshot& light) { return light.kind == BakeLightKind::Point; });
 			result.stats.spotLightCount = std::count_if(input.lights.begin(), input.lights.end(),
 				[](const BakeLightSnapshot& light) { return light.kind == BakeLightKind::Spot; });
+			result.stats.collectedDiscardedTriangleCount = input.receiverCollectionStats.discardedTriangleCount;
+			result.stats.collectedOutOfRangeIndexTriangleCount = input.receiverCollectionStats.outOfRangeIndexTriangleCount;
+			result.stats.collectedNonFiniteUvTriangleCount = input.receiverCollectionStats.nonFiniteUvTriangleCount;
+			result.stats.collectedNonFiniteWorldPositionTriangleCount = input.receiverCollectionStats.nonFiniteWorldPositionTriangleCount;
+			result.stats.collectedDegenerateWorldTriangleCount = input.receiverCollectionStats.degenerateWorldTriangleCount;
+			result.stats.receiversWithCollectedDiscardedTriangles = input.receiverCollectionStats.receiversWithDiscardedTriangles;
 			result.stats.setupMs = setupMs;
 			result.warnings = input.warnings;
 
@@ -406,12 +468,16 @@ namespace Editor::Lightmapping {
 			result.stats.rasterDegenerateUvTriangleCount = rasterResult->stats.degenerateUvTriangleCount;
 			result.stats.rasterUncoveredTexelCount = rasterResult->stats.uncoveredTexelCount;
 			result.stats.rasterOwnershipConflictCount = rasterResult->stats.ownershipConflictCount;
+			result.stats.rasterSameReceiverConflictCount = rasterResult->stats.sameReceiverOwnershipConflictCount;
+			result.stats.rasterCrossReceiverConflictCount = rasterResult->stats.crossReceiverOwnershipConflictCount;
 			result.stats.rasterInvalidBarycentricTexelCount = rasterResult->stats.invalidBarycentricTexelCount;
+			result.stats.rasterOutOfRangeTexelCount = rasterResult->stats.outOfRangeTexelCount;
 			result.stats.rasterInvalidSampleTexelCount = rasterResult->stats.invalidSampleTexelCount;
 			result.stats.rasterInnerRectClampedTriangleCount = rasterResult->stats.innerRectClampedTriangleCount;
 			result.stats.coveredTexelCount = rasterResult->stats.coveredTexelCount;
 			result.stats.skippedTexelCount =
 				rasterResult->stats.invalidBarycentricTexelCount +
+				rasterResult->stats.outOfRangeTexelCount +
 				rasterResult->stats.invalidSampleTexelCount;
 			result.rasterResult = rasterResult;
 			result.warnings.insert(result.warnings.end(), rasterResult->warnings.begin(), rasterResult->warnings.end());
