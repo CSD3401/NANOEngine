@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "LightmapAtlasAllocator.hpp"
+#include "LightmapBakeOutput.hpp"
 #include "LightmapUvRasterizer.hpp"
 
 #include <Math/Vec3.hpp>
@@ -89,9 +90,16 @@ namespace Editor::Lightmapping {
 		DirectLightBakeSettings settings{};
 		DirectLightBakeStats stats{};
 		std::vector<DirectLightBakePageBuffers> pages;
+		LightmapBakeTextureOutput textureOutput{};
 		std::vector<std::string> warnings;
 		std::unordered_map<std::string, size_t> warningCounts;
 		std::shared_ptr<const LightmapUvRasterResult> rasterResult;
+
+		DirectLightBakeResult() = default;
+		DirectLightBakeResult(const DirectLightBakeResult&) = delete;
+		DirectLightBakeResult& operator=(const DirectLightBakeResult&) = delete;
+		DirectLightBakeResult(DirectLightBakeResult&&) noexcept = default;
+		DirectLightBakeResult& operator=(DirectLightBakeResult&&) noexcept = default;
 	};
 
 	struct DirectLightBakeSessionState {
@@ -113,6 +121,7 @@ namespace Editor::Lightmapping {
 	void UpdateDirectLightBakeSession();
 	bool StartSceneDirectLightBake(const DirectLightBakeSettings& settings);
 	void CancelSceneDirectLightBake();
+	void SetDirectLightBakePreviewExposure(float previewExposure);
 	void ShutdownDirectLightBakeSession();
 
 }

@@ -60,6 +60,9 @@ namespace Editor::Lightmapping {
 			std::thread workerThread;
 			std::atomic<bool> cancelRequested = false;
 			std::atomic<bool> workerFinished = false;
+			float desiredPreviewExposure = 1.0f;
+			std::shared_ptr<DirectLightBakeResult> pendingCpuResult;
+			std::shared_ptr<DirectLightBakeResult> publishedResult;
 		};
 
 		WorkerControl& Control() {
@@ -386,49 +389,67 @@ namespace Editor::Lightmapping {
 			control.state.statusMessage = stage + " (" + std::to_string(processedInstances) + "/" + std::to_string(totalInstances) + " instances)";
 		}
 
-		void BuildPagePreviews(DirectLightBakeResult& result) {
-			for (auto& page : result.pages) {
-				page.preview.pageIndex = page.pageIndex;
-				page.preview.pageId = page.pageId;
-				page.preview.width = page.width;
-				page.preview.height = page.height;
-				page.preview.validTexelCount = page.validTexelCount;
-				page.preview.lightingRgba8.resize(static_cast<size_t>(page.width) * static_cast<size_t>(page.height) * 4u, 0u);
-				page.preview.validityRgba8.resize(static_cast<size_t>(page.width) * static_cast<size_t>(page.height) * 4u, 0u);
-
-				for (size_t i = 0; i < page.lighting.size(); ++i) {
-					const NE::Math::Vec3 hdr = page.lighting[i] * result.settings.previewExposure;
-					const NE::Math::Vec3 mapped{
-						hdr.x / (1.0f + std::max(hdr.x, 0.0f)),
-						hdr.y / (1.0f + std::max(hdr.y, 0.0f)),
-						hdr.z / (1.0f + std::max(hdr.z, 0.0f))
-					};
-
-					const auto toByte = [](float value) -> uint8_t {
-						const float gamma = std::pow(std::clamp(value, 0.0f, 1.0f), 1.0f / 2.2f);
-						return static_cast<uint8_t>(std::clamp(gamma * 255.0f, 0.0f, 255.0f));
-					};
-
-					const size_t rgbaIndex = i * 4u;
-					page.preview.lightingRgba8[rgbaIndex + 0u] = toByte(mapped.x);
-					page.preview.lightingRgba8[rgbaIndex + 1u] = toByte(mapped.y);
-					page.preview.lightingRgba8[rgbaIndex + 2u] = toByte(mapped.z);
-					page.preview.lightingRgba8[rgbaIndex + 3u] = 255u;
-
-					const uint8_t maskValue = page.validMask[i] != 0u ? 255u : 0u;
-					page.preview.validityRgba8[rgbaIndex + 0u] = maskValue;
-					page.preview.validityRgba8[rgbaIndex + 1u] = maskValue;
-					page.preview.validityRgba8[rgbaIndex + 2u] = maskValue;
-					page.preview.validityRgba8[rgbaIndex + 3u] = 255u;
-				}
-			}
-		}
-
 		void TallyWarningCounts(DirectLightBakeResult& result) {
 			result.warningCounts.clear();
 			for (const auto& warning : result.warnings) {
 				result.warningCounts[CategorizeBakeWarning(warning)]++;
 			}
+		}
+
+		bool BuildTextureOutputRequest(
+			const DirectLightBakeResult& result,
+			float previewExposure,
+			LightmapBakeOutputBuildRequest& outRequest,
+			std::string& outErrorMessage) {
+			outRequest = {};
+			outRequest.previewExposure = previewExposure;
+			outErrorMessage.clear();
+
+			std::unordered_map<int, const LightmapUvRasterPageBuffers*> rasterPagesByIndex;
+			rasterPagesByIndex.reserve(result.rasterResult ? result.rasterResult->pageBuffers.size() : 0u);
+			if (result.rasterResult) {
+				if (result.rasterResult->pageBuffers.size() != result.pages.size()) {
+					outErrorMessage = "Bake output stage rejected the bake result because raster page metadata no longer matches the baked page count.";
+					return false;
+				}
+
+				for (const auto& rasterPage : result.rasterResult->pageBuffers) {
+					rasterPagesByIndex.emplace(rasterPage.pageIndex, &rasterPage);
+				}
+			}
+
+			outRequest.pages.reserve(result.pages.size());
+			for (const auto& page : result.pages) {
+				LightmapBakeOutputInputPage requestPage{};
+				requestPage.pageIndex = page.pageIndex;
+				requestPage.pageId = page.pageId;
+				requestPage.width = page.width;
+				requestPage.height = page.height;
+				requestPage.validTexelCount = page.validTexelCount;
+				requestPage.lighting = &page.lighting;
+				requestPage.validMask = &page.validMask;
+
+				if (result.rasterResult) {
+					const auto rasterPageIt = rasterPagesByIndex.find(page.pageIndex);
+					if (rasterPageIt == rasterPagesByIndex.end()) {
+						outErrorMessage = "Bake output stage rejected the bake result because a page could not be matched back to raster metadata.";
+						return false;
+					}
+
+					const auto* rasterPage = rasterPageIt->second;
+					requestPage.allocatedInnerTexelCount = rasterPage->allocatedInnerTexelCount;
+					requestPage.coverage01 = rasterPage->coverage01;
+					requestPage.validityPreviewRgba8 = &rasterPage->preview.validityRgba8;
+					requestPage.ownerPreviewRgba8 = &rasterPage->preview.ownerRgba8;
+				} else if (page.width > 0u && page.height > 0u) {
+					requestPage.coverage01 =
+						static_cast<float>(page.validTexelCount) / static_cast<float>(page.width * page.height);
+				}
+
+				outRequest.pages.push_back(requestPage);
+			}
+
+			return true;
 		}
 
 		void RunBakeWorker(PreparedBakeInput input, double setupMs) {
@@ -690,7 +711,6 @@ namespace Editor::Lightmapping {
 			}
 
 			TallyWarningCounts(result);
-			BuildPagePreviews(result);
 
 			{
 				std::scoped_lock lock(control.mutex);
@@ -699,6 +719,7 @@ namespace Editor::Lightmapping {
 				control.state.queuedInstanceCount = input.receivers.size();
 				control.state.progress01 = 1.0f;
 				control.state.cancelRequested = control.cancelRequested.load();
+				control.pendingCpuResult.reset();
 
 				if (control.cancelRequested.load()) {
 					control.state.isRunning = false;
@@ -706,17 +727,11 @@ namespace Editor::Lightmapping {
 					control.state.activeStage = "Cancelled";
 					control.state.statusMessage = "Direct light bake cancelled.";
 				} else {
-					const uint64_t previousRevision =
-						(control.state.hasResult && control.state.result)
-						? control.state.result->revision
-						: 0u;
-					result.revision = previousRevision + 1u;
-					control.state.result = std::make_shared<DirectLightBakeResult>(std::move(result));
-					control.state.hasResult = true;
-					control.state.isRunning = false;
-					control.state.lastBakeSucceeded = true;
-					control.state.activeStage = "Complete";
-					control.state.statusMessage = "Direct light bake completed.";
+					control.pendingCpuResult = std::make_shared<DirectLightBakeResult>(std::move(result));
+					control.state.isRunning = true;
+					control.state.lastBakeSucceeded = false;
+					control.state.activeStage = "Preparing Output";
+					control.state.statusMessage = "Direct light bake finished on the CPU. Creating HDR page textures...";
 				}
 			}
 
@@ -735,6 +750,70 @@ namespace Editor::Lightmapping {
 		if (control.workerFinished.load() && control.workerThread.joinable()) {
 			control.workerThread.join();
 			control.workerFinished.store(false);
+		}
+
+		std::shared_ptr<DirectLightBakeResult> pendingCpuResult;
+		std::shared_ptr<DirectLightBakeResult> publishedResult;
+		float desiredPreviewExposure = 1.0f;
+		{
+			std::scoped_lock lock(control.mutex);
+			pendingCpuResult = control.pendingCpuResult;
+			publishedResult = control.publishedResult;
+			desiredPreviewExposure = control.desiredPreviewExposure;
+		}
+
+		if (pendingCpuResult) {
+			LightmapBakeOutputBuildRequest outputRequest{};
+			std::string outputErrorMessage;
+			if (!BuildTextureOutputRequest(*pendingCpuResult, desiredPreviewExposure, outputRequest, outputErrorMessage) ||
+				!BuildLightmapBakeTextureOutput(outputRequest, pendingCpuResult->textureOutput, pendingCpuResult->warnings, outputErrorMessage)) {
+				std::scoped_lock lock(control.mutex);
+				control.pendingCpuResult.reset();
+				control.state.isRunning = false;
+				control.state.cancelRequested = false;
+				control.state.lastBakeSucceeded = false;
+				control.state.activeStage = "Output Failed";
+				control.state.statusMessage =
+					outputErrorMessage.empty()
+					? "Direct light bake output creation failed."
+					: ("Direct light bake output creation failed: " + outputErrorMessage);
+				return;
+			}
+
+			TallyWarningCounts(*pendingCpuResult);
+			const uint64_t previousRevision = publishedResult ? publishedResult->revision : 0u;
+			pendingCpuResult->revision = previousRevision + 1u;
+			pendingCpuResult->textureOutput.sourceBakeRevision = pendingCpuResult->revision;
+
+			std::scoped_lock lock(control.mutex);
+			control.pendingCpuResult.reset();
+			control.publishedResult = pendingCpuResult;
+			control.state.result = pendingCpuResult;
+			control.state.hasResult = true;
+			control.state.isRunning = false;
+			control.state.cancelRequested = false;
+			control.state.lastBakeSucceeded = true;
+			control.state.activeStage = "Complete";
+			control.state.statusMessage = "Direct light bake completed.";
+			control.state.settings.previewExposure = desiredPreviewExposure;
+			return;
+		}
+
+		if (publishedResult &&
+			std::fabs(publishedResult->textureOutput.previewExposure - desiredPreviewExposure) > 1e-4f) {
+			std::string refreshErrorMessage;
+			if (!RefreshLightmapBakeDisplayPreviews(publishedResult->textureOutput, desiredPreviewExposure, refreshErrorMessage)) {
+				std::scoped_lock lock(control.mutex);
+				control.state.lastBakeSucceeded = false;
+				control.state.statusMessage =
+					refreshErrorMessage.empty()
+					? "Failed to refresh baked light preview textures."
+					: ("Failed to refresh baked light preview textures: " + refreshErrorMessage);
+				return;
+			}
+
+			std::scoped_lock lock(control.mutex);
+			control.state.settings.previewExposure = desiredPreviewExposure;
 		}
 	}
 
@@ -769,6 +848,7 @@ namespace Editor::Lightmapping {
 
 			control.cancelRequested.store(false);
 			control.workerFinished.store(false);
+			control.pendingCpuResult.reset();
 			control.state.isRunning = true;
 			control.state.cancelRequested = false;
 			control.state.lastBakeSucceeded = false;
@@ -780,6 +860,7 @@ namespace Editor::Lightmapping {
 			control.state.processedInstanceCount = 0u;
 			control.state.liveStats = {};
 			control.state.liveStats.setupMs = setupMs;
+			control.desiredPreviewExposure = settings.previewExposure;
 		}
 
 		control.workerThread = std::thread([capturedInput = std::move(input), setupMs]() mutable {
@@ -800,12 +881,25 @@ namespace Editor::Lightmapping {
 		}
 	}
 
+	void SetDirectLightBakePreviewExposure(float previewExposure) {
+		auto& control = Control();
+		std::scoped_lock lock(control.mutex);
+		control.desiredPreviewExposure = std::clamp(previewExposure, 0.1f, 16.0f);
+		control.state.settings.previewExposure = control.desiredPreviewExposure;
+	}
+
 	void ShutdownDirectLightBakeSession() {
 		CancelSceneDirectLightBake();
-		UpdateDirectLightBakeSession();
 		auto& control = Control();
 		if (control.workerThread.joinable()) {
 			control.workerThread.join();
+			control.workerFinished.store(false);
 		}
+		std::scoped_lock lock(control.mutex);
+		control.pendingCpuResult.reset();
+		control.publishedResult.reset();
+		control.state.result.reset();
+		control.state.hasResult = false;
+		control.state.isRunning = false;
 	}
 }

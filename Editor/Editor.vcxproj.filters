@@ -144,6 +144,9 @@
     <ClCompile Include="src\Lighting\DirectLightmapBaker.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Lighting\LightmapBakeOutput.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="src\Lighting\LightmapUvRasterizer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -381,6 +384,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Lighting\DirectLightmapBaker.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Lighting\LightmapBakeOutput.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Lighting\SceneBakeBVH.hpp">

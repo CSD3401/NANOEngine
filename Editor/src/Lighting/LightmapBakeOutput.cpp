@@ -1,0 +1,541 @@
+#include "pch.h"
+#include "LightmapBakeOutput.hpp"
+
+#include <cmath>
+#include <cstring>
+#include <limits>
+#include <unordered_set>
+
+#include <glad/glad.h>
+
+namespace Editor::Lightmapping {
+	namespace {
+		constexpr float kTonemapGamma = 1.0f / 2.2f;
+
+		uint16_t FloatToHalf(float value) {
+			union FloatBits {
+				float f;
+				uint32_t u;
+			};
+
+			FloatBits bits{};
+			bits.f = value;
+
+			const uint32_t sign = (bits.u >> 16) & 0x8000u;
+			uint32_t mantissa = bits.u & 0x007fffffu;
+			int32_t exponent = static_cast<int32_t>((bits.u >> 23) & 0xffu) - 127 + 15;
+
+			if (exponent <= 0) {
+				if (exponent < -10) {
+					return static_cast<uint16_t>(sign);
+				}
+
+				mantissa = (mantissa | 0x00800000u) >> (1 - exponent);
+				if ((mantissa & 0x00001000u) != 0u) {
+					mantissa += 0x00002000u;
+				}
+
+				return static_cast<uint16_t>(sign | (mantissa >> 13));
+			}
+
+			if (exponent >= 31) {
+				return static_cast<uint16_t>(sign | 0x7c00u);
+			}
+
+			if ((mantissa & 0x00001000u) != 0u) {
+				mantissa += 0x00002000u;
+				if ((mantissa & 0x00800000u) != 0u) {
+					mantissa = 0u;
+					++exponent;
+					if (exponent >= 31) {
+						return static_cast<uint16_t>(sign | 0x7c00u);
+					}
+				}
+			}
+
+			return static_cast<uint16_t>(sign | (static_cast<uint32_t>(exponent) << 10) | (mantissa >> 13));
+		}
+
+		float HalfToFloat(uint16_t value) {
+			const uint32_t sign = static_cast<uint32_t>(value & 0x8000u) << 16;
+			uint32_t exponent = (value >> 10) & 0x1fu;
+			uint32_t mantissa = value & 0x03ffu;
+			uint32_t bits = 0u;
+
+			if (exponent == 0u) {
+				if (mantissa == 0u) {
+					bits = sign;
+				} else {
+					exponent = 1u;
+					while ((mantissa & 0x0400u) == 0u) {
+						mantissa <<= 1u;
+						--exponent;
+					}
+					mantissa &= 0x03ffu;
+					exponent = exponent + (127u - 15u);
+					bits = sign | (exponent << 23u) | (mantissa << 13u);
+				}
+			} else if (exponent == 31u) {
+				bits = sign | 0x7f800000u | (mantissa << 13u);
+			} else {
+				exponent = exponent + (127u - 15u);
+				bits = sign | (exponent << 23u) | (mantissa << 13u);
+			}
+
+			float result = 0.0f;
+			std::memcpy(&result, &bits, sizeof(result));
+			return result;
+		}
+
+		bool IsFiniteFloat(float value) {
+			return std::isfinite(value);
+		}
+
+		uint8_t ToPreviewByte(float value) {
+			const float clamped = std::clamp(value, 0.0f, 1.0f);
+			return static_cast<uint8_t>(std::clamp(std::pow(clamped, kTonemapGamma) * 255.0f, 0.0f, 255.0f));
+		}
+
+		void ReleaseTexture(unsigned int& textureId) {
+			if (textureId != 0u) {
+				glDeleteTextures(1, &textureId);
+				textureId = 0u;
+			}
+		}
+
+		unsigned int UploadRgbaTexture(
+			GLenum internalFormat,
+			GLenum uploadFormat,
+			GLenum uploadType,
+			uint32_t width,
+			uint32_t height,
+			const void* pixels,
+			bool generateMipmaps,
+			double* ioMipGenerationMs = nullptr) {
+			if (width == 0u || height == 0u || pixels == nullptr) {
+				return 0u;
+			}
+
+			const uint32_t mipCount = generateMipmaps ? CalculateLightmapBakeMipCount(width, height) : 1u;
+			unsigned int texture = 0u;
+			glGenTextures(1, &texture);
+			if (texture == 0u) {
+				return 0u;
+			}
+
+			glBindTexture(GL_TEXTURE_2D, texture);
+			glTexStorage2D(GL_TEXTURE_2D, static_cast<GLsizei>(mipCount), internalFormat, static_cast<GLsizei>(width), static_cast<GLsizei>(height));
+			glTexSubImage2D(
+				GL_TEXTURE_2D,
+				0,
+				0,
+				0,
+				static_cast<GLsizei>(width),
+				static_cast<GLsizei>(height),
+				uploadFormat,
+				uploadType,
+				pixels);
+
+			if (generateMipmaps) {
+				const auto mipStart = std::chrono::high_resolution_clock::now();
+				glGenerateMipmap(GL_TEXTURE_2D);
+				const auto mipEnd = std::chrono::high_resolution_clock::now();
+				if (ioMipGenerationMs != nullptr) {
+					*ioMipGenerationMs += std::chrono::duration<double, std::milli>(mipEnd - mipStart).count();
+				}
+			}
+
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, generateMipmaps ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glBindTexture(GL_TEXTURE_2D, 0);
+			return texture;
+		}
+
+		bool BuildDisplayPreviewPixels(
+			const LightmapBakeOutputPage& page,
+			float previewExposure,
+			std::vector<uint8_t>& outPixels) {
+			const uint64_t texelCount = static_cast<uint64_t>(page.descriptor.width) * static_cast<uint64_t>(page.descriptor.height);
+			const uint64_t expectedValues = texelCount * 4u;
+			if (page.canonicalRgba16f.size() != expectedValues) {
+				return false;
+			}
+
+			outPixels.assign(static_cast<size_t>(texelCount) * 4u, 0u);
+			for (uint64_t texelIndex = 0; texelIndex < texelCount; ++texelIndex) {
+				const size_t canonicalIndex = static_cast<size_t>(texelIndex) * 4u;
+				const float hdrR = HalfToFloat(page.canonicalRgba16f[canonicalIndex + 0u]) * previewExposure;
+				const float hdrG = HalfToFloat(page.canonicalRgba16f[canonicalIndex + 1u]) * previewExposure;
+				const float hdrB = HalfToFloat(page.canonicalRgba16f[canonicalIndex + 2u]) * previewExposure;
+
+				const float mappedR = hdrR / (1.0f + std::max(hdrR, 0.0f));
+				const float mappedG = hdrG / (1.0f + std::max(hdrG, 0.0f));
+				const float mappedB = hdrB / (1.0f + std::max(hdrB, 0.0f));
+
+				const size_t previewIndex = static_cast<size_t>(texelIndex) * 4u;
+				outPixels[previewIndex + 0u] = ToPreviewByte(mappedR);
+				outPixels[previewIndex + 1u] = ToPreviewByte(mappedG);
+				outPixels[previewIndex + 2u] = ToPreviewByte(mappedB);
+				outPixels[previewIndex + 3u] = 255u;
+			}
+
+			return true;
+		}
+
+		bool BuildValidityPreviewPixels(
+			const LightmapBakeOutputInputPage& inputPage,
+			std::vector<uint8_t>& outPixels) {
+			const uint64_t texelCount = static_cast<uint64_t>(inputPage.width) * static_cast<uint64_t>(inputPage.height);
+			if (inputPage.validityPreviewRgba8 != nullptr &&
+				inputPage.validityPreviewRgba8->size() == static_cast<size_t>(texelCount) * 4u) {
+				outPixels = *inputPage.validityPreviewRgba8;
+				return true;
+			}
+
+			if (inputPage.validMask == nullptr || inputPage.validMask->size() != static_cast<size_t>(texelCount)) {
+				return false;
+			}
+
+			outPixels.assign(static_cast<size_t>(texelCount) * 4u, 0u);
+			for (uint64_t texelIndex = 0; texelIndex < texelCount; ++texelIndex) {
+				const uint8_t value = (*inputPage.validMask)[static_cast<size_t>(texelIndex)] != 0u ? 255u : 0u;
+				const size_t rgbaIndex = static_cast<size_t>(texelIndex) * 4u;
+				outPixels[rgbaIndex + 0u] = value;
+				outPixels[rgbaIndex + 1u] = value;
+				outPixels[rgbaIndex + 2u] = value;
+				outPixels[rgbaIndex + 3u] = 255u;
+			}
+
+			return true;
+		}
+
+		void AppendSanitizationWarnings(
+			const LightmapBakeOutputPageDescriptor& descriptor,
+			size_t nonFiniteCount,
+			size_t negativeCount,
+			std::vector<std::string>& ioWarnings) {
+			if (nonFiniteCount > 0u) {
+				ioWarnings.push_back(
+					descriptor.pageId + ": replaced " + std::to_string(nonFiniteCount) +
+					" non-finite baked texels with black before texture upload.");
+			}
+
+			if (negativeCount > 0u) {
+				ioWarnings.push_back(
+					descriptor.pageId + ": clamped " + std::to_string(negativeCount) +
+					" negative HDR channels to zero before texture upload.");
+			}
+		}
+	}
+
+	LightmapBakePreviewTextureSet::LightmapBakePreviewTextureSet(LightmapBakePreviewTextureSet&& other) noexcept {
+		*this = std::move(other);
+	}
+
+	LightmapBakePreviewTextureSet& LightmapBakePreviewTextureSet::operator=(LightmapBakePreviewTextureSet&& other) noexcept {
+		if (this == &other) {
+			return *this;
+		}
+
+		Reset();
+		hdrTexture = other.hdrTexture;
+		displayTexture = other.displayTexture;
+		validityTexture = other.validityTexture;
+		ownerTexture = other.ownerTexture;
+		other.hdrTexture = 0u;
+		other.displayTexture = 0u;
+		other.validityTexture = 0u;
+		other.ownerTexture = 0u;
+		return *this;
+	}
+
+	LightmapBakePreviewTextureSet::~LightmapBakePreviewTextureSet() {
+		Reset();
+	}
+
+	void LightmapBakePreviewTextureSet::Reset() {
+		ReleaseTexture(hdrTexture);
+		ReleaseTexture(displayTexture);
+		ReleaseTexture(validityTexture);
+		ReleaseTexture(ownerTexture);
+	}
+
+	uint32_t CalculateLightmapBakeMipCount(uint32_t width, uint32_t height) {
+		if (width == 0u || height == 0u) {
+			return 0u;
+		}
+
+		uint32_t mipCount = 1u;
+		uint32_t dimension = std::max(width, height);
+		while (dimension > 1u) {
+			dimension >>= 1u;
+			++mipCount;
+		}
+		return mipCount;
+	}
+
+	bool BuildLightmapBakeTextureOutput(
+		const LightmapBakeOutputBuildRequest& request,
+		LightmapBakeTextureOutput& outOutput,
+		std::vector<std::string>& ioWarnings,
+		std::string& outErrorMessage) {
+		LightmapBakeTextureOutput builtOutput{};
+		builtOutput.previewExposure = request.previewExposure;
+		outErrorMessage.clear();
+
+		std::unordered_set<int> pageIndices;
+		std::unordered_set<std::string> pageIds;
+		pageIndices.reserve(request.pages.size());
+		pageIds.reserve(request.pages.size());
+
+		for (const auto& inputPage : request.pages) {
+			if (inputPage.pageIndex < 0 || inputPage.pageId.empty()) {
+				outErrorMessage = "Bake output stage received a page with invalid identity metadata.";
+				return false;
+			}
+
+			if (!pageIndices.insert(inputPage.pageIndex).second || !pageIds.insert(inputPage.pageId).second) {
+				outErrorMessage = "Bake output stage received duplicate page identity metadata.";
+				return false;
+			}
+		}
+
+		for (const auto& inputPage : request.pages) {
+			if (inputPage.width == 0u || inputPage.height == 0u) {
+				++builtOutput.diagnostics.invalidDimensionPageCount;
+				outErrorMessage = "Bake output stage rejected a page with invalid dimensions.";
+				return false;
+			}
+
+			const uint64_t texelCount = static_cast<uint64_t>(inputPage.width) * static_cast<uint64_t>(inputPage.height);
+			if (inputPage.lighting == nullptr ||
+				inputPage.validMask == nullptr ||
+				inputPage.lighting->size() != static_cast<size_t>(texelCount) ||
+				inputPage.validMask->size() != static_cast<size_t>(texelCount)) {
+				++builtOutput.diagnostics.invalidBufferPageCount;
+				outErrorMessage = "Bake output stage rejected a page with mismatched bake buffer sizes.";
+				return false;
+			}
+
+			LightmapBakeOutputPage page{};
+			page.descriptor.pageIndex = inputPage.pageIndex;
+			page.descriptor.pageId = inputPage.pageId;
+			page.descriptor.width = inputPage.width;
+			page.descriptor.height = inputPage.height;
+			page.descriptor.mipCount = CalculateLightmapBakeMipCount(inputPage.width, inputPage.height);
+			page.descriptor.validTexelCount = inputPage.validTexelCount;
+			page.descriptor.allocatedInnerTexelCount = inputPage.allocatedInnerTexelCount;
+			page.descriptor.coverage01 = inputPage.coverage01;
+
+			page.canonicalRgba16f.resize(static_cast<size_t>(texelCount) * 4u, 0u);
+			for (uint64_t texelIndex = 0; texelIndex < texelCount; ++texelIndex) {
+				const auto& sample = (*inputPage.lighting)[static_cast<size_t>(texelIndex)];
+				float channels[4] = { sample.x, sample.y, sample.z, 1.0f };
+				bool texelHadNonFinite = false;
+
+				for (int channelIndex = 0; channelIndex < 3; ++channelIndex) {
+					if (!IsFiniteFloat(channels[channelIndex])) {
+						channels[channelIndex] = 0.0f;
+						texelHadNonFinite = true;
+					} else if (channels[channelIndex] < 0.0f) {
+						channels[channelIndex] = 0.0f;
+						++page.clampedNegativeChannelCount;
+						++builtOutput.diagnostics.clampedNegativeChannelCount;
+					}
+				}
+
+				if (texelHadNonFinite) {
+					++page.sanitizedNonFiniteTexelCount;
+					++builtOutput.diagnostics.sanitizedNonFiniteTexelCount;
+				}
+
+				const size_t baseIndex = static_cast<size_t>(texelIndex) * 4u;
+				page.canonicalRgba16f[baseIndex + 0u] = FloatToHalf(channels[0]);
+				page.canonicalRgba16f[baseIndex + 1u] = FloatToHalf(channels[1]);
+				page.canonicalRgba16f[baseIndex + 2u] = FloatToHalf(channels[2]);
+				page.canonicalRgba16f[baseIndex + 3u] = FloatToHalf(channels[3]);
+			}
+
+			AppendSanitizationWarnings(
+				page.descriptor,
+				page.sanitizedNonFiniteTexelCount,
+				page.clampedNegativeChannelCount,
+				ioWarnings);
+
+			std::vector<uint8_t> displayPreviewPixels;
+			std::vector<uint8_t> validityPreviewPixels;
+			if (!BuildDisplayPreviewPixels(page, request.previewExposure, displayPreviewPixels)) {
+				++builtOutput.diagnostics.invalidBufferPageCount;
+				outErrorMessage = "Bake output stage failed to build a display preview from canonical HDR data.";
+				return false;
+			}
+
+			if (!BuildValidityPreviewPixels(inputPage, validityPreviewPixels)) {
+				++builtOutput.diagnostics.invalidBufferPageCount;
+				outErrorMessage = "Bake output stage failed to build a validity preview texture.";
+				return false;
+			}
+
+			const auto uploadStart = std::chrono::high_resolution_clock::now();
+			page.preview.hdrTexture = UploadRgbaTexture(
+				GL_RGBA16F,
+				GL_RGBA,
+				GL_HALF_FLOAT,
+				inputPage.width,
+				inputPage.height,
+				page.canonicalRgba16f.data(),
+				true,
+				&builtOutput.diagnostics.mipGenerationMs);
+			page.preview.displayTexture = UploadRgbaTexture(
+				GL_RGBA8,
+				GL_RGBA,
+				GL_UNSIGNED_BYTE,
+				inputPage.width,
+				inputPage.height,
+				displayPreviewPixels.data(),
+				false);
+			page.preview.validityTexture = UploadRgbaTexture(
+				GL_RGBA8,
+				GL_RGBA,
+				GL_UNSIGNED_BYTE,
+				inputPage.width,
+				inputPage.height,
+				validityPreviewPixels.data(),
+				false);
+			if (inputPage.ownerPreviewRgba8 != nullptr &&
+				inputPage.ownerPreviewRgba8->size() == static_cast<size_t>(texelCount) * 4u) {
+				page.preview.ownerTexture = UploadRgbaTexture(
+					GL_RGBA8,
+					GL_RGBA,
+					GL_UNSIGNED_BYTE,
+					inputPage.width,
+					inputPage.height,
+					inputPage.ownerPreviewRgba8->data(),
+					false);
+			}
+			const auto uploadEnd = std::chrono::high_resolution_clock::now();
+			builtOutput.diagnostics.textureCreationMs +=
+				std::chrono::duration<double, std::milli>(uploadEnd - uploadStart).count();
+
+			if (page.preview.hdrTexture == 0u ||
+				page.preview.displayTexture == 0u ||
+				page.preview.validityTexture == 0u) {
+				++builtOutput.diagnostics.textureCreationFailureCount;
+				outErrorMessage = "Bake output stage failed to create one or more preview textures.";
+				return false;
+			}
+
+			builtOutput.diagnostics.pageCountCreated++;
+			builtOutput.diagnostics.totalPixelCountUploaded += static_cast<size_t>(texelCount);
+			builtOutput.diagnostics.totalMipCount += page.descriptor.mipCount;
+			builtOutput.pages.push_back(std::move(page));
+		}
+
+		outOutput = std::move(builtOutput);
+		return true;
+	}
+
+	bool RefreshLightmapBakeDisplayPreviews(
+		LightmapBakeTextureOutput& output,
+		float previewExposure,
+		std::string& outErrorMessage) {
+		outErrorMessage.clear();
+		if (output.pages.empty()) {
+			output.previewExposure = previewExposure;
+			output.diagnostics.displayPreviewRefreshMs = 0.0;
+			return true;
+		}
+
+		std::vector<unsigned int> refreshedTextures(output.pages.size(), 0u);
+		double refreshMs = 0.0;
+
+		for (size_t pageIndex = 0; pageIndex < output.pages.size(); ++pageIndex) {
+			std::vector<uint8_t> displayPreviewPixels;
+			if (!BuildDisplayPreviewPixels(output.pages[pageIndex], previewExposure, displayPreviewPixels)) {
+				outErrorMessage = "Bake output preview refresh failed because canonical HDR data was invalid.";
+				for (auto& textureId : refreshedTextures) {
+					ReleaseTexture(textureId);
+				}
+				return false;
+			}
+
+			const auto refreshStart = std::chrono::high_resolution_clock::now();
+			refreshedTextures[pageIndex] = UploadRgbaTexture(
+				GL_RGBA8,
+				GL_RGBA,
+				GL_UNSIGNED_BYTE,
+				output.pages[pageIndex].descriptor.width,
+				output.pages[pageIndex].descriptor.height,
+				displayPreviewPixels.data(),
+				false);
+			const auto refreshEnd = std::chrono::high_resolution_clock::now();
+			refreshMs += std::chrono::duration<double, std::milli>(refreshEnd - refreshStart).count();
+
+			if (refreshedTextures[pageIndex] == 0u) {
+				outErrorMessage = "Bake output preview refresh failed while creating display textures.";
+				for (auto& textureId : refreshedTextures) {
+					ReleaseTexture(textureId);
+				}
+				return false;
+			}
+		}
+
+		for (size_t pageIndex = 0; pageIndex < output.pages.size(); ++pageIndex) {
+			ReleaseTexture(output.pages[pageIndex].preview.displayTexture);
+			output.pages[pageIndex].preview.displayTexture = refreshedTextures[pageIndex];
+		}
+
+		output.previewExposure = previewExposure;
+		output.diagnostics.displayPreviewRefreshMs = refreshMs;
+		return true;
+	}
+
+	bool RunLightmapBakeOutputSelfCheck(std::string& outMessage) {
+		if (CalculateLightmapBakeMipCount(0u, 8u) != 0u) {
+			outMessage = "Bake output self-check failed: zero-sized pages must produce zero mip levels.";
+			return false;
+		}
+
+		if (CalculateLightmapBakeMipCount(1u, 1u) != 1u ||
+			CalculateLightmapBakeMipCount(8u, 1u) != 4u ||
+			CalculateLightmapBakeMipCount(512u, 512u) != 10u) {
+			outMessage = "Bake output self-check failed: mip count calculation is inconsistent.";
+			return false;
+		}
+
+		const float roundTripInputs[] = { 0.0f, 1.0f, 12.5f, 65504.0f };
+		for (float input : roundTripInputs) {
+			const float decoded = HalfToFloat(FloatToHalf(input));
+			if (!std::isfinite(decoded) || std::fabs(decoded - input) > std::max(1e-3f, input * 0.01f)) {
+				outMessage = "Bake output self-check failed: half-float round trip drift exceeded tolerance.";
+				return false;
+			}
+		}
+
+		LightmapBakeOutputPage page{};
+		page.descriptor.width = 1u;
+		page.descriptor.height = 1u;
+		page.canonicalRgba16f = {
+			FloatToHalf(4.0f),
+			FloatToHalf(1.0f),
+			FloatToHalf(0.25f),
+			FloatToHalf(1.0f)
+		};
+
+		std::vector<uint8_t> previewPixels;
+		if (!BuildDisplayPreviewPixels(page, 1.0f, previewPixels) || previewPixels.size() != 4u) {
+			outMessage = "Bake output self-check failed: display preview generation from canonical HDR data is invalid.";
+			return false;
+		}
+
+		if (previewPixels[0] <= previewPixels[2]) {
+			outMessage = "Bake output self-check failed: tone-mapped preview ordering is unexpected.";
+			return false;
+		}
+
+		outMessage = "Bake output self-check passed: mip counts, half-float packing, and preview derivation are valid.";
+		return true;
+	}
+}

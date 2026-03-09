@@ -11,93 +11,11 @@
 #include "../Lighting/LightmapAtlasAllocator.hpp"
 #include "../Lighting/SceneBakeBVH.hpp"
 #include <algorithm>
-#include <glad/glad.h>
 
 
 namespace Editor {
 	LightingPanel::~LightingPanel() {
-		ReleasePreviewTextures();
 		Lightmapping::ShutdownDirectLightBakeSession();
-	}
-
-	void LightingPanel::ReleasePreviewTextures() {
-		for (auto& [_, textures] : m_previewTextures) {
-			if (textures.lightingTexture != 0) {
-				glDeleteTextures(1, &textures.lightingTexture);
-				textures.lightingTexture = 0;
-			}
-			if (textures.validityTexture != 0) {
-				glDeleteTextures(1, &textures.validityTexture);
-				textures.validityTexture = 0;
-			}
-			if (textures.ownerTexture != 0) {
-				glDeleteTextures(1, &textures.ownerTexture);
-				textures.ownerTexture = 0;
-			}
-		}
-		m_previewTextures.clear();
-	}
-
-	void LightingPanel::SyncPreviewTextures(const Editor::Lightmapping::DirectLightBakeSessionState& sessionState) {
-		if (!sessionState.hasResult || !sessionState.result) {
-			if (m_cachedBakeRevision != 0) {
-				ReleasePreviewTextures();
-				m_cachedBakeRevision = 0;
-			}
-			return;
-		}
-
-		if (m_cachedBakeRevision == sessionState.result->revision) {
-			return;
-		}
-
-		ReleasePreviewTextures();
-		m_cachedBakeRevision = sessionState.result->revision;
-
-		auto uploadTexture = [](const std::vector<uint8_t>& rgba, uint32_t width, uint32_t height) -> unsigned int {
-			if (rgba.empty() || width == 0 || height == 0) {
-				return 0;
-			}
-
-			unsigned int texture = 0;
-			glGenTextures(1, &texture);
-			if (texture == 0) {
-				return 0;
-			}
-
-			glBindTexture(GL_TEXTURE_2D, texture);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, static_cast<GLsizei>(width), static_cast<GLsizei>(height), 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glBindTexture(GL_TEXTURE_2D, 0);
-			return texture;
-		};
-
-		const auto rasterResult = sessionState.result->rasterResult;
-		for (const auto& page : sessionState.result->pages) {
-			PreviewTextureSet textures{};
-			textures.lightingTexture =
-				uploadTexture(page.preview.lightingRgba8, page.preview.width, page.preview.height);
-			if (rasterResult) {
-				const auto rasterPageIt = std::find_if(
-					rasterResult->pageBuffers.begin(),
-					rasterResult->pageBuffers.end(),
-					[&](const auto& rasterPage) { return rasterPage.pageId == page.pageId; });
-				if (rasterPageIt != rasterResult->pageBuffers.end()) {
-					textures.validityTexture =
-						uploadTexture(rasterPageIt->preview.validityRgba8, rasterPageIt->preview.width, rasterPageIt->preview.height);
-					textures.ownerTexture =
-						uploadTexture(rasterPageIt->preview.ownerRgba8, rasterPageIt->preview.width, rasterPageIt->preview.height);
-				}
-			}
-			if (textures.validityTexture == 0) {
-				textures.validityTexture =
-					uploadTexture(page.preview.validityRgba8, page.preview.width, page.preview.height);
-			}
-			m_previewTextures[page.pageId] = textures;
-		}
 	}
 
 	void LightingPanel::OnImGuiRender() {
@@ -327,10 +245,10 @@ namespace Editor {
 
 			} break;
 			case 3: {
+				Editor::Lightmapping::SetDirectLightBakePreviewExposure(m_directBakePreviewExposure);
 				Editor::Lightmapping::UpdateDirectLightBakeSession();
 				auto& previewState = Editor::Lightmapping::GetLightmapAllocationPreviewState();
 				const auto directBakeState = Editor::Lightmapping::GetDirectLightBakeSessionState();
-				SyncPreviewTextures(directBakeState);
 
 				//ImGui::TextWrapped("Atlas allocation is editor-only in Part 3. This pass computes deterministic page placement and UV transforms, then writes them into per-entity LightmapBinding data.");
 				//ImGui::Spacing();
@@ -625,12 +543,24 @@ namespace Editor {
 				if (ImGui::Button("Run Raster Self-Check")) {
 					m_rasterSelfCheckPassed = Editor::Lightmapping::RunLightmapUvRasterizerSelfCheck(m_rasterSelfCheckMessage);
 				}
+				ImGui::SameLine();
+				if (ImGui::Button("Run Output Self-Check")) {
+					m_outputSelfCheckPassed = Editor::Lightmapping::RunLightmapBakeOutputSelfCheck(m_outputSelfCheckMessage);
+				}
 
 				if (!m_rasterSelfCheckMessage.empty()) {
 					if (m_rasterSelfCheckPassed) {
 						ImGui::TextColored(ImVec4(0.35f, 0.85f, 0.45f, 1.0f), "%s", m_rasterSelfCheckMessage.c_str());
 					} else {
 						ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.35f, 1.0f), "%s", m_rasterSelfCheckMessage.c_str());
+					}
+				}
+
+				if (!m_outputSelfCheckMessage.empty()) {
+					if (m_outputSelfCheckPassed) {
+						ImGui::TextColored(ImVec4(0.35f, 0.85f, 0.45f, 1.0f), "%s", m_outputSelfCheckMessage.c_str());
+					} else {
+						ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.35f, 1.0f), "%s", m_outputSelfCheckMessage.c_str());
 					}
 				}
 
@@ -754,6 +684,58 @@ namespace Editor {
 					ImGui::SameLine();
 					ImGui::TextDisabled("%.3f ms", stats.evaluationMs);
 
+					const auto& textureOutput = bakeResult.textureOutput;
+					const auto& outputDiagnostics = textureOutput.diagnostics;
+
+					ImGui::Spacing();
+					ImGui::Text("Output Format");
+					ImGui::SameLine();
+					ImGui::TextDisabled("RGBA16F linear");
+
+					ImGui::Text("Preview Exposure");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%.2f", textureOutput.previewExposure);
+
+					ImGui::Text("Output Pages");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", outputDiagnostics.pageCountCreated);
+
+					ImGui::Text("Uploaded Pixels");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", outputDiagnostics.totalPixelCountUploaded);
+
+					ImGui::Text("Generated Mips");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", outputDiagnostics.totalMipCount);
+
+					ImGui::Text("Sanitized Non-Finite Texels");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", outputDiagnostics.sanitizedNonFiniteTexelCount);
+
+					ImGui::Text("Clamped Negative Channels");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", outputDiagnostics.clampedNegativeChannelCount);
+
+					ImGui::Text("Texture Upload Time");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%.3f ms", outputDiagnostics.textureCreationMs);
+
+					ImGui::Text("Mip Generation Time");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%.3f ms", outputDiagnostics.mipGenerationMs);
+
+					ImGui::Text("Preview Refresh Time");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%.3f ms", outputDiagnostics.displayPreviewRefreshMs);
+
+					ImGui::Text("Output Failures");
+					ImGui::SameLine();
+					ImGui::TextDisabled(
+						"invalid dims %zu, invalid buffers %zu, texture failures %zu",
+						outputDiagnostics.invalidDimensionPageCount,
+						outputDiagnostics.invalidBufferPageCount,
+						outputDiagnostics.textureCreationFailureCount);
+
 					if (bakeResult.rasterResult && ImGui::CollapsingHeader("Raster Coverage", ImGuiTreeNodeFlags_DefaultOpen)) {
 						for (const auto& page : bakeResult.rasterResult->pageBuffers) {
 							ImGui::BulletText(
@@ -776,43 +758,34 @@ namespace Editor {
 					}
 
 					if (ImGui::CollapsingHeader("Page Previews", ImGuiTreeNodeFlags_DefaultOpen)) {
-						for (const auto& page : bakeResult.pages) {
-							float coverage = 0.0f;
-							if (bakeResult.rasterResult) {
-								const auto rasterPageIt = std::find_if(
-									bakeResult.rasterResult->pageBuffers.begin(),
-									bakeResult.rasterResult->pageBuffers.end(),
-									[pageIndex = page.pageIndex](const auto& rasterPage) {
-										return rasterPage.pageIndex == pageIndex;
-									});
-								if (rasterPageIt != bakeResult.rasterResult->pageBuffers.end()) {
-									coverage = rasterPageIt->coverage01;
-								}
-							} else if (page.width > 0 && page.height > 0) {
-								coverage = static_cast<float>(page.validTexelCount) / static_cast<float>(page.width * page.height);
-							}
-							ImGui::Text("%s", page.pageId.c_str());
-							ImGui::SameLine();
-							ImGui::TextDisabled("%ux%u", page.width, page.height);
-							if (bakeResult.rasterResult) {
-								ImGui::SameLine();
-								ImGui::TextDisabled("allocated coverage");
-							}
-							ImGui::ProgressBar(std::clamp(coverage, 0.0f, 1.0f), ImVec2(-1.0f, 0.0f));
+						if (textureOutput.pages.empty()) {
+							ImGui::TextDisabled("No published bake output textures are available yet.");
+						}
 
-							const auto previewIt = m_previewTextures.find(page.pageId);
-							if (previewIt != m_previewTextures.end()) {
-								const auto& textures = previewIt->second;
-								if (textures.lightingTexture != 0) {
-									ImGui::Image((ImTextureID)(intptr_t)textures.lightingTexture, ImVec2(192.0f, 192.0f));
-									if (textures.validityTexture != 0) {
-										ImGui::SameLine();
-										ImGui::Image((ImTextureID)(intptr_t)textures.validityTexture, ImVec2(192.0f, 192.0f));
-									}
-									if (textures.ownerTexture != 0) {
-										ImGui::SameLine();
-										ImGui::Image((ImTextureID)(intptr_t)textures.ownerTexture, ImVec2(192.0f, 192.0f));
-									}
+						for (const auto& page : textureOutput.pages) {
+							ImGui::Text("%s", page.descriptor.pageId.c_str());
+							ImGui::SameLine();
+							ImGui::TextDisabled("%ux%u, %u mips", page.descriptor.width, page.descriptor.height, page.descriptor.mipCount);
+							ImGui::SameLine();
+							ImGui::TextDisabled("coverage %.1f%%", page.descriptor.coverage01 * 100.0f);
+							ImGui::ProgressBar(std::clamp(page.descriptor.coverage01, 0.0f, 1.0f), ImVec2(-1.0f, 0.0f));
+
+							ImGui::TextDisabled(
+								"HDR %u | Display %u | Mask %u | Owner %u",
+								page.preview.hdrTexture,
+								page.preview.displayTexture,
+								page.preview.validityTexture,
+								page.preview.ownerTexture);
+
+							if (page.preview.displayTexture != 0u) {
+								ImGui::Image((ImTextureID)(intptr_t)page.preview.displayTexture, ImVec2(192.0f, 192.0f));
+								if (page.preview.validityTexture != 0u) {
+									ImGui::SameLine();
+									ImGui::Image((ImTextureID)(intptr_t)page.preview.validityTexture, ImVec2(192.0f, 192.0f));
+								}
+								if (page.preview.ownerTexture != 0u) {
+									ImGui::SameLine();
+									ImGui::Image((ImTextureID)(intptr_t)page.preview.ownerTexture, ImVec2(192.0f, 192.0f));
 								}
 							}
 						}
