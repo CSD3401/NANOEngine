@@ -63,6 +63,8 @@ namespace Editor::Lightmapping {
 		SceneBakeBVHBuildSettings settings{};
 		BakeGeometryCollectionStats geometryStats{};
 		SceneBakeBVHStats stats{};
+		BakeAABB sceneBounds{};
+		float sceneDiagonalLength = 0.0f;
 		std::vector<BakeGeometryWarning> warnings;
 		std::map<std::string, size_t> warningCounts;
 		SceneBakeBVHDebugOptions debugOptions{};

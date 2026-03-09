@@ -7,12 +7,80 @@
 #include <Graphics/Core/GraphicsManager.hpp>
 #include <EditorInterface/RendererExports.hpp>
 #include "../EditorUI.hpp"
+#include "../Lighting/DirectLightmapBaker.hpp"
 #include "../Lighting/LightmapAtlasAllocator.hpp"
 #include "../Lighting/SceneBakeBVH.hpp"
 #include <algorithm>
+#include <glad/glad.h>
 
 
 namespace Editor {
+	LightingPanel::~LightingPanel() {
+		ReleasePreviewTextures();
+		Lightmapping::ShutdownDirectLightBakeSession();
+	}
+
+	void LightingPanel::ReleasePreviewTextures() {
+		for (auto& [_, textures] : m_previewTextures) {
+			if (textures.lightingTexture != 0) {
+				glDeleteTextures(1, &textures.lightingTexture);
+				textures.lightingTexture = 0;
+			}
+			if (textures.validityTexture != 0) {
+				glDeleteTextures(1, &textures.validityTexture);
+				textures.validityTexture = 0;
+			}
+		}
+		m_previewTextures.clear();
+	}
+
+	void LightingPanel::SyncPreviewTextures(const Editor::Lightmapping::DirectLightBakeSessionState& sessionState) {
+		if (!sessionState.hasResult || !sessionState.result) {
+			if (m_cachedBakeRevision != 0) {
+				ReleasePreviewTextures();
+				m_cachedBakeRevision = 0;
+			}
+			return;
+		}
+
+		if (m_cachedBakeRevision == sessionState.result->revision) {
+			return;
+		}
+
+		ReleasePreviewTextures();
+		m_cachedBakeRevision = sessionState.result->revision;
+
+		auto uploadTexture = [](const std::vector<uint8_t>& rgba, uint32_t width, uint32_t height) -> unsigned int {
+			if (rgba.empty() || width == 0 || height == 0) {
+				return 0;
+			}
+
+			unsigned int texture = 0;
+			glGenTextures(1, &texture);
+			if (texture == 0) {
+				return 0;
+			}
+
+			glBindTexture(GL_TEXTURE_2D, texture);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, static_cast<GLsizei>(width), static_cast<GLsizei>(height), 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glBindTexture(GL_TEXTURE_2D, 0);
+			return texture;
+		};
+
+		for (const auto& page : sessionState.result->pages) {
+			PreviewTextureSet textures{};
+			textures.lightingTexture =
+				uploadTexture(page.preview.lightingRgba8, page.preview.width, page.preview.height);
+			textures.validityTexture =
+				uploadTexture(page.preview.validityRgba8, page.preview.width, page.preview.height);
+			m_previewTextures[page.pageId] = textures;
+		}
+	}
+
 	void LightingPanel::OnImGuiRender() {
 		if (ImGui::Begin("Lighting", nullptr)) {
 
@@ -240,10 +308,13 @@ namespace Editor {
 
 			} break;
 			case 3: {
+				Editor::Lightmapping::UpdateDirectLightBakeSession();
 				auto& previewState = Editor::Lightmapping::GetLightmapAllocationPreviewState();
+				const auto directBakeState = Editor::Lightmapping::GetDirectLightBakeSessionState();
+				SyncPreviewTextures(directBakeState);
 
-				ImGui::TextWrapped("Atlas allocation is editor-only in Part 3. This pass computes deterministic page placement and UV transforms, then writes them into per-entity LightmapBinding data.");
-				ImGui::Spacing();
+				//ImGui::TextWrapped("Atlas allocation is editor-only in Part 3. This pass computes deterministic page placement and UV transforms, then writes them into per-entity LightmapBinding data.");
+				//ImGui::Spacing();
 
 				ImGui::Text("Texels Per Unit");
 				ImGui::SameLine();
@@ -347,8 +418,8 @@ namespace Editor {
 				ImGui::Separator();
 				ImGui::Spacing();
 
-				ImGui::TextWrapped("Bake BVH is editor-only build-time infrastructure for direct-light baking queries. It gathers static shadow-casting scene geometry, flattens triangles into world space, and builds a CPU BVH for any-hit shadow tests plus closest-hit debug queries.");
-				ImGui::Spacing();
+				//ImGui::TextWrapped("Bake BVH is editor-only build-time infrastructure for direct-light baking queries. It gathers static shadow-casting scene geometry, flattens triangles into world space, and builds a CPU BVH for any-hit shadow tests plus closest-hit debug queries.");
+				//ImGui::Spacing();
 
 				ImGui::Text("Leaf Size");
 				ImGui::SameLine();
@@ -474,6 +545,148 @@ namespace Editor {
 								warning.entityName.c_str(),
 								Editor::Lightmapping::ToString(warning.reason),
 								warning.message.c_str());
+						}
+					}
+				}
+
+				ImGui::Spacing();
+				ImGui::Separator();
+				ImGui::Spacing();
+
+				ImGui::TextWrapped("Direct light baking rasterizes UV1 triangles into atlas texels, reconstructs world-space samples from barycentrics, evaluates direct Lambert lighting for supported lights, and uses the bake BVH for any-hit shadow visibility.");
+				ImGui::Spacing();
+
+				ImGui::Text("Worker Count");
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(140.0f);
+				ImGui::DragInt("##DirectBakeWorkerCount", &m_directBakeWorkerCount, 1.0f, 0, 64);
+				m_directBakeWorkerCount = std::clamp(m_directBakeWorkerCount, 0, 64);
+
+				ImGui::Text("Ray Origin Bias");
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(140.0f);
+				ImGui::DragFloat("##DirectBakeRayBias", &m_directBakeRayBias, 1e-4f, 1e-5f, 1e-1f, "%.5f", ImGuiSliderFlags_Logarithmic);
+				m_directBakeRayBias = std::clamp(m_directBakeRayBias, 1e-5f, 1e-1f);
+
+				ImGui::Text("Ray Min Distance");
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(140.0f);
+				ImGui::DragFloat("##DirectBakeRayMinDistance", &m_directBakeRayMinDistance, 1e-5f, 1e-6f, 1e-2f, "%.6f", ImGuiSliderFlags_Logarithmic);
+				m_directBakeRayMinDistance = std::clamp(m_directBakeRayMinDistance, 1e-6f, 1e-2f);
+
+				ImGui::Text("Finite-Light Epsilon");
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(140.0f);
+				ImGui::DragFloat("##DirectBakeFiniteLightEpsilon", &m_directBakeFiniteLightEpsilon, 1e-4f, 1e-5f, 1e-1f, "%.5f", ImGuiSliderFlags_Logarithmic);
+				m_directBakeFiniteLightEpsilon = std::clamp(m_directBakeFiniteLightEpsilon, 1e-5f, 1e-1f);
+
+				ImGui::Text("Preview Exposure");
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(140.0f);
+				ImGui::DragFloat("##DirectBakePreviewExposure", &m_directBakePreviewExposure, 0.05f, 0.1f, 16.0f, "%.2f");
+				m_directBakePreviewExposure = std::clamp(m_directBakePreviewExposure, 0.1f, 16.0f);
+
+				Editor::Lightmapping::DirectLightBakeSettings bakeSettings{};
+				bakeSettings.workerCount = static_cast<uint32_t>(m_directBakeWorkerCount);
+				bakeSettings.rebuildBvhBeforeBake = true;
+				bakeSettings.generateDebugBuffers = true;
+				bakeSettings.rayOriginBias = m_directBakeRayBias;
+				bakeSettings.rayMinDistance = m_directBakeRayMinDistance;
+				bakeSettings.finiteLightDistanceEpsilon = m_directBakeFiniteLightEpsilon;
+				bakeSettings.previewExposure = m_directBakePreviewExposure;
+
+				if (ImGui::Button("Start Direct Bake")) {
+					Editor::Lightmapping::StartSceneDirectLightBake(bakeSettings);
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Cancel Direct Bake")) {
+					Editor::Lightmapping::CancelSceneDirectLightBake();
+				}
+
+				if (!directBakeState.statusMessage.empty()) {
+					ImGui::TextWrapped("%s", directBakeState.statusMessage.c_str());
+				}
+
+				if (directBakeState.isRunning) {
+					ImGui::ProgressBar(directBakeState.progress01, ImVec2(-1.0f, 0.0f));
+					ImGui::Text("Active Stage");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%s", directBakeState.activeStage.c_str());
+				}
+
+				if (directBakeState.hasResult) {
+					const auto& bakeResult = *directBakeState.result;
+					const auto& stats = bakeResult.stats;
+
+					ImGui::Spacing();
+					ImGui::Text("Bake Instances");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.bakeInstanceCount);
+
+					ImGui::Text("Supported Lights");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.supportedLightCount);
+
+					ImGui::Text("Covered Texels");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.coveredTexelCount);
+
+					ImGui::Text("Skipped Texels");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.skippedTexelCount);
+
+					ImGui::Text("Rays Cast");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.raysCast);
+
+					ImGui::Text("Visible Rays");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.visibleRayCount);
+
+					ImGui::Text("Occluded Rays");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.occludedRayCount);
+
+					ImGui::Text("Setup Time");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%.3f ms", stats.setupMs);
+
+					ImGui::Text("Evaluation Time");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%.3f ms", stats.evaluationMs);
+
+					if (ImGui::CollapsingHeader("Direct Bake Warnings", ImGuiTreeNodeFlags_DefaultOpen)) {
+						if (bakeResult.warningCounts.empty()) {
+							ImGui::TextDisabled("No bake warnings recorded.");
+						} else {
+							for (const auto& [warning, count] : bakeResult.warningCounts) {
+								ImGui::BulletText("%s x%zu", warning.c_str(), count);
+							}
+						}
+					}
+
+					if (ImGui::CollapsingHeader("Page Previews", ImGuiTreeNodeFlags_DefaultOpen)) {
+						for (const auto& page : bakeResult.pages) {
+							const float coverage =
+								page.width > 0 && page.height > 0
+								? static_cast<float>(page.validTexelCount) / static_cast<float>(page.width * page.height)
+								: 0.0f;
+							ImGui::Text("%s", page.pageId.c_str());
+							ImGui::SameLine();
+							ImGui::TextDisabled("%ux%u", page.width, page.height);
+							ImGui::ProgressBar(std::clamp(coverage, 0.0f, 1.0f), ImVec2(-1.0f, 0.0f));
+
+							const auto previewIt = m_previewTextures.find(page.pageId);
+							if (previewIt != m_previewTextures.end()) {
+								const auto& textures = previewIt->second;
+								if (textures.lightingTexture != 0) {
+									ImGui::Image((ImTextureID)(intptr_t)textures.lightingTexture, ImVec2(192.0f, 192.0f));
+									if (textures.validityTexture != 0) {
+										ImGui::SameLine();
+										ImGui::Image((ImTextureID)(intptr_t)textures.validityTexture, ImVec2(192.0f, 192.0f));
+									}
+								}
+							}
 						}
 					}
 				}

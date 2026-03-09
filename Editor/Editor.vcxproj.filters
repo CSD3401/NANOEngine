@@ -141,6 +141,9 @@
     <ClCompile Include="src\Lighting\BakeGeometryCollector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Lighting\DirectLightmapBaker.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="src\Lighting\SceneBakeBVH.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -372,6 +375,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Lighting\BakeGeometryCollector.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Lighting\DirectLightmapBaker.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Lighting\SceneBakeBVH.hpp">

@@ -62,6 +62,16 @@ namespace Editor::Lightmapping {
 			return bounds;
 		}
 
+		float BoundsDiagonalLength(const BakeAABB& bounds) {
+			if (!IsFiniteBounds(bounds)) {
+				return 0.0f;
+			}
+
+			const NE::Math::Vec3 extent = bounds.max - bounds.min;
+			const float length = extent.Length();
+			return std::isfinite(length) ? length : 0.0f;
+		}
+
 		bool IsValidTriangle(const BakeTriangle& triangle) {
 			return triangle.area > kTriangleAreaEpsilon &&
 				std::isfinite(triangle.area) &&
@@ -652,6 +662,14 @@ namespace Editor::Lightmapping {
 
 		BakeGeometryCollection collection = CollectSceneBakeGeometry();
 		state.geometryStats = collection.stats;
+		state.sceneBounds = InvalidBounds();
+		for (const auto& triangle : collection.triangles) {
+			if (!IsFiniteBounds(triangle.bounds)) {
+				continue;
+			}
+			state.sceneBounds = UnionBounds(state.sceneBounds, triangle.bounds);
+		}
+		state.sceneDiagonalLength = BoundsDiagonalLength(state.sceneBounds);
 		state.warnings = collection.warnings;
 		RebuildWarningCounts(state);
 
