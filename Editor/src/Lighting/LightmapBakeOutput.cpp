@@ -11,54 +11,70 @@
 namespace Editor::Lightmapping {
 	namespace {
 		constexpr float kTonemapGamma = 1.0f / 2.2f;
+		constexpr float kPreviewExposureEpsilon = 1e-4f;
 
 		uint16_t FloatToHalf(float value) {
-			union FloatBits {
-				float f;
-				uint32_t u;
-			};
+			uint32_t bits = 0u;
+			std::memcpy(&bits, &value, sizeof(bits));
 
-			FloatBits bits{};
-			bits.f = value;
+			const uint16_t sign = static_cast<uint16_t>((bits >> 16) & 0x8000u);
+			const uint32_t exponent = (bits >> 23) & 0xffu;
+			uint32_t mantissa = bits & 0x007fffffu;
 
-			const uint32_t sign = (bits.u >> 16) & 0x8000u;
-			uint32_t mantissa = bits.u & 0x007fffffu;
-			int32_t exponent = static_cast<int32_t>((bits.u >> 23) & 0xffu) - 127 + 15;
-
-			if (exponent <= 0) {
-				if (exponent < -10) {
-					return static_cast<uint16_t>(sign);
+			if (exponent == 0xffu) {
+				if (mantissa != 0u) {
+					const uint16_t payload = static_cast<uint16_t>(mantissa >> 13);
+					return static_cast<uint16_t>(sign | 0x7c00u | (payload != 0u ? payload : 0x0200u));
 				}
 
-				mantissa = (mantissa | 0x00800000u) >> (1 - exponent);
-				if ((mantissa & 0x00001000u) != 0u) {
-					mantissa += 0x00002000u;
-				}
-
-				return static_cast<uint16_t>(sign | (mantissa >> 13));
-			}
-
-			if (exponent >= 31) {
 				return static_cast<uint16_t>(sign | 0x7c00u);
 			}
 
-			if ((mantissa & 0x00001000u) != 0u) {
-				mantissa += 0x00002000u;
-				if ((mantissa & 0x00800000u) != 0u) {
-					mantissa = 0u;
-					++exponent;
-					if (exponent >= 31) {
-						return static_cast<uint16_t>(sign | 0x7c00u);
-					}
+			int32_t halfExponent = static_cast<int32_t>(exponent) - 127 + 15;
+			if (halfExponent >= 31) {
+				return static_cast<uint16_t>(sign | 0x7c00u);
+			}
+
+			if (halfExponent <= 0) {
+				if (halfExponent < -10) {
+					return sign;
+				}
+
+				mantissa |= 0x00800000u;
+				const uint32_t shift = static_cast<uint32_t>(14 - halfExponent);
+				uint32_t halfMantissa = mantissa >> shift;
+				const uint32_t roundBit = 1u << (shift - 1u);
+				const uint32_t roundMask = roundBit - 1u;
+				if ((mantissa & roundBit) != 0u &&
+					((mantissa & roundMask) != 0u || (halfMantissa & 1u) != 0u)) {
+					++halfMantissa;
+				}
+
+				if (halfMantissa >= 0x0400u) {
+					return static_cast<uint16_t>(sign | 0x0400u);
+				}
+
+				return static_cast<uint16_t>(sign | static_cast<uint16_t>(halfMantissa));
+			}
+
+			mantissa += 0x00000fffu + ((mantissa >> 13u) & 1u);
+			if ((mantissa & 0x00800000u) != 0u) {
+				mantissa = 0u;
+				++halfExponent;
+				if (halfExponent >= 31) {
+					return static_cast<uint16_t>(sign | 0x7c00u);
 				}
 			}
 
-			return static_cast<uint16_t>(sign | (static_cast<uint32_t>(exponent) << 10) | (mantissa >> 13));
+			return static_cast<uint16_t>(
+				sign |
+				(static_cast<uint16_t>(halfExponent) << 10u) |
+				static_cast<uint16_t>(mantissa >> 13u));
 		}
 
 		float HalfToFloat(uint16_t value) {
 			const uint32_t sign = static_cast<uint32_t>(value & 0x8000u) << 16;
-			uint32_t exponent = (value >> 10) & 0x1fu;
+			const uint32_t exponent = (value >> 10) & 0x1fu;
 			uint32_t mantissa = value & 0x03ffu;
 			uint32_t bits = 0u;
 
@@ -66,20 +82,20 @@ namespace Editor::Lightmapping {
 				if (mantissa == 0u) {
 					bits = sign;
 				} else {
-					exponent = 1u;
+					int32_t normalizedExponent = -14;
 					while ((mantissa & 0x0400u) == 0u) {
 						mantissa <<= 1u;
-						--exponent;
+						--normalizedExponent;
 					}
 					mantissa &= 0x03ffu;
-					exponent = exponent + (127u - 15u);
-					bits = sign | (exponent << 23u) | (mantissa << 13u);
+					bits = sign |
+						(static_cast<uint32_t>(normalizedExponent + 127) << 23u) |
+						(mantissa << 13u);
 				}
 			} else if (exponent == 31u) {
 				bits = sign | 0x7f800000u | (mantissa << 13u);
 			} else {
-				exponent = exponent + (127u - 15u);
-				bits = sign | (exponent << 23u) | (mantissa << 13u);
+				bits = sign | ((exponent + (127u - 15u)) << 23u) | (mantissa << 13u);
 			}
 
 			float result = 0.0f;
@@ -163,6 +179,9 @@ namespace Editor::Lightmapping {
 				return false;
 			}
 
+			// Display preview refresh is intentionally derived from the packed
+			// output-canonical RGBA16F page data. The original float bake buffers
+			// remain the higher-precision authoring source of truth elsewhere.
 			outPixels.assign(static_cast<size_t>(texelCount) * 4u, 0u);
 			for (uint64_t texelIndex = 0; texelIndex < texelCount; ++texelIndex) {
 				const size_t canonicalIndex = static_cast<size_t>(texelIndex) * 4u;
@@ -290,6 +309,9 @@ namespace Editor::Lightmapping {
 		pageIndices.reserve(request.pages.size());
 		pageIds.reserve(request.pages.size());
 
+		// Preserve allocator/bake-result order exactly as supplied. Page ordering
+		// is part of the published identity contract for preview, scene binding,
+		// and future persistence and must not be re-sorted here.
 		for (const auto& inputPage : request.pages) {
 			if (inputPage.pageIndex < 0 || inputPage.pageId.empty()) {
 				outErrorMessage = "Bake output stage received a page with invalid identity metadata.";
@@ -442,12 +464,20 @@ namespace Editor::Lightmapping {
 		float previewExposure,
 		std::string& outErrorMessage) {
 		outErrorMessage.clear();
+		if (std::fabs(output.previewExposure - previewExposure) <= kPreviewExposureEpsilon) {
+			output.diagnostics.displayPreviewRefreshMs = 0.0;
+			return true;
+		}
+
 		if (output.pages.empty()) {
 			output.previewExposure = previewExposure;
 			output.diagnostics.displayPreviewRefreshMs = 0.0;
 			return true;
 		}
 
+		// This refresh path is intentionally display-only, main-thread only, and
+		// non-destructive to the published HDR textures. Replacement textures are
+		// built first and only swapped in after the full pass succeeds.
 		std::vector<unsigned int> refreshedTextures(output.pages.size(), 0u);
 		double refreshMs = 0.0;
 
@@ -505,13 +535,53 @@ namespace Editor::Lightmapping {
 			return false;
 		}
 
-		const float roundTripInputs[] = { 0.0f, 1.0f, 12.5f, 65504.0f };
+		const float roundTripInputs[] = {
+			0.0f,
+			-0.0f,
+			1.0f,
+			-2.0f,
+			12.5f,
+			65504.0f,
+			6.103515625e-5f,
+			5.960464478e-8f
+		};
 		for (float input : roundTripInputs) {
 			const float decoded = HalfToFloat(FloatToHalf(input));
-			if (!std::isfinite(decoded) || std::fabs(decoded - input) > std::max(1e-3f, input * 0.01f)) {
+			if (!std::isfinite(decoded) || std::fabs(decoded - input) > std::max(1e-3f, std::fabs(input) * 0.01f)) {
 				outMessage = "Bake output self-check failed: half-float round trip drift exceeded tolerance.";
 				return false;
 			}
+		}
+
+		const uint16_t exactHalfPatterns[] = {
+			0x0000u,
+			0x8000u,
+			0x0001u,
+			0x03ffu,
+			0x0400u,
+			0x3555u,
+			0x3c00u,
+			0xbc00u,
+			0x7bffu
+		};
+		for (uint16_t pattern : exactHalfPatterns) {
+			const uint16_t repacked = FloatToHalf(HalfToFloat(pattern));
+			if (repacked != pattern) {
+				outMessage = "Bake output self-check failed: half-float exact pattern round trip is unstable.";
+				return false;
+			}
+		}
+
+		const float decodedInfinity = HalfToFloat(FloatToHalf(std::numeric_limits<float>::infinity()));
+		if (!std::isinf(decodedInfinity)) {
+			outMessage = "Bake output self-check failed: half-float infinity handling is invalid.";
+			return false;
+		}
+
+		const float decodedNaN = HalfToFloat(FloatToHalf(std::numeric_limits<float>::quiet_NaN()));
+		if (!std::isnan(decodedNaN)) {
+			outMessage = "Bake output self-check failed: half-float NaN handling is invalid.";
+			return false;
 		}
 
 		LightmapBakeOutputPage page{};
@@ -535,7 +605,7 @@ namespace Editor::Lightmapping {
 			return false;
 		}
 
-		outMessage = "Bake output self-check passed: mip counts, half-float packing, and preview derivation are valid.";
+		outMessage = "Bake output self-check passed: mip counts, half-float packing edge cases, and preview derivation are valid.";
 		return true;
 	}
 }

@@ -706,7 +706,7 @@ namespace Editor {
 
 					ImGui::Text("Generated Mips");
 					ImGui::SameLine();
-					ImGui::TextDisabled("%zu", outputDiagnostics.totalMipCount);
+					ImGui::TextDisabled("%zu (pre-dilation)", outputDiagnostics.totalMipCount);
 
 					ImGui::Text("Sanitized Non-Finite Texels");
 					ImGui::SameLine();
@@ -723,6 +723,7 @@ namespace Editor {
 					ImGui::Text("Mip Generation Time");
 					ImGui::SameLine();
 					ImGui::TextDisabled("%.3f ms", outputDiagnostics.mipGenerationMs);
+					Editor::ToolTip("v1 generates mipmaps directly from canonical linear HDR page data before dilation, so border bleed is expected near chart edges.");
 
 					ImGui::Text("Preview Refresh Time");
 					ImGui::SameLine();

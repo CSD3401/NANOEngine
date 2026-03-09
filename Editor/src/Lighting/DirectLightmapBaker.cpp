@@ -119,6 +119,8 @@ namespace Editor::Lightmapping {
 		}
 
 		std::string CategorizeBakeWarning(const std::string& warning) {
+			// Temporary v1 panel surfacing: warnings are grouped by message
+			// substring until the bake pipeline grows structured warning codes.
 			if (warning.find("invalid page index") != std::string::npos) {
 				return "Invalid atlas page index";
 			}
@@ -418,6 +420,9 @@ namespace Editor::Lightmapping {
 				}
 			}
 
+			// Preserve baked page order exactly as produced by the allocator/raster
+			// result. The output stage and panel preview intentionally rely on this
+			// stable ordering for page identity and future persistence.
 			outRequest.pages.reserve(result.pages.size());
 			for (const auto& page : result.pages) {
 				LightmapBakeOutputInputPage requestPage{};
@@ -786,6 +791,8 @@ namespace Editor::Lightmapping {
 			pendingCpuResult->textureOutput.sourceBakeRevision = pendingCpuResult->revision;
 
 			std::scoped_lock lock(control.mutex);
+			// Publication is atomic from the editor's point of view. The previous
+			// published result stays alive through shared ownership until this swap.
 			control.pendingCpuResult.reset();
 			control.publishedResult = pendingCpuResult;
 			control.state.result = pendingCpuResult;
@@ -804,7 +811,6 @@ namespace Editor::Lightmapping {
 			std::string refreshErrorMessage;
 			if (!RefreshLightmapBakeDisplayPreviews(publishedResult->textureOutput, desiredPreviewExposure, refreshErrorMessage)) {
 				std::scoped_lock lock(control.mutex);
-				control.state.lastBakeSucceeded = false;
 				control.state.statusMessage =
 					refreshErrorMessage.empty()
 					? "Failed to refresh baked light preview textures."

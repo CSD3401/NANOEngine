@@ -58,6 +58,9 @@ namespace Editor::Lightmapping {
 
 	struct LightmapBakeOutputPage {
 		LightmapBakeOutputPageDescriptor descriptor{};
+		// Output canonical page storage: packed linear RGBA16F derived from the
+		// authoring-quality float bake buffers. Display preview refreshes rebuild
+		// from this packed output representation, not from the original float data.
 		std::vector<uint16_t> canonicalRgba16f;
 		size_t sanitizedNonFiniteTexelCount = 0;
 		size_t clampedNegativeChannelCount = 0;
