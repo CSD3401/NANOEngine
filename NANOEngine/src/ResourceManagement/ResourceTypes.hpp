@@ -14,7 +14,8 @@ namespace NE::Resource {
 		Scene,
 		AnimationClip,
 		AnimatorController,
-		Font
+		Font,
+		Lighting
 	};
 
 }

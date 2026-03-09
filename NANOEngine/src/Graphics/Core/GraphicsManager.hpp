@@ -17,6 +17,7 @@
 #include "SelectionHighlightSettings.hpp"
 #include <vector>
 #include <unordered_set>
+#include <cstdint>
 
 // Forward declarations
 namespace NE {
@@ -61,6 +62,13 @@ namespace NE {
 namespace NE::Graphics {
     class GraphicsManager {
     public:
+        enum class ScenePreviewMode : uint8_t {
+            Shaded = 0,
+            Normals = 1,
+            UV0 = 2,
+            UV1 = 3
+        };
+
         static void Init();
 
         static void BeginFrame();
@@ -100,7 +108,13 @@ namespace NE::Graphics {
 
 		// Used for ImGui texture display
 		static uint32_t GetSceneColorAttachment();
+        static uint32_t GetSceneDebugAttachment();
 		static uint32_t GetGameColorAttachment();
+
+        static void SetScenePreviewMode(uint8_t mode);
+        static uint8_t GetScenePreviewMode();
+        static void SetScenePreviewUvScale(float scale);
+        static float GetScenePreviewUvScale();
 
 		// Used to get final output for fullscreen display
 		static uint32_t GetFinalOutputColorAttachment();
@@ -187,7 +201,12 @@ namespace NE::Graphics {
         // Post-processing
         static std::unique_ptr<PostProcessPipeline> s_PostPipeline;
         static std::shared_ptr<OpenGL::GLShader> s_NormalPrepassShader;
+#ifndef PRODUCTION_BUILD
+        static std::shared_ptr<OpenGL::GLShader> s_EditorDebugViewShader;
+#endif
         static std::unordered_set<uint32_t> s_SelectedEntityIds;
+        static ScenePreviewMode s_ScenePreviewMode;
+        static float s_ScenePreviewUvScale;
         
         static std::unique_ptr<ShadowRenderer> s_shadowRenderer;
         static uint32_t DecodeEntityIdFromRGB(const Math::Vec3& idRGB);

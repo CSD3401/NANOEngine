@@ -28,6 +28,7 @@ namespace NE::Resource {
 		case ResourceType::AnimationClip:		path += ".nancbin"; break;
 		case ResourceType::AnimatorController:	path += ".nconbin"; break;
 		case ResourceType::Font:				path += ".nfntbin"; break;
+		case ResourceType::Lighting:			path += ".nlgtbin"; break;
 		default:
 			//SPD_WARNING("Invalid Artifact Path");
 			break;

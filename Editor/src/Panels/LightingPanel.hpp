@@ -12,5 +12,8 @@ namespace Editor {
 		virtual void OnImGuiRender() override;
 
 	private:
+		float m_texelsPerUnit = 16.0f;
+		int m_bvhLeafSize = 8;
+		float m_bvhTraversalEpsilon = 1e-5f;
 	};
 }

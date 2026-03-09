@@ -4,6 +4,7 @@
 #include <fstream>
 
 #include "BinaryReflection.hpp"
+#include "Engine.hpp"
 #include "ECS/Core/ECSCoordinator.hpp"
 #include "Graphics/Core/GraphicsManager.hpp"
 #include "Core/LUIDGenerator.hpp"
@@ -12,6 +13,7 @@
 #include "ECS/Components/EntityMeta.hpp"
 #include "ECS/Components/Transform.hpp"
 #include "ECS/Components/Renderer.hpp"
+#include "ECS/Components/LightmapBinding.hpp"
 #include "ECS/Components/Light.hpp"
 #include "ECS/Components/Collider.hpp"
 #include "ECS/Components/Rigidbody.hpp"
@@ -37,16 +39,18 @@
 #include "ECS/Components/CharacterController.hpp"
 #include "ECS/Components/Animator.hpp"
 #include "ECS/Components/DecalProjector.hpp"
+#include "SceneManagement/Scene.hpp"
 
 namespace NE {
 	namespace {
-		using ComponentTypes = std::tuple<
+		using SceneComponentTypes = std::tuple<
 			ECS::Component::EntityMeta,
 			ECS::Component::Hierarchy,
 			ECS::Component::PrefabInstance,
 			ECS::Component::PrefabLink,
 			ECS::Component::Transform,
 			ECS::Component::Renderer,
+			ECS::Component::LightmapBinding,
 			ECS::Component::Light,
 			ECS::Component::Collider,
 			ECS::Component::Rigidbody,
@@ -74,10 +78,48 @@ namespace NE {
 		using ComponentMask = std::uint64_t;
 
 		template <class F>
-		void ForEachComponentType(F&& f) {
+		void ForEachSceneComponentType(F&& f) {
 			std::apply([&](auto&&... t) {
 				(f.template operator() < std::decay_t<decltype(t)> > (), ...);
-				}, ComponentTypes{});
+				}, SceneComponentTypes{});
+		}
+
+		using PrefabComponentTypes = std::tuple<
+			ECS::Component::EntityMeta,
+			ECS::Component::Hierarchy,
+			ECS::Component::PrefabInstance,
+			ECS::Component::PrefabLink,
+			ECS::Component::Transform,
+			ECS::Component::Renderer,
+			ECS::Component::Light,
+			ECS::Component::Collider,
+			ECS::Component::Rigidbody,
+			ECS::Component::NativeScript,
+			ECS::Component::Camera,
+			ECS::Component::UIRectTransform,
+			ECS::Component::UICanvas,
+			ECS::Component::UIImage,
+			ECS::Component::UIText,
+			ECS::Component::UIButton,
+			ECS::Component::UISlider,
+			ECS::Component::UIToggle,
+			ECS::Component::UILayoutGroup,
+			ECS::Component::UIGridLayoutGroup,
+			ECS::Component::UILayoutElement,
+			ECS::Component::UIScrollRect,
+			ECS::Component::UIAutoSize,
+			ECS::Component::UIInputField,
+			ECS::Component::UIDropdown,
+			ECS::Component::CharacterController,
+			ECS::Component::Animator,
+			ECS::Component::DecalProjector
+		>;
+
+		template <class F>
+		void ForEachPrefabComponentType(F&& f) {
+			std::apply([&](auto&&... t) {
+				(f.template operator() < std::decay_t<decltype(t)> > (), ...);
+				}, PrefabComponentTypes{});
 		}
 
 		inline constexpr uint32_t NSCE_MAGIC = 0x4E534345;
@@ -174,7 +216,7 @@ namespace NE {
 
 				ComponentMask mask = 0;
 				uint32_t idx = 0;
-				ForEachComponentType([&]<typename C>() {
+				ForEachSceneComponentType([&]<typename C>() {
 					if (ecs.HasComponent<C>(e))
 						mask |= (ComponentMask(1) << idx);
 					++idx;
@@ -183,7 +225,7 @@ namespace NE {
 				ToBinary(buf, (std::uint64_t)mask);
 
 				idx = 0;
-				ForEachComponentType([&]<typename C>() {
+				ForEachSceneComponentType([&]<typename C>() {
 					if (mask & (ComponentMask(1) << idx)) {
 						const auto& c = ecs.GetComponent<C>(e);
 						ToBinary(buf, c);
@@ -204,7 +246,7 @@ namespace NE {
 
 				ComponentMask mask = 0;
 				uint32_t idx = 0;
-				ForEachComponentType([&]<typename C>() {
+				ForEachPrefabComponentType([&]<typename C>() {
 					if (ecs.HasComponent<C>(e))
 						mask |= (ComponentMask(1) << idx);
 					++idx;
@@ -213,7 +255,7 @@ namespace NE {
 				ToBinary(buf, (std::uint64_t)mask);
 
 				idx = 0;
-				ForEachComponentType([&]<typename C>() {
+				ForEachPrefabComponentType([&]<typename C>() {
 					if (mask & (ComponentMask(1) << idx)) {
 						C copy = ecs.GetComponent<C>(e);                 // copy
 						PatchForCopy<C>(copy, e, entityToLocalId);       // patch
@@ -242,6 +284,8 @@ namespace NE {
 
 			auto& pp = Graphics::GraphicsManager::postProcessingSettings;
 			ToBinary(buf, pp);
+
+			ToBinary(buf, NE::GetScene().GetLightingContainer());
 
 			std::vector<NE::ECS::Entity> flat;
 			for (auto root : rootNodes)
@@ -388,7 +432,7 @@ namespace NE {
 			}
 		}
 
-		bool DeserializeScene(ECS::ECSCoordinator& ecs, const std::string& path) {
+		bool DeserializeScene(ECS::ECSCoordinator& ecs, const std::string& path, SceneManagement::Scene* owningScene) {
 			NE::ByteBuffer bytes;
 			if (!ReadAllBytes(path, bytes))
 				return false;
@@ -406,8 +450,11 @@ namespace NE {
 			if (version != CURRENT_NANOSCENE_FORMAT_VERSION)
 				return false;
 
+			SceneManagement::Scene* targetScene = owningScene ? owningScene : &NE::GetScene();
+
 			if (!ReadT(it, end, Graphics::GraphicsManager::renderSettings)) return false;
 			if (!ReadT(it, end, Graphics::GraphicsManager::postProcessingSettings)) return false;
+			if (!ReadT(it, end, targetScene->GetLightingContainer())) return false;
 
 			std::uint64_t entityCount = 0;
 			if (!ReadT(it, end, entityCount)) return false;
@@ -426,7 +473,7 @@ namespace NE {
 				const std::uint64_t mask = maskU64;
 
 				std::uint32_t idx = 0;
-				ForEachComponentType([&]<typename C>() {
+				ForEachSceneComponentType([&]<typename C>() {
 					if (mask & (std::uint64_t(1) << idx)) {
 						C c{};
 						if (!ReadT(it, end, c)) { ++idx; return; }
@@ -529,7 +576,7 @@ namespace NE {
 				const std::uint64_t mask = maskU64;
 
 				std::uint32_t idx = 0;
-				ForEachComponentType([&]<typename C>() {
+				ForEachPrefabComponentType([&]<typename C>() {
 					if (!ok) { ++idx; return; }
 
 					if (mask & (std::uint64_t(1) << idx)) {
@@ -681,7 +728,7 @@ namespace NE {
 				const std::uint64_t mask = maskU64;
 
 				std::uint32_t idx = 0;
-				ForEachComponentType([&]<typename C>() {
+				ForEachPrefabComponentType([&]<typename C>() {
 					if (!ok) { ++idx; return; }
 
 					if (mask & (std::uint64_t(1) << idx)) {
@@ -795,7 +842,7 @@ namespace NE {
 				ComponentMask mask = static_cast<ComponentMask>(mask64);
 
 				uint32_t idx = 0;
-				ForEachComponentType([&]<typename C>() {
+				ForEachPrefabComponentType([&]<typename C>() {
 					if (!ok) { ++idx; return; }
 
 					if (mask & (ComponentMask(1) << idx)) {

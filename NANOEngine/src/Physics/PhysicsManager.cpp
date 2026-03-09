@@ -620,7 +620,7 @@ namespace NE::Physics {
 		const JPH::ShapeRefC& shape = itShape->second.shape;
 
 		const Math::Vec3 pos = t.worldMatrix.GetTranslation();
-		const JPH::RVec3 jPos((double)pos.x, (double)pos.y, (double)pos.z);
+		const JPH::RVec3 jPos(pos.x, pos.y, pos.z);
 		const Math::Quat worldRot = WorldQuatFromMat4(t.worldMatrix);
 		const JPH::Quat jRot = ToJPHQuat(worldRot);
 
@@ -678,7 +678,7 @@ namespace NE::Physics {
 		const JPH::ShapeRefC& shape = itShape->second.shape;
 
 		const Math::Vec3 pos = t.worldMatrix.GetTranslation();
-		const JPH::RVec3 jPos((double)pos.x, (double)pos.y, (double)pos.z);
+		const JPH::RVec3 jPos(pos.x, pos.y, pos.z);
 		const Math::Quat worldRot = WorldQuatFromMat4(t.worldMatrix);
 		const JPH::Quat jRot = ToJPHQuat(worldRot);
 

@@ -58,6 +58,7 @@
 #include "../Command/EditorCommands.hpp"
 #include "../Layers/LayerDatabase.hpp"
 #include "../Layers/LayerModal.hpp"
+#include "../Lighting/LightmapAtlasAllocator.hpp"
 #include <Events/EventBus.hpp>
 #include "../EditorEvents.hpp"
 #include "Engine.hpp"
@@ -1026,6 +1027,57 @@ namespace Editor {
 		if (openLayerSettings) {
 			ImGui::OpenPopup("LayerSettings");
 			openLayerSettings = false;
+		}
+
+		bool staticLightmap = metaRO.isStatic;
+		if (DrawCheckbox("Static Lightmap", staticLightmap)) {
+			using Cmd = Editor::SetFieldCommand<Owner, bool>;
+			auto cmd = std::make_unique<Cmd>(
+				entity,
+				std::string("Toggle Static Lightmap"),
+				&Owner::isStatic,
+				metaRO.isStatic,
+				staticLightmap,
+				&NE::ECS::Command::GetEntityMeta
+			);
+			Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(cmd));
+		}
+
+		std::string allocationStatus = "Not Run";
+		std::string allocationDetail;
+
+		if (!NE::ECS::Command::GetEntityMeta(entity).isStatic) {
+			allocationStatus = "Opted Out";
+			allocationDetail = "Enable Static Lightmap to include this renderer in atlas allocation.";
+		} else if (const auto* preview = Editor::Lightmapping::FindLightmapEntityPreviewStatus(entity)) {
+			allocationStatus = Editor::Lightmapping::ToString(preview->kind);
+			allocationDetail = preview->message;
+			if (preview->kind == Editor::Lightmapping::LightmapEntityStatusKind::Allocated &&
+				!preview->pageId.empty()) {
+				allocationDetail += " UV scale: (" +
+					std::to_string(preview->uvScale.x) + ", " +
+					std::to_string(preview->uvScale.y) + ")";
+			}
+		} else if (NE::ECS::Query::HasLightmapBinding(entity)) {
+			const auto& binding = NE::ECS::Query::GetLightmapBinding(entity);
+			if (binding.enabled && !binding.pageId.empty()) {
+				allocationStatus = "Allocated";
+				allocationDetail = "Current binding points to " + binding.pageId + ".";
+			} else {
+				allocationStatus = "Pending";
+				allocationDetail = "Entity is opted in but has no fresh allocation preview yet.";
+			}
+		} else {
+			allocationStatus = "Pending";
+			allocationDetail = "Entity is opted in but has not been allocated yet.";
+		}
+
+		ImGui::Spacing();
+		ImGui::Text("Lightmap Status");
+		ImGui::SameLine();
+		ImGui::TextDisabled("%s", allocationStatus.c_str());
+		if (!allocationDetail.empty()) {
+			ImGui::TextWrapped("%s", allocationDetail.c_str());
 		}
 
 		//if (metaRO.prefabID != "") {
@@ -4906,7 +4958,7 @@ namespace Editor {
 				ImGui::SetNextItemWidth(-40.0f);
 				char id[64]; snprintf(id, sizeof(id), "##DropOpt%d", i);
 				char buf[256];
-				strncpy(buf, comp.options[i].c_str(), sizeof(buf) - 1);
+				strncpy_s(buf, comp.options[i].c_str(), sizeof(buf) - 1);
 				buf[sizeof(buf) - 1] = '\0';
 				if (ImGui::InputText(id, buf, sizeof(buf))) {
 					comp.options[i] = buf;
@@ -5070,7 +5122,7 @@ namespace Editor {
 			ImGui::SameLine(labelWidth);
 			ImGui::SetNextItemWidth(-1);
 			char buf[1024];
-			strncpy(buf, comp.text.c_str(), sizeof(buf) - 1);
+			strncpy_s(buf, comp.text.c_str(), sizeof(buf) - 1);
 			buf[sizeof(buf) - 1] = '\0';
 			if (ImGui::InputText("##InputFieldText", buf, sizeof(buf))) {
 				comp.text = buf;
@@ -5082,7 +5134,7 @@ namespace Editor {
 			ImGui::SameLine(labelWidth);
 			ImGui::SetNextItemWidth(-1);
 			char buf[512];
-			strncpy(buf, comp.placeholderText.c_str(), sizeof(buf) - 1);
+			strncpy_s(buf, comp.placeholderText.c_str(), sizeof(buf) - 1);
 			buf[sizeof(buf) - 1] = '\0';
 			if (ImGui::InputText("##Placeholder", buf, sizeof(buf))) {
 				comp.placeholderText = buf;

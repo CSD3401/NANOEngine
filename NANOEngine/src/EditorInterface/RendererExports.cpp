@@ -147,6 +147,10 @@ namespace NE::Renderer {
 			Graphics::GraphicsManager::DrawSelectedDecalGizmos(decalComponent, transformComponent);
 		}
 
+		void AddDebugLinesBatch(const std::vector<NE::Math::Vec3>& positions, const NE::Math::Vec3& color) {
+			Graphics::GraphicsManager::AddDebugLinesBatch(positions, color);
+		}
+
 		void SetSelectedEntities(const std::vector<uint32_t>& selectedIds) {
 			Graphics::GraphicsManager::SetSelectedEntities(selectedIds);
 		}
