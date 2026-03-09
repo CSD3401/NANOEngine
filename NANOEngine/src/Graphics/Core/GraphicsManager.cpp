@@ -1838,6 +1838,7 @@ namespace NE::Graphics {
         s_DecalQueue.clear();
         s_DecalGizmoQueue.clear();
         s_LightGizmoQueue.clear();
+        DebugDrawSystem::ClearFrameGeometry();
 	}
 
     void GraphicsManager::SetSelectedEntities(const std::vector<uint32_t>& selectedIds) {

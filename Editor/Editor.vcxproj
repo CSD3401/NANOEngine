@@ -292,6 +292,8 @@
     <ClCompile Include="src\Panels\GamePanel.cpp" />
     <ClCompile Include="src\Panels\HierarchyPanel.cpp" />
     <ClCompile Include="src\Panels\InspectorPanel.cpp" />
+    <ClCompile Include="src\Lighting\BakeGeometryCollector.cpp" />
+    <ClCompile Include="src\Lighting\SceneBakeBVH.cpp" />
     <ClCompile Include="src\Panels\LightingPanel.cpp" />
     <ClCompile Include="src\Panels\LoggerPanel.cpp" />
     <ClCompile Include="src\Panels\ProfilerPanel.cpp" />
@@ -420,6 +422,8 @@
     <ClInclude Include="src\Panels\GamePanel.hpp" />
     <ClInclude Include="src\Panels\HierarchyPanel.hpp" />
     <ClInclude Include="src\Panels\InspectorPanel.hpp" />
+    <ClInclude Include="src\Lighting\BakeGeometryCollector.hpp" />
+    <ClInclude Include="src\Lighting\SceneBakeBVH.hpp" />
     <ClInclude Include="src\Panels\LightingPanel.hpp" />
     <ClInclude Include="src\Panels\LoggerPanel.hpp" />
     <ClInclude Include="src\Panels\ProfilerPanel.hpp" />
