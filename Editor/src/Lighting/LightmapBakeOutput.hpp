@@ -19,12 +19,14 @@ namespace Editor::Lightmapping {
 		float coverage01 = 0.0f;
 		const std::vector<NE::Math::Vec3>* lighting = nullptr;
 		const std::vector<uint8_t>* validMask = nullptr;
-		const std::vector<uint8_t>* validityPreviewRgba8 = nullptr;
+		const std::vector<uint8_t>* dilationWriteMask = nullptr;
 		const std::vector<uint8_t>* ownerPreviewRgba8 = nullptr;
 	};
 
 	struct LightmapBakeOutputBuildRequest {
 		float previewExposure = 1.0f;
+		uint32_t dilationRadiusTexels = 0;
+		std::vector<std::vector<uint8_t>> pageDilationWriteMasks;
 		std::vector<LightmapBakeOutputInputPage> pages;
 	};
 
@@ -43,7 +45,9 @@ namespace Editor::Lightmapping {
 	struct LightmapBakePreviewTextureSet {
 		unsigned int hdrTexture = 0;
 		unsigned int displayTexture = 0;
-		unsigned int validityTexture = 0;
+		unsigned int originalValidityTexture = 0;
+		unsigned int dilatedValidityTexture = 0;
+		unsigned int filledValidityTexture = 0;
 		unsigned int ownerTexture = 0;
 
 		LightmapBakePreviewTextureSet() = default;
@@ -56,14 +60,27 @@ namespace Editor::Lightmapping {
 		void Reset();
 	};
 
+	struct LightmapBakeDilationPageDiagnostics {
+		size_t originalValidTexelCount = 0;
+		size_t filledTexelCount = 0;
+		size_t finalValidTexelCount = 0;
+		uint32_t passesExecuted = 0;
+		bool convergedEarly = false;
+		bool hadNoValidTexels = false;
+	};
+
 	struct LightmapBakeOutputPage {
 		LightmapBakeOutputPageDescriptor descriptor{};
 		// Output canonical page storage: packed linear RGBA16F derived from the
 		// authoring-quality float bake buffers. Display preview refreshes rebuild
 		// from this packed output representation, not from the original float data.
 		std::vector<uint16_t> canonicalRgba16f;
+		std::vector<uint8_t> originalValidMask;
+		std::vector<uint8_t> dilatedValidMask;
+		std::vector<uint8_t> filledValidMask;
 		size_t sanitizedNonFiniteTexelCount = 0;
 		size_t clampedNegativeChannelCount = 0;
+		LightmapBakeDilationPageDiagnostics dilation{};
 		LightmapBakePreviewTextureSet preview{};
 
 		LightmapBakeOutputPage() = default;
@@ -78,12 +95,19 @@ namespace Editor::Lightmapping {
 		size_t pageCountSkipped = 0;
 		size_t totalPixelCountUploaded = 0;
 		size_t totalMipCount = 0;
+		size_t totalOriginalValidTexelCount = 0;
+		size_t totalFilledTexelCount = 0;
+		size_t totalFinalValidTexelCount = 0;
+		size_t totalDilationPassesExecuted = 0;
+		size_t pagesConvergedEarly = 0;
+		size_t pagesWithNoValidTexels = 0;
 		size_t sanitizedNonFiniteTexelCount = 0;
 		size_t clampedNegativeChannelCount = 0;
 		size_t invalidDimensionPageCount = 0;
 		size_t invalidBufferPageCount = 0;
 		size_t textureCreationFailureCount = 0;
 		double textureCreationMs = 0.0;
+		double dilationMs = 0.0;
 		double mipGenerationMs = 0.0;
 		double displayPreviewRefreshMs = 0.0;
 	};

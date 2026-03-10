@@ -407,6 +407,14 @@ namespace Editor::Lightmapping {
 			outRequest.previewExposure = previewExposure;
 			outErrorMessage.clear();
 
+			const auto& allocationState = GetLightmapAllocationPreviewState();
+			const int fallbackPadding = allocationState.hasRun
+				? allocationState.settings.padding
+				: kDefaultLightmapPadding;
+			outRequest.dilationRadiusTexels = result.settings.dilationRadiusTexels != 0u
+				? result.settings.dilationRadiusTexels
+				: static_cast<uint32_t>(std::max(fallbackPadding, 0));
+
 			std::unordered_map<int, const LightmapUvRasterPageBuffers*> rasterPagesByIndex;
 			rasterPagesByIndex.reserve(result.rasterResult ? result.rasterResult->pageBuffers.size() : 0u);
 			if (result.rasterResult) {
@@ -423,8 +431,10 @@ namespace Editor::Lightmapping {
 			// Preserve baked page order exactly as produced by the allocator/raster
 			// result. The output stage and panel preview intentionally rely on this
 			// stable ordering for page identity and future persistence.
+			outRequest.pageDilationWriteMasks.resize(result.pages.size());
 			outRequest.pages.reserve(result.pages.size());
-			for (const auto& page : result.pages) {
+			for (size_t pageSlot = 0; pageSlot < result.pages.size(); ++pageSlot) {
+				const auto& page = result.pages[pageSlot];
 				LightmapBakeOutputInputPage requestPage{};
 				requestPage.pageIndex = page.pageIndex;
 				requestPage.pageId = page.pageId;
@@ -433,6 +443,11 @@ namespace Editor::Lightmapping {
 				requestPage.validTexelCount = page.validTexelCount;
 				requestPage.lighting = &page.lighting;
 				requestPage.validMask = &page.validMask;
+				requestPage.dilationWriteMask = &outRequest.pageDilationWriteMasks[pageSlot];
+
+				const size_t texelCount = static_cast<size_t>(page.width) * static_cast<size_t>(page.height);
+				auto& writeMask = outRequest.pageDilationWriteMasks[pageSlot];
+				writeMask.assign(texelCount, 0u);
 
 				if (result.rasterResult) {
 					const auto rasterPageIt = rasterPagesByIndex.find(page.pageIndex);
@@ -444,11 +459,30 @@ namespace Editor::Lightmapping {
 					const auto* rasterPage = rasterPageIt->second;
 					requestPage.allocatedInnerTexelCount = rasterPage->allocatedInnerTexelCount;
 					requestPage.coverage01 = rasterPage->coverage01;
-					requestPage.validityPreviewRgba8 = &rasterPage->preview.validityRgba8;
 					requestPage.ownerPreviewRgba8 = &rasterPage->preview.ownerRgba8;
+
+					for (const auto& receiver : result.rasterResult->receivers) {
+						if (receiver.pageIndex != page.pageIndex) {
+							continue;
+						}
+
+						const int startX = std::max(receiver.placement.outerX, 0);
+						const int startY = std::max(receiver.placement.outerY, 0);
+						const int endX = std::min(receiver.placement.outerX + receiver.placement.outerWidth, static_cast<int>(page.width));
+						const int endY = std::min(receiver.placement.outerY + receiver.placement.outerHeight, static_cast<int>(page.height));
+						for (int y = startY; y < endY; ++y) {
+							for (int x = startX; x < endX; ++x) {
+								const size_t linearIndex = static_cast<size_t>(y) * static_cast<size_t>(page.width) + static_cast<size_t>(x);
+								if (linearIndex < writeMask.size()) {
+									writeMask[linearIndex] = 1u;
+								}
+							}
+						}
+					}
 				} else if (page.width > 0u && page.height > 0u) {
 					requestPage.coverage01 =
 						static_cast<float>(page.validTexelCount) / static_cast<float>(page.width * page.height);
+					std::fill(writeMask.begin(), writeMask.end(), static_cast<uint8_t>(1u));
 				}
 
 				outRequest.pages.push_back(requestPage);

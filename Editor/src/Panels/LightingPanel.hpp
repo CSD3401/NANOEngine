@@ -17,6 +17,7 @@ namespace Editor {
 		int m_bvhLeafSize = 8;
 		float m_bvhTraversalEpsilon = 1e-5f;
 		int m_directBakeWorkerCount = 0;
+		int m_directBakeDilationRadius = 0;
 		float m_directBakeRayBias = 1e-3f;
 		float m_directBakeRayMinDistance = 1e-4f;
 		float m_directBakeFiniteLightEpsilon = 1e-3f;

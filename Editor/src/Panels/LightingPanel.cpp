@@ -499,6 +499,13 @@ namespace Editor {
 				ImGui::DragInt("##DirectBakeWorkerCount", &m_directBakeWorkerCount, 1.0f, 0, 64);
 				m_directBakeWorkerCount = std::clamp(m_directBakeWorkerCount, 0, 64);
 
+				ImGui::Text("Dilation Radius");
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(140.0f);
+				ImGui::DragInt("##DirectBakeDilationRadius", &m_directBakeDilationRadius, 1.0f, 0, 64);
+				m_directBakeDilationRadius = std::clamp(m_directBakeDilationRadius, 0, 64);
+				Editor::ToolTip("0 uses the current atlas padding. Positive values run that many deterministic dilation passes before mip generation.");
+
 				ImGui::Text("Ray Origin Bias");
 				ImGui::SameLine();
 				ImGui::SetNextItemWidth(140.0f);
@@ -525,6 +532,7 @@ namespace Editor {
 
 				Editor::Lightmapping::DirectLightBakeSettings bakeSettings{};
 				bakeSettings.workerCount = static_cast<uint32_t>(m_directBakeWorkerCount);
+				bakeSettings.dilationRadiusTexels = static_cast<uint32_t>(m_directBakeDilationRadius);
 				bakeSettings.rebuildBvhBeforeBake = true;
 				bakeSettings.generateDebugBuffers = true;
 				bakeSettings.rayOriginBias = m_directBakeRayBias;
@@ -706,7 +714,35 @@ namespace Editor {
 
 					ImGui::Text("Generated Mips");
 					ImGui::SameLine();
-					ImGui::TextDisabled("%zu (pre-dilation)", outputDiagnostics.totalMipCount);
+					ImGui::TextDisabled("%zu", outputDiagnostics.totalMipCount);
+
+					ImGui::Text("Dilation Radius");
+					ImGui::SameLine();
+					if (directBakeState.settings.dilationRadiusTexels == 0u) {
+						ImGui::TextDisabled("auto (%d px padding)", Editor::Lightmapping::GetLightmapAllocationPreviewState().settings.padding);
+					} else {
+						ImGui::TextDisabled("%u px", directBakeState.settings.dilationRadiusTexels);
+					}
+
+					ImGui::Text("Original Valid Texels");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", outputDiagnostics.totalOriginalValidTexelCount);
+
+					ImGui::Text("Filled Texels");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", outputDiagnostics.totalFilledTexelCount);
+
+					ImGui::Text("Final Valid Texels");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", outputDiagnostics.totalFinalValidTexelCount);
+
+					ImGui::Text("Dilation Passes");
+					ImGui::SameLine();
+					ImGui::TextDisabled(
+						"%zu total, %zu early, %zu no-valid pages",
+						outputDiagnostics.totalDilationPassesExecuted,
+						outputDiagnostics.pagesConvergedEarly,
+						outputDiagnostics.pagesWithNoValidTexels);
 
 					ImGui::Text("Sanitized Non-Finite Texels");
 					ImGui::SameLine();
@@ -720,10 +756,14 @@ namespace Editor {
 					ImGui::SameLine();
 					ImGui::TextDisabled("%.3f ms", outputDiagnostics.textureCreationMs);
 
+					ImGui::Text("Dilation Time");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%.3f ms", outputDiagnostics.dilationMs);
+
 					ImGui::Text("Mip Generation Time");
 					ImGui::SameLine();
 					ImGui::TextDisabled("%.3f ms", outputDiagnostics.mipGenerationMs);
-					Editor::ToolTip("v1 generates mipmaps directly from canonical linear HDR page data before dilation, so border bleed is expected near chart edges.");
+					Editor::ToolTip("Mipmaps are generated from the final dilated linear HDR page data.");
 
 					ImGui::Text("Preview Refresh Time");
 					ImGui::SameLine();
@@ -772,17 +812,35 @@ namespace Editor {
 							ImGui::ProgressBar(std::clamp(page.descriptor.coverage01, 0.0f, 1.0f), ImVec2(-1.0f, 0.0f));
 
 							ImGui::TextDisabled(
-								"HDR %u | Display %u | Mask %u | Owner %u",
+								"original %zu | filled %zu | final %zu | passes %u%s",
+								page.dilation.originalValidTexelCount,
+								page.dilation.filledTexelCount,
+								page.dilation.finalValidTexelCount,
+								page.dilation.passesExecuted,
+								page.dilation.convergedEarly ? " early" : "");
+
+							ImGui::TextDisabled(
+								"HDR %u | Display %u | Orig %u | Dilated %u | Filled %u | Owner %u",
 								page.preview.hdrTexture,
 								page.preview.displayTexture,
-								page.preview.validityTexture,
+								page.preview.originalValidityTexture,
+								page.preview.dilatedValidityTexture,
+								page.preview.filledValidityTexture,
 								page.preview.ownerTexture);
 
 							if (page.preview.displayTexture != 0u) {
 								ImGui::Image((ImTextureID)(intptr_t)page.preview.displayTexture, ImVec2(192.0f, 192.0f));
-								if (page.preview.validityTexture != 0u) {
+								if (page.preview.originalValidityTexture != 0u) {
 									ImGui::SameLine();
-									ImGui::Image((ImTextureID)(intptr_t)page.preview.validityTexture, ImVec2(192.0f, 192.0f));
+									ImGui::Image((ImTextureID)(intptr_t)page.preview.originalValidityTexture, ImVec2(192.0f, 192.0f));
+								}
+								if (page.preview.dilatedValidityTexture != 0u) {
+									ImGui::SameLine();
+									ImGui::Image((ImTextureID)(intptr_t)page.preview.dilatedValidityTexture, ImVec2(192.0f, 192.0f));
+								}
+								if (page.preview.filledValidityTexture != 0u) {
+									ImGui::SameLine();
+									ImGui::Image((ImTextureID)(intptr_t)page.preview.filledValidityTexture, ImVec2(192.0f, 192.0f));
 								}
 								if (page.preview.ownerTexture != 0u) {
 									ImGui::SameLine();

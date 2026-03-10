@@ -20,6 +20,7 @@ namespace Editor::Lightmapping {
 
 	struct DirectLightBakeSettings {
 		uint32_t workerCount = 0;
+		uint32_t dilationRadiusTexels = 0;
 		bool rebuildBvhBeforeBake = true;
 		bool generateDebugBuffers = true;
 		float rayOriginBias = 1e-3f;

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "LightmapBakeOutput.hpp"
 
+#include <array>
 #include <cmath>
 #include <cstring>
 #include <limits>
@@ -12,6 +13,7 @@ namespace Editor::Lightmapping {
 	namespace {
 		constexpr float kTonemapGamma = 1.0f / 2.2f;
 		constexpr float kPreviewExposureEpsilon = 1e-4f;
+		constexpr uint8_t kMaskOn = 255u;
 
 		uint16_t FloatToHalf(float value) {
 			uint32_t bits = 0u;
@@ -107,6 +109,16 @@ namespace Editor::Lightmapping {
 			return std::isfinite(value);
 		}
 
+		struct PreparedDilationPage {
+			std::vector<NE::Math::Vec3> sanitizedLighting;
+			std::vector<uint8_t> originalValidMask;
+			std::vector<uint8_t> dilatedValidMask;
+			std::vector<uint8_t> filledValidMask;
+			size_t sanitizedNonFiniteTexelCount = 0;
+			size_t clampedNegativeChannelCount = 0;
+			LightmapBakeDilationPageDiagnostics diagnostics{};
+		};
+
 		uint8_t ToPreviewByte(float value) {
 			const float clamped = std::clamp(value, 0.0f, 1.0f);
 			return static_cast<uint8_t>(std::clamp(std::pow(clamped, kTonemapGamma) * 255.0f, 0.0f, 255.0f));
@@ -169,6 +181,25 @@ namespace Editor::Lightmapping {
 			return texture;
 		}
 
+		bool BuildMaskPreviewPixels(
+			const std::vector<uint8_t>& mask,
+			uint8_t onR,
+			uint8_t onG,
+			uint8_t onB,
+			std::vector<uint8_t>& outPixels) {
+			outPixels.assign(mask.size() * 4u, 0u);
+			for (size_t texelIndex = 0; texelIndex < mask.size(); ++texelIndex) {
+				const size_t rgbaIndex = texelIndex * 4u;
+				if (mask[texelIndex] != 0u) {
+					outPixels[rgbaIndex + 0u] = onR;
+					outPixels[rgbaIndex + 1u] = onG;
+					outPixels[rgbaIndex + 2u] = onB;
+				}
+				outPixels[rgbaIndex + 3u] = 255u;
+			}
+			return true;
+		}
+
 		bool BuildDisplayPreviewPixels(
 			const LightmapBakeOutputPage& page,
 			float previewExposure,
@@ -203,33 +234,6 @@ namespace Editor::Lightmapping {
 			return true;
 		}
 
-		bool BuildValidityPreviewPixels(
-			const LightmapBakeOutputInputPage& inputPage,
-			std::vector<uint8_t>& outPixels) {
-			const uint64_t texelCount = static_cast<uint64_t>(inputPage.width) * static_cast<uint64_t>(inputPage.height);
-			if (inputPage.validityPreviewRgba8 != nullptr &&
-				inputPage.validityPreviewRgba8->size() == static_cast<size_t>(texelCount) * 4u) {
-				outPixels = *inputPage.validityPreviewRgba8;
-				return true;
-			}
-
-			if (inputPage.validMask == nullptr || inputPage.validMask->size() != static_cast<size_t>(texelCount)) {
-				return false;
-			}
-
-			outPixels.assign(static_cast<size_t>(texelCount) * 4u, 0u);
-			for (uint64_t texelIndex = 0; texelIndex < texelCount; ++texelIndex) {
-				const uint8_t value = (*inputPage.validMask)[static_cast<size_t>(texelIndex)] != 0u ? 255u : 0u;
-				const size_t rgbaIndex = static_cast<size_t>(texelIndex) * 4u;
-				outPixels[rgbaIndex + 0u] = value;
-				outPixels[rgbaIndex + 1u] = value;
-				outPixels[rgbaIndex + 2u] = value;
-				outPixels[rgbaIndex + 3u] = 255u;
-			}
-
-			return true;
-		}
-
 		void AppendSanitizationWarnings(
 			const LightmapBakeOutputPageDescriptor& descriptor,
 			size_t nonFiniteCount,
@@ -247,6 +251,182 @@ namespace Editor::Lightmapping {
 					" negative HDR channels to zero before texture upload.");
 			}
 		}
+
+		void AppendDilationWarnings(
+			const LightmapBakeOutputPageDescriptor& descriptor,
+			const LightmapBakeDilationPageDiagnostics& diagnostics,
+			uint32_t radius,
+			std::vector<std::string>& ioWarnings) {
+			if (diagnostics.hadNoValidTexels) {
+				ioWarnings.push_back(
+					descriptor.pageId + ": dilation skipped because the page had no original valid texels.");
+			} else if (radius > 0u && diagnostics.filledTexelCount == 0u) {
+				ioWarnings.push_back(
+					descriptor.pageId + ": dilation found no writable invalid texels adjacent to valid texels.");
+			}
+		}
+
+		bool SanitizePageLighting(
+			const LightmapBakeOutputInputPage& inputPage,
+			PreparedDilationPage& outPreparedPage) {
+			const uint64_t texelCount = static_cast<uint64_t>(inputPage.width) * static_cast<uint64_t>(inputPage.height);
+			if (inputPage.lighting == nullptr ||
+				inputPage.validMask == nullptr ||
+				inputPage.lighting->size() != static_cast<size_t>(texelCount) ||
+				inputPage.validMask->size() != static_cast<size_t>(texelCount)) {
+				return false;
+			}
+
+			outPreparedPage = {};
+			outPreparedPage.sanitizedLighting.resize(static_cast<size_t>(texelCount), { 0.0f, 0.0f, 0.0f });
+			outPreparedPage.originalValidMask = *inputPage.validMask;
+			outPreparedPage.diagnostics.originalValidTexelCount =
+				static_cast<size_t>(std::count(outPreparedPage.originalValidMask.begin(), outPreparedPage.originalValidMask.end(), static_cast<uint8_t>(1u)));
+
+			for (uint64_t texelIndex = 0; texelIndex < texelCount; ++texelIndex) {
+				const auto& sample = (*inputPage.lighting)[static_cast<size_t>(texelIndex)];
+				float channels[3] = { sample.x, sample.y, sample.z };
+				bool texelHadNonFinite = false;
+				for (int channelIndex = 0; channelIndex < 3; ++channelIndex) {
+					if (!IsFiniteFloat(channels[channelIndex])) {
+						channels[channelIndex] = 0.0f;
+						texelHadNonFinite = true;
+					} else if (channels[channelIndex] < 0.0f) {
+						channels[channelIndex] = 0.0f;
+						++outPreparedPage.clampedNegativeChannelCount;
+					}
+				}
+
+				if (texelHadNonFinite) {
+					++outPreparedPage.sanitizedNonFiniteTexelCount;
+				}
+
+				auto& sanitized = outPreparedPage.sanitizedLighting[static_cast<size_t>(texelIndex)];
+				sanitized.x = channels[0];
+				sanitized.y = channels[1];
+				sanitized.z = channels[2];
+			}
+
+			return true;
+		}
+
+		bool RunMaskDrivenDilation(
+			const LightmapBakeOutputInputPage& inputPage,
+			uint32_t dilationRadiusTexels,
+			PreparedDilationPage& ioPreparedPage) {
+			const uint64_t texelCount = static_cast<uint64_t>(inputPage.width) * static_cast<uint64_t>(inputPage.height);
+			if (inputPage.dilationWriteMask == nullptr ||
+				inputPage.dilationWriteMask->size() != static_cast<size_t>(texelCount)) {
+				return false;
+			}
+
+			ioPreparedPage.dilatedValidMask = ioPreparedPage.originalValidMask;
+			ioPreparedPage.filledValidMask.assign(static_cast<size_t>(texelCount), 0u);
+			ioPreparedPage.diagnostics.finalValidTexelCount = ioPreparedPage.diagnostics.originalValidTexelCount;
+			if (ioPreparedPage.diagnostics.originalValidTexelCount == 0u) {
+				ioPreparedPage.diagnostics.hadNoValidTexels = true;
+				return true;
+			}
+
+			if (dilationRadiusTexels == 0u) {
+				return true;
+			}
+
+			static constexpr std::array<std::pair<int, int>, 8u> kNeighborOffsets{ {
+				{ -1, -1 }, { 0, -1 }, { 1, -1 },
+				{ -1,  0 },             { 1,  0 },
+				{ -1,  1 }, { 0,  1 }, { 1,  1 }
+			} };
+
+			std::vector<NE::Math::Vec3> currentLighting = ioPreparedPage.sanitizedLighting;
+			std::vector<NE::Math::Vec3> nextLighting = currentLighting;
+			std::vector<uint8_t> currentMask = ioPreparedPage.originalValidMask;
+			std::vector<uint8_t> nextMask = currentMask;
+
+			for (uint32_t passIndex = 0; passIndex < dilationRadiusTexels; ++passIndex) {
+				++ioPreparedPage.diagnostics.passesExecuted;
+				nextLighting = currentLighting;
+				nextMask = currentMask;
+				size_t passFillCount = 0u;
+
+				for (uint32_t y = 0; y < inputPage.height; ++y) {
+					for (uint32_t x = 0; x < inputPage.width; ++x) {
+						const size_t linearIndex = static_cast<size_t>(y) * static_cast<size_t>(inputPage.width) + static_cast<size_t>(x);
+						if ((*inputPage.dilationWriteMask)[linearIndex] == 0u || currentMask[linearIndex] != 0u) {
+							continue;
+						}
+
+						float accumR = 0.0f;
+						float accumG = 0.0f;
+						float accumB = 0.0f;
+						uint32_t validNeighborCount = 0u;
+						for (const auto& [offsetX, offsetY] : kNeighborOffsets) {
+							const int neighborX = static_cast<int>(x) + offsetX;
+							const int neighborY = static_cast<int>(y) + offsetY;
+							if (neighborX < 0 ||
+								neighborY < 0 ||
+								neighborX >= static_cast<int>(inputPage.width) ||
+								neighborY >= static_cast<int>(inputPage.height)) {
+								continue;
+							}
+
+							const size_t neighborIndex =
+								static_cast<size_t>(neighborY) * static_cast<size_t>(inputPage.width) +
+								static_cast<size_t>(neighborX);
+							if (currentMask[neighborIndex] == 0u) {
+								continue;
+							}
+
+							const auto& neighbor = currentLighting[neighborIndex];
+							accumR += neighbor.x;
+							accumG += neighbor.y;
+							accumB += neighbor.z;
+							++validNeighborCount;
+						}
+
+						if (validNeighborCount == 0u) {
+							continue;
+						}
+
+						const float invNeighborCount = 1.0f / static_cast<float>(validNeighborCount);
+						auto& filled = nextLighting[linearIndex];
+						filled.x = accumR * invNeighborCount;
+						filled.y = accumG * invNeighborCount;
+						filled.z = accumB * invNeighborCount;
+						nextMask[linearIndex] = 1u;
+						ioPreparedPage.filledValidMask[linearIndex] = 1u;
+						++passFillCount;
+					}
+				}
+
+				if (passFillCount == 0u) {
+					ioPreparedPage.diagnostics.convergedEarly = true;
+					break;
+				}
+
+				currentLighting.swap(nextLighting);
+				currentMask.swap(nextMask);
+			}
+
+			ioPreparedPage.sanitizedLighting.swap(currentLighting);
+			ioPreparedPage.dilatedValidMask.swap(currentMask);
+			ioPreparedPage.diagnostics.filledTexelCount =
+				static_cast<size_t>(std::count(ioPreparedPage.filledValidMask.begin(), ioPreparedPage.filledValidMask.end(), static_cast<uint8_t>(1u)));
+			ioPreparedPage.diagnostics.finalValidTexelCount =
+				ioPreparedPage.diagnostics.originalValidTexelCount + ioPreparedPage.diagnostics.filledTexelCount;
+			return true;
+		}
+
+		void PackCanonicalPage(const std::vector<NE::Math::Vec3>& lighting, std::vector<uint16_t>& outPackedRgba16f) {
+			outPackedRgba16f.resize(lighting.size() * 4u, 0u);
+			for (size_t texelIndex = 0; texelIndex < lighting.size(); ++texelIndex) {
+				const size_t baseIndex = texelIndex * 4u;
+				outPackedRgba16f[baseIndex + 0u] = FloatToHalf(lighting[texelIndex].x);
+				outPackedRgba16f[baseIndex + 1u] = FloatToHalf(lighting[texelIndex].y);
+				outPackedRgba16f[baseIndex + 2u] = FloatToHalf(lighting[texelIndex].z);
+				outPackedRgba16f[baseIndex + 3u] = FloatToHalf(1.0f);
+			}
+		}
 	}
 
 	LightmapBakePreviewTextureSet::LightmapBakePreviewTextureSet(LightmapBakePreviewTextureSet&& other) noexcept {
@@ -261,11 +441,15 @@ namespace Editor::Lightmapping {
 		Reset();
 		hdrTexture = other.hdrTexture;
 		displayTexture = other.displayTexture;
-		validityTexture = other.validityTexture;
+		originalValidityTexture = other.originalValidityTexture;
+		dilatedValidityTexture = other.dilatedValidityTexture;
+		filledValidityTexture = other.filledValidityTexture;
 		ownerTexture = other.ownerTexture;
 		other.hdrTexture = 0u;
 		other.displayTexture = 0u;
-		other.validityTexture = 0u;
+		other.originalValidityTexture = 0u;
+		other.dilatedValidityTexture = 0u;
+		other.filledValidityTexture = 0u;
 		other.ownerTexture = 0u;
 		return *this;
 	}
@@ -277,7 +461,9 @@ namespace Editor::Lightmapping {
 	void LightmapBakePreviewTextureSet::Reset() {
 		ReleaseTexture(hdrTexture);
 		ReleaseTexture(displayTexture);
-		ReleaseTexture(validityTexture);
+		ReleaseTexture(originalValidityTexture);
+		ReleaseTexture(dilatedValidityTexture);
+		ReleaseTexture(filledValidityTexture);
 		ReleaseTexture(ownerTexture);
 	}
 
@@ -351,33 +537,44 @@ namespace Editor::Lightmapping {
 			page.descriptor.allocatedInnerTexelCount = inputPage.allocatedInnerTexelCount;
 			page.descriptor.coverage01 = inputPage.coverage01;
 
-			page.canonicalRgba16f.resize(static_cast<size_t>(texelCount) * 4u, 0u);
-			for (uint64_t texelIndex = 0; texelIndex < texelCount; ++texelIndex) {
-				const auto& sample = (*inputPage.lighting)[static_cast<size_t>(texelIndex)];
-				float channels[4] = { sample.x, sample.y, sample.z, 1.0f };
-				bool texelHadNonFinite = false;
+			PreparedDilationPage preparedPage{};
+			if (inputPage.dilationWriteMask == nullptr ||
+				inputPage.dilationWriteMask->size() != static_cast<size_t>(texelCount) ||
+				!SanitizePageLighting(inputPage, preparedPage)) {
+				++builtOutput.diagnostics.invalidBufferPageCount;
+				outErrorMessage = "Bake output stage rejected a page with mismatched dilation or bake buffer sizes.";
+				return false;
+			}
 
-				for (int channelIndex = 0; channelIndex < 3; ++channelIndex) {
-					if (!IsFiniteFloat(channels[channelIndex])) {
-						channels[channelIndex] = 0.0f;
-						texelHadNonFinite = true;
-					} else if (channels[channelIndex] < 0.0f) {
-						channels[channelIndex] = 0.0f;
-						++page.clampedNegativeChannelCount;
-						++builtOutput.diagnostics.clampedNegativeChannelCount;
-					}
-				}
+			const auto dilationStart = std::chrono::high_resolution_clock::now();
+			if (!RunMaskDrivenDilation(inputPage, request.dilationRadiusTexels, preparedPage)) {
+				++builtOutput.diagnostics.invalidBufferPageCount;
+				outErrorMessage = "Bake output stage failed while running lightmap dilation.";
+				return false;
+			}
+			const auto dilationEnd = std::chrono::high_resolution_clock::now();
+			builtOutput.diagnostics.dilationMs +=
+				std::chrono::duration<double, std::milli>(dilationEnd - dilationStart).count();
 
-				if (texelHadNonFinite) {
-					++page.sanitizedNonFiniteTexelCount;
-					++builtOutput.diagnostics.sanitizedNonFiniteTexelCount;
-				}
+			page.originalValidMask = std::move(preparedPage.originalValidMask);
+			page.dilatedValidMask = std::move(preparedPage.dilatedValidMask);
+			page.filledValidMask = std::move(preparedPage.filledValidMask);
+			page.sanitizedNonFiniteTexelCount = preparedPage.sanitizedNonFiniteTexelCount;
+			page.clampedNegativeChannelCount = preparedPage.clampedNegativeChannelCount;
+			page.dilation = preparedPage.diagnostics;
+			PackCanonicalPage(preparedPage.sanitizedLighting, page.canonicalRgba16f);
 
-				const size_t baseIndex = static_cast<size_t>(texelIndex) * 4u;
-				page.canonicalRgba16f[baseIndex + 0u] = FloatToHalf(channels[0]);
-				page.canonicalRgba16f[baseIndex + 1u] = FloatToHalf(channels[1]);
-				page.canonicalRgba16f[baseIndex + 2u] = FloatToHalf(channels[2]);
-				page.canonicalRgba16f[baseIndex + 3u] = FloatToHalf(channels[3]);
+			builtOutput.diagnostics.sanitizedNonFiniteTexelCount += page.sanitizedNonFiniteTexelCount;
+			builtOutput.diagnostics.clampedNegativeChannelCount += page.clampedNegativeChannelCount;
+			builtOutput.diagnostics.totalOriginalValidTexelCount += page.dilation.originalValidTexelCount;
+			builtOutput.diagnostics.totalFilledTexelCount += page.dilation.filledTexelCount;
+			builtOutput.diagnostics.totalFinalValidTexelCount += page.dilation.finalValidTexelCount;
+			builtOutput.diagnostics.totalDilationPassesExecuted += page.dilation.passesExecuted;
+			if (page.dilation.convergedEarly) {
+				++builtOutput.diagnostics.pagesConvergedEarly;
+			}
+			if (page.dilation.hadNoValidTexels) {
+				++builtOutput.diagnostics.pagesWithNoValidTexels;
 			}
 
 			AppendSanitizationWarnings(
@@ -385,16 +582,21 @@ namespace Editor::Lightmapping {
 				page.sanitizedNonFiniteTexelCount,
 				page.clampedNegativeChannelCount,
 				ioWarnings);
+			AppendDilationWarnings(page.descriptor, page.dilation, request.dilationRadiusTexels, ioWarnings);
 
 			std::vector<uint8_t> displayPreviewPixels;
-			std::vector<uint8_t> validityPreviewPixels;
+			std::vector<uint8_t> originalValidityPreviewPixels;
+			std::vector<uint8_t> dilatedValidityPreviewPixels;
+			std::vector<uint8_t> filledValidityPreviewPixels;
 			if (!BuildDisplayPreviewPixels(page, request.previewExposure, displayPreviewPixels)) {
 				++builtOutput.diagnostics.invalidBufferPageCount;
 				outErrorMessage = "Bake output stage failed to build a display preview from canonical HDR data.";
 				return false;
 			}
 
-			if (!BuildValidityPreviewPixels(inputPage, validityPreviewPixels)) {
+			if (!BuildMaskPreviewPixels(page.originalValidMask, kMaskOn, kMaskOn, kMaskOn, originalValidityPreviewPixels) ||
+				!BuildMaskPreviewPixels(page.dilatedValidMask, kMaskOn, kMaskOn, kMaskOn, dilatedValidityPreviewPixels) ||
+				!BuildMaskPreviewPixels(page.filledValidMask, 72u, 200u, 96u, filledValidityPreviewPixels)) {
 				++builtOutput.diagnostics.invalidBufferPageCount;
 				outErrorMessage = "Bake output stage failed to build a validity preview texture.";
 				return false;
@@ -418,13 +620,29 @@ namespace Editor::Lightmapping {
 				inputPage.height,
 				displayPreviewPixels.data(),
 				false);
-			page.preview.validityTexture = UploadRgbaTexture(
+			page.preview.originalValidityTexture = UploadRgbaTexture(
 				GL_RGBA8,
 				GL_RGBA,
 				GL_UNSIGNED_BYTE,
 				inputPage.width,
 				inputPage.height,
-				validityPreviewPixels.data(),
+				originalValidityPreviewPixels.data(),
+				false);
+			page.preview.dilatedValidityTexture = UploadRgbaTexture(
+				GL_RGBA8,
+				GL_RGBA,
+				GL_UNSIGNED_BYTE,
+				inputPage.width,
+				inputPage.height,
+				dilatedValidityPreviewPixels.data(),
+				false);
+			page.preview.filledValidityTexture = UploadRgbaTexture(
+				GL_RGBA8,
+				GL_RGBA,
+				GL_UNSIGNED_BYTE,
+				inputPage.width,
+				inputPage.height,
+				filledValidityPreviewPixels.data(),
 				false);
 			if (inputPage.ownerPreviewRgba8 != nullptr &&
 				inputPage.ownerPreviewRgba8->size() == static_cast<size_t>(texelCount) * 4u) {
@@ -443,7 +661,9 @@ namespace Editor::Lightmapping {
 
 			if (page.preview.hdrTexture == 0u ||
 				page.preview.displayTexture == 0u ||
-				page.preview.validityTexture == 0u) {
+				page.preview.originalValidityTexture == 0u ||
+				page.preview.dilatedValidityTexture == 0u ||
+				page.preview.filledValidityTexture == 0u) {
 				++builtOutput.diagnostics.textureCreationFailureCount;
 				outErrorMessage = "Bake output stage failed to create one or more preview textures.";
 				return false;
@@ -584,6 +804,112 @@ namespace Editor::Lightmapping {
 			return false;
 		}
 
+		{
+			std::vector<NE::Math::Vec3> lighting{
+				{ std::numeric_limits<float>::quiet_NaN(), -1.0f, 2.0f },
+				{ 0.0f, 0.0f, 0.0f },
+				{ 0.0f, 0.0f, 0.0f },
+				{ 0.0f, 0.0f, 0.0f }
+			};
+			std::vector<uint8_t> validMask{ 1u, 0u, 0u, 0u };
+			std::vector<uint8_t> writeMask{ 1u, 1u, 0u, 0u };
+			LightmapBakeOutputInputPage inputPage{};
+			inputPage.pageIndex = 0;
+			inputPage.pageId = "selfcheck_dilate";
+			inputPage.width = 4u;
+			inputPage.height = 1u;
+			inputPage.validTexelCount = 1u;
+			inputPage.lighting = &lighting;
+			inputPage.validMask = &validMask;
+			inputPage.dilationWriteMask = &writeMask;
+
+			PreparedDilationPage preparedPage{};
+			if (!SanitizePageLighting(inputPage, preparedPage)) {
+				outMessage = "Bake output self-check failed: sanitize pass rejected a valid dilation fixture.";
+				return false;
+			}
+			if (preparedPage.sanitizedNonFiniteTexelCount != 1u ||
+				preparedPage.clampedNegativeChannelCount != 1u ||
+				preparedPage.sanitizedLighting[0].x != 0.0f ||
+				preparedPage.sanitizedLighting[0].y != 0.0f ||
+				preparedPage.sanitizedLighting[0].z != 2.0f) {
+				outMessage = "Bake output self-check failed: sanitize-before-dilate behavior is incorrect.";
+				return false;
+			}
+			if (!RunMaskDrivenDilation(inputPage, 2u, preparedPage)) {
+				outMessage = "Bake output self-check failed: dilation rejected a valid fixture.";
+				return false;
+			}
+			if (preparedPage.diagnostics.originalValidTexelCount != 1u ||
+				preparedPage.diagnostics.filledTexelCount != 1u ||
+				preparedPage.diagnostics.finalValidTexelCount != 2u ||
+				!preparedPage.diagnostics.convergedEarly ||
+				preparedPage.filledValidMask[1] != 1u ||
+				preparedPage.dilatedValidMask[2] != 0u ||
+				preparedPage.sanitizedLighting[0].z != 2.0f ||
+				preparedPage.sanitizedLighting[1].z != 2.0f) {
+				outMessage = "Bake output self-check failed: dilation fill, bounds, or anchor preservation is invalid.";
+				return false;
+			}
+		}
+
+		{
+			std::vector<NE::Math::Vec3> lighting{
+				{ 3.0f, 0.0f, 0.0f },
+				{ 0.0f, 0.0f, 0.0f },
+				{ 0.0f, 0.0f, 0.0f },
+				{ 0.0f, 0.0f, 0.0f }
+			};
+			std::vector<uint8_t> validMask{ 1u, 0u, 0u, 0u };
+			std::vector<uint8_t> writeMask{ 1u, 1u, 1u, 1u };
+			LightmapBakeOutputInputPage inputPage{};
+			inputPage.pageIndex = 1;
+			inputPage.pageId = "selfcheck_pingpong";
+			inputPage.width = 4u;
+			inputPage.height = 1u;
+			inputPage.validTexelCount = 1u;
+			inputPage.lighting = &lighting;
+			inputPage.validMask = &validMask;
+			inputPage.dilationWriteMask = &writeMask;
+
+			PreparedDilationPage preparedPage{};
+			if (!SanitizePageLighting(inputPage, preparedPage) ||
+				!RunMaskDrivenDilation(inputPage, 1u, preparedPage)) {
+				outMessage = "Bake output self-check failed: ping-pong dilation fixture did not run.";
+				return false;
+			}
+			if (preparedPage.dilatedValidMask[1] != 1u || preparedPage.dilatedValidMask[2] != 0u) {
+				outMessage = "Bake output self-check failed: ping-pong pass semantics allowed same-pass chaining.";
+				return false;
+			}
+		}
+
+		{
+			std::vector<NE::Math::Vec3> lighting{
+				{ 0.0f, 0.0f, 0.0f },
+				{ 0.0f, 0.0f, 0.0f }
+			};
+			std::vector<uint8_t> validMask{ 0u, 0u };
+			std::vector<uint8_t> writeMask{ 1u, 1u };
+			LightmapBakeOutputInputPage inputPage{};
+			inputPage.pageIndex = 2;
+			inputPage.pageId = "selfcheck_novalid";
+			inputPage.width = 2u;
+			inputPage.height = 1u;
+			inputPage.lighting = &lighting;
+			inputPage.validMask = &validMask;
+			inputPage.dilationWriteMask = &writeMask;
+
+			PreparedDilationPage preparedPage{};
+			if (!SanitizePageLighting(inputPage, preparedPage) ||
+				!RunMaskDrivenDilation(inputPage, 3u, preparedPage) ||
+				!preparedPage.diagnostics.hadNoValidTexels ||
+				preparedPage.diagnostics.finalValidTexelCount != 0u) {
+				outMessage = "Bake output self-check failed: no-valid-page dilation handling is invalid.";
+				return false;
+			}
+		}
+
 		LightmapBakeOutputPage page{};
 		page.descriptor.width = 1u;
 		page.descriptor.height = 1u;
@@ -605,7 +931,7 @@ namespace Editor::Lightmapping {
 			return false;
 		}
 
-		outMessage = "Bake output self-check passed: mip counts, half-float packing edge cases, and preview derivation are valid.";
+		outMessage = "Bake output self-check passed: mip counts, sanitize+dilate behavior, half-float packing edge cases, and preview derivation are valid.";
 		return true;
 	}
 }
