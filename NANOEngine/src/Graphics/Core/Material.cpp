@@ -264,6 +264,10 @@ namespace NE::Graphics {
                     u.name.find("color") != std::string::npos ||
                     u.name.find("albedo") != std::string::npos) {
                     m_FloatUniforms.emplace(u.name, 1.0f);
+                } else if (u.name.find("AmbientOcclusion") != std::string::npos ||
+                    u.name.find("ambientOcclusion") != std::string::npos ||
+                    u.name.find("ambientocclusion") != std::string::npos) {
+                    m_FloatUniforms.emplace(u.name, 1.0f);
                 } else if (u.name.find("AlphaCutoff") != std::string::npos ||
                     u.name.find("Alphacutoff") != std::string::npos ||
                     u.name.find("alphacutoff") != std::string::npos) {

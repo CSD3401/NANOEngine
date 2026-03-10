@@ -7,12 +7,17 @@
 #include <Graphics/Core/GraphicsManager.hpp>
 #include <EditorInterface/RendererExports.hpp>
 #include "../EditorUI.hpp"
+#include "../Lighting/DirectLightmapBaker.hpp"
 #include "../Lighting/LightmapAtlasAllocator.hpp"
 #include "../Lighting/SceneBakeBVH.hpp"
 #include <algorithm>
 
 
 namespace Editor {
+	LightingPanel::~LightingPanel() {
+		Lightmapping::ShutdownDirectLightBakeSession();
+	}
+
 	void LightingPanel::OnImGuiRender() {
 		if (ImGui::Begin("Lighting", nullptr)) {
 
@@ -240,10 +245,13 @@ namespace Editor {
 
 			} break;
 			case 3: {
+				Editor::Lightmapping::SetDirectLightBakePreviewExposure(m_directBakePreviewExposure);
+				Editor::Lightmapping::UpdateDirectLightBakeSession();
 				auto& previewState = Editor::Lightmapping::GetLightmapAllocationPreviewState();
+				const auto directBakeState = Editor::Lightmapping::GetDirectLightBakeSessionState();
 
-				ImGui::TextWrapped("Atlas allocation is editor-only in Part 3. This pass computes deterministic page placement and UV transforms, then writes them into per-entity LightmapBinding data.");
-				ImGui::Spacing();
+				//ImGui::TextWrapped("Atlas allocation is editor-only in Part 3. This pass computes deterministic page placement and UV transforms, then writes them into per-entity LightmapBinding data.");
+				//ImGui::Spacing();
 
 				ImGui::Text("Texels Per Unit");
 				ImGui::SameLine();
@@ -347,8 +355,8 @@ namespace Editor {
 				ImGui::Separator();
 				ImGui::Spacing();
 
-				ImGui::TextWrapped("Bake BVH is editor-only build-time infrastructure for direct-light baking queries. It gathers static shadow-casting scene geometry, flattens triangles into world space, and builds a CPU BVH for any-hit shadow tests plus closest-hit debug queries.");
-				ImGui::Spacing();
+				//ImGui::TextWrapped("Bake BVH is editor-only build-time infrastructure for direct-light baking queries. It gathers static shadow-casting scene geometry, flattens triangles into world space, and builds a CPU BVH for any-hit shadow tests plus closest-hit debug queries.");
+				//ImGui::Spacing();
 
 				ImGui::Text("Leaf Size");
 				ImGui::SameLine();
@@ -474,6 +482,374 @@ namespace Editor {
 								warning.entityName.c_str(),
 								Editor::Lightmapping::ToString(warning.reason),
 								warning.message.c_str());
+						}
+					}
+				}
+
+				ImGui::Spacing();
+				ImGui::Separator();
+				ImGui::Spacing();
+
+				ImGui::TextWrapped("Direct light baking rasterizes UV1 triangles into atlas texels, reconstructs world-space samples from barycentrics, evaluates direct Lambert lighting for supported lights, and uses the bake BVH for any-hit shadow visibility.");
+				ImGui::Spacing();
+
+				ImGui::Text("Worker Count");
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(140.0f);
+				ImGui::DragInt("##DirectBakeWorkerCount", &m_directBakeWorkerCount, 1.0f, 0, 64);
+				m_directBakeWorkerCount = std::clamp(m_directBakeWorkerCount, 0, 64);
+
+				ImGui::Text("Dilation Radius");
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(140.0f);
+				ImGui::DragInt("##DirectBakeDilationRadius", &m_directBakeDilationRadius, 1.0f, 0, 64);
+				m_directBakeDilationRadius = std::clamp(m_directBakeDilationRadius, 0, 64);
+				Editor::ToolTip("0 uses the current atlas padding. Positive values run that many deterministic dilation passes before mip generation.");
+
+				ImGui::Text("Ray Origin Bias");
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(140.0f);
+				ImGui::DragFloat("##DirectBakeRayBias", &m_directBakeRayBias, 1e-4f, 1e-5f, 1e-1f, "%.5f", ImGuiSliderFlags_Logarithmic);
+				m_directBakeRayBias = std::clamp(m_directBakeRayBias, 1e-5f, 1e-1f);
+
+				ImGui::Text("Ray Min Distance");
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(140.0f);
+				ImGui::DragFloat("##DirectBakeRayMinDistance", &m_directBakeRayMinDistance, 1e-5f, 1e-6f, 1e-2f, "%.6f", ImGuiSliderFlags_Logarithmic);
+				m_directBakeRayMinDistance = std::clamp(m_directBakeRayMinDistance, 1e-6f, 1e-2f);
+
+				ImGui::Text("Finite-Light Epsilon");
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(140.0f);
+				ImGui::DragFloat("##DirectBakeFiniteLightEpsilon", &m_directBakeFiniteLightEpsilon, 1e-4f, 1e-5f, 1e-1f, "%.5f", ImGuiSliderFlags_Logarithmic);
+				m_directBakeFiniteLightEpsilon = std::clamp(m_directBakeFiniteLightEpsilon, 1e-5f, 1e-1f);
+
+				ImGui::Text("Preview Exposure");
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(140.0f);
+				ImGui::DragFloat("##DirectBakePreviewExposure", &m_directBakePreviewExposure, 0.05f, 0.1f, 16.0f, "%.2f");
+				m_directBakePreviewExposure = std::clamp(m_directBakePreviewExposure, 0.1f, 16.0f);
+
+				Editor::Lightmapping::DirectLightBakeSettings bakeSettings{};
+				bakeSettings.workerCount = static_cast<uint32_t>(m_directBakeWorkerCount);
+				bakeSettings.dilationRadiusTexels = static_cast<uint32_t>(m_directBakeDilationRadius);
+				bakeSettings.rebuildBvhBeforeBake = true;
+				bakeSettings.generateDebugBuffers = true;
+				bakeSettings.rayOriginBias = m_directBakeRayBias;
+				bakeSettings.rayMinDistance = m_directBakeRayMinDistance;
+				bakeSettings.finiteLightDistanceEpsilon = m_directBakeFiniteLightEpsilon;
+				bakeSettings.previewExposure = m_directBakePreviewExposure;
+
+				if (ImGui::Button("Start Direct Bake")) {
+					Editor::Lightmapping::StartSceneDirectLightBake(bakeSettings);
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Cancel Direct Bake")) {
+					Editor::Lightmapping::CancelSceneDirectLightBake();
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Run Raster Self-Check")) {
+					m_rasterSelfCheckPassed = Editor::Lightmapping::RunLightmapUvRasterizerSelfCheck(m_rasterSelfCheckMessage);
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Run Output Self-Check")) {
+					m_outputSelfCheckPassed = Editor::Lightmapping::RunLightmapBakeOutputSelfCheck(m_outputSelfCheckMessage);
+				}
+
+				if (!m_rasterSelfCheckMessage.empty()) {
+					if (m_rasterSelfCheckPassed) {
+						ImGui::TextColored(ImVec4(0.35f, 0.85f, 0.45f, 1.0f), "%s", m_rasterSelfCheckMessage.c_str());
+					} else {
+						ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.35f, 1.0f), "%s", m_rasterSelfCheckMessage.c_str());
+					}
+				}
+
+				if (!m_outputSelfCheckMessage.empty()) {
+					if (m_outputSelfCheckPassed) {
+						ImGui::TextColored(ImVec4(0.35f, 0.85f, 0.45f, 1.0f), "%s", m_outputSelfCheckMessage.c_str());
+					} else {
+						ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.35f, 1.0f), "%s", m_outputSelfCheckMessage.c_str());
+					}
+				}
+
+				if (!directBakeState.statusMessage.empty()) {
+					ImGui::TextWrapped("%s", directBakeState.statusMessage.c_str());
+				}
+
+				if (directBakeState.isRunning) {
+					ImGui::ProgressBar(directBakeState.progress01, ImVec2(-1.0f, 0.0f));
+				}
+
+				if (!directBakeState.activeStage.empty()) {
+					ImGui::Text("Active Stage");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%s", directBakeState.activeStage.c_str());
+				}
+
+				if (directBakeState.hasResult) {
+					const auto& bakeResult = *directBakeState.result;
+					const auto& stats = bakeResult.stats;
+
+					ImGui::Spacing();
+					ImGui::Text("Bake Instances");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.bakeInstanceCount);
+
+					ImGui::Text("Supported Lights");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.supportedLightCount);
+
+					ImGui::Text("Raster Triangles");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.rasterTriangleCount);
+
+					ImGui::Text("Collected Triangle Drops");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.collectedDiscardedTriangleCount);
+
+					ImGui::Text("Dropped Index Errors");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.collectedOutOfRangeIndexTriangleCount);
+
+					ImGui::Text("Dropped Non-Finite UV1");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.collectedNonFiniteUvTriangleCount);
+
+					ImGui::Text("Dropped Non-Finite Positions");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.collectedNonFiniteWorldPositionTriangleCount);
+
+					ImGui::Text("Dropped Degenerate World Tris");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.collectedDegenerateWorldTriangleCount);
+
+					ImGui::Text("Receivers With Triangle Drops");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.receiversWithCollectedDiscardedTriangles);
+
+					ImGui::Text("Degenerate UV Tris");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.rasterDegenerateUvTriangleCount);
+
+					ImGui::Text("Covered Texels");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.coveredTexelCount);
+
+					ImGui::Text("Uncovered Texels");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.rasterUncoveredTexelCount);
+
+					ImGui::Text("Ownership Conflicts");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.rasterOwnershipConflictCount);
+
+					ImGui::Text("Same-Receiver Conflicts");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.rasterSameReceiverConflictCount);
+
+					ImGui::Text("Cross-Receiver Conflicts");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.rasterCrossReceiverConflictCount);
+
+					ImGui::Text("Invalid Barycentrics");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.rasterInvalidBarycentricTexelCount);
+
+					ImGui::Text("Out-of-Range Texels");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.rasterOutOfRangeTexelCount);
+
+					ImGui::Text("Invalid Samples");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.rasterInvalidSampleTexelCount);
+
+					ImGui::Text("Clamped Triangles");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.rasterInnerRectClampedTriangleCount);
+
+					ImGui::Text("Skipped Texels");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.skippedTexelCount);
+
+					ImGui::Text("Rays Cast");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.raysCast);
+
+					ImGui::Text("Visible Rays");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.visibleRayCount);
+
+					ImGui::Text("Occluded Rays");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.occludedRayCount);
+
+					ImGui::Text("Setup Time");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%.3f ms", stats.setupMs);
+
+					ImGui::Text("Raster Time");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%.3f ms", stats.rasterizationMs);
+
+					ImGui::Text("Evaluation Time");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%.3f ms", stats.evaluationMs);
+
+					const auto& textureOutput = bakeResult.textureOutput;
+					const auto& outputDiagnostics = textureOutput.diagnostics;
+
+					ImGui::Spacing();
+					ImGui::Text("Output Format");
+					ImGui::SameLine();
+					ImGui::TextDisabled("RGBA16F linear");
+
+					ImGui::Text("Preview Exposure");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%.2f", textureOutput.previewExposure);
+
+					ImGui::Text("Output Pages");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", outputDiagnostics.pageCountCreated);
+
+					ImGui::Text("Uploaded Pixels");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", outputDiagnostics.totalPixelCountUploaded);
+
+					ImGui::Text("Generated Mips");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", outputDiagnostics.totalMipCount);
+
+					ImGui::Text("Dilation Radius");
+					ImGui::SameLine();
+					if (directBakeState.settings.dilationRadiusTexels == 0u) {
+						ImGui::TextDisabled("auto (%d px padding)", Editor::Lightmapping::GetLightmapAllocationPreviewState().settings.padding);
+					} else {
+						ImGui::TextDisabled("%u px", directBakeState.settings.dilationRadiusTexels);
+					}
+
+					ImGui::Text("Original Valid Texels");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", outputDiagnostics.totalOriginalValidTexelCount);
+
+					ImGui::Text("Filled Texels");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", outputDiagnostics.totalFilledTexelCount);
+
+					ImGui::Text("Final Valid Texels");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", outputDiagnostics.totalFinalValidTexelCount);
+
+					ImGui::Text("Dilation Passes");
+					ImGui::SameLine();
+					ImGui::TextDisabled(
+						"%zu total, %zu early, %zu no-valid pages",
+						outputDiagnostics.totalDilationPassesExecuted,
+						outputDiagnostics.pagesConvergedEarly,
+						outputDiagnostics.pagesWithNoValidTexels);
+
+					ImGui::Text("Sanitized Non-Finite Texels");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", outputDiagnostics.sanitizedNonFiniteTexelCount);
+
+					ImGui::Text("Clamped Negative Channels");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", outputDiagnostics.clampedNegativeChannelCount);
+
+					ImGui::Text("Texture Upload Time");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%.3f ms", outputDiagnostics.textureCreationMs);
+
+					ImGui::Text("Dilation Time");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%.3f ms", outputDiagnostics.dilationMs);
+
+					ImGui::Text("Mip Generation Time");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%.3f ms", outputDiagnostics.mipGenerationMs);
+					Editor::ToolTip("Mipmaps are generated from the final dilated linear HDR page data.");
+
+					ImGui::Text("Preview Refresh Time");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%.3f ms", outputDiagnostics.displayPreviewRefreshMs);
+
+					ImGui::Text("Output Failures");
+					ImGui::SameLine();
+					ImGui::TextDisabled(
+						"invalid dims %zu, invalid buffers %zu, texture failures %zu",
+						outputDiagnostics.invalidDimensionPageCount,
+						outputDiagnostics.invalidBufferPageCount,
+						outputDiagnostics.textureCreationFailureCount);
+
+					if (bakeResult.rasterResult && ImGui::CollapsingHeader("Raster Coverage", ImGuiTreeNodeFlags_DefaultOpen)) {
+						for (const auto& page : bakeResult.rasterResult->pageBuffers) {
+							ImGui::BulletText(
+								"%s: %zu / %zu texels (%.1f%%)",
+								page.pageId.c_str(),
+								page.validTexelCount,
+								page.allocatedInnerTexelCount,
+								page.coverage01 * 100.0f);
+						}
+					}
+
+					if (ImGui::CollapsingHeader("Direct Bake Warnings", ImGuiTreeNodeFlags_DefaultOpen)) {
+						if (bakeResult.warningCounts.empty()) {
+							ImGui::TextDisabled("No bake warnings recorded.");
+						} else {
+							for (const auto& [warning, count] : bakeResult.warningCounts) {
+								ImGui::BulletText("%s x%zu", warning.c_str(), count);
+							}
+						}
+					}
+
+					if (ImGui::CollapsingHeader("Page Previews", ImGuiTreeNodeFlags_DefaultOpen)) {
+						if (textureOutput.pages.empty()) {
+							ImGui::TextDisabled("No published bake output textures are available yet.");
+						}
+
+						for (const auto& page : textureOutput.pages) {
+							ImGui::Text("%s", page.descriptor.pageId.c_str());
+							ImGui::SameLine();
+							ImGui::TextDisabled("%ux%u, %u mips", page.descriptor.width, page.descriptor.height, page.descriptor.mipCount);
+							ImGui::SameLine();
+							ImGui::TextDisabled("coverage %.1f%%", page.descriptor.coverage01 * 100.0f);
+							ImGui::ProgressBar(std::clamp(page.descriptor.coverage01, 0.0f, 1.0f), ImVec2(-1.0f, 0.0f));
+
+							ImGui::TextDisabled(
+								"original %zu | filled %zu | final %zu | passes %u%s",
+								page.dilation.originalValidTexelCount,
+								page.dilation.filledTexelCount,
+								page.dilation.finalValidTexelCount,
+								page.dilation.passesExecuted,
+								page.dilation.convergedEarly ? " early" : "");
+
+							ImGui::TextDisabled(
+								"HDR %u | Display %u | Orig %u | Dilated %u | Filled %u | Owner %u",
+								page.preview.hdrTexture,
+								page.preview.displayTexture,
+								page.preview.originalValidityTexture,
+								page.preview.dilatedValidityTexture,
+								page.preview.filledValidityTexture,
+								page.preview.ownerTexture);
+
+							if (page.preview.displayTexture != 0u) {
+								ImGui::Image((ImTextureID)(intptr_t)page.preview.displayTexture, ImVec2(192.0f, 192.0f));
+								if (page.preview.originalValidityTexture != 0u) {
+									ImGui::SameLine();
+									ImGui::Image((ImTextureID)(intptr_t)page.preview.originalValidityTexture, ImVec2(192.0f, 192.0f));
+								}
+								if (page.preview.dilatedValidityTexture != 0u) {
+									ImGui::SameLine();
+									ImGui::Image((ImTextureID)(intptr_t)page.preview.dilatedValidityTexture, ImVec2(192.0f, 192.0f));
+								}
+								if (page.preview.filledValidityTexture != 0u) {
+									ImGui::SameLine();
+									ImGui::Image((ImTextureID)(intptr_t)page.preview.filledValidityTexture, ImVec2(192.0f, 192.0f));
+								}
+								if (page.preview.ownerTexture != 0u) {
+									ImGui::SameLine();
+									ImGui::Image((ImTextureID)(intptr_t)page.preview.ownerTexture, ImVec2(192.0f, 192.0f));
+								}
+							}
 						}
 					}
 				}

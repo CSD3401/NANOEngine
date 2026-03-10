@@ -325,13 +325,13 @@ namespace Editor {
 				ImGui::EndPopup();
 			}
 
-						const char* previewModeNames[] = { "Shaded", "Normals", "UV0", "UV1" };
+						const char* previewModeNames[] = { "Shaded", "Normals", "UV0", "UV1", "Lightmap UV", "Lightmap" };
 			int previewMode = static_cast<int>(NE::GetScenePreviewMode());
-			previewMode = std::clamp(previewMode, 0, 3);
+			previewMode = std::clamp(previewMode, 0, 5);
 			ImGui::SameLine();
 			ImGui::SetNextItemWidth(130.0f);
 			if (ImGui::BeginCombo("Preview", previewModeNames[previewMode])) {
-				for (int i = 0; i < 4; ++i) {
+				for (int i = 0; i < 6; ++i) {
 					const bool selected = (previewMode == i);
 					if (ImGui::Selectable(previewModeNames[i], selected)) {
 						previewMode = i;
@@ -342,7 +342,7 @@ namespace Editor {
 				ImGui::EndCombo();
 			}
 
-			if (previewMode == 2 || previewMode == 3) {
+			if (previewMode == 2 || previewMode == 3 || previewMode == 4) {
 				const float uvScaleValues[] = { 1.0f, 4.0f, 10.0f, 20.0f };
 				const char* uvScaleLabels[] = { "1", "4", "10", "20" };
 

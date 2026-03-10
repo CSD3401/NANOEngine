@@ -44,8 +44,10 @@
 #include "GizmosRenderer.hpp"
 #include "Graphics/DebugRenderer/DebugDrawSystem.hpp"
 #include "Core/Profiler.hpp"
+#include "Engine.hpp"
 #include "ECS/Components/Light.hpp"
 #include "SceneManagement/Scene.hpp"
+#include "SceneManagement/SceneLightmapRuntime.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
 #include "ECS/Core/Entity.hpp"
 
@@ -53,6 +55,7 @@
 #include <array>
 #include <cstdint>
 #include <cmath>
+#include <limits>
 #include <variant>
 #include <string>
 #include <unordered_map>
@@ -95,6 +98,20 @@ namespace NE::Graphics {
             instance.lightmapUvOffset = command.lightmapUvOffset;
             instance.lightmapPageSlot = command.lightmapPageSlot;
             return instance;
+        }
+
+        void BindSceneLightmapUniforms(IShader& shader) {
+            const auto* runtimeState = SceneManagement::GetSceneLightmapRuntimeState(&NE::GetScene());
+            if (!runtimeState || !runtimeState->lightingUsable || runtimeState->irradianceHandles.empty()) {
+                shader.SetUniformInt("u_LightmapPageCount", 0);
+                return;
+            }
+
+            const int pageCount = static_cast<int>(std::min<std::size_t>(
+                runtimeState->irradianceHandles.size(),
+                static_cast<std::size_t>(SceneManagement::kMaxSceneLightmapPages)));
+            shader.SetUniformInt("u_LightmapPageCount", pageCount);
+            shader.SetUniformHandlev("u_LightmapPages", runtimeState->irradianceHandles.data(), pageCount);
         }
 
         inline size_t ToLightTypeIndex(ECS::Component::Light::Type type) {
@@ -771,14 +788,24 @@ namespace NE::Graphics {
 
                         constexpr const char* kFragmentSource = R"(
             #version 460 core
+            #extension GL_ARB_bindless_texture : require
+
             in vec3 vNormalWS;
             in vec2 vUV0;
             in vec2 vUV1;
 
             layout(location = 0) out vec4 FragColor;
 
+            const int MAX_LIGHTMAP_PAGES = 128;
+
             uniform int u_PreviewMode;
             uniform float u_UvScale;
+            uniform sampler2D u_LightmapPages[MAX_LIGHTMAP_PAGES];
+            uniform int u_LightmapPageCount;
+            uniform int u_LightmapEnabled;
+            uniform vec2 u_LightmapUvScale;
+            uniform vec2 u_LightmapUvOffset;
+            uniform int u_LightmapPageSlot;
 
             void main() {
                 vec3 outColor = vec3(0.0);
@@ -790,6 +817,22 @@ namespace NE::Graphics {
                 } else if (u_PreviewMode == 3) {
                     vec2 uv = fract(vUV1 * max(u_UvScale, 0.0001));
                     outColor = vec3(uv, 0.0);
+                } else if (u_PreviewMode == 4) {
+                    if (u_LightmapEnabled != 0) {
+                        vec2 atlasUv = vUV1 * u_LightmapUvScale + u_LightmapUvOffset;
+                        vec2 debugUv = fract(atlasUv * max(u_UvScale, 0.0001));
+                        outColor = vec3(debugUv, 0.0);
+                    } else {
+                        outColor = vec3(0.2, 0.0, 0.2);
+                    }
+                } else if (u_PreviewMode == 5) {
+                    if (u_LightmapEnabled != 0 && u_LightmapPageSlot >= 0 && u_LightmapPageSlot < u_LightmapPageCount) {
+                        vec2 atlasUv = vUV1 * u_LightmapUvScale + u_LightmapUvOffset;
+                        vec3 baked = texture(u_LightmapPages[u_LightmapPageSlot], atlasUv).rgb;
+                        outColor = baked / (vec3(1.0) + max(baked, vec3(0.0)));
+                    } else {
+                        outColor = vec3(0.0);
+                    }
                 }
                 FragColor = vec4(outColor, 1.0);
             }
@@ -904,6 +947,7 @@ namespace NE::Graphics {
             debugShader->SetUniformMat4("u_Projection", camProj);
             debugShader->SetUniformInt("u_PreviewMode", static_cast<int>(previewMode));
             debugShader->SetUniformFloat("u_UvScale", std::max(0.0001f, uvScale));
+            BindSceneLightmapUniforms(*debugShader);
 
             for (const auto& command : commands) {
                 if (!command.mesh) continue;
@@ -911,6 +955,14 @@ namespace NE::Graphics {
                 if (!frustum.IntersectsSphere(command.boundsCenterWS, command.boundsRadiusWs)) continue;
 
                 debugShader->SetUniformMat4("u_Model", command.transform);
+                debugShader->SetUniformInt("u_LightmapEnabled", command.lightmapEnabled ? 1 : 0);
+                debugShader->SetUniformVec2("u_LightmapUvScale", command.lightmapUvScale);
+                debugShader->SetUniformVec2("u_LightmapUvOffset", command.lightmapUvOffset);
+                debugShader->SetUniformInt(
+                    "u_LightmapPageSlot",
+                    command.lightmapPageSlot == std::numeric_limits<std::uint32_t>::max()
+                    ? -1
+                    : static_cast<int>(command.lightmapPageSlot));
 
                 command.mesh->Bind();
                 if (command.hasUv1) {
@@ -1037,13 +1089,6 @@ namespace NE::Graphics {
         } else {
             SPD_WARNING("Decal cube mesh initialization failed: builtin cube model not available.");
         }
-
-
-        //// Load Primitives
-        //auto skinned = std::make_shared<OpenGL::GLShader>();
-        //skinned->LoadFromFile("Library/Shaders/Skinned.nanoshader");
-        //skinned->LoadFromFile("Library/Shaders/Skinned.nanoshader");
-        //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(skinned, "Skinned");
 
         s_ScreenWidth = static_cast<uint32_t>(1920);
         s_ScreenHeight = static_cast<uint32_t>(1080);
@@ -1221,6 +1266,7 @@ namespace NE::Graphics {
                 shader->SetUniformMat4("u_View", camView);
                 shader->SetUniformMat4("u_Projection", camProj);
                 shader->SetUniformVec3("u_CameraPos", camPos);
+                BindSceneLightmapUniforms(*shader);
 
                 shader->SetUniformVec3("i_GlobalAmbientColor", renderSettings.ambientColour);
                 shader->SetUniformFloat("i_GlobalAmbientIntensity", renderSettings.ambientIntensity);
@@ -1248,7 +1294,7 @@ namespace NE::Graphics {
                         dirSplits[c] = dirForSplits->dirCascadeSplitsVS[c];
                 }
 
-                shader->SetUniformInt("i_DirCascadeCount", ECS::Component::Light::DIR_CASCADES);
+                shader->SetUniformInt("i_DirCascadeCount", dirCascadeCount);
 
                 for (int c = 0; c < NE::ECS::Component::Light::DIR_CASCADES; ++c) {
                     std::string splitName = "i_DirCascadeSplitsVS[" + std::to_string(c) + "]";
@@ -2067,25 +2113,43 @@ namespace NE::Graphics {
 	}
 
     void GraphicsManager::SetScenePreviewMode(uint8_t mode) {
-        if (mode > static_cast<uint8_t>(ScenePreviewMode::UV1)) {
+#ifndef PRODUCTION_BUILD
+        if (mode > static_cast<uint8_t>(ScenePreviewMode::LightmapOnly)) {
             mode = static_cast<uint8_t>(ScenePreviewMode::Shaded);
         }
         s_ScenePreviewMode = static_cast<ScenePreviewMode>(mode);
+#else
+        (void)mode;
+        s_ScenePreviewMode = ScenePreviewMode::Shaded;
+#endif
     }
 
     uint8_t GraphicsManager::GetScenePreviewMode() {
+#ifndef PRODUCTION_BUILD
         return static_cast<uint8_t>(s_ScenePreviewMode);
+#else
+        return static_cast<uint8_t>(ScenePreviewMode::Shaded);
+#endif
     }
 
     void GraphicsManager::SetScenePreviewUvScale(float scale) {
+#ifndef PRODUCTION_BUILD
         if (!std::isfinite(scale) || scale <= 0.0f) {
             scale = 1.0f;
         }
         s_ScenePreviewUvScale = scale;
+#else
+        (void)scale;
+        s_ScenePreviewUvScale = 1.0f;
+#endif
     }
 
     float GraphicsManager::GetScenePreviewUvScale() {
+#ifndef PRODUCTION_BUILD
         return s_ScenePreviewUvScale;
+#else
+        return 1.0f;
+#endif
     }
 
     void GraphicsManager::InitDebugPrimitives() {

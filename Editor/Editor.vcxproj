@@ -293,6 +293,9 @@
     <ClCompile Include="src\Panels\HierarchyPanel.cpp" />
     <ClCompile Include="src\Panels\InspectorPanel.cpp" />
     <ClCompile Include="src\Lighting\BakeGeometryCollector.cpp" />
+    <ClCompile Include="src\Lighting\DirectLightmapBaker.cpp" />
+    <ClCompile Include="src\Lighting\LightmapBakeOutput.cpp" />
+    <ClCompile Include="src\Lighting\LightmapUvRasterizer.cpp" />
     <ClCompile Include="src\Lighting\SceneBakeBVH.cpp" />
     <ClCompile Include="src\Panels\LightingPanel.cpp" />
     <ClCompile Include="src\Panels\LoggerPanel.cpp" />
@@ -423,6 +426,8 @@
     <ClInclude Include="src\Panels\HierarchyPanel.hpp" />
     <ClInclude Include="src\Panels\InspectorPanel.hpp" />
     <ClInclude Include="src\Lighting\BakeGeometryCollector.hpp" />
+    <ClInclude Include="src\Lighting\DirectLightmapBaker.hpp" />
+    <ClInclude Include="src\Lighting\LightmapBakeOutput.hpp" />
     <ClInclude Include="src\Lighting\SceneBakeBVH.hpp" />
     <ClInclude Include="src\Panels\LightingPanel.hpp" />
     <ClInclude Include="src\Panels\LoggerPanel.hpp" />
