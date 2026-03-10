@@ -98,14 +98,13 @@ namespace Component {
 
     /// UIRectTransform component - Layout and positioning for UI elements
     /// Uses anchor/pivot system for responsive layouts
+    ///
+    /// IMPORTANT: After modifying any layout field (x, y, width, height,
+    /// rotation, scale, anchor, pivot), you must set worldMatrixDirty = true
+    /// and worldRectCached = false so the layout system recalculates positions.
+    /// Prefer the helper functions (SetUIRectTransformPos, etc.) which do this
+    /// automatically.
     struct UIRectTransform {
-        // Parent entity ID
-        uint32_t parent = UINT32_MAX;
-
-        // LUID for serialization
-        uint64_t luid = 0;
-        uint64_t parentLuid = 0;
-
         // Position of pivot point (in pixels, relative to anchor)
         float x = 0.0f;
         float y = 0.0f;
@@ -140,6 +139,31 @@ namespace Component {
         // Pivot point (normalized 0-1, rotation/scale origin)
         float pivotX = 0.5f;
         float pivotY = 0.5f;
+
+        // Mask clipping (folded from UIRectMask2D)
+        bool enableMask = false;
+        float maskPaddingLeft  = 0.f;
+        float maskPaddingRight = 0.f;
+        float maskPaddingTop   = 0.f;
+        float maskPaddingBottom = 0.f;
+
+        // Internal: transform matrices (managed by engine — do not access directly)
+        float _localMatrix[16] = {};  ///< Local TRS matrix (64 bytes)
+        float _worldMatrix[16] = {};  ///< World transform (64 bytes)
+
+        // Set to true after modifying any layout field so the layout system
+        // recalculates. Helper functions handle this automatically.
+        bool worldMatrixDirty = true;
+
+        // Cached world-space rect (read-only, written by engine each frame)
+        float cachedWorldX      = 0.f;
+        float cachedWorldY      = 0.f;
+        float cachedWorldWidth  = 0.f;
+        float cachedWorldHeight = 0.f;
+        float cachedWorldRotZ   = 0.f;
+        float cachedWorldScaleX = 1.f;
+        float cachedWorldScaleY = 1.f;
+        bool  worldRectCached   = false;
 
         // Helper functions
         bool IsStretchedX() const { return anchorMinX != anchorMaxX; }
@@ -534,6 +558,28 @@ namespace Command {
 
     /// Add UIDropdown component to an entity
     NANOENGINE_API void AddUIDropdownComponent(uint32_t e, const Component::UIDropdown& c);
+
+    //=========================================================================
+    // UIRECTTRANSFORM HELPERS
+    //=========================================================================
+
+    /// Set position (x, y) and mark the layout dirty
+    NANOENGINE_API void SetUIRectTransformPos(uint32_t e, float x, float y);
+
+    /// Set size (width, height) and mark the layout dirty
+    NANOENGINE_API void SetUIRectTransformSize(uint32_t e, float width, float height);
+
+    /// Set anchor min/max corners and mark the layout dirty
+    NANOENGINE_API void SetUIRectTransformAnchor(uint32_t e, float minX, float minY, float maxX, float maxY);
+
+    /// Set pivot point and mark the layout dirty
+    NANOENGINE_API void SetUIRectTransformPivot(uint32_t e, float pivotX, float pivotY);
+
+    /// Set Z rotation (degrees) and mark the layout dirty
+    NANOENGINE_API void SetUIRectTransformRotation(uint32_t e, float rotZ);
+
+    /// Set XY scale and mark the layout dirty
+    NANOENGINE_API void SetUIRectTransformScale(uint32_t e, float scaleX, float scaleY);
 
     //=========================================================================
     // UICANVAS HELPERS

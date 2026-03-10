@@ -439,6 +439,14 @@ namespace NE::ECS {
 		NANOENGINE_API std::shared_ptr<NE::Animation::AnimationClip> GetAnimationClip(const std::string& uuid);
 		NANOENGINE_API void AssignAnimClip(uint32_t e, const std::string& uuid);
 
+		// --- UIRectTransform Helpers ---
+		NANOENGINE_API void SetUIRectTransformPos(uint32_t e, float x, float y);
+		NANOENGINE_API void SetUIRectTransformSize(uint32_t e, float width, float height);
+		NANOENGINE_API void SetUIRectTransformAnchor(uint32_t e, float minX, float minY, float maxX, float maxY);
+		NANOENGINE_API void SetUIRectTransformPivot(uint32_t e, float pivotX, float pivotY);
+		NANOENGINE_API void SetUIRectTransformRotation(uint32_t e, float rotZ);
+		NANOENGINE_API void SetUIRectTransformScale(uint32_t e, float scaleX, float scaleY);
+
 		// --- UICanvas Helpers ---
 		NANOENGINE_API float GetUICanvasAlpha(uint32_t e);
 		NANOENGINE_API void SetUICanvasAlpha(uint32_t e, float alpha);
