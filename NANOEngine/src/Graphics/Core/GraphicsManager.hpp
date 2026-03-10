@@ -66,7 +66,9 @@ namespace NE::Graphics {
             Shaded = 0,
             Normals = 1,
             UV0 = 2,
-            UV1 = 3
+            UV1 = 3,
+            LightmapUV = 4,
+            LightmapOnly = 5
         };
 
         static void Init();

@@ -16,6 +16,7 @@
 #include <ECS/Components/Transform.hpp>
 #include <EditorInterface/ECSExports.hpp>
 #include <Engine.hpp>
+#include <SceneManagement/SceneLightmapRuntime.hpp>
 
 namespace Editor::Lightmapping {
 	namespace {
@@ -68,6 +69,27 @@ namespace Editor::Lightmapping {
 		WorkerControl& Control() {
 			static WorkerControl control;
 			return control;
+		}
+
+		std::vector<NE::SceneManagement::LightmapRuntimePreviewPageInput> BuildRuntimePreviewPages(
+			const LightmapBakeTextureOutput& textureOutput) {
+			std::vector<NE::SceneManagement::LightmapRuntimePreviewPageInput> pages;
+			pages.reserve(textureOutput.pages.size());
+
+			for (const auto& page : textureOutput.pages) {
+				if (page.preview.hdrTexture == 0u) {
+					continue;
+				}
+
+				NE::SceneManagement::LightmapRuntimePreviewPageInput runtimePage{};
+				runtimePage.pageId = page.descriptor.pageId;
+				runtimePage.width = page.descriptor.width;
+				runtimePage.height = page.descriptor.height;
+				runtimePage.textureId = page.preview.hdrTexture;
+				pages.push_back(std::move(runtimePage));
+			}
+
+			return pages;
 		}
 
 		bool IsFiniteFloat(float value) {
@@ -836,6 +858,9 @@ namespace Editor::Lightmapping {
 			const uint64_t previousRevision = publishedResult ? publishedResult->revision : 0u;
 			pendingCpuResult->revision = previousRevision + 1u;
 			pendingCpuResult->textureOutput.sourceBakeRevision = pendingCpuResult->revision;
+			NE::SceneManagement::SetSceneLightmapPreviewState(
+				NE::GetScene(),
+				BuildRuntimePreviewPages(pendingCpuResult->textureOutput));
 
 			std::scoped_lock lock(control.mutex);
 			// Publication is atomic from the editor's point of view. The previous
@@ -951,6 +976,7 @@ namespace Editor::Lightmapping {
 			control.workerThread.join();
 			control.workerFinished.store(false);
 		}
+		NE::SceneManagement::ClearSceneLightmapPreviewState(NE::GetScene());
 		std::scoped_lock lock(control.mutex);
 		control.pendingCpuResult.reset();
 		control.publishedResult.reset();

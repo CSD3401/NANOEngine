@@ -1,12 +1,15 @@
 #ifndef NANOENGINE_GRAPHICS_GLTEXTURE_HPP
 #define NANOENGINE_GRAPHICS_GLTEXTURE_HPP
 
+#include "NANOEngineAPI.hpp"
 #include "../Interfaces/ITexture.hpp"
 #include "ResourceManagement/IResource.hpp"
 #include <string>
 #include <vector>
 
 namespace NE::Graphics::OpenGL {
+
+    NANOENGINE_API std::uint64_t GetClampBindlessHandleForTexture(unsigned int textureId);
 
 	class GLTexture final : public ITexture, public Resource::IResource {
     public:
@@ -18,6 +21,7 @@ namespace NE::Graphics::OpenGL {
         void Finalize() override;
 
         uint64_t GetBindlessHandle() const override { return m_Handle; }
+        uint64_t GetClampBindlessHandle() const { return m_ClampHandle; }
         void MakeResident() override;
 
         unsigned int GLName() const { return m_ID; }
@@ -29,6 +33,7 @@ namespace NE::Graphics::OpenGL {
     private:
         unsigned int m_ID = 0;
         uint64_t m_Handle = 0;
+        uint64_t m_ClampHandle = 0;
 
         struct ParsedTexture {
             uint32_t w = 0, h = 0;

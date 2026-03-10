@@ -4,8 +4,13 @@
 layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec3 a_Normal;
 layout(location = 2) in vec2 a_TexCoord;
+layout(location = 4) in vec2 a_TexCoord1;
 layout(location = 5) in mat4 i_Model;   // per-instance model matrix (divisor=1)
 layout(location = 9) in vec3 i_IDRGB;   // per-instance picking ID (0..1)
+layout(location = 10) in float i_LightmapEnabled;
+layout(location = 11) in vec2 i_LightmapUvScale;
+layout(location = 12) in vec2 i_LightmapUvOffset;
+layout(location = 13) in uint i_LightmapPageSlot;
 
 uniform mat4 u_View;
 uniform mat4 u_Projection;
@@ -13,7 +18,12 @@ uniform mat4 u_Projection;
 out vec3 v_Normal;
 out vec3 v_FragPos;
 out vec2 v_TexCoord;
+out vec2 v_TexCoord1;
 out vec3 v_ID;
+flat out float v_LightmapEnabled;
+flat out vec2 v_LightmapUvScale;
+flat out vec2 v_LightmapUvOffset;
+flat out uint v_LightmapPageSlot;
 
 void main() {
     vec4 world = i_Model * vec4(aPos, 1.0);
@@ -21,10 +31,15 @@ void main() {
 
     // robust normal for non-uniform scale
     mat3 normalMtx = transpose(inverse(mat3(i_Model)));
-    v_Normal  = normalMtx * a_Normal;
+    v_Normal = normalMtx * a_Normal;
 
     v_TexCoord = a_TexCoord;
+    v_TexCoord1 = a_TexCoord1;
     v_ID = i_IDRGB;
+    v_LightmapEnabled = i_LightmapEnabled;
+    v_LightmapUvScale = i_LightmapUvScale;
+    v_LightmapUvOffset = i_LightmapUvOffset;
+    v_LightmapPageSlot = i_LightmapPageSlot;
 
     gl_Position = u_Projection * u_View * world;
 }
@@ -43,16 +58,23 @@ void main() {
 #define SHADOW_HARD 1
 #define SHADOW_SOFT 2
 
+const int MAX_LIGHTMAP_PAGES = 128;
+
 in vec3 v_Normal;
 in vec3 v_FragPos;
 in vec2 v_TexCoord;
+in vec2 v_TexCoord1;
 in vec3 v_ID;
+flat in float v_LightmapEnabled;
+flat in vec2 v_LightmapUvScale;
+flat in vec2 v_LightmapUvOffset;
+flat in uint v_LightmapPageSlot;
 
 layout(location = 0) out vec4 FragColor;
 layout(location = 1) out vec4 OutID;
 
 // ===== Scene / Lighting =====
-uniform vec3 	  u_CameraPos;
+uniform vec3      u_CameraPos;
 
 // Base (albedo)
 uniform vec3      u_BaseColor;
@@ -63,7 +85,7 @@ uniform int       h_HasAlbedoMap;
 uniform float     u_Opacity; // scalar multiplier (default 1.0)
 uniform sampler2D u_OpacityMap;
 uniform int       h_HasOpacityMap;
-uniform int   	  u_AlphaClip; // 0 = off (opaque/blend), 1 = clip/discard
+uniform int       u_AlphaClip; // 0 = off (opaque/blend), 1 = clip/discard
 uniform float     u_AlphaCutoff;
 
 // Normal (BC5 packed X,Y)
@@ -84,44 +106,46 @@ uniform sampler2D u_AmbientOcclusionMap;
 uniform int       h_HasAmbientOcclusionMap;
 
 // UV Transform
-uniform vec3 	  u_Tiling; // uses .xy
-uniform vec3 	  u_Offset; // uses .xy
+uniform vec3      u_Tiling; // uses .xy
+uniform vec3      u_Offset; // uses .xy
 
 // Emissive
 uniform vec3      u_Emissive;
 uniform float     u_EmissiveStrength;
 uniform sampler2D u_EmissionMap;
-uniform int		  h_HasEmissionMap;
+uniform int       h_HasEmissionMap;
 
 // Height / POM
 uniform sampler2D u_HeightMap;
 uniform int       h_HasHeightMap;
-uniform int		  u_ClipBorders;
+uniform int       u_ClipBorders;
 uniform float     u_HeightScale;   // e.g. 0.03
 uniform int       u_POMMinLayers;  // e.g. 8
 uniform int       u_POMMaxLayers;  // e.g. 32
 
+// Lightmap pages
+uniform sampler2D u_LightmapPages[MAX_LIGHTMAP_PAGES];
+uniform int       u_LightmapPageCount;
+
 // ===== Fog (scene-wide) =====
-uniform int   	  i_FogEnabled;   // 0/1
-uniform vec3  	  i_FogColor;     // linear color!
-uniform int   	  i_FogMode;      // 0=Linear, 1=Exp, 2=Exp2
-uniform float 	  i_FogDensity;   // Exp/Exp2
-uniform float 	  i_FogStart;     // Linear
-uniform float 	  i_FogEnd;       // Linear
+uniform int       i_FogEnabled;   // 0/1
+uniform vec3      i_FogColor;     // linear color!
+uniform int       i_FogMode;      // 0=Linear, 1=Exp, 2=Exp2
+uniform float     i_FogDensity;   // Exp/Exp2
+uniform float     i_FogStart;     // Linear
+uniform float     i_FogEnd;       // Linear
 
 // Scene ambient
-uniform vec3 	  i_GlobalAmbientColor;
-uniform float 	  i_GlobalAmbientIntensity;
+uniform vec3      i_GlobalAmbientColor;
+uniform float     i_GlobalAmbientIntensity;
 
 // ---- Clustered lighting buffers ----
-// Must match GPULightCPU in GLClusteredLighting
 struct GPULight {
     vec4 position;  // xyz + type
     vec4 color;     // rgb + intensity
     vec4 params;    // inner, outer, range, shadowIndex
     vec4 direction; // xyz + padding
 };
-// Must match Cluster in compute shader
 struct Cluster {
     uint offset;
     uint count;
@@ -139,11 +163,10 @@ layout(std430, binding = 1) buffer ClusterBuffer {
 layout(std430, binding = 2) buffer ClusterLightIndices {
     uint g_ClusterLightIndices[];
 };
-// Must match ClusterParamsCPU in GLClusteredLighting
 layout(std140, binding = 3) uniform ClusterParams {
     mat4 i_View;
     mat4 i_Projection;
-	mat4 i_InvProjection;
+    mat4 i_InvProjection;
 
     float i_zNear;
     float i_zFar;
@@ -163,47 +186,49 @@ struct Light {
     vec3  position;
     vec3  direction;
 
-	float innerCutoff; // cos(innerAngle)
+    float innerCutoff; // cos(innerAngle)
     float outerCutoff; // cos(outerAngle)
-	float range;
-	
-	int shadowIndex;
-	int   shadowType;
+    float range;
+
+    int shadowIndex;
+    int shadowType;
+};
+
+struct BRDFContrib {
+    vec3 diffuse;
+    vec3 specular;
 };
 
 const float PI = 3.14159265359;
 
 // SHADOWS~!
 const int MAX_SHADOWS = 16;
-uniform int      	i_NumShadowMaps;
-uniform mat4     	i_ShadowVP[MAX_SHADOWS];
-uniform sampler2D 	i_ShadowMaps[MAX_SHADOWS];
-uniform int			i_ReceiveShadows;
+uniform int       i_NumShadowMaps;
+uniform mat4      i_ShadowVP[MAX_SHADOWS];
+uniform sampler2D i_ShadowMaps[MAX_SHADOWS];
+uniform int       i_ReceiveShadows;
 
 // Directional CSM
-const int DIR_CASCADES = 4; // match ECS::Component::Light::DIR_CASCADES
-uniform int   i_DirCascadeCount;                 // = DIR_CASCADES
-uniform float i_DirCascadeSplitsVS[DIR_CASCADES]; // view-space distances (positive)
+const int DIR_CASCADES = 4;
+uniform int   i_DirCascadeCount;
+uniform float i_DirCascadeSplitsVS[DIR_CASCADES];
 
-
-// ---- helpers ----
 int ChooseDirCascade(vec3 worldPos) {
-    // View-space depth (positive distance)
     vec3 posVS = (i_View * vec4(worldPos, 1.0)).xyz;
     float d = -posVS.z;
 
-    // h_DirCascadeSplitsVS are increasing distances from near to far
     for (int c = 0; c < i_DirCascadeCount; ++c) {
-        if (d <= i_DirCascadeSplitsVS[c])
+        if (d <= i_DirCascadeSplitsVS[c]) {
             return c;
+        }
     }
     return i_DirCascadeCount - 1;
 }
 
-
 float SampleShadowHardIndexed(int shadowIndex, vec3 worldPos, vec3 normal, vec3 lightDir) {
-    if (shadowIndex < 0 || shadowIndex >= i_NumShadowMaps)
+    if (shadowIndex < 0 || shadowIndex >= i_NumShadowMaps) {
         return 1.0;
+    }
 
     mat4 vp = i_ShadowVP[shadowIndex];
     vec4 lightSpace = vp * vec4(worldPos, 1.0);
@@ -220,17 +245,17 @@ float SampleShadowHardIndexed(int shadowIndex, vec3 worldPos, vec3 normal, vec3 
     float closestDepth = texture(i_ShadowMaps[shadowIndex], projCoords.xy).r;
     float currentDepth = projCoords.z;
 
-	float ndotl = max(dot(normalize(normal), normalize(lightDir)), 0.0);
-    //float bias  = max(0.0005 * (1.0 - ndotl), 0.0005);
-	float texel = 1.0 / float(textureSize(i_ShadowMaps[shadowIndex], 0).x);
-	float bias  = max((0.0005 + 2.0 * texel) * (1.0 - ndotl), 0.0005);
+    float ndotl = max(dot(normalize(normal), normalize(lightDir)), 0.0);
+    float texel = 1.0 / float(textureSize(i_ShadowMaps[shadowIndex], 0).x);
+    float bias  = max((0.0005 + 2.0 * texel) * (1.0 - ndotl), 0.0005);
 
     return (currentDepth - bias > closestDepth) ? 0.0 : 1.0;
 }
 
 float SampleShadowSoftIndexed(int shadowIndex, vec3 worldPos, vec3 normal, vec3 lightDir) {
-    if (shadowIndex < 0 || shadowIndex >= i_NumShadowMaps)
+    if (shadowIndex < 0 || shadowIndex >= i_NumShadowMaps) {
         return 1.0;
+    }
 
     mat4 vp = i_ShadowVP[shadowIndex];
     vec4 lightSpace = vp * vec4(worldPos, 1.0);
@@ -245,12 +270,9 @@ float SampleShadowSoftIndexed(int shadowIndex, vec3 worldPos, vec3 normal, vec3 
     }
 
     float currentDepth = projCoords.z;
-
-    // bias based on normal/light angle
     float ndotl = max(dot(normalize(normal), normalize(lightDir)), 0.0);
     float bias  = max(0.0005 * (1.0 - ndotl), 0.0005);
 
-    // 3x3 PCF around UV
     vec2 texelSize = 1.0 / vec2(textureSize(i_ShadowMaps[shadowIndex], 0));
     float shadowSum = 0.0;
     int samples = 0;
@@ -268,299 +290,303 @@ float SampleShadowSoftIndexed(int shadowIndex, vec3 worldPos, vec3 normal, vec3 
 }
 
 vec2 ParallaxOcclusionMapping(vec2 uv, vec3 V_ts) {
-    // V_ts is view dir in tangent space, pointing from fragment to camera
-    // Expect V_ts.z > 0 for front-facing
     float ndotv = clamp(abs(V_ts.z), 0.0, 1.0);
 
     int numLayers = int(mix(float(u_POMMaxLayers), float(u_POMMinLayers), ndotv));
     float layerDepth = 1.0 / float(numLayers);
 
-    // How much UV shifts per layer
     vec2 P = (V_ts.xy / max(V_ts.z, 1e-4)) * u_HeightScale;
     vec2 deltaUV = P / float(numLayers);
 
-    // Current ray height from top (1 -> 0)
     float currRayZ = 1.0;
-    vec2  currUV   = uv;
+    vec2 currUV = uv;
 
     float currH = texture(u_HeightMap, currUV).r;
-
-    // Step until ray goes below the height field
-    while (currRayZ > currH)
-    {
-        currUV   -= deltaUV;
+    while (currRayZ > currH) {
+        currUV -= deltaUV;
         currRayZ -= layerDepth;
-        currH     = texture(u_HeightMap, currUV).r;
+        currH = texture(u_HeightMap, currUV).r;
     }
 
-    // Linear refinement between last two steps
     vec2 prevUV = currUV + deltaUV;
     float prevRayZ = currRayZ + layerDepth;
     float prevH = texture(u_HeightMap, prevUV).r;
 
-    float after  = currH - currRayZ;
+    float after = currH - currRayZ;
     float before = prevH - prevRayZ;
 
-    float w = before / max((before - after), 1e-5);
+    float w = before / max(before - after, 1e-5);
     w = clamp(w, 0.0, 1.0);
 
     return mix(currUV, prevUV, w);
 }
 
-
 float ComputeShadowForLight(in Light L, vec3 worldPos, vec3 N) {
-    if (i_ReceiveShadows == 0)       return 1.0;
-    if (L.shadowIndex < 0)          return 1.0;
+    if (i_ReceiveShadows == 0) return 1.0;
+    if (L.shadowIndex < 0) return 1.0;
     if (L.shadowType == SHADOW_NONE) return 1.0;
 
-    // only directional + spot currently supported
-    if (L.type != LIGHT_TYPE_DIRECTIONAL && L.type != LIGHT_TYPE_SPOT)
+    if (L.type != LIGHT_TYPE_DIRECTIONAL && L.type != LIGHT_TYPE_SPOT) {
         return 1.0;
+    }
 
     vec3 lightDir;
     int shadowSlot = L.shadowIndex;
 
     if (L.type == LIGHT_TYPE_DIRECTIONAL) {
         lightDir = normalize(-L.direction);
-
         int c = ChooseDirCascade(worldPos);
-        shadowSlot = L.shadowIndex + c; // base + cascade
-
-    } else { // SPOT
+        shadowSlot = L.shadowIndex + c;
+    } else {
         lightDir = normalize(L.position - worldPos);
     }
 
-	if (L.shadowType == SHADOW_HARD) {
-		return SampleShadowHardIndexed(shadowSlot, worldPos, N, lightDir);
-	} else {
-		return SampleShadowSoftIndexed(shadowSlot, worldPos, N, lightDir);
-	}
+    if (L.shadowType == SHADOW_HARD) {
+        return SampleShadowHardIndexed(shadowSlot, worldPos, N, lightDir);
+    }
+    return SampleShadowSoftIndexed(shadowSlot, worldPos, N, lightDir);
 }
 
-float DistributionGGX(float NdotH, float rough){
-    float a=max(rough,0.04); float a2=a*a;
-    float denom=(NdotH*NdotH)*(a2-1.0)+1.0;
-    return a2 / max(PI*denom*denom, 1e-6);
-}
-float GeometrySchlickGGX(float NdotX, float rough){
-    float r=max(rough,0.04); float k=(r+1.0); k=(k*k)/8.0;
-    return NdotX / max(NdotX*(1.0-k)+k, 1e-6);
-}
-float GeometrySmith(float NdotV,float NdotL,float rough){
-    return GeometrySchlickGGX(NdotV,rough) * GeometrySchlickGGX(NdotL,rough);
-}
-vec3  FresnelSchlick(float cosTheta, vec3 F0){
-    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta,0.0,1.0), 5.0);
+float DistributionGGX(float NdotH, float rough) {
+    float a = max(rough, 0.04);
+    float a2 = a * a;
+    float denom = (NdotH * NdotH) * (a2 - 1.0) + 1.0;
+    return a2 / max(PI * denom * denom, 1e-6);
 }
 
-mat3 ComputeTBN(vec3 N, vec3 P, vec2 uv){
-    vec3 dp1 = dFdx(P), dp2 = dFdy(P);
-    vec2 duv1 = dFdx(uv), duv2 = dFdy(uv);
+float GeometrySchlickGGX(float NdotX, float rough) {
+    float r = max(rough, 0.04);
+    float k = (r + 1.0);
+    k = (k * k) / 8.0;
+    return NdotX / max(NdotX * (1.0 - k) + k, 1e-6);
+}
+
+float GeometrySmith(float NdotV, float NdotL, float rough) {
+    return GeometrySchlickGGX(NdotV, rough) * GeometrySchlickGGX(NdotL, rough);
+}
+
+vec3 FresnelSchlick(float cosTheta, vec3 F0) {
+    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+
+mat3 ComputeTBN(vec3 N, vec3 P, vec2 uv) {
+    vec3 dp1 = dFdx(P);
+    vec3 dp2 = dFdy(P);
+    vec2 duv1 = dFdx(uv);
+    vec2 duv2 = dFdy(uv);
     vec3 T = normalize(dp1 * duv2.y - dp2 * duv1.y);
     vec3 B = normalize(cross(N, T));
     return mat3(T, B, N);
 }
 
-vec3 BRDF_GGX_Smith(vec3 N, vec3 V, vec3 L, vec3 albedo, float metallic, float rough){
+BRDFContrib EvaluateBRDF(vec3 N, vec3 V, vec3 L, vec3 albedo, float metallic, float rough) {
+    BRDFContrib result;
+    result.diffuse = vec3(0.0);
+    result.specular = vec3(0.0);
+
     vec3 H = normalize(V + L);
-    float NdotL = max(dot(N,L),0.0);
-    float NdotH = max(dot(N,H),0.0);
-    float VdotH = max(dot(V,H),0.0);
-	float NdotV = max(dot(N,V), 1e-4);
-	if (NdotL <= 0.0) return vec3(0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float NdotH = max(dot(N, H), 0.0);
+    float VdotH = max(dot(V, H), 0.0);
+    float NdotV = max(dot(N, V), 1e-4);
+    if (NdotL <= 0.0) {
+        return result;
+    }
 
     vec3 F0 = mix(vec3(0.04), albedo, metallic);
-    float D = DistributionGGX(NdotH,rough);
-    float G = GeometrySmith(NdotV,NdotL,rough);
-    vec3  F = FresnelSchlick(VdotH, F0);
+    float D = DistributionGGX(NdotH, rough);
+    float G = GeometrySmith(NdotV, NdotL, rough);
+    vec3 F = FresnelSchlick(VdotH, F0);
 
-    vec3 spec = (D*G*F) / max(4.0*NdotV*NdotL, 1e-6);
+    vec3 spec = (D * G * F) / max(4.0 * NdotV * NdotL, 1e-6);
     vec3 Ks = F;
     vec3 Kd = (1.0 - Ks) * (1.0 - metallic);
     vec3 diff = (Kd * albedo) / PI;
-    return (diff + spec) * NdotL;
+
+    result.diffuse = diff * NdotL;
+    result.specular = spec * NdotL;
+    return result;
 }
-//fog
-float FogFactor(float d){
-    if (i_FogMode==0){ // Linear
+
+float FogFactor(float d) {
+    if (i_FogMode == 0) {
         float denom = max(i_FogEnd - i_FogStart, 1e-4);
         return clamp((i_FogEnd - d) / denom, 0.0, 1.0);
-    } else if (i_FogMode==1){ // Exp
+    } else if (i_FogMode == 1) {
         return clamp(exp(-i_FogDensity * d), 0.0, 1.0);
-    } else { // Exp2
+    } else {
         float x = i_FogDensity * d;
-        return clamp(exp(-x*x), 0.0, 1.0);
+        return clamp(exp(-x * x), 0.0, 1.0);
     }
 }
 
-// ---- light evaluators ----
 float DistanceAttenuation(float d, float range) {
     if (range <= 0.0) return 0.0;
     float x = clamp(d / range, 0.0, 1.0);
     float att = 1.0 - x;
-    return att * att; // smooth
+    return att * att;
 }
 
-vec3 EvalDirectional(in Light L, vec3 N, vec3 V, vec3 albedo, float metallic, float rough){
+BRDFContrib EvalDirectional(in Light L, vec3 N, vec3 V, vec3 albedo, float metallic, float rough) {
     vec3 Ld = normalize(-L.direction);
-    vec3 brdf = BRDF_GGX_Smith(N,V,Ld,albedo,metallic,rough);
-    return brdf * (L.color * L.intensity);
+    BRDFContrib brdf = EvaluateBRDF(N, V, Ld, albedo, metallic, rough);
+    vec3 radiance = L.color * L.intensity;
+    brdf.diffuse *= radiance;
+    brdf.specular *= radiance;
+    return brdf;
 }
 
-vec3 EvalPoint(in Light L, vec3 N, vec3 V, vec3 P, vec3 albedo, float metallic, float rough){
-    vec3  Ldir = L.position - P;
-    float dist2 = dot(Ldir,Ldir);
-    float d = sqrt(dist2);
-    if (d <= 0.0) return vec3(0.0);
+BRDFContrib EvalPoint(in Light L, vec3 N, vec3 V, vec3 P, vec3 albedo, float metallic, float rough) {
+    BRDFContrib result;
+    result.diffuse = vec3(0.0);
+    result.specular = vec3(0.0);
 
-    // hard cutoff (cheap early out)
-    if (L.range > 0.0 && d > L.range) return vec3(0.0);
+    vec3 Ldir = L.position - P;
+    float dist2 = dot(Ldir, Ldir);
+    float d = sqrt(dist2);
+    if (d <= 0.0) return result;
+    if (L.range > 0.0 && d > L.range) return result;
 
     vec3 Ld = Ldir / d;
-
     float atten = DistanceAttenuation(d, L.range);
-
-    vec3 brdf = BRDF_GGX_Smith(N, V, Ld, albedo, metallic, rough);
-    return brdf * (L.color * L.intensity * atten);
+    BRDFContrib brdf = EvaluateBRDF(N, V, Ld, albedo, metallic, rough);
+    vec3 radiance = L.color * L.intensity * atten;
+    brdf.diffuse *= radiance;
+    brdf.specular *= radiance;
+    return brdf;
 }
 
-vec3 EvalSpot(in Light L, vec3 N, vec3 V, vec3 P, vec3 albedo, float metallic, float rough){
-    vec3  Ldir = L.position - P;
-    float dist2 = dot(Ldir,Ldir);
-    float d = sqrt(dist2);
-    if (d <= 0.0) return vec3(0.0);
+BRDFContrib EvalSpot(in Light L, vec3 N, vec3 V, vec3 P, vec3 albedo, float metallic, float rough) {
+    BRDFContrib result;
+    result.diffuse = vec3(0.0);
+    result.specular = vec3(0.0);
 
-    if (L.range > 0.0 && d > L.range) return vec3(0.0);
+    vec3 Ldir = L.position - P;
+    float dist2 = dot(Ldir, Ldir);
+    float d = sqrt(dist2);
+    if (d <= 0.0) return result;
+    if (L.range > 0.0 && d > L.range) return result;
 
     vec3 Ld = Ldir / d;
-
     float theta = dot(Ld, normalize(-L.direction));
     float eps = max(L.innerCutoff - L.outerCutoff, 1e-4);
     float spot = clamp((theta - L.outerCutoff) / eps, 0.0, 1.0);
-    if (spot <= 0.0) return vec3(0.0);
+    if (spot <= 0.0) return result;
 
     float atten = DistanceAttenuation(d, L.range);
-
-    vec3 brdf = BRDF_GGX_Smith(N, V, Ld, albedo, metallic, rough);
-    return brdf * (L.color * L.intensity * atten * spot);
+    BRDFContrib brdf = EvaluateBRDF(N, V, Ld, albedo, metallic, rough);
+    vec3 radiance = L.color * L.intensity * atten * spot;
+    brdf.diffuse *= radiance;
+    brdf.specular *= radiance;
+    return brdf;
 }
 
 Light MakeLightFromGPULight(GPULight g) {
-	Light L;
-    L.type      = int(g.position.w);
-    L.color     = g.color.rgb;
+    Light L;
+    L.type = int(g.position.w);
+    L.color = g.color.rgb;
     L.intensity = g.color.a;
-
-    L.position  = g.position.xyz;
+    L.position = g.position.xyz;
     L.direction = g.direction.xyz;
-
     L.innerCutoff = g.params.x;
     L.outerCutoff = g.params.y;
-	L.range = g.params.z;
-	
-	L.shadowIndex = int(g.params.w + 0.5);
-	L.shadowType  = int(g.direction.w + 0.5);
-	
+    L.range = g.params.z;
+    L.shadowIndex = int(g.params.w + 0.5);
+    L.shadowType = int(g.direction.w + 0.5);
     return L;
 }
 
-int ComputeClusterIndex(vec3 worldPos)
-{
-    // Screen X/Y from gl_FragCoord
+int ComputeClusterIndex(vec3 worldPos) {
     int cx = int(gl_FragCoord.x * float(i_ClustersX) / float(i_ScreenWidth));
     int cy = int(gl_FragCoord.y * float(i_ClustersY) / float(i_ScreenHeight));
 
     cx = clamp(cx, 0, i_ClustersX - 1);
     cy = clamp(cy, 0, i_ClustersY - 1);
 
-    // Depth from view-space Z
     vec3 posVS = (i_View * vec4(worldPos, 1.0)).xyz;
-    float d = -posVS.z; // camera looks down -Z
+    float d = -posVS.z;
 
     float t = (d - i_zNear) / max(i_zFar - i_zNear, 1e-6);
-    t = clamp(t, 0.0, 0.9999); // avoid hitting upper bound exactly
+    t = clamp(t, 0.0, 0.9999);
 
     int cz = int(t * float(i_ClustersZ));
     cz = clamp(cz, 0, i_ClustersZ - 1);
 
-    int idx = cx + cy * i_ClustersX + cz * (i_ClustersX * i_ClustersY);
-    return idx;
+    return cx + cy * i_ClustersX + cz * (i_ClustersX * i_ClustersY);
 }
 
 void main() {
-    // UV transform
     vec2 uv = v_TexCoord * u_Tiling.xy + u_Offset.xy;
 
-    // View / normal
     vec3 V = normalize(u_CameraPos - v_FragPos);
     vec3 N = normalize(v_Normal);
 
-	mat3 TBN = ComputeTBN(N, v_FragPos, uv);
-	
-	if (h_HasHeightMap != 0 && u_HeightScale > 0.0) {
+    mat3 TBN = ComputeTBN(N, v_FragPos, uv);
+    if (h_HasHeightMap != 0 && u_HeightScale > 0.0) {
         vec3 V_ts = transpose(TBN) * V;
         uv = ParallaxOcclusionMapping(uv, V_ts);
 
-		if (u_ClipBorders > 0) {
-			if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) 
-				discard;
-		}
+        if (u_ClipBorders > 0) {
+            if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+                discard;
+            }
+        }
     }
 
-    // Albedo
-	vec3 albedo = u_BaseColor;
-	if (h_HasAlbedoMap != 0){
-		albedo *= texture(u_AlbedoMap, uv).rgb;
-	}
-	
-	// Opacity
-	float opacity = clamp(u_Opacity, 0.0, 1.0);
-	if (h_HasOpacityMap != 0) {
-		opacity *= clamp(texture(u_OpacityMap, uv).r, 0.0, 1.0);
-	}
-	
-	// Alpha clip
-	if (u_AlphaClip != 0) {
-		if (opacity < u_AlphaCutoff) 
-			discard;
-	}
+    vec3 albedo = u_BaseColor;
+    if (h_HasAlbedoMap != 0) {
+        albedo *= texture(u_AlbedoMap, uv).rgb;
+    }
 
-    // Normal map (BC5 XY)
-    if (h_HasNormalMap != 0){
+    float opacity = clamp(u_Opacity, 0.0, 1.0);
+    if (h_HasOpacityMap != 0) {
+        opacity *= clamp(texture(u_OpacityMap, uv).r, 0.0, 1.0);
+    }
+    if (u_AlphaClip != 0 && opacity < u_AlphaCutoff) {
+        discard;
+    }
+
+    if (h_HasNormalMap != 0) {
         vec2 enc = texture(u_NormalMap, uv).rg * 2.0 - 1.0;
         float z = sqrt(max(1.0 - dot(enc, enc), 0.0));
-		vec3 n = vec3(enc, z);
-		n = normalize(n);
-		N = normalize(TBN * n);
-		
-		//vec2 enc = texture(u_NormalMap, uv).rg * 2.0 - 1.0;
-		//float len2 = dot(enc, enc);
-		//if (len2 > 1.0) enc *= inversesqrt(len2);
-		//float z = sqrt(max(1.0 - dot(enc, enc), 0.0));
-		//vec3 n_ts = normalize(vec3(enc, z));
-		//N = normalize(TBN * n_ts);
-
+        vec3 n = normalize(vec3(enc, z));
+        N = normalize(TBN * n);
     }
 
-    // Roughness/Metallic
     float rough = clamp(u_Roughness, 0.04, 1.0);
-    if (h_HasRoughnessMap != 0) rough = clamp(texture(u_RoughnessMap, uv).r, 0.04, 1.0);
+    if (h_HasRoughnessMap != 0) {
+        rough = clamp(texture(u_RoughnessMap, uv).r, 0.04, 1.0);
+    }
 
     float metal = clamp(u_Metallic, 0.0, 1.0);
-    if (h_HasMetallicMap  != 0) metal  = clamp(texture(u_MetallicMap,  uv).r, 0.0, 1.0);
+    if (h_HasMetallicMap != 0) {
+        metal = clamp(texture(u_MetallicMap, uv).r, 0.0, 1.0);
+    }
 
-    // Ambient Occlusion
     float ao = 1.0;
     if (h_HasAmbientOcclusionMap != 0) {
         ao = clamp(texture(u_AmbientOcclusionMap, uv).r, 0.0, 1.0);
     }
 
-    // Ambient term
-    vec3 ambient = i_GlobalAmbientColor * i_GlobalAmbientIntensity * albedo * ao;
+    bool useLightmap = false;
+    int lightmapPageSlot = int(v_LightmapPageSlot);
+    vec3 bakedDiffuse = vec3(0.0);
+    if (v_LightmapEnabled > 0.5 &&
+        lightmapPageSlot >= 0 &&
+        lightmapPageSlot < min(u_LightmapPageCount, MAX_LIGHTMAP_PAGES)) {
+        vec2 lightmapUv = v_TexCoord1 * v_LightmapUvScale + v_LightmapUvOffset;
+        bakedDiffuse = texture(u_LightmapPages[lightmapPageSlot], lightmapUv).rgb * albedo;
+        useLightmap = true;
+    }
 
-    vec3 Lo = vec3(0.0);
-	
-	vec3 emissive = u_Emissive * u_EmissiveStrength;
+    vec3 ambient = useLightmap
+        ? vec3(0.0)
+        : i_GlobalAmbientColor * i_GlobalAmbientIntensity * albedo * ao;
+
+    vec3 realtimeDiffuse = vec3(0.0);
+    vec3 realtimeSpecular = vec3(0.0);
+
+    vec3 emissive = u_Emissive * u_EmissiveStrength;
     if (h_HasEmissionMap != 0) {
         vec3 eTex = texture(u_EmissionMap, uv).rgb;
         emissive *= eTex;
@@ -571,35 +597,38 @@ void main() {
         Cluster c = g_Clusters[clusterIndex];
 
         uint offset = c.offset;
-        uint count  = c.count;
+        uint count = c.count;
 
-		for (uint i = 0u; i < count; ++i) {
-			uint lightIdx = g_ClusterLightIndices[offset + i];
-			if (lightIdx >= uint(i_NumLights)) continue;
+        for (uint i = 0u; i < count; ++i) {
+            uint lightIdx = g_ClusterLightIndices[offset + i];
+            if (lightIdx >= uint(i_NumLights)) continue;
 
-			GPULight gL = g_Lights[lightIdx];
-			Light L     = MakeLightFromGPULight(gL);
+            GPULight gL = g_Lights[lightIdx];
+            Light L = MakeLightFromGPULight(gL);
+            float shadow = ComputeShadowForLight(L, v_FragPos, N);
 
-			float shadow = ComputeShadowForLight(L, v_FragPos, N);
+            BRDFContrib contrib;
+            contrib.diffuse = vec3(0.0);
+            contrib.specular = vec3(0.0);
+            if (L.type == LIGHT_TYPE_DIRECTIONAL) {
+                contrib = EvalDirectional(L, N, V, albedo, metal, rough);
+            } else if (L.type == LIGHT_TYPE_POINT) {
+                contrib = EvalPoint(L, N, V, v_FragPos, albedo, metal, rough);
+            } else if (L.type == LIGHT_TYPE_SPOT) {
+                contrib = EvalSpot(L, N, V, v_FragPos, albedo, metal, rough);
+            }
 
-			vec3 contrib = vec3(0.0);
-			if (L.type == LIGHT_TYPE_DIRECTIONAL) {
-				contrib = EvalDirectional(L, N, V, albedo, metal, rough);
-			} else if (L.type == LIGHT_TYPE_POINT) {
-				contrib = EvalPoint(L, N, V, v_FragPos, albedo, metal, rough);
-			} else if (L.type == LIGHT_TYPE_SPOT) {
-				contrib = EvalSpot(L, N, V, v_FragPos, albedo, metal, rough);
-			}
-
-			Lo += contrib * shadow;
-		}
+            realtimeDiffuse += contrib.diffuse * shadow;
+            realtimeSpecular += contrib.specular * shadow;
+        }
     }
 
-    //vec3 color_linear = max(ambient + Lo + u_Emissive, 0.0);
-	vec3 color_linear = max(ambient + Lo + emissive, 0.0);
+    vec3 color_linear = useLightmap
+        ? max(bakedDiffuse + realtimeSpecular + emissive, 0.0)
+        : max(ambient + realtimeDiffuse + realtimeSpecular + emissive, 0.0);
 
-    if (i_FogEnabled == 1){
-        float d  = distance(u_CameraPos, v_FragPos);
+    if (i_FogEnabled == 1) {
+        float d = distance(u_CameraPos, v_FragPos);
         float ff = FogFactor(d);
         color_linear = mix(i_FogColor, color_linear, ff);
     }
