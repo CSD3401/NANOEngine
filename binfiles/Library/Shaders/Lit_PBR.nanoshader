@@ -408,6 +408,24 @@ BRDFContrib EvaluateBRDF(vec3 N, vec3 V, vec3 L, vec3 albedo, float metallic, fl
     return result;
 }
 
+vec3 EvaluateSpecularBRDF(vec3 N, vec3 V, vec3 L, vec3 albedo, float metallic, float rough) {
+    vec3 H = normalize(V + L);
+    float NdotL = max(dot(N, L), 0.0);
+    float NdotH = max(dot(N, H), 0.0);
+    float VdotH = max(dot(V, H), 0.0);
+    float NdotV = max(dot(N, V), 1e-4);
+    if (NdotL <= 0.0) {
+        return vec3(0.0);
+    }
+
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+    float D = DistributionGGX(NdotH, rough);
+    float G = GeometrySmith(NdotV, NdotL, rough);
+    vec3 F = FresnelSchlick(VdotH, F0);
+
+    return ((D * G * F) / max(4.0 * NdotV * NdotL, 1e-6)) * NdotL;
+}
+
 float FogFactor(float d) {
     if (i_FogMode == 0) {
         float denom = max(i_FogEnd - i_FogStart, 1e-4);
@@ -436,6 +454,12 @@ BRDFContrib EvalDirectional(in Light L, vec3 N, vec3 V, vec3 albedo, float metal
     return brdf;
 }
 
+vec3 EvalDirectionalSpecular(in Light L, vec3 N, vec3 V, vec3 albedo, float metallic, float rough) {
+    vec3 Ld = normalize(-L.direction);
+    vec3 radiance = L.color * L.intensity;
+    return EvaluateSpecularBRDF(N, V, Ld, albedo, metallic, rough) * radiance;
+}
+
 BRDFContrib EvalPoint(in Light L, vec3 N, vec3 V, vec3 P, vec3 albedo, float metallic, float rough) {
     BRDFContrib result;
     result.diffuse = vec3(0.0);
@@ -454,6 +478,19 @@ BRDFContrib EvalPoint(in Light L, vec3 N, vec3 V, vec3 P, vec3 albedo, float met
     brdf.diffuse *= radiance;
     brdf.specular *= radiance;
     return brdf;
+}
+
+vec3 EvalPointSpecular(in Light L, vec3 N, vec3 V, vec3 P, vec3 albedo, float metallic, float rough) {
+    vec3 Ldir = L.position - P;
+    float dist2 = dot(Ldir, Ldir);
+    float d = sqrt(dist2);
+    if (d <= 0.0) return vec3(0.0);
+    if (L.range > 0.0 && d > L.range) return vec3(0.0);
+
+    vec3 Ld = Ldir / d;
+    float atten = DistanceAttenuation(d, L.range);
+    vec3 radiance = L.color * L.intensity * atten;
+    return EvaluateSpecularBRDF(N, V, Ld, albedo, metallic, rough) * radiance;
 }
 
 BRDFContrib EvalSpot(in Light L, vec3 N, vec3 V, vec3 P, vec3 albedo, float metallic, float rough) {
@@ -479,6 +516,24 @@ BRDFContrib EvalSpot(in Light L, vec3 N, vec3 V, vec3 P, vec3 albedo, float meta
     brdf.diffuse *= radiance;
     brdf.specular *= radiance;
     return brdf;
+}
+
+vec3 EvalSpotSpecular(in Light L, vec3 N, vec3 V, vec3 P, vec3 albedo, float metallic, float rough) {
+    vec3 Ldir = L.position - P;
+    float dist2 = dot(Ldir, Ldir);
+    float d = sqrt(dist2);
+    if (d <= 0.0) return vec3(0.0);
+    if (L.range > 0.0 && d > L.range) return vec3(0.0);
+
+    vec3 Ld = Ldir / d;
+    float theta = dot(Ld, normalize(-L.direction));
+    float eps = max(L.innerCutoff - L.outerCutoff, 1e-4);
+    float spot = clamp((theta - L.outerCutoff) / eps, 0.0, 1.0);
+    if (spot <= 0.0) return vec3(0.0);
+
+    float atten = DistanceAttenuation(d, L.range);
+    vec3 radiance = L.color * L.intensity * atten * spot;
+    return EvaluateSpecularBRDF(N, V, Ld, albedo, metallic, rough) * radiance;
 }
 
 Light MakeLightFromGPULight(GPULight g) {
@@ -563,11 +618,12 @@ void main() {
         metal = clamp(texture(u_MetallicMap, uv).r, 0.0, 1.0);
     }
 
-    float ao = 1.0;
+    float ao = clamp(u_AmbientOcclusion, 0.0, 1.0);
     if (h_HasAmbientOcclusionMap != 0) {
-        ao = clamp(texture(u_AmbientOcclusionMap, uv).r, 0.0, 1.0);
+        ao *= clamp(texture(u_AmbientOcclusionMap, uv).r, 0.0, 1.0);
     }
 
+    vec3 diffuseColor = albedo * (1.0 - metal);
     bool useLightmap = false;
     int lightmapPageSlot = int(v_LightmapPageSlot);
     vec3 bakedDiffuse = vec3(0.0);
@@ -575,7 +631,7 @@ void main() {
         lightmapPageSlot >= 0 &&
         lightmapPageSlot < min(u_LightmapPageCount, MAX_LIGHTMAP_PAGES)) {
         vec2 lightmapUv = v_TexCoord1 * v_LightmapUvScale + v_LightmapUvOffset;
-        bakedDiffuse = texture(u_LightmapPages[lightmapPageSlot], lightmapUv).rgb * albedo;
+        bakedDiffuse = texture(u_LightmapPages[lightmapPageSlot], lightmapUv).rgb * diffuseColor;
         useLightmap = true;
     }
 
@@ -607,19 +663,31 @@ void main() {
             Light L = MakeLightFromGPULight(gL);
             float shadow = ComputeShadowForLight(L, v_FragPos, N);
 
-            BRDFContrib contrib;
-            contrib.diffuse = vec3(0.0);
-            contrib.specular = vec3(0.0);
-            if (L.type == LIGHT_TYPE_DIRECTIONAL) {
-                contrib = EvalDirectional(L, N, V, albedo, metal, rough);
-            } else if (L.type == LIGHT_TYPE_POINT) {
-                contrib = EvalPoint(L, N, V, v_FragPos, albedo, metal, rough);
-            } else if (L.type == LIGHT_TYPE_SPOT) {
-                contrib = EvalSpot(L, N, V, v_FragPos, albedo, metal, rough);
-            }
+            if (useLightmap) {
+                vec3 specular = vec3(0.0);
+                if (L.type == LIGHT_TYPE_DIRECTIONAL) {
+                    specular = EvalDirectionalSpecular(L, N, V, albedo, metal, rough);
+                } else if (L.type == LIGHT_TYPE_POINT) {
+                    specular = EvalPointSpecular(L, N, V, v_FragPos, albedo, metal, rough);
+                } else if (L.type == LIGHT_TYPE_SPOT) {
+                    specular = EvalSpotSpecular(L, N, V, v_FragPos, albedo, metal, rough);
+                }
+                realtimeSpecular += specular * shadow;
+            } else {
+                BRDFContrib contrib;
+                contrib.diffuse = vec3(0.0);
+                contrib.specular = vec3(0.0);
+                if (L.type == LIGHT_TYPE_DIRECTIONAL) {
+                    contrib = EvalDirectional(L, N, V, albedo, metal, rough);
+                } else if (L.type == LIGHT_TYPE_POINT) {
+                    contrib = EvalPoint(L, N, V, v_FragPos, albedo, metal, rough);
+                } else if (L.type == LIGHT_TYPE_SPOT) {
+                    contrib = EvalSpot(L, N, V, v_FragPos, albedo, metal, rough);
+                }
 
-            realtimeDiffuse += contrib.diffuse * shadow;
-            realtimeSpecular += contrib.specular * shadow;
+                realtimeDiffuse += contrib.diffuse * shadow;
+                realtimeSpecular += contrib.specular * shadow;
+            }
         }
     }
 
