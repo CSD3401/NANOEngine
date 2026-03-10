@@ -411,7 +411,7 @@ namespace Editor::Lightmapping {
 			const int fallbackPadding = allocationState.hasRun
 				? allocationState.settings.padding
 				: kDefaultLightmapPadding;
-			outRequest.dilationRadiusTexels = result.settings.dilationRadiusTexels != 0u
+			outRequest.resolvedDilationRadiusTexels = result.settings.dilationRadiusTexels != 0u
 				? result.settings.dilationRadiusTexels
 				: static_cast<uint32_t>(std::max(fallbackPadding, 0));
 
@@ -460,6 +460,8 @@ namespace Editor::Lightmapping {
 					requestPage.allocatedInnerTexelCount = rasterPage->allocatedInnerTexelCount;
 					requestPage.coverage01 = rasterPage->coverage01;
 					requestPage.ownerPreviewRgba8 = &rasterPage->preview.ownerRgba8;
+					std::vector<uint8_t> overlapMask(texelCount, 0u);
+					size_t overlapTexelCount = 0u;
 
 					for (const auto& receiver : result.rasterResult->receivers) {
 						if (receiver.pageIndex != page.pageIndex) {
@@ -474,10 +476,21 @@ namespace Editor::Lightmapping {
 							for (int x = startX; x < endX; ++x) {
 								const size_t linearIndex = static_cast<size_t>(y) * static_cast<size_t>(page.width) + static_cast<size_t>(x);
 								if (linearIndex < writeMask.size()) {
+									if (writeMask[linearIndex] != 0u && overlapMask[linearIndex] == 0u) {
+										overlapMask[linearIndex] = 1u;
+										++overlapTexelCount;
+									}
 									writeMask[linearIndex] = 1u;
 								}
 							}
 						}
+					}
+
+					if (overlapTexelCount > 0u) {
+						outRequest.prebuildWarnings.push_back(
+							page.pageId + ": dilation write-mask outer rects overlapped on " +
+							std::to_string(overlapTexelCount) +
+							" texels; allocator metadata should keep receiver padding regions disjoint.");
 					}
 				} else if (page.width > 0u && page.height > 0u) {
 					requestPage.coverage01 =
@@ -845,6 +858,7 @@ namespace Editor::Lightmapping {
 			std::string refreshErrorMessage;
 			if (!RefreshLightmapBakeDisplayPreviews(publishedResult->textureOutput, desiredPreviewExposure, refreshErrorMessage)) {
 				std::scoped_lock lock(control.mutex);
+				control.state.activeStage = "Preview Refresh Failed";
 				control.state.statusMessage =
 					refreshErrorMessage.empty()
 					? "Failed to refresh baked light preview textures."
@@ -853,6 +867,8 @@ namespace Editor::Lightmapping {
 			}
 
 			std::scoped_lock lock(control.mutex);
+			control.state.activeStage = "Complete";
+			control.state.statusMessage = "Direct light bake completed.";
 			control.state.settings.previewExposure = desiredPreviewExposure;
 		}
 	}

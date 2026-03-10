@@ -25,8 +25,9 @@ namespace Editor::Lightmapping {
 
 	struct LightmapBakeOutputBuildRequest {
 		float previewExposure = 1.0f;
-		uint32_t dilationRadiusTexels = 0;
+		uint32_t resolvedDilationRadiusTexels = 0;
 		std::vector<std::vector<uint8_t>> pageDilationWriteMasks;
+		std::vector<std::string> prebuildWarnings;
 		std::vector<LightmapBakeOutputInputPage> pages;
 	};
 

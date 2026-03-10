@@ -578,6 +578,9 @@ namespace Editor {
 
 				if (directBakeState.isRunning) {
 					ImGui::ProgressBar(directBakeState.progress01, ImVec2(-1.0f, 0.0f));
+				}
+
+				if (!directBakeState.activeStage.empty()) {
 					ImGui::Text("Active Stage");
 					ImGui::SameLine();
 					ImGui::TextDisabled("%s", directBakeState.activeStage.c_str());

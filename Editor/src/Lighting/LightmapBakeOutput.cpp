@@ -109,6 +109,11 @@ namespace Editor::Lightmapping {
 			return std::isfinite(value);
 		}
 
+		size_t CountNonZeroMaskTexels(const std::vector<uint8_t>& mask) {
+			return static_cast<size_t>(std::count_if(mask.begin(), mask.end(),
+				[](uint8_t value) { return value != 0u; }));
+		}
+
 		struct PreparedDilationPage {
 			std::vector<NE::Math::Vec3> sanitizedLighting;
 			std::vector<uint8_t> originalValidMask;
@@ -255,12 +260,12 @@ namespace Editor::Lightmapping {
 		void AppendDilationWarnings(
 			const LightmapBakeOutputPageDescriptor& descriptor,
 			const LightmapBakeDilationPageDiagnostics& diagnostics,
-			uint32_t radius,
+			uint32_t resolvedRadiusTexels,
 			std::vector<std::string>& ioWarnings) {
 			if (diagnostics.hadNoValidTexels) {
 				ioWarnings.push_back(
 					descriptor.pageId + ": dilation skipped because the page had no original valid texels.");
-			} else if (radius > 0u && diagnostics.filledTexelCount == 0u) {
+			} else if (resolvedRadiusTexels > 0u && diagnostics.filledTexelCount == 0u) {
 				ioWarnings.push_back(
 					descriptor.pageId + ": dilation found no writable invalid texels adjacent to valid texels.");
 			}
@@ -280,8 +285,7 @@ namespace Editor::Lightmapping {
 			outPreparedPage = {};
 			outPreparedPage.sanitizedLighting.resize(static_cast<size_t>(texelCount), { 0.0f, 0.0f, 0.0f });
 			outPreparedPage.originalValidMask = *inputPage.validMask;
-			outPreparedPage.diagnostics.originalValidTexelCount =
-				static_cast<size_t>(std::count(outPreparedPage.originalValidMask.begin(), outPreparedPage.originalValidMask.end(), static_cast<uint8_t>(1u)));
+			outPreparedPage.diagnostics.originalValidTexelCount = CountNonZeroMaskTexels(outPreparedPage.originalValidMask);
 
 			for (uint64_t texelIndex = 0; texelIndex < texelCount; ++texelIndex) {
 				const auto& sample = (*inputPage.lighting)[static_cast<size_t>(texelIndex)];
@@ -312,7 +316,7 @@ namespace Editor::Lightmapping {
 
 		bool RunMaskDrivenDilation(
 			const LightmapBakeOutputInputPage& inputPage,
-			uint32_t dilationRadiusTexels,
+			uint32_t resolvedDilationRadiusTexels,
 			PreparedDilationPage& ioPreparedPage) {
 			const uint64_t texelCount = static_cast<uint64_t>(inputPage.width) * static_cast<uint64_t>(inputPage.height);
 			if (inputPage.dilationWriteMask == nullptr ||
@@ -328,7 +332,7 @@ namespace Editor::Lightmapping {
 				return true;
 			}
 
-			if (dilationRadiusTexels == 0u) {
+			if (resolvedDilationRadiusTexels == 0u) {
 				return true;
 			}
 
@@ -343,7 +347,7 @@ namespace Editor::Lightmapping {
 			std::vector<uint8_t> currentMask = ioPreparedPage.originalValidMask;
 			std::vector<uint8_t> nextMask = currentMask;
 
-			for (uint32_t passIndex = 0; passIndex < dilationRadiusTexels; ++passIndex) {
+			for (uint32_t passIndex = 0; passIndex < resolvedDilationRadiusTexels; ++passIndex) {
 				++ioPreparedPage.diagnostics.passesExecuted;
 				nextLighting = currentLighting;
 				nextMask = currentMask;
@@ -410,10 +414,8 @@ namespace Editor::Lightmapping {
 
 			ioPreparedPage.sanitizedLighting.swap(currentLighting);
 			ioPreparedPage.dilatedValidMask.swap(currentMask);
-			ioPreparedPage.diagnostics.filledTexelCount =
-				static_cast<size_t>(std::count(ioPreparedPage.filledValidMask.begin(), ioPreparedPage.filledValidMask.end(), static_cast<uint8_t>(1u)));
-			ioPreparedPage.diagnostics.finalValidTexelCount =
-				ioPreparedPage.diagnostics.originalValidTexelCount + ioPreparedPage.diagnostics.filledTexelCount;
+			ioPreparedPage.diagnostics.filledTexelCount = CountNonZeroMaskTexels(ioPreparedPage.filledValidMask);
+			ioPreparedPage.diagnostics.finalValidTexelCount = CountNonZeroMaskTexels(ioPreparedPage.dilatedValidMask);
 			return true;
 		}
 
@@ -489,6 +491,7 @@ namespace Editor::Lightmapping {
 		LightmapBakeTextureOutput builtOutput{};
 		builtOutput.previewExposure = request.previewExposure;
 		outErrorMessage.clear();
+		ioWarnings.insert(ioWarnings.end(), request.prebuildWarnings.begin(), request.prebuildWarnings.end());
 
 		std::unordered_set<int> pageIndices;
 		std::unordered_set<std::string> pageIds;
@@ -547,7 +550,7 @@ namespace Editor::Lightmapping {
 			}
 
 			const auto dilationStart = std::chrono::high_resolution_clock::now();
-			if (!RunMaskDrivenDilation(inputPage, request.dilationRadiusTexels, preparedPage)) {
+			if (!RunMaskDrivenDilation(inputPage, request.resolvedDilationRadiusTexels, preparedPage)) {
 				++builtOutput.diagnostics.invalidBufferPageCount;
 				outErrorMessage = "Bake output stage failed while running lightmap dilation.";
 				return false;
@@ -582,7 +585,7 @@ namespace Editor::Lightmapping {
 				page.sanitizedNonFiniteTexelCount,
 				page.clampedNegativeChannelCount,
 				ioWarnings);
-			AppendDilationWarnings(page.descriptor, page.dilation, request.dilationRadiusTexels, ioWarnings);
+			AppendDilationWarnings(page.descriptor, page.dilation, request.resolvedDilationRadiusTexels, ioWarnings);
 
 			std::vector<uint8_t> displayPreviewPixels;
 			std::vector<uint8_t> originalValidityPreviewPixels;
@@ -811,7 +814,7 @@ namespace Editor::Lightmapping {
 				{ 0.0f, 0.0f, 0.0f },
 				{ 0.0f, 0.0f, 0.0f }
 			};
-			std::vector<uint8_t> validMask{ 1u, 0u, 0u, 0u };
+			std::vector<uint8_t> validMask{ 255u, 0u, 0u, 0u };
 			std::vector<uint8_t> writeMask{ 1u, 1u, 0u, 0u };
 			LightmapBakeOutputInputPage inputPage{};
 			inputPage.pageIndex = 0;
@@ -860,7 +863,7 @@ namespace Editor::Lightmapping {
 				{ 0.0f, 0.0f, 0.0f },
 				{ 0.0f, 0.0f, 0.0f }
 			};
-			std::vector<uint8_t> validMask{ 1u, 0u, 0u, 0u };
+			std::vector<uint8_t> validMask{ 255u, 0u, 0u, 0u };
 			std::vector<uint8_t> writeMask{ 1u, 1u, 1u, 1u };
 			LightmapBakeOutputInputPage inputPage{};
 			inputPage.pageIndex = 1;

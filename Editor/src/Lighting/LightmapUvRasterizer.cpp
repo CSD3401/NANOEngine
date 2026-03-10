@@ -762,7 +762,8 @@ namespace Editor::Lightmapping {
 		}
 
 		for (auto& page : result.pageBuffers) {
-			page.validTexelCount = static_cast<size_t>(std::count(page.validMask.begin(), page.validMask.end(), static_cast<uint8_t>(1u)));
+			page.validTexelCount = static_cast<size_t>(std::count_if(page.validMask.begin(), page.validMask.end(),
+				[](uint8_t value) { return value != 0u; }));
 			page.coverage01 = page.allocatedInnerTexelCount > 0
 				? std::clamp(static_cast<float>(page.validTexelCount) / static_cast<float>(page.allocatedInnerTexelCount), 0.0f, 1.0f)
 				: 0.0f;
