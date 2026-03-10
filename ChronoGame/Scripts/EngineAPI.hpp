@@ -28,9 +28,6 @@
 #include <ScriptSDK/ECS.h>
 #include <ScriptSDK/Renderer.h>
 
-// UI component definitions and API
-#include <ScriptSDK/UI.h>
-
 // SDK HEADERS LOADED:
 // - Math.h → Math::Vec3, Math::Mat4 (with Scripting::Vec3 conversions)
 // - Components.h → Transform, Light, Collider component types
@@ -62,24 +59,6 @@ namespace NE {
                     return HasAnimator(entity);
                 } else if constexpr (std::is_same_v<T, Component::Camera>) {
                     return HasCamera(entity);
-                } else if constexpr (std::is_same_v<T, Component::UIRectTransform>) {
-                    return HasUIRectTransform(entity);
-                } else if constexpr (std::is_same_v<T, Component::UICanvas>) {
-                    return HasUICanvas(entity);
-                } else if constexpr (std::is_same_v<T, Component::UIImage>) {
-                    return HasUIImage(entity);
-                } else if constexpr (std::is_same_v<T, Component::UIText>) {
-                    return HasUIText(entity);
-                } else if constexpr (std::is_same_v<T, Component::UIButton>) {
-                    return HasUIButton(entity);
-                } else if constexpr (std::is_same_v<T, Component::UISlider>) {
-                    return HasUISlider(entity);
-                } else if constexpr (std::is_same_v<T, Component::UIToggle>) {
-                    return HasUIToggle(entity);
-                } else if constexpr (std::is_same_v<T, Component::UIInputField>) {
-                    return HasUIInputField(entity);
-                } else if constexpr (std::is_same_v<T, Component::UIDropdown>) {
-                    return HasUIDropdown(entity);
                 }
                 return false;
             }
@@ -112,24 +91,6 @@ namespace NE {
                     return GetEntityAnimator(entity);
                 } else if constexpr (std::is_same_v<T, Component::Camera>) {
                     return GetEntityCamera(entity);
-                } else if constexpr (std::is_same_v<T, Component::UIRectTransform>) {
-                    return GetUIRectTransform(entity);
-                } else if constexpr (std::is_same_v<T, Component::UICanvas>) {
-                    return GetUICanvas(entity);
-                } else if constexpr (std::is_same_v<T, Component::UIImage>) {
-                    return GetUIImage(entity);
-                } else if constexpr (std::is_same_v<T, Component::UIText>) {
-                    return GetUIText(entity);
-                } else if constexpr (std::is_same_v<T, Component::UIButton>) {
-                    return GetUIButton(entity);
-                } else if constexpr (std::is_same_v<T, Component::UISlider>) {
-                    return GetUISlider(entity);
-                } else if constexpr (std::is_same_v<T, Component::UIToggle>) {
-                    return GetUIToggle(entity);
-                } else if constexpr (std::is_same_v<T, Component::UIInputField>) {
-                    return GetUIInputField(entity);
-                } else if constexpr (std::is_same_v<T, Component::UIDropdown>) {
-                    return GetUIDropdown(entity);
                 }
             }
         }
@@ -270,15 +231,6 @@ namespace Query {
     inline bool HasScript(uint32_t e) { return NE::ECS::Query::HasScript(e); }
     inline bool HasAnimator(uint32_t e) { return NE::ECS::Query::HasAnimator(e); }
     inline bool HasCamera(uint32_t e) { return NE::ECS::Query::HasCamera(e); }
-    inline bool HasUIRectTransform(uint32_t e) { return NE::ECS::Query::HasUIRectTransform(e); }
-    inline bool HasUICanvas(uint32_t e) { return NE::ECS::Query::HasUICanvas(e); }
-    inline bool HasUIImage(uint32_t e) { return NE::ECS::Query::HasUIImage(e); }
-    inline bool HasUIText(uint32_t e) { return NE::ECS::Query::HasUIText(e); }
-    inline bool HasUIButton(uint32_t e) { return NE::ECS::Query::HasUIButton(e); }
-    inline bool HasUISlider(uint32_t e) { return NE::ECS::Query::HasUISlider(e); }
-    inline bool HasUIToggle(uint32_t e) { return NE::ECS::Query::HasUIToggle(e); }
-    inline bool HasUIInputField(uint32_t e) { return NE::ECS::Query::HasUIInputField(e); }
-    inline bool HasUIDropdown(uint32_t e) { return NE::ECS::Query::HasUIDropdown(e); }
 
     // Read-only component getters
     inline const NE::ECS::Component::EntityMeta& GetEntityMeta(uint32_t e) {
@@ -307,18 +259,6 @@ namespace Query {
     }
     inline const NE::ECS::Component::Camera& GetEntityCamera(uint32_t e) {
         return NE::ECS::Query::GetEntityCamera(e);
-    }
-    inline const NE::ECS::Component::UIRectTransform& GetUIRectTransform(uint32_t e) {
-        return NE::ECS::Query::GetUIRectTransform(e);
-    }
-    inline const NE::ECS::Component::UICanvas& GetUICanvas(uint32_t e) {
-        return NE::ECS::Query::GetUICanvas(e);
-    }
-    inline const NE::ECS::Component::UIImage& GetUIImage(uint32_t e) {
-        return NE::ECS::Query::GetUIImage(e);
-    }
-    inline const NE::ECS::Component::UIText& GetUIText(uint32_t e) {
-        return NE::ECS::Query::GetUIText(e);
     }
 }
 
@@ -376,38 +316,6 @@ namespace Command {
     }
     inline NE::ECS::Component::Camera& GetEntityCamera(uint32_t e) {
         return NE::ECS::Command::GetEntityCamera(e);
-    }
-    inline NE::ECS::Component::UIRectTransform& GetUIRectTransform(uint32_t e) {
-        return NE::ECS::Command::GetUIRectTransform(e);
-    }
-    inline NE::ECS::Component::UICanvas& GetUICanvas(uint32_t e) {
-        return NE::ECS::Command::GetUICanvas(e);
-    }
-    inline NE::ECS::Component::UIImage& GetUIImage(uint32_t e) {
-        return NE::ECS::Command::GetUIImage(e);
-    }
-    inline NE::ECS::Component::UIText& GetUIText(uint32_t e) {
-        return NE::ECS::Command::GetUIText(e);
-    }
-
-    // UIRectTransform helpers (auto-mark layout dirty)
-    inline void SetUIRectTransformPos(uint32_t e, float x, float y) {
-        NE::ECS::Command::SetUIRectTransformPos(e, x, y);
-    }
-    inline void SetUIRectTransformSize(uint32_t e, float width, float height) {
-        NE::ECS::Command::SetUIRectTransformSize(e, width, height);
-    }
-    inline void SetUIRectTransformAnchor(uint32_t e, float minX, float minY, float maxX, float maxY) {
-        NE::ECS::Command::SetUIRectTransformAnchor(e, minX, minY, maxX, maxY);
-    }
-    inline void SetUIRectTransformPivot(uint32_t e, float pivotX, float pivotY) {
-        NE::ECS::Command::SetUIRectTransformPivot(e, pivotX, pivotY);
-    }
-    inline void SetUIRectTransformRotation(uint32_t e, float rotZ) {
-        NE::ECS::Command::SetUIRectTransformRotation(e, rotZ);
-    }
-    inline void SetUIRectTransformScale(uint32_t e, float scaleX, float scaleY) {
-        NE::ECS::Command::SetUIRectTransformScale(e, scaleX, scaleY);
     }
 
     // Script management

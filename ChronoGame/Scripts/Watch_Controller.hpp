@@ -1,14 +1,17 @@
 #pragma once
 #include "EngineAPI.hpp"
 #include "ScriptSDK//UI.h"
+#include <cstdio>
 /*
 * Watch_Controller - Overlay swap + clock fill
-* Press E to toggle between present (green) and past (blue).
+* Press Q to toggle between present (green) and past (blue).
 * Clock drains while in past, refills while in present.
 * Auto-switches back to present when depleted.
 *
-* All state changes (overlay swap + events) that could conflict
-* with ICO switcher are deferred via coroutine.
+* Inspector fields:
+*   pastDuration   - seconds at full charge before depletion (default 10s)
+*   refillDuration - seconds from empty to full (default 5s)
+*   chronoTextRef  - UIText entity to display remaining time
 */
 
 class Watch_Controller : public IScript {
@@ -16,11 +19,15 @@ public:
     GameObjectRef presentOverlayRef;
     GameObjectRef pastOverlayRef;
     GameObjectRef clockFillRef;
+    GameObjectRef chronoTextRef;
 
     Watch_Controller() {
         SCRIPT_GAMEOBJECT_REF(presentOverlayRef);
         SCRIPT_GAMEOBJECT_REF(pastOverlayRef);
         SCRIPT_GAMEOBJECT_REF(clockFillRef);
+        SCRIPT_GAMEOBJECT_REF(chronoTextRef);
+        SCRIPT_FIELD(pastDuration, Float);
+        SCRIPT_FIELD(refillDuration, Float);
     }
     ~Watch_Controller() override = default;
 
@@ -43,16 +50,25 @@ public:
         else
             LOG_WARNING("Watch_Controller: clockFillRef not set.");
 
+        if (chronoTextRef.IsValid())
+            m_chronoText = chronoTextRef.GetEntity();
+        else
+            LOG_WARNING("Watch_Controller: chronoTextRef not set.");
+
+        if (pastDuration <= 0.0f) pastDuration = 10.0f;
+        if (refillDuration <= 0.0f) refillDuration = 5.0f;
+
         isPast = false;
         fillValue = 1.0f;
         m_pendingDepletion = false;
 
         ApplyOverlayState();
         ApplyClockFill();
+        UpdateChronoText();
 
-        LOG_INFO("Watch_Controller: Ready. Press Q to toggle past/present.");
-
-        //DeferEvent("StartCutscene"); // I jus put here first - play cutscene on run
+        LOG_INFO("Watch_Controller: Ready. Press Q to toggle. Drain=" +
+            std::to_string(pastDuration) + "s, Refill=" +
+            std::to_string(refillDuration) + "s");
     }
 
     void Update(double deltaTime) override {
@@ -68,7 +84,7 @@ public:
             LOG_INFO("Watch_Controller: Depletion applied, back to PRESENT");
         }
 
-        // Toggle on E press
+        // Toggle on Q press
         if (Input::WasKeyPressed('Q')) {
             isPast = !isPast;
             ApplyOverlayState();
@@ -87,21 +103,21 @@ public:
 
         // Drain in past, refill in present
         if (isPast) {
-            fillValue -= 0.5f * dt;
+            fillValue -= (1.0f / pastDuration) * dt;
             if (fillValue < 0.0f) {
                 fillValue = 0.0f;
-                // Don't change state now — defer to next frame
                 m_pendingDepletion = true;
                 LOG_INFO("Watch_Controller: Fill depleted, deferring state change to next frame");
             }
         }
         else {
-            fillValue += 0.3f * dt;
+            fillValue += (1.0f / refillDuration) * dt;
             if (fillValue > 1.0f)
                 fillValue = 1.0f;
         }
 
         ApplyClockFill();
+        UpdateChronoText();
     }
 
     void OnDestroy() override {}
@@ -120,9 +136,14 @@ private:
     Entity m_presentOverlay = 0;
     Entity m_pastOverlay = 0;
     Entity m_clockFill = 0;
+    Entity m_chronoText = 0;
     bool isPast = false;
     float fillValue = 1.0f;
     bool m_pendingDepletion = false;
+
+    // Inspector fields
+    float pastDuration = 10.0f;
+    float refillDuration = 5.0f;
 
     void ApplyOverlayState() {
         if (m_presentOverlay != 0)
@@ -134,6 +155,17 @@ private:
     void ApplyClockFill() {
         if (m_clockFill != 0)
             NE::ECS::Command::SetUIImageFillAmount(m_clockFill, fillValue);
+    }
+
+    void UpdateChronoText() {
+        if (m_chronoText == 0) return;
+
+        // Remaining seconds based on fill and pastDuration
+        float remainingSeconds = fillValue * pastDuration;
+
+        char buf[16];
+        snprintf(buf, sizeof(buf), "%.1fs", remainingSeconds);
+        NE::Scripting::SetUIText(m_chronoText, buf);
     }
 
     void DeferEvent(const char* eventName) {

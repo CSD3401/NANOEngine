@@ -141,6 +141,8 @@ public:
 
         LOG_DEBUG("Cutscene_Controller [" << eventName << "]: Ready with "
             << pageImages.size() << " page(s).");
+
+        //TriggerCutscene(); // temp here
     }
 
     void Update(double deltaTime) override {
