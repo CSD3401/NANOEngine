@@ -17,7 +17,7 @@ namespace NE::ECS::Component {
 		bool enabled = true;
 		bool looping = true;
 
-		uint32_t maxParticles = 1000;
+		int maxParticles = 1000;
 		float spawnRate = 50.0f;       // particles per second
 		float duration = 0.0f;         // 0 = infinite
 

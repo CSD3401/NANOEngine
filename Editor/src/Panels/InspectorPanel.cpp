@@ -5245,8 +5245,10 @@ namespace Editor {
 		ImGui::TreePop();
 	}
 
-	void InspectorPanel::DrawParticleEmitterComponent(uint32_t entity) 
+	void InspectorPanel::DrawParticleEmitterComponent(uint32_t entity)
 	{
+		using ParticleEmitter = NE::ECS::Component::ParticleEmitter;
+
 		auto& comp = NE::ECS::Command::GetParticleEmitter(entity);
 
 		bool copyComp = false;
@@ -5262,29 +5264,93 @@ namespace Editor {
 		if (!open)
 			return;
 
-		NE::Core::ForEachFieldView<NE::ECS::Component::ParticleEmitter>(comp,
+		// ---------------------------------------
+		// Shape enum
+		// ---------------------------------------
+		static const char* ShapeTypeNames[] = { "Point", "Sphere", "Cone", "Box" };
+		int currShape = static_cast<int>(comp.shape);
+
+		if (DrawEnumPillCombo("Shape", currShape, ShapeTypeNames, IM_ARRAYSIZE(ShapeTypeNames), 100.0f)) {
+			auto newShape = static_cast<ParticleEmitter::ShapeType>(currShape);
+			if (newShape != comp.shape) {
+				comp.shape = newShape;
+				comp.isDirty = true;
+			}
+		}
+
+		// ---------------------------------------
+		// Draw reflected fields, but skip shape
+		// and shape-specific fields handled below
+		// ---------------------------------------
+		NE::Core::ForEachFieldView<ParticleEmitter>(comp,
 			[&](auto const& desc, auto const& currentValue) {
 				using FieldT = std::decay_t<decltype(currentValue)>;
+
+				const std::string_view name = desc.name;
+
+				// handled manually above
+				if (name == "shape")
+					return;
+
+				// shape-specific fields handled manually below
+				if (name == "sphereRadius" || name == "coneAngle" || name == "boxExtents")
+					return;
 
 				FieldT edited = currentValue;
 
 				if (DrawField(desc, edited)) {
-					SubmitSetFieldCommand<NE::ECS::Component::ParticleEmitter, FieldT>(
+					SubmitSetFieldCommand<ParticleEmitter, FieldT>(
 						entity, desc, currentValue, edited
 					);
 
 					auto& emitter = NE::ECS::Command::GetParticleEmitter(entity);
 					emitter.isDirty = true;
 
-					// important when maxParticles changes
 					if constexpr (std::is_same_v<FieldT, uint32_t>) {
-						if (std::string_view(desc.name) == "maxParticles") {
+						if (name == "maxParticles") {
 							emitter.EnsureCapacity();
 						}
 					}
 				}
 			}
 		);
+
+		// ---------------------------------------
+		// Shape-specific settings
+		// ---------------------------------------
+		switch (comp.shape)
+		{
+		case ParticleEmitter::ShapeType::Sphere:
+		{
+			float edited = comp.sphereRadius;
+			if (DrawFloatControl("Sphere Radius", edited, 1)) {
+				comp.sphereRadius = edited;
+				comp.isDirty = true;
+			}
+			break;
+		}
+		case ParticleEmitter::ShapeType::Cone:
+		{
+			float edited = comp.coneAngle;
+			if (DrawFloatControl("Cone Angle", edited, 1)) {
+				comp.coneAngle = edited;
+				comp.isDirty = true;
+			}
+			break;
+		}
+		case ParticleEmitter::ShapeType::Box:
+		{
+			NE::Math::Vec3 edited = comp.boxExtents;
+			if (DrawVec3Control("Box Extents", edited, 100.0f, 0.01f, 0.0f, 2)) {
+				comp.boxExtents = edited;
+				comp.isDirty = true;
+			}
+			break;
+		}
+		case ParticleEmitter::ShapeType::Point:
+		default:
+			break;
+		}
 
 		if (copyComp) {
 		}

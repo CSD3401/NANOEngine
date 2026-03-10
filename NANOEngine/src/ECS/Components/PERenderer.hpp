@@ -27,18 +27,17 @@ namespace NE::ECS::Component {
         // =====================================================
         std::string materialUUID;      // particle material (uses texture(s) inside)
         std::string modelUUID;         // OPTIONAL: if you want a custom quad model; can be empty and use engine quad
-        RenderMode renderMode = RenderMode::Billboard;
-        BlendMode blendMode = BlendMode::Alpha;
+        //RenderMode renderMode = RenderMode::Billboard;
+        //BlendMode blendMode = BlendMode::Alpha;
 
-        bool sortBackToFront = false;  // only for alpha usually
-        bool castShadows = false;      // typically false for particles
-        bool receiveShadows = false;
+        //bool sortBackToFront = false;  // only for alpha usually
+        //bool castShadows = false;      // typically false for particles
+        //bool receiveShadows = false;
 
         // Sprite/flipbook (optional but very common)
-        bool useFlipbook = false;
-        uint16_t tilesX = 1;
-        uint16_t tilesY = 1;
-        float fps = 0.0f;              // 0 = no animation (or use age-based)
+        //bool useFlipbook = false;
+        //uint16_t tilesX = 1;
+        //uint16_t tilesY = 1;
 
         // =====================================================
         // Internal (resolved runtime pointers)
@@ -51,17 +50,15 @@ namespace NE::ECS::Component {
 
         NE_REFLECT_BEGIN(PERenderer)
             NE_REFLECT_FIELD(materialUUID),
-            NE_REFLECT_FIELD(modelUUID),
-            NE_REFLECT_FIELD(renderMode),
-            NE_REFLECT_FIELD(blendMode),
-            NE_REFLECT_FIELD(sortBackToFront),
-            NE_REFLECT_FIELD(useFlipbook),
-            NE_REFLECT_FIELD(tilesX),
-            NE_REFLECT_FIELD(tilesY),
-            NE_REFLECT_FIELD(fps),
-            NE_REFLECT_FIELD_HIDDEN(castShadows),
-            NE_REFLECT_FIELD_HIDDEN(receiveShadows),
-            NE_REFLECT_FIELD_HIDDEN(luid)
+            NE_REFLECT_FIELD(modelUUID)
+            //NE_REFLECT_FIELD(renderMode),
+            //NE_REFLECT_FIELD(blendMode),
+            //NE_REFLECT_FIELD(sortBackToFront),
+            //NE_REFLECT_FIELD(useFlipbook),
+            //NE_REFLECT_FIELD(tilesX),
+            //NE_REFLECT_FIELD(tilesY),
+            //NE_REFLECT_FIELD_HIDDEN(castShadows),
+            //NE_REFLECT_FIELD_HIDDEN(receiveShadows),
         NE_REFLECT_END()
     };
 
