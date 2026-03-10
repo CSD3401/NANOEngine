@@ -1090,13 +1090,6 @@ namespace NE::Graphics {
             SPD_WARNING("Decal cube mesh initialization failed: builtin cube model not available.");
         }
 
-
-        //// Load Primitives
-        //auto skinned = std::make_shared<OpenGL::GLShader>();
-        //skinned->LoadFromFile("Library/Shaders/Skinned.nanoshader");
-        //skinned->LoadFromFile("Library/Shaders/Skinned.nanoshader");
-        //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(skinned, "Skinned");
-
         s_ScreenWidth = static_cast<uint32_t>(1920);
         s_ScreenHeight = static_cast<uint32_t>(1080);
 		s_GameViewWidth = s_ScreenWidth;
