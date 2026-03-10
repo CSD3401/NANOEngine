@@ -37,7 +37,6 @@
 #include <ECS/Components/PrefabInstance.hpp>
 #include <ECS/Components/CharacterController.hpp>
 #include <ECS/Components/ParticleEmitter.hpp>
-#include <ECS/Components/PERenderer.hpp>
 #include <Core/Reflection.hpp>
 #include <Math/Vec3.hpp>
 #include "Math/Vec4.hpp"
@@ -181,9 +180,6 @@ namespace {
 			}
 			else if constexpr (std::is_same_v<Owner, NE::ECS::Component::ParticleEmitter>) {
 				return NE::ECS::Command::GetParticleEmitter(e);
-			}
-			else if constexpr (std::is_same_v<Owner, NE::ECS::Component::PERenderer>) {
-				return NE::ECS::Command::GetPERenderer(e);
 			}
 			else {
 				static_assert(sizeof(Owner) == 0, "No getter defined for this component type.");
@@ -498,7 +494,6 @@ namespace Editor {
 			{ NE::ECS::Query::GetUIDropdownComponentType(),			"Dropdown",				&InspectorPanel::DrawDropdownComponent				},
 			{ NE::ECS::Query::GetScriptComponentType(),				"Script",				&InspectorPanel::DrawScriptComponent				},
 			{ NE::ECS::Query::GetParticleEmitterComponentType(),	"Particle Emitter",		&InspectorPanel::DrawParticleEmitterComponent		},
-			{ NE::ECS::Query::GetPERendererComponentType(),			"PE Renderer",			&InspectorPanel::DrawPERendererComponent			}
 		};
 	}
 
@@ -560,9 +555,6 @@ namespace Editor {
 				}
 				if (ImGui::MenuItem("Particle Emitter")) {
 					NE::ECS::Command::AddParticleEmitterComponent(EditorScene::s_selection.GetLastClicked());
-				}
-				if (ImGui::MenuItem("PE Renderer")) {
-					NE::ECS::Command::AddPERendererComponent(EditorScene::s_selection.GetLastClicked());
 				}
 
 				ImGui::Separator();
@@ -5264,9 +5256,110 @@ namespace Editor {
 		if (!open)
 			return;
 
-		// ---------------------------------------
+		// =====================================================
+// Material field
+// =====================================================
+		bool openMaterialPopup = false;
+		DrawAssetField(
+			"Material",
+			Assets::AssetManager::GetInstance().RetrieveFilename(comp.materialUUID),
+			true,
+			&openMaterialPopup,
+			ImVec2(0, 0),
+			28.0f,
+			"MATERIAL_PATH",
+			[&](const ImGuiPayload* p) {
+				std::string dropped((const char*)p->Data, p->DataSize ? p->DataSize - 1 : 0);
+				auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
+				comp.materialUUID = uuid;
+				comp.material = NE::Renderer::Command::GetMaterial(uuid);
+				comp.isDirty = true;
+			}
+		);
+
+		if (openMaterialPopup)
+			ImGui::OpenPopup("AssetPicker_ParticleMaterial");
+
+		ImGui::SetNextWindowSizeConstraints(
+			ImVec2(0.f, 0.f),
+			ImVec2(350.f, 500.f)
+		);
+
+		if (ImGui::BeginPopup("AssetPicker_ParticleMaterial")) {
+			ImGui::Text("Select a Material");
+			ImGui::Separator();
+			auto& materialList = Assets::AssetManager::GetInstance().GetAssetsOfType(Assets::AssetType::Material);
+
+			if (ImSearch::BeginSearch()) {
+				ImSearch::SearchBar();
+				for (const auto& [materialName, uuid] : materialList) {
+					ImSearch::SearchableItem(materialName.c_str(), [&, materialName](const char*) {
+						if (ImGui::Selectable(materialName.c_str())) {
+							comp.materialUUID = uuid;
+							comp.material = NE::Renderer::Command::GetMaterial(uuid);
+							comp.isDirty = true;
+							ImGui::CloseCurrentPopup();
+						}
+						});
+				}
+				ImSearch::EndSearch();
+			}
+			ImGui::EndPopup();
+		}
+
+		// =====================================================
+		// Optional model field
+		// =====================================================
+		bool openModelPopup = false;
+		DrawAssetField(
+			"Model",
+			Assets::AssetManager::GetInstance().RetrieveFilename(comp.modelUUID),
+			true,
+			&openModelPopup,
+			ImVec2(0, 0),
+			28.0f,
+			"MODEL_PATH",
+			[&](const ImGuiPayload* p) {
+				std::string dropped((const char*)p->Data, p->DataSize ? p->DataSize - 1 : 0);
+				auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
+				comp.modelUUID = uuid;
+				comp.isDirty = true;
+			}
+		);
+
+		if (openModelPopup)
+			ImGui::OpenPopup("AssetPicker_ParticleModel");
+
+		ImGui::SetNextWindowSizeConstraints(
+			ImVec2(0.f, 0.f),
+			ImVec2(350.f, 500.f)
+		);
+
+		if (ImGui::BeginPopup("AssetPicker_ParticleModel")) {
+			ImGui::Text("Select a Model");
+			ImGui::Separator();
+			auto& modelList = Assets::AssetManager::GetInstance().GetAssetsOfType(Assets::AssetType::Model);
+
+			if (ImSearch::BeginSearch()) {
+				ImSearch::SearchBar();
+				for (const auto& [modelName, uuid] : modelList) {
+					ImSearch::SearchableItem(modelName.c_str(), [&, modelName](const char*) {
+						if (ImGui::Selectable(modelName.c_str())) {
+							comp.modelUUID = uuid;
+							comp.isDirty = true;
+							ImGui::CloseCurrentPopup();
+						}
+						});
+				}
+
+				ImSearch::EndSearch();
+			}
+			ImGui::EndPopup();
+		}
+
+		// =====================================================
 		// Shape enum
-		// ---------------------------------------
+		// =====================================================
 		static const char* ShapeTypeNames[] = { "Point", "Sphere", "Cone", "Box" };
 		int currShape = static_cast<int>(comp.shape);
 
@@ -5278,23 +5371,24 @@ namespace Editor {
 			}
 		}
 
-		// ---------------------------------------
-		// Draw reflected fields, but skip shape
-		// and shape-specific fields handled below
-		// ---------------------------------------
+		// =====================================================
+		// Draw reflected fields, skipping fields handled manually
+		// =====================================================
 		NE::Core::ForEachFieldView<ParticleEmitter>(comp,
 			[&](auto const& desc, auto const& currentValue) {
 				using FieldT = std::decay_t<decltype(currentValue)>;
 
 				const std::string_view name = desc.name;
 
-				// handled manually above
-				if (name == "shape")
+				if (name == "shape" ||
+					name == "sphereRadius" ||
+					name == "coneAngle" ||
+					name == "boxExtents" ||
+					name == "materialUUID" ||
+					name == "modelUUID")
+				{
 					return;
-
-				// shape-specific fields handled manually below
-				if (name == "sphereRadius" || name == "coneAngle" || name == "boxExtents")
-					return;
+				}
 
 				FieldT edited = currentValue;
 
@@ -5315,9 +5409,9 @@ namespace Editor {
 			}
 		);
 
-		// ---------------------------------------
+		// =====================================================
 		// Shape-specific settings
-		// ---------------------------------------
+		// =====================================================
 		switch (comp.shape)
 		{
 		case ParticleEmitter::ShapeType::Sphere:
@@ -5356,99 +5450,6 @@ namespace Editor {
 		}
 		if (deleteComp) {
 			NE::ECS::Command::RemoveParticleEmitterComponent(entity);
-		}
-
-		ImGui::TreePop();
-	}
-
-	void InspectorPanel::DrawPERendererComponent(uint32_t entity) 
-	{
-		auto& comp = NE::ECS::Command::GetPERenderer(entity);
-
-		bool copyComp = false;
-		bool deleteComp = false;
-
-		const bool open = DrawComponentHeaderWithMenu(
-			"Particle Renderer",
-			true,
-			&copyComp,
-			&deleteComp
-		);
-
-		if (!open)
-			return;
-
-		// Material field (same pattern as Renderer)
-		bool openMaterialPopup = false;
-		DrawAssetField(
-			"Material",
-			Assets::AssetManager::GetInstance().RetrieveFilename(comp.materialUUID),
-			true,
-			&openMaterialPopup,
-			ImVec2(0, 0),
-			28.0f,
-			"MATERIAL_PATH",
-			[&](const ImGuiPayload* p) {
-				std::string dropped((const char*)p->Data, p->DataSize ? p->DataSize - 1 : 0);
-				auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
-				NE::Renderer::Command::AssignMaterial(entity, uuid);
-			}
-		);
-
-		if (openMaterialPopup)
-			ImGui::OpenPopup("AssetPicker_ParticleMaterial");
-
-		ImGui::SetNextWindowSizeConstraints(
-			ImVec2(0.f, 0.f),
-			ImVec2(350.f, 500.f)
-		);
-
-		if (ImGui::BeginPopup("AssetPicker_ParticleMaterial")) {
-			ImGui::Text("Select a Material");
-			ImGui::Separator();
-			auto& materialList = Assets::AssetManager::GetInstance().GetAssetsOfType(Assets::AssetType::Material);
-
-			if (ImSearch::BeginSearch()) {
-				ImSearch::SearchBar();
-				for (const auto& [materialName, uuid] : materialList) {
-					ImSearch::SearchableItem(materialName.c_str(), [&, materialName](const char*) {
-						if (ImGui::Selectable(materialName.c_str())) {
-							NE::Renderer::Command::AssignMaterial(entity, uuid);
-							ImGui::CloseCurrentPopup();
-						}
-						});
-				}
-
-				ImSearch::EndSearch();
-			}
-			ImGui::EndPopup();
-		}
-
-		// Reflected fields
-		NE::Core::ForEachFieldView<NE::ECS::Component::PERenderer>(comp,
-			[&](auto const& desc, auto const& currentValue) {
-				using FieldT = std::decay_t<decltype(currentValue)>;
-
-				// skip materialUUID here if you don't want it shown twice
-				if (std::string_view(desc.name) == "materialUUID")
-					return;
-
-				FieldT edited = currentValue;
-
-				if (DrawField(desc, edited)) {
-					SubmitSetFieldCommand<NE::ECS::Component::PERenderer, FieldT>(
-						entity, desc, currentValue, edited
-					);
-					auto& pr = NE::ECS::Command::GetPERenderer(entity);
-					pr.isDirty = true;
-				}
-			}
-		);
-
-		if (copyComp) {
-		}
-		if (deleteComp) {
-			NE::ECS::Command::RemovePERendererComponent(entity);
 		}
 
 		ImGui::TreePop();

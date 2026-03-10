@@ -30,8 +30,6 @@
 #include "../Components/UIInputField.hpp"
 #include "../Components/UIDropdown.hpp"
 #include "../Components/ParticleEmitter.hpp"
-#include "../Components/PERenderer.hpp"
-
 #include "../Systems/TransformSystem.hpp"
 #include "../Systems/RenderSystem.hpp"
 #include "../Systems/LightSystem.hpp"
@@ -95,7 +93,6 @@ namespace NE::ECS {
         RegisterComponent<Component::UIInputField>();
         RegisterComponent<Component::UIDropdown>();
 		RegisterComponent<Component::ParticleEmitter>();
-        RegisterComponent<Component::PERenderer>();
 
         m_transformSystem = m_systemManager->RegisterSystem<Systems::TransformSystem>(m_componentManager.get(), m_luidRegistry.get());
         SetSystemSignature<Systems::TransformSystem>(

@@ -5,6 +5,8 @@
 #include "Math/Vec4.hpp"
 #include "Graphics/Core/DrawCommand.hpp"
 #include "Graphics/Core/InstanceData.hpp"
+#include "Graphics/Core/Material.hpp"
+#include "Graphics/Core/Model.hpp"
 #include "Core/Reflection.hpp"
 
 namespace NE::ECS::Component {
@@ -88,14 +90,19 @@ namespace NE::ECS::Component {
 		// =====================================================
 		// Rendering
 		// =====================================================
-		bool billboard = true;
-		bool stretchWithVelocity = false;
-		float stretchFactor = 0.0f;
+		//bool billboard = true;
+		//bool stretchWithVelocity = false;
+		//float stretchFactor = 0.0f;
+		std::string materialUUID;      // particle material (uses texture(s) inside)
+		std::string modelUUID;         // OPTIONAL: if you want a custom quad model; can be empty and use engine quad
 
 		// =====================================================
 		// Runtime State (not serialized)
 		// =====================================================
-		
+
+		std::shared_ptr<Graphics::Material> material;
+		std::shared_ptr<Graphics::Model> model; // if null, use engine’s built-in quad
+
 		bool playing = false;
 		uint32_t rngState = 0;
 
@@ -183,9 +190,12 @@ namespace NE::ECS::Component {
 			NE_REFLECT_FIELD(coneAngle),
 			NE_REFLECT_FIELD(boxExtents),
 
-			NE_REFLECT_FIELD(billboard),
-			NE_REFLECT_FIELD(stretchWithVelocity),
-			NE_REFLECT_FIELD(stretchFactor),
+			NE_REFLECT_FIELD(materialUUID),
+			NE_REFLECT_FIELD(modelUUID),
+			//NE_REFLECT_FIELD(billboard),
+			//NE_REFLECT_FIELD(stretchWithVelocity),
+			//NE_REFLECT_FIELD(stretchFactor),
+
 
 			NE_REFLECT_FIELD_HIDDEN(isDirty)
 		NE_REFLECT_END()

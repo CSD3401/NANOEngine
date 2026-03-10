@@ -35,7 +35,6 @@
 #include "../ECS/Components/Animator.hpp"
 #include "../ECS/Systems/ParticleSystem.hpp"
 #include "../ECS/Components/ParticleEmitter.hpp"
-#include "../ECS/Components/PERenderer.hpp"
 
 #include "Scripting/ScriptingEngine.hpp"
 #include "Core/LUIDGenerator.hpp"
@@ -399,10 +398,6 @@ namespace NE::ECS {
 
 		ComponentType GetParticleEmitterComponentType() {
 			return GetScene().GetECSCoordinator().GetComponentType<Component::ParticleEmitter>();
-		}
-
-		ComponentType GetPERendererComponentType() {
-			return GetScene().GetECSCoordinator().GetComponentType<Component::PERenderer>();
 		}
 
 		uint32_t GetParent(uint32_t child) {
@@ -914,10 +909,6 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::ParticleEmitter{});
 		}
 
-		void AddPERendererComponent(uint32_t e) {
-			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::PERenderer{});
-		}
-
 		void AddEntityMetaComponent(uint32_t e, const Component::EntityMeta& c) {
 			GetScene().GetECSCoordinator().AddComponent<Component::EntityMeta>(e, c);
 		}
@@ -1046,16 +1037,8 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent<Component::ParticleEmitter>(e, c);
 		}
 
-		void AddPERendererComponent(uint32_t e, const Component::PERenderer& c) {
-			GetScene().GetECSCoordinator().AddComponent<Component::PERenderer>(e, c);
-		}
-
 		void RemoveParticleEmitterComponent(uint32_t e) {
 			GetScene().GetECSCoordinator().RemoveComponent<Component::ParticleEmitter>(e);
-		}
-
-		void RemovePERendererComponent(uint32_t e) {
-			GetScene().GetECSCoordinator().RemoveComponent<Component::PERenderer>(e);
 		}
 
 		void RemoveLightComponent(uint32_t e) {
@@ -1208,10 +1191,6 @@ namespace NE::ECS {
 
 		Component::ParticleEmitter& GetParticleEmitter(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::ParticleEmitter>(e);
-		}
-
-		Component::PERenderer& GetPERenderer(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::PERenderer>(e);
 		}
 
 		//void SetParent(uint32_t child, uint32_t parent, bool worldPositionStays) {

@@ -37,6 +37,7 @@
 #include "ECS/Components/CharacterController.hpp"
 #include "ECS/Components/Animator.hpp"
 #include "ECS/Components/DecalProjector.hpp"
+#include "ECS/Components/ParticleEmitter.hpp"
 
 namespace NE {
 	namespace {
@@ -68,7 +69,8 @@ namespace NE {
 			ECS::Component::UIDropdown,
 			ECS::Component::CharacterController,
 			ECS::Component::Animator,
-            ECS::Component::DecalProjector
+            ECS::Component::DecalProjector,
+			ECS::Component::ParticleEmitter
 		>;
 
 		using ComponentMask = std::uint64_t;
