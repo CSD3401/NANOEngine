@@ -1096,7 +1096,7 @@ namespace NE::Graphics {
                 flushBatch();
             }
 
-            RenderParticlesForView(view, camProj, camView, camPos, frustum, drawCount);
+            
 
             RenderDecalsForView(view, camProj, camView, camPos, s_DecalQueue, s_StateCache.get());
 
@@ -1106,6 +1106,8 @@ namespace NE::Graphics {
                 skyboxView.projection = camProj;
                 s_skybox->Draw(skyboxView);
             }
+
+            RenderParticlesForView(view, camProj, camView, camPos, frustum, drawCount);
 
             RenderSelectionHighlightForView(handle, view, camProj, camView, commands);
 
@@ -1905,16 +1907,19 @@ namespace NE::Graphics {
             if (!pipeline || !pipeline->GetSpecification().shader)
                 continue;
 
-            // Bind pipeline & state
             s_StateCache->Bind(pipeline);
 
             if (pcmd.enableDepthTest) glEnable(GL_DEPTH_TEST);
             else glDisable(GL_DEPTH_TEST);
 
+            // Safe transparent-particle state
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glDepthMask(GL_FALSE);
+
             pcmd.material->Bind();
             pcmd.mesh->Bind();
 
-            // Upload particle instance buffer
             NE::Graphics::OpenGL::GLGeometryBuffer::UpdateParticleInstanceBuffer(
                 pcmd.instances,
                 static_cast<size_t>(pcmd.instanceCount) * sizeof(NE::Graphics::ParticleInstanceData)
@@ -1922,15 +1927,11 @@ namespace NE::Graphics {
 
             auto shader = pipeline->GetSpecification().shader;
 
-            // Standard camera uniforms
             shader->SetUniformMat4("u_View", camView);
             shader->SetUniformMat4("u_Projection", camProj);
             shader->SetUniformVec3("u_CameraPos", camPos);
-
-            // Choice B: emitter matrix uniform
             shader->SetUniformMat4("u_EmitterModel", pcmd.emitterModel);
 
-            // Camera basis for billboarding (world-space)
             const NE::Math::Mat4 invView = camView.Inverse();
             NE::Math::Vec3 camRightWS = invView.Right(); camRightWS.Normalize();
             NE::Math::Vec3 camUpWS = invView.Up();    camUpWS.Normalize();
@@ -1938,11 +1939,12 @@ namespace NE::Graphics {
             shader->SetUniformVec3("u_CamRightWS", camRightWS);
             shader->SetUniformVec3("u_CamUpWS", camUpWS);
 
-            // Draw instanced
             pcmd.mesh->DrawInstanced(pcmd.instanceCount);
             pcmd.mesh->Unbind();
 
-            // Match your drawCount behavior (only count main game view)
+            // Restore
+            glDepthMask(GL_TRUE);
+
             if (view.isMain && view.order == 0)
                 ++drawCount;
         }
