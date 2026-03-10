@@ -35,11 +35,11 @@ namespace NE::ECS::Systems {
 
     // Batch key for grouping UI elements into single draw calls
     struct UIBatchKey {
-        bool isText;
-        bool isWorldSpace;
-        bool enableDepthTest;
+        bool isText = false;
+        bool isWorldSpace = false;
+        bool enableDepthTest = false;
         std::optional<NE::Graphics::ScissorRect> scissorRect;
-        int sortingOrder;
+        int sortingOrder = 0;
 
         bool operator<(const UIBatchKey& other) const {
             if (sortingOrder != other.sortingOrder) return sortingOrder < other.sortingOrder;

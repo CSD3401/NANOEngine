@@ -66,7 +66,7 @@ namespace NE::ECS::Systems {
         return UIUtil::IsActiveForUI(m_cm, m_em, entity, canvasEntity);
     }
 
-    void UIEventSystem::OnEntityAdded(Entity e) {}
+    void UIEventSystem::OnEntityAdded(Entity) {}
 
     void UIEventSystem::OnEntityRemoved(Entity e) {
         if (e == m_hoveredEntity) {
@@ -817,7 +817,7 @@ namespace NE::ECS::Systems {
 
     Math::Mat4 UIEventSystem::BuildWorldSpaceModelMatrix(
         Entity entity,
-        Entity canvasEntity,
+        Entity /*canvasEntity*/,
         const Component::UIRectTransform& rect
     ) {
         // If UIRenderSystem already computed the world matrix this frame, reuse it
@@ -2014,7 +2014,7 @@ namespace NE::ECS::Systems {
         }
     }
 
-    void UIEventSystem::UpdateDropdowns(float mouseX, float mouseY, bool mousePressed, bool mouseReleased) {
+    void UIEventSystem::UpdateDropdowns(float /*mouseX*/, float /*mouseY*/, bool mousePressed, bool /*mouseReleased*/) {
         const auto& entities = GetEntities();
 
         // Handle clicks

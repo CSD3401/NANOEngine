@@ -1670,7 +1670,7 @@ namespace NE::Graphics {
 			m_graph->AddPass("Bloom: Upsample")
 				.Read(bloomDown0)
 				.Write(bloomTex)
-				.Execute([this](const RenderGraphContext& ctx) {
+				.Execute([this](const RenderGraphContext& /*ctx*/) {
 					if (!m_settings || !m_upSampleShader) return;
 
 					const GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);

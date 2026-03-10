@@ -9,9 +9,9 @@
 
 namespace NE::Core {
 
-	class NANOENGINE_API LUIDGenerator {
+	class LUIDGenerator {
 	public:
-		static uint64_t Generate(std::string_view);
+		NANOENGINE_API static uint64_t Generate(std::string_view);
 
 	private:
 		static uint32_t GetTimeInSeconds();

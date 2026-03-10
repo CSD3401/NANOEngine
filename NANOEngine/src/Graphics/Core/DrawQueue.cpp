@@ -81,8 +81,8 @@ namespace NE::Graphics {
 		// Step 1: Sort by Render Queue Order (base + offset)
 		// Stable sort to maintain input order for same order items
 		std::stable_sort(m_Commands.begin(), m_Commands.end(), [](const DrawCommand& a, const DrawCommand& b) {
-			uint16_t orderA = a.material ? a.material->GetQueueOrder() : 0;
-			uint16_t orderB = b.material ? b.material->GetQueueOrder() : 0;
+			uint16_t orderA = static_cast<uint16_t>(a.material ? a.material->GetQueueOrder() : 0);
+			uint16_t orderB = static_cast<uint16_t>(b.material ? b.material->GetQueueOrder() : 0);
 			return orderA < orderB;
 			});
 

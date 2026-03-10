@@ -89,20 +89,20 @@ namespace NE::Animation {
     };
 
 
-	class NANOENGINE_API AnimationClip final : public Resource::IResource {
+    class AnimationClip final : public Resource::IResource {
     public:
-		bool Preload(NE::Resource::BinaryView blob) override;
-		void Finalize() override;
+        NANOENGINE_API bool Preload(NE::Resource::BinaryView blob) override;
+        NANOENGINE_API void Finalize() override;
         static constexpr Resource::ResourceType GetStaticType() { return Resource::ResourceType::AnimationClip; }
-		Resource::ResourceType GetType() const override { return GetStaticType(); }
+        NANOENGINE_API Resource::ResourceType GetType() const override { return GetStaticType(); }
 
-        const std::string& GetName() const;
-        float GetLengthSeconds() const;
-		void SetLengthSeconds(float len);
-        bool IsLooping() const;
+        NANOENGINE_API const std::string& GetName() const;
+        NANOENGINE_API float GetLengthSeconds() const;
+        NANOENGINE_API void SetLengthSeconds(float len);
+        NANOENGINE_API bool IsLooping() const;
 
-        std::vector<AnimTrack>& GetTracksMutable();
-        const std::vector<AnimTrack>& GetTracks() const;
+        NANOENGINE_API std::vector<AnimTrack>& GetTracksMutable();
+        NANOENGINE_API const std::vector<AnimTrack>& GetTracks() const;
     private:
         struct ParsedAnimClip {
             const NE::Resource::NanoAnimClipHeader* hdr = nullptr;
@@ -116,5 +116,5 @@ namespace NE::Animation {
         bool looping;
 
         std::vector<AnimTrack> tracks;
-	};
+    };
 }

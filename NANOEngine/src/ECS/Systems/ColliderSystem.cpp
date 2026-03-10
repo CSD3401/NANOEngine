@@ -19,7 +19,7 @@ namespace NE::ECS::Systems {
 	void ColliderSystem::OnEntityAdded(Entity e) {
 		auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
 		auto& col = m_componentManager->GetComponent<Component::Collider>(e);
-		auto& t = m_componentManager->GetComponent<Component::Transform>(e);
+		//auto& t = m_componentManager->GetComponent<Component::Transform>(e);
 
 		if (col.luid == 0) {
 			col.luid = Core::LUIDGenerator::Generate("co");

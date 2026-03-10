@@ -127,10 +127,10 @@ namespace NE::Graphics {
     //==========================================================================
     // RenderGraph - Main graph structure
     //==========================================================================
-    class NANOENGINE_API RenderGraph {
+    class RenderGraph {
     public:
         RenderGraph() = default;
-        ~RenderGraph();
+        NANOENGINE_API ~RenderGraph();
 
         // Non-copyable
         RenderGraph(const RenderGraph&) = delete;
@@ -145,49 +145,49 @@ namespace NE::Graphics {
         //----------------------------------------------------------------------
 
         // Import an existing texture (e.g., from a framebuffer attachment)
-        RenderGraphResource ImportTexture(uint32_t textureId, const std::string& name);
+        NANOENGINE_API RenderGraphResource ImportTexture(uint32_t textureId, const std::string& name);
 
         // Import an existing framebuffer
-        RenderGraphResource ImportFramebuffer(IFrameBuffer* fb, const std::string& name);
+        NANOENGINE_API RenderGraphResource ImportFramebuffer(IFrameBuffer* fb, const std::string& name);
 
         // Create a transient texture (lifetime managed by the graph)
-        RenderGraphResource CreateTexture(const TextureDesc& desc);
+        NANOENGINE_API RenderGraphResource CreateTexture(const TextureDesc& desc);
 
         //----------------------------------------------------------------------
         // Pass Registration
         //----------------------------------------------------------------------
 
         // Add a new render pass, returns builder for fluent configuration
-        RenderGraphBuilder AddPass(const std::string& name);
+        NANOENGINE_API RenderGraphBuilder AddPass(const std::string& name);
 
         //----------------------------------------------------------------------
         // Compilation & Execution
         //----------------------------------------------------------------------
 
         // Compile the graph: validate, compute execution order, allocate resources
-        void Compile();
+        NANOENGINE_API void Compile();
 
         // Execute all passes in dependency order
-        void Execute();
+        NANOENGINE_API void Execute();
 
         // Reset the graph for reuse (clears passes but keeps imported resources)
-        void Reset();
+        NANOENGINE_API void Reset();
 
         // Clear everything (passes and resources)
-        void Clear();
+        NANOENGINE_API void Clear();
 
         //----------------------------------------------------------------------
         // Resource Access (for use during pass execution)
         //----------------------------------------------------------------------
 
         // Get the OpenGL texture ID from a resource handle
-        uint32_t GetTexture(RenderGraphResource handle) const;
+        NANOENGINE_API uint32_t GetTexture(RenderGraphResource handle) const;
 
         // Get the framebuffer pointer from a resource handle
-        IFrameBuffer* GetFramebuffer(RenderGraphResource handle) const;
+        NANOENGINE_API IFrameBuffer* GetFramebuffer(RenderGraphResource handle) const;
 
         // Get the OpenGL framebuffer ID for a resource (0 if unavailable)
-        uint32_t GetFramebufferId(RenderGraphResource handle) const;
+        NANOENGINE_API uint32_t GetFramebufferId(RenderGraphResource handle) const;
 
         //----------------------------------------------------------------------
         // Query
@@ -221,11 +221,11 @@ namespace NE::Graphics {
         const std::vector<ResourceLifetime>& GetResourceLifetimes() const { return m_ResourceLifetimes; }
 
         // Get resource name by handle
-        const std::string& GetResourceName(RenderGraphResource handle) const;
+        NANOENGINE_API const std::string& GetResourceName(RenderGraphResource handle) const;
 
         // Get resource type string for display
-        static const char* GetResourceTypeString(ResourceType type);
-        static const char* GetTextureFormatString(TextureFormat format);
+        NANOENGINE_API static const char* GetResourceTypeString(ResourceType type);
+        NANOENGINE_API static const char* GetTextureFormatString(TextureFormat format);
 
     private:
         friend class RenderGraphBuilder;

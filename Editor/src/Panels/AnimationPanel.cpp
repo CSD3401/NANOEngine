@@ -651,10 +651,6 @@ namespace Editor {
         rightClickedKey = false;
 
         if (tr.type == NE::Animation::AnimValueType::String) {
-            const float y = (rowRect.Min.y + rowRect.Max.y) * 0.5f;
-            constexpr float r = 5.0f;
-            constexpr float pad = 2.0f;
-
             for (int ki = 0; ki < (int)tr.s.keys.size(); ++ki) {
                 const float kt = tr.s.keys[ki].time;
                 const float x = rowRect.Min.x + (kt - t0) * pxPerSec;

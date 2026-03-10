@@ -22,7 +22,7 @@ namespace NE::Physics {
     void ContactListenerImpl::OnContactAdded(
         const JPH::Body& body1,
         const JPH::Body& body2,
-        const JPH::ContactManifold& manifold,
+        const JPH::ContactManifold& /*manifold*/,
         JPH::ContactSettings&
     ) {
         if (!m_pm) return;
@@ -43,7 +43,7 @@ namespace NE::Physics {
     void ContactListenerImpl::OnContactPersisted(
         const JPH::Body& body1,
         const JPH::Body& body2,
-        const JPH::ContactManifold& manifold,
+        const JPH::ContactManifold& /*manifold*/,
         JPH::ContactSettings&
     ) {
         if (!m_pm) return;
