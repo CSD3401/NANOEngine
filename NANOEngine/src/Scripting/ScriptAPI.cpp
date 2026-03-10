@@ -153,8 +153,8 @@ namespace NE {
 		}
 
 		// Context validation macro for consistent null-checking
-#define CHECK_CONTEXT_OR_RETURN(returnValue) \
-        if (!m_context || !m_context->componentManager) return returnValue
+#define CHECK_CONTEXT_OR_RETURN(...) \
+        if (!m_context || !m_context->componentManager) return __VA_ARGS__
 
 	//=========================================================================
 	// FIELD REGISTRY (PIMPL - Hide STL containers from DLL interface)
@@ -414,7 +414,7 @@ namespace NE {
 			return Vec3(m.Right());
 		}
 
-		Vec3 IScript::TF_GetUp(Entity entity) const {
+		Vec3 IScript::TF_GetUp(Entity /*entity*/) const {
 			// Up is always world up in this simple implementation
 			// For more complex scenarios, you might want to calculate it from forward and right
 			return Vec3(0.0f, 1.0f, 0.0f);
@@ -520,7 +520,7 @@ namespace NE {
 			return m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(targetEntity).useGravity;
 		}
 
-		void IScript::RB_SetUseGravity(bool use, Entity entity) {
+		void IScript::RB_SetUseGravity(bool /*use*/, Entity /*entity*/) {
 			//Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
 			//if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
@@ -536,7 +536,7 @@ namespace NE {
 			//}
 		}
 
-		bool IScript::RB_IsStatic(Entity entity) const {
+		bool IScript::RB_IsStatic(Entity /*entity*/) const {
 			/*if (!m_context || !m_context->componentManager) return false;
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -548,7 +548,7 @@ namespace NE {
 			return false;
 		}
 
-		void IScript::RB_SetStatic(bool isStatic, Entity entity) {
+		void IScript::RB_SetStatic(bool /*isStatic*/, Entity /*entity*/) {
 			/*if (!m_context || !m_context->componentManager) return;
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -559,7 +559,7 @@ namespace NE {
 			}*/
 		}
 
-		void IScript::RB_LockRotation(bool lockX, bool lockY, bool lockZ, Entity entity) {
+		void IScript::RB_LockRotation(bool /*lockX*/, bool /*lockY*/, bool /*lockZ*/, Entity /*entity*/) {
 			/*Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
 			if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
@@ -782,8 +782,8 @@ namespace NE {
 				layerMask);
 		}
 
-		std::vector<RaycastHit> IScript::RaycastAll(const Vec3& origin, const Vec3& direction,
-			float maxDistance, uint32_t layerMask) const {
+		std::vector<RaycastHit> IScript::RaycastAll(const Vec3& /*origin*/, const Vec3& /*direction*/,
+			float /*maxDistance*/, uint32_t /*layerMask*/) const {
 			//std::vector<RaycastHit> results;
 
 			//if (!m_context || !m_context->componentManager) {
@@ -1336,7 +1336,7 @@ namespace NE {
 
 				return rootEntity;
 			} catch (const std::exception& e) {
-				SPD_ERROR("[PrefabRef] Exception during instantiation: {}", e.what());
+				SPD_ERROR("[PrefabRef] Exception during instantiation: " << e.what());
 				return INVALID_ENTITY;
 			} catch (...) {
 				SPD_ERROR("[PrefabRef] Unknown exception during prefab instantiation");
@@ -1913,7 +1913,7 @@ namespace NE {
 						//SPD_DEBUG("[MaterialRef] Successfully assigned material to field '{}'", name);
 						return true;
 					} catch (const std::exception& e) {
-						SPD_ERROR("[MaterialRef] setValue exception for field '{}': {}", name, e.what());
+						SPD_ERROR("[MaterialRef] setValue exception for field '" << name << "': " << e.what());
 						return false;
 					} catch (...) {
 						SPD_ERROR("[MaterialRef] setValue unknown exception for field '{}'", name);

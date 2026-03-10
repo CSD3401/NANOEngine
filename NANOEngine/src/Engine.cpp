@@ -215,7 +215,7 @@ namespace NE {
 		gSceneManager.StartSceneFallback();
 	}
 
-	void CookPrefab(const ECS::Entity rootNode, const std::string& _artifactPath) {
+	void CookPrefab(const ECS::Entity, const std::string&) {
 		//NE::Serialization::SerializePrefab(GetScene().GetECSCoordinator(), rootNode, _artifactPath);
 	}
 
@@ -228,20 +228,20 @@ namespace NE {
 		return gSceneManager.GetActive()->GetECSCoordinator().GetUsedEntities();
 	}
 
-	 std::vector<uint32_t> DeserializePrefab(std::string prefabPath) {
+	 std::vector<uint32_t> DeserializePrefab(std::string /*prefabPath*/) {
 		 //auto newEntities = Serialization::JsonSceneSerializer::DeserializePrefab(*gSceneManager.GetActive(), prefabPath);
 		 //return newEntities;
 		 return std::vector<uint32_t>();
 	}
 
-	std::vector<uint32_t> DeserializePrefab(std::string prefabPath, std::string uuid) {
+	std::vector<uint32_t> DeserializePrefab(std::string /*prefabPath*/, std::string /*uuid*/) {
 		//auto newEntities = Serialization::JsonSceneSerializer::DeserializePrefab(*gSceneManager.GetActive(), prefabPath);
 		//Prefab::PrefabManager::Instantiate(uuid, newEntities);
 		//return newEntities;
 		return std::vector<uint32_t>();
 	}
 
-	std::vector<uint32_t> DeserializePrefab(std::string prefabPath, std::string uuid, Math::Vec3 pos) {
+	std::vector<uint32_t> DeserializePrefab(std::string /*prefabPath*/, std::string /*uuid*/, Math::Vec3 /*pos*/) {
 		//auto newEntities = Serialization::JsonSceneSerializer::DeserializePrefab(*gSceneManager.GetActive(), prefabPath, pos);
 		//Prefab::PrefabManager::Instantiate(uuid, newEntities);
 		//return newEntities;

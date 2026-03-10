@@ -416,14 +416,14 @@ namespace Editor {
 				std::string dragPathStr = m_draggedAssetPath.string();
 
 				// Set the appropriate payload based on file type
-				const auto& entryPath = entry.path();
+				//const auto& entryPath = entry.path();
 				bool hasSpecialPayload = false;
 
 				if (!entry.is_directory()) {
 					// Get lowercase extension for case-insensitive comparison
-					std::string ext = entryPath.extension().string();
+				/*	std::string ext = entryPath.extension().string();
 					std::transform(ext.begin(), ext.end(), ext.begin(),
-						[](unsigned char c) { return std::tolower(c); });
+						[](unsigned char c) { return std::tolower(c); });*/
 
 					if (ext == ".obj" || ext == ".fbx") {
 						ImGui::SetDragDropPayload("ASSET_MESH_PATH", dragPathStr.c_str(), dragPathStr.size() + 1);
@@ -459,9 +459,9 @@ namespace Editor {
 					} else {
 						const auto& entryPath = entry.path();
 						if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-							std::string ext = entryPath.extension().string();
+							/*std::string ext = entryPath.extension().string();
 							std::transform(ext.begin(), ext.end(), ext.begin(),
-								[](unsigned char c) { return std::tolower(c); });
+								[](unsigned char c) { return std::tolower(c); });*/
 
 							if (ext == ".obj" || ext == ".fbx" ||
 								ext == ".nanomat" ||
@@ -620,10 +620,10 @@ namespace Editor {
 						ImGui::PushID(subMeshName.c_str());
 
 						float submeshThumbnailSize = thumbnailSize * 0.8f;
-						unsigned int iconTexture = Assets::ThumbnailManager::GetInstance().GetThumbnail("submesh");
+						unsigned int submeshIconTexture = Assets::ThumbnailManager::GetInstance().GetThumbnail("submesh");
 
 						ImGui::ImageButton("##btn",
-							(ImTextureID)(intptr_t)iconTexture,
+							(ImTextureID)(intptr_t)submeshIconTexture,
 							ImVec2(submeshThumbnailSize, submeshThumbnailSize),
 							ImVec2(0, 1), ImVec2(1, 0)
 						);

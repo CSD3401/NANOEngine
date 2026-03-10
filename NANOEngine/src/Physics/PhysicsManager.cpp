@@ -1022,15 +1022,15 @@ namespace NE::Physics {
 		}
 	}
 
-	void PhysicsManager::SetIsKinematic(uint64_t entityLUID, bool isKinematic) {
-		//auto it = m_bodies.find(entityLUID);
-		//if (it != m_bodies.end()) {
-		//	JPH::BodyInterface& bi = m_physicsSystem->GetBodyInterface();
-		//	JPH::BodyID bodyID = it->second;
-		//	JPH::EMotionType newMotion = isKinematic ? JPH::EMotionType::Kinematic : JPH::EMotionType::Dynamic;
-		//	bi.SetMotionType(bodyID, newMotion);
-		//}
-	}
+	//void PhysicsManager::SetIsKinematic(uint64_t entityLUID, bool isKinematic) {
+	//	//auto it = m_bodies.find(entityLUID);
+	//	//if (it != m_bodies.end()) {
+	//	//	JPH::BodyInterface& bi = m_physicsSystem->GetBodyInterface();
+	//	//	JPH::BodyID bodyID = it->second;
+	//	//	JPH::EMotionType newMotion = isKinematic ? JPH::EMotionType::Kinematic : JPH::EMotionType::Dynamic;
+	//	//	bi.SetMotionType(bodyID, newMotion);
+	//	//}
+	//}
 
 	bool PhysicsManager::CookMeshCollider(const std::vector<Math::Vec3>& vertices,
 		const std::vector<uint32_t>& indices, std::vector<uint8_t>& outBlob) {

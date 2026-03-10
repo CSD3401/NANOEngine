@@ -512,7 +512,7 @@ namespace NE::ECS::Systems {
     void UIRenderSystem::SubmitUIElement(
         Entity entity,
         const UICanvas& canvas,
-        const UIImage& img,
+        const UIImage&,
         const UIRectTransform& rect,
         const std::vector<NE::Graphics::UIVertex2>& vertices,
         const std::optional<NE::Graphics::ScissorRect>& scissor
@@ -584,10 +584,10 @@ namespace NE::ECS::Systems {
     void UIRenderSystem::SubmitTextElement(
         Entity entity,
         const UICanvas& canvas,
-        const UIText& text,
+        const UIText&,
         const UIRectTransform& rect,
         const std::vector<NE::Graphics::UIVertex2>& vertices,
-        std::shared_ptr<NE::Graphics::FontAtlas> fontAtlas,
+        std::shared_ptr<NE::Graphics::FontAtlas>,
         const std::optional<NE::Graphics::ScissorRect>& scissor
     )
     {
@@ -863,7 +863,7 @@ namespace NE::ECS::Systems {
                 key.isWorldSpace = false;
                 key.enableDepthTest = false;
                 key.scissorRect = scissor;
-                key.sortingOrder = rect.z + canvas.sortingOrder * 1000.0f;
+                key.sortingOrder = static_cast<int>(rect.z + canvas.sortingOrder * 1000.0f);
 
                 UIBatch& batch = batchMap[key];
                 uint32_t baseVertex = static_cast<uint32_t>(batch.vertices.size());
@@ -887,7 +887,7 @@ namespace NE::ECS::Systems {
         }
 
         // Submit screen-space batches
-        m_frameSpriteBatches += batchMap.size();
+        m_frameSpriteBatches += static_cast<int>(batchMap.size());
         for (auto& [key, batch] : batchMap) {
             if (batch.vertices.empty()) continue;
             m_frameDrawCalls++;
@@ -1126,7 +1126,7 @@ namespace NE::ECS::Systems {
             key.isWorldSpace = false;
             key.enableDepthTest = false;
             key.scissorRect = scissor;
-            key.sortingOrder = rect.z + canvas.sortingOrder * 1000.0f;
+            key.sortingOrder = static_cast<int>(rect.z + canvas.sortingOrder * 1000.0f);
 
             UIBatch& batch = batchMap[key];
             uint32_t baseVertex = static_cast<uint32_t>(batch.vertices.size());
@@ -1142,7 +1142,7 @@ namespace NE::ECS::Systems {
         }
 
         // Submit screen-space text batches
-        m_frameTextBatches += batchMap.size();
+        m_frameTextBatches += static_cast<int>(batchMap.size());
         for (auto& [key, batch] : batchMap) {
             if (batch.vertices.empty()) continue;
             m_frameDrawCalls++;

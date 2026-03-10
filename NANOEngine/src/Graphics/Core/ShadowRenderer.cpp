@@ -466,7 +466,7 @@ namespace NE::Graphics {
 		using NE::Math::Mat4;
 
 		const float n = std::max(0.01f, view.nearPlane);
-		const float f = std::max(n + 0.01f, view.farPlane);
+		//const float f = std::max(n + 0.01f, view.farPlane);
 
 		const float cascadeNear = (cascadeIdx == 0) ? n : light.dirCascadeSplitsVS[cascadeIdx - 1];
 		const float cascadeFar = light.dirCascadeSplitsVS[cascadeIdx];

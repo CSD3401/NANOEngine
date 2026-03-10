@@ -18,21 +18,21 @@ namespace NE::Core {
 		std::array<LayerMask, MAX_LAYERS> collideWith{};
 	};
 
-	class NANOENGINE_API LayerRegistry {
+	class LayerRegistry {
 	public:
-		static LayerRegistry& GetInstance();
+		NANOENGINE_API static LayerRegistry& GetInstance();
 
-		LayerID CreateLayer(std::string_view name);
-		bool RenameLayer(LayerID id, std::string_view newName);
+		NANOENGINE_API LayerID CreateLayer(std::string_view name);
+		NANOENGINE_API bool RenameLayer(LayerID id, std::string_view newName);
 
-		bool SetCollision(LayerID a, LayerID b, bool enabled);
-		bool GetCollision(LayerID a, LayerID b) const;
-		LayerMask GetCollisionMask(LayerID a) const;
-		bool SetCollisionMask(LayerID a, LayerMask mask);
+		NANOENGINE_API bool SetCollision(LayerID a, LayerID b, bool enabled);
+		NANOENGINE_API bool GetCollision(LayerID a, LayerID b) const;
+		NANOENGINE_API LayerMask GetCollisionMask(LayerID a) const;
+		NANOENGINE_API bool SetCollisionMask(LayerID a, LayerMask mask);
 
-		bool IsUsed(LayerID id) const noexcept;
-		std::string_view GetName(LayerID id) const;
-		LayerID FindByName(std::string_view name) const;
+		NANOENGINE_API bool IsUsed(LayerID id) const noexcept;
+		NANOENGINE_API std::string_view GetName(LayerID id) const;
+		NANOENGINE_API LayerID FindByName(std::string_view name) const;
 
 		template<typename Fn>
 		void ForEachUsed(Fn&& fn) const {
@@ -43,7 +43,7 @@ namespace NE::Core {
 			}
 		}
 
-		const std::array<LayerMask, MAX_LAYERS>& GetCollisionMatrix() const noexcept;
+		NANOENGINE_API const std::array<LayerMask, MAX_LAYERS>& GetCollisionMatrix() const noexcept;
 
 	private:
 		LayerRegistry();

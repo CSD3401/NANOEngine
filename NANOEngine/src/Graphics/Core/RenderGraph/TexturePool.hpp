@@ -26,10 +26,10 @@ namespace NE::Graphics {
         size_t totalAllocated = 0;  // Lifetime allocation count
     };
 
-    class NANOENGINE_API TexturePool {
+    class TexturePool {
     public:
         TexturePool() = default;
-        ~TexturePool();
+        NANOENGINE_API ~TexturePool();
 
         // Non-copyable
         TexturePool(const TexturePool&) = delete;
@@ -37,16 +37,16 @@ namespace NE::Graphics {
 
         // Acquire a texture matching the description
         // Returns existing pooled texture if available, creates new otherwise
-        PooledTexture* Acquire(uint32_t width, uint32_t height, TextureFormat format);
+        NANOENGINE_API PooledTexture* Acquire(uint32_t width, uint32_t height, TextureFormat format);
 
         // Release a texture back to the pool for reuse
-        void Release(PooledTexture* texture);
+        NANOENGINE_API void Release(PooledTexture* texture);
 
         // Release all textures (marks all as available)
-        void ReleaseAll();
+        NANOENGINE_API void ReleaseAll();
 
         // Clear the pool (deletes all GPU resources)
-        void Clear();
+        NANOENGINE_API void Clear();
 
         // Get statistics
         const TexturePoolStats& GetStats() const { return m_Stats; }

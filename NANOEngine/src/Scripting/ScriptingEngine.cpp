@@ -551,7 +551,7 @@ namespace NE::Scripting {
         }
     }
 
-    bool ScriptingEngine::SwapDLLs(const std::string& oldDllPath, const std::string& newDllPath) {
+    bool ScriptingEngine::SwapDLLs(const std::string& /*oldDllPath*/, const std::string& newDllPath) {
         if (IsScriptDLLLoaded()) {
             if (!UnloadScriptDLL()) {
                 SPD_ERROR("Failed to unload old DLL. Attempting to load new one anyway...");
@@ -592,10 +592,10 @@ namespace NE::Scripting {
             // Parse comma-separated script names (for multi-script support)
             std::vector<std::string> scriptNamesToRestore;
             std::stringstream ss(state.scriptName);
-            std::string scriptName;
-            while (std::getline(ss, scriptName, ',')) {
-                if (!scriptName.empty()) {
-                    scriptNamesToRestore.push_back(scriptName);
+            std::string parsedName;
+            while (std::getline(ss, parsedName, ',')) {
+                if (!parsedName.empty()) {
+                    scriptNamesToRestore.push_back(parsedName);
                 }
             }
 
@@ -688,7 +688,7 @@ namespace NE::Scripting {
         SPD_INFO("=== HOT RELOAD COMPLETE ===");
     }
 
-    void ScriptingEngine::SaveSerializedFields(NE::ECS::Component::NativeScript& nsc) {
+    void ScriptingEngine::SaveSerializedFields(NE::ECS::Component::NativeScript& /*nsc*/) {
         // This function is problematic because it relies on pointer comparison to find the entity.
         // Use the overload that takes entity ID directly instead.
         SPD_ERROR("SaveSerializedFields(nsc) called without entity ID - this may not work correctly!");
@@ -725,7 +725,7 @@ namespace NE::Scripting {
         }
     }
 
-    void ScriptingEngine::RestoreSerializedFields(NE::ECS::Component::NativeScript& nsc) {
+    void ScriptingEngine::RestoreSerializedFields(NE::ECS::Component::NativeScript& /*nsc*/) {
         // This function is problematic because it relies on pointer comparison to find the entity.
         // Use the overload that takes entity ID directly instead.
         SPD_ERROR("RestoreSerializedFields(nsc) called without entity ID - this may not work correctly!");
@@ -766,7 +766,6 @@ namespace NE::Scripting {
     }
     
     void ScriptingEngine::OnScriptComponentDestroyed(NE::ECS::Entity entity) {
-        auto& nsc = GetScene().GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
         auto it = m_scriptInstances.find(entity);
         if (it != m_scriptInstances.end()) {
             for (IScript* instance : it->second) {
