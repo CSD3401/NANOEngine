@@ -110,11 +110,13 @@ namespace NE::ECS::Systems {
         const auto& entities = m_entities.GetDenseContainer();
         auto& activeScene = NE::GetScene();
         const auto* lightmapState = SceneManagement::GetSceneLightmapRuntimeState(&activeScene);
+#ifndef PRODUCTION_BUILD
         SceneManagement::LightmapRuntimeDebugStats frameLightmapStats{};
         if (lightmapState) {
             frameLightmapStats.resolvedPageCount = lightmapState->debugStats.resolvedPageCount;
             frameLightmapStats.failedPageResolveCount = lightmapState->debugStats.failedPageResolveCount;
         }
+#endif
 
         for (Entity entity : entities) {
             if (!m_entityManager->GetActive(entity)) continue;
@@ -164,35 +166,45 @@ namespace NE::ECS::Systems {
                     const std::string& pageId = binding.pageId;
 
                     if (!cmd.hasUv1) {
+#ifndef PRODUCTION_BUILD
                         ++frameLightmapStats.skippedMissingUv1Count;
                         SceneManagement::EmitSceneLightmapWarningOnce(
                             activeScene,
                             "missing-uv1:" + std::to_string(entity),
                             "Skipping lightmap sampling for entity " + std::to_string(entity) +
                             " because the bound mesh has no UV1 channel.");
+#endif
                     } else if (!IsFiniteMatrix(transform.worldMatrix)) {
+#ifndef PRODUCTION_BUILD
                         ++frameLightmapStats.skippedInvalidTransformCount;
                         SceneManagement::EmitSceneLightmapWarningOnce(
                             activeScene,
                             "invalid-world-matrix:" + std::to_string(entity),
                             "Skipping lightmap sampling for entity " + std::to_string(entity) +
                             " because its world transform contains non-finite values.");
+#endif
                     } else if (!lightmapState || !lightmapState->lightingUsable) {
+#ifndef PRODUCTION_BUILD
                         ++frameLightmapStats.skippedMissingPageCount;
+#endif
                     } else if (!SceneManagement::IsFiniteLightmapTransform(uvScale, uvOffset)) {
+#ifndef PRODUCTION_BUILD
                         ++frameLightmapStats.skippedInvalidBindingCount;
                         SceneManagement::EmitSceneLightmapWarningOnce(
                             activeScene,
                             "invalid-lightmap-transform:" + std::to_string(entity),
                             "Skipping lightmap sampling for entity " + std::to_string(entity) +
                             " because its LightmapBinding atlas transform is invalid.");
+#endif
                     } else if (pageId.empty()) {
+#ifndef PRODUCTION_BUILD
                         ++frameLightmapStats.skippedInvalidBindingCount;
                         SceneManagement::EmitSceneLightmapWarningOnce(
                             activeScene,
                             "missing-lightmap-page-id:" + std::to_string(entity),
                             "Skipping lightmap sampling for entity " + std::to_string(entity) +
                             " because its LightmapBinding has no page id.");
+#endif
                     } else {
                         cmd.lightmapEnabled = true;
                         cmd.lightmapUvScale = uvScale;
@@ -205,8 +217,11 @@ namespace NE::ECS::Systems {
                             binding.pageResolved = true;
                             binding.resolvedPageSlot = pageSlot;
                             cmd.lightmapPageSlot = pageSlot;
+#ifndef PRODUCTION_BUILD
                             ++frameLightmapStats.lightmappedDrawCount;
+#endif
                         } else {
+#ifndef PRODUCTION_BUILD
                             ++frameLightmapStats.skippedMissingPageCount;
                             if (lightmapState && lightmapState->manifestResolved) {
                                 SceneManagement::EmitSceneLightmapWarningOnce(
@@ -215,6 +230,7 @@ namespace NE::ECS::Systems {
                                     "Skipping lightmap sampling because lightmap page '" + pageId +
                                     "' could not be resolved to a usable runtime texture.");
                             }
+#endif
                         }
                     }
                 }
@@ -222,7 +238,9 @@ namespace NE::ECS::Systems {
             Graphics::GraphicsManager::Submit(cmd);
         }
 
+#ifndef PRODUCTION_BUILD
         SceneManagement::SetSceneLightmapDebugStats(activeScene, frameLightmapStats);
+#endif
     }
 
     void RenderSystem::Exit()

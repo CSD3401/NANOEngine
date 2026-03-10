@@ -2120,25 +2120,43 @@ namespace NE::Graphics {
 	}
 
     void GraphicsManager::SetScenePreviewMode(uint8_t mode) {
+#ifndef PRODUCTION_BUILD
         if (mode > static_cast<uint8_t>(ScenePreviewMode::LightmapOnly)) {
             mode = static_cast<uint8_t>(ScenePreviewMode::Shaded);
         }
         s_ScenePreviewMode = static_cast<ScenePreviewMode>(mode);
+#else
+        (void)mode;
+        s_ScenePreviewMode = ScenePreviewMode::Shaded;
+#endif
     }
 
     uint8_t GraphicsManager::GetScenePreviewMode() {
+#ifndef PRODUCTION_BUILD
         return static_cast<uint8_t>(s_ScenePreviewMode);
+#else
+        return static_cast<uint8_t>(ScenePreviewMode::Shaded);
+#endif
     }
 
     void GraphicsManager::SetScenePreviewUvScale(float scale) {
+#ifndef PRODUCTION_BUILD
         if (!std::isfinite(scale) || scale <= 0.0f) {
             scale = 1.0f;
         }
         s_ScenePreviewUvScale = scale;
+#else
+        (void)scale;
+        s_ScenePreviewUvScale = 1.0f;
+#endif
     }
 
     float GraphicsManager::GetScenePreviewUvScale() {
+#ifndef PRODUCTION_BUILD
         return s_ScenePreviewUvScale;
+#else
+        return 1.0f;
+#endif
     }
 
     void GraphicsManager::InitDebugPrimitives() {

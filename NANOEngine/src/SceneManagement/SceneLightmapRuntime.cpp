@@ -7,12 +7,37 @@
 #include "ResourceManagement/ResourceManager.hpp"
 #include <glad/glad.h>
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <mutex>
 
 namespace NE::SceneManagement {
     namespace {
+        void LogLightmapRuntimeWarning(const std::string& message) {
+#ifndef PRODUCTION_BUILD
+            SPD_WARNING(message);
+#else
+            (void)message;
+#endif
+        }
+
+        void NoteResolvedPage(LightmapRuntimeState& state) {
+#ifndef PRODUCTION_BUILD
+            ++state.debugStats.resolvedPageCount;
+#else
+            (void)state;
+#endif
+        }
+
+        void NoteFailedPageResolve(LightmapRuntimeState& state) {
+#ifndef PRODUCTION_BUILD
+            ++state.debugStats.failedPageResolveCount;
+#else
+            (void)state;
+#endif
+        }
+
         bool IsPageRecordResolvable(const Lighting::LightmapPageRecord& page) {
             if (page.pageId.empty()) {
                 return false;
@@ -38,6 +63,7 @@ namespace NE::SceneManagement {
         std::unordered_map<const Scene*, LightmapRuntimeState> g_lightmapStates;
 
         void ReleasePreviewResidentHandles(LightmapRuntimeState& state) {
+#ifndef PRODUCTION_BUILD
             if (!state.previewOverrideActive) {
                 state.previewResidentHandles.clear();
                 return;
@@ -50,13 +76,13 @@ namespace NE::SceneManagement {
             }
             state.previewResidentHandles.clear();
             state.previewOverrideActive = false;
+#else
+            state.previewResidentHandles.clear();
+            state.previewOverrideActive = false;
+#endif
         }
 
         void PopulateFallbackHandles(LightmapRuntimeState& state) {
-            if (state.debugStats.resolvedPageCount == 0) {
-                return;
-            }
-
             std::uint64_t fallbackHandle = 0;
             for (const std::uint64_t handle : state.irradianceHandles) {
                 if (handle != 0u) {
@@ -147,42 +173,43 @@ namespace NE::SceneManagement {
 
                 if (page.pageId.empty()) {
                     ++skippedPageCount;
-                    ++state.debugStats.failedPageResolveCount;
+                    NoteFailedPageResolve(state);
                     runtimePage.failureReason = "missing page id";
-                    SPD_WARNING("Skipping lightmap page with missing page id while resolving scene lighting.");
+                    LogLightmapRuntimeWarning("Skipping lightmap page with missing page id while resolving scene lighting.");
                     continue;
                 }
 
                 const auto [itPageSlot, inserted] = state.pageSlots.emplace(page.pageId, slot);
                 if (!inserted) {
                     ++skippedPageCount;
-                    ++state.debugStats.failedPageResolveCount;
+                    NoteFailedPageResolve(state);
                     runtimePage.failureReason = "duplicate page id";
-                    SPD_WARNING("Skipping duplicate lightmap page id while resolving scene lighting: '" << page.pageId << "'");
+                    LogLightmapRuntimeWarning("Skipping duplicate lightmap page id while resolving scene lighting: '" + page.pageId + "'");
                     continue;
                 }
 
                 if (!IsPageRecordResolvable(page)) {
                     ++skippedPageCount;
-                    ++state.debugStats.failedPageResolveCount;
+                    NoteFailedPageResolve(state);
                     runtimePage.failureReason = "invalid page manifest";
-                    SPD_WARNING("Skipping invalid lightmap page while resolving scene lighting: pageId='" << page.pageId << "'");
+                    LogLightmapRuntimeWarning("Skipping invalid lightmap page while resolving scene lighting: pageId='" + page.pageId + "'");
                     continue;
                 }
 
                 if (slot >= kMaxSceneLightmapPages) {
                     ++skippedPageCount;
-                    ++state.debugStats.failedPageResolveCount;
+                    NoteFailedPageResolve(state);
                     runtimePage.failureReason = "page exceeds runtime slot limit";
-                    SPD_WARNING("Skipping lightmap page beyond runtime limit (" << kMaxSceneLightmapPages << "): '" << page.pageId << "'");
+                    LogLightmapRuntimeWarning("Skipping lightmap page beyond runtime limit (" +
+                        std::to_string(kMaxSceneLightmapPages) + "): '" + page.pageId + "'");
                     continue;
                 }
 
                 if (page.pageType != Lighting::LightmapPageType::NonDirectional) {
                     ++skippedPageCount;
-                    ++state.debugStats.failedPageResolveCount;
+                    NoteFailedPageResolve(state);
                     runtimePage.failureReason = "unsupported page type for runtime v1";
-                    SPD_WARNING("Skipping unsupported lightmap page type for runtime v1: pageId='" << page.pageId << "'");
+                    LogLightmapRuntimeWarning("Skipping unsupported lightmap page type for runtime v1: pageId='" + page.pageId + "'");
                     continue;
                 }
 
@@ -190,10 +217,10 @@ namespace NE::SceneManagement {
                     Resource::ResourceManager::GetInstance().LoadResource<Graphics::OpenGL::GLTexture>(page.irradianceTextureUUID);
                 if (!irradianceTexture) {
                     ++skippedPageCount;
-                    ++state.debugStats.failedPageResolveCount;
+                    NoteFailedPageResolve(state);
                     runtimePage.failureReason = "failed to load irradiance texture";
-                    SPD_WARNING("Failed to resolve irradiance lightmap texture for page '" << page.pageId
-                        << "' (texture UUID '" << page.irradianceTextureUUID << "')");
+                    LogLightmapRuntimeWarning("Failed to resolve irradiance lightmap texture for page '" + page.pageId +
+                        "' (texture UUID '" + page.irradianceTextureUUID + "')");
                     continue;
                 }
 
@@ -203,14 +230,14 @@ namespace NE::SceneManagement {
                 runtimePage.resolved = (runtimePage.irradianceHandle != 0);
                 if (!runtimePage.resolved) {
                     ++skippedPageCount;
-                    ++state.debugStats.failedPageResolveCount;
+                    NoteFailedPageResolve(state);
                     runtimePage.failureReason = "invalid irradiance bindless handle";
-                    SPD_WARNING("Resolved lightmap texture produced an invalid bindless handle for page '" << page.pageId << "'");
+                    LogLightmapRuntimeWarning("Resolved lightmap texture produced an invalid bindless handle for page '" + page.pageId + "'");
                     continue;
                 }
 
                 state.irradianceHandles[slot] = runtimePage.irradianceHandle;
-                ++state.debugStats.resolvedPageCount;
+                NoteResolvedPage(state);
             }
 
             PopulateFallbackHandles(state);
@@ -222,7 +249,10 @@ namespace NE::SceneManagement {
             }
 
             state.containerValid = true;
-            state.lightingUsable = (state.debugStats.resolvedPageCount > 0);
+            state.lightingUsable = std::any_of(
+                state.irradianceHandles.begin(),
+                state.irradianceHandles.end(),
+                [](std::uint64_t handle) { return handle != 0u; });
 
             container.valid = state.lightingUsable;
             container.resolvedAsset = std::move(lightingAsset);
@@ -239,6 +269,7 @@ namespace NE::SceneManagement {
     }
 
     void ResetSceneLightmapDebugStats(Scene& scene) {
+#ifndef PRODUCTION_BUILD
         std::scoped_lock lock(g_lightmapStateMutex);
         auto it = g_lightmapStates.find(&scene);
         if (it == g_lightmapStates.end()) return;
@@ -249,9 +280,13 @@ namespace NE::SceneManagement {
         stats.skippedInvalidBindingCount = 0;
         stats.skippedInvalidTransformCount = 0;
         stats.skippedMissingPageCount = 0;
+#else
+        (void)scene;
+#endif
     }
 
     void SetSceneLightmapDebugStats(Scene& scene, const LightmapRuntimeDebugStats& stats) {
+#ifndef PRODUCTION_BUILD
         std::scoped_lock lock(g_lightmapStateMutex);
         auto it = g_lightmapStates.find(&scene);
         if (it == g_lightmapStates.end()) return;
@@ -262,9 +297,14 @@ namespace NE::SceneManagement {
         dst.skippedInvalidBindingCount = stats.skippedInvalidBindingCount;
         dst.skippedInvalidTransformCount = stats.skippedInvalidTransformCount;
         dst.skippedMissingPageCount = stats.skippedMissingPageCount;
+#else
+        (void)scene;
+        (void)stats;
+#endif
     }
 
     bool EmitSceneLightmapWarningOnce(Scene& scene, std::string key, const std::string& message) {
+#ifndef PRODUCTION_BUILD
         bool inserted = false;
         {
             std::scoped_lock lock(g_lightmapStateMutex);
@@ -277,6 +317,12 @@ namespace NE::SceneManagement {
             SPD_WARNING(message);
         }
         return inserted;
+#else
+        (void)scene;
+        (void)key;
+        (void)message;
+        return false;
+#endif
     }
 
     const LightmapRuntimeState* GetSceneLightmapRuntimeState(const Scene* scene) {
@@ -305,6 +351,7 @@ namespace NE::SceneManagement {
     }
 
     void SetSceneLightmapPreviewState(Scene& scene, const std::vector<LightmapRuntimePreviewPageInput>& pages) {
+#ifndef PRODUCTION_BUILD
         LightmapRuntimeState state{};
         auto& container = scene.GetLightingContainer();
 
@@ -329,7 +376,7 @@ namespace NE::SceneManagement {
 
             if (inputPage.pageId.empty()) {
                 ++skippedPageCount;
-                ++state.debugStats.failedPageResolveCount;
+                NoteFailedPageResolve(state);
                 runtimePage.failureReason = "missing page id";
                 continue;
             }
@@ -337,21 +384,21 @@ namespace NE::SceneManagement {
             const auto [_, inserted] = state.pageSlots.emplace(inputPage.pageId, slot);
             if (!inserted) {
                 ++skippedPageCount;
-                ++state.debugStats.failedPageResolveCount;
+                NoteFailedPageResolve(state);
                 runtimePage.failureReason = "duplicate page id";
                 continue;
             }
 
             if (slot >= kMaxSceneLightmapPages) {
                 ++skippedPageCount;
-                ++state.debugStats.failedPageResolveCount;
+                NoteFailedPageResolve(state);
                 runtimePage.failureReason = "page exceeds runtime slot limit";
                 continue;
             }
 
             if (inputPage.width == 0u || inputPage.height == 0u || inputPage.textureId == 0u) {
                 ++skippedPageCount;
-                ++state.debugStats.failedPageResolveCount;
+                NoteFailedPageResolve(state);
                 runtimePage.failureReason = "invalid preview texture input";
                 continue;
             }
@@ -361,21 +408,24 @@ namespace NE::SceneManagement {
             runtimePage.resolved = (runtimePage.irradianceHandle != 0u);
             if (!runtimePage.resolved) {
                 ++skippedPageCount;
-                ++state.debugStats.failedPageResolveCount;
+                NoteFailedPageResolve(state);
                 runtimePage.failureReason = "failed to create preview bindless handle";
                 continue;
             }
 
             state.previewResidentHandles.push_back(runtimePage.irradianceHandle);
             state.irradianceHandles[slot] = runtimePage.irradianceHandle;
-            ++state.debugStats.resolvedPageCount;
+            NoteResolvedPage(state);
         }
 
         PopulateFallbackHandles(state);
 
         state.manifestResolved = !state.pageSlots.empty();
         state.containerValid = state.manifestResolved;
-        state.lightingUsable = (state.debugStats.resolvedPageCount > 0);
+        state.lightingUsable = std::any_of(
+            state.irradianceHandles.begin(),
+            state.irradianceHandles.end(),
+            [](std::uint64_t handle) { return handle != 0u; });
         if (!state.manifestResolved) {
             state.failureReason = "preview bake produced no resolvable pages";
         } else if (!state.lightingUsable) {
@@ -395,6 +445,10 @@ namespace NE::SceneManagement {
             ReleasePreviewResidentHandles(it->second);
         }
         g_lightmapStates[&scene] = std::move(state);
+#else
+        (void)scene;
+        (void)pages;
+#endif
     }
 
     void ClearSceneLightmapPreviewState(Scene& scene) {
@@ -405,7 +459,7 @@ namespace NE::SceneManagement {
         LightmapRuntimeState state = BuildState(scene);
 
         if (state.containerEnabled && !state.lightingUsable && !state.failureReason.empty()) {
-            SPD_WARNING("Scene lightmap runtime resolution fell back: " << state.failureReason);
+            LogLightmapRuntimeWarning("Scene lightmap runtime resolution fell back: " + state.failureReason);
         }
 
         std::scoped_lock lock(g_lightmapStateMutex);
