@@ -1337,6 +1337,71 @@ namespace NE::ECS {
 		}
 
 		//=========================================================================
+		// UI RECT TRANSFORM HELPERS
+		//=========================================================================
+
+		void SetUIRectTransformPos(uint32_t e, float x, float y) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIRectTransform>(e)) return;
+			auto& rect = ecs.GetComponent<Component::UIRectTransform>(e);
+			rect.x = x;
+			rect.y = y;
+			rect.worldMatrixDirty = true;
+			rect.worldRectCached = false;
+		}
+
+		void SetUIRectTransformSize(uint32_t e, float width, float height) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIRectTransform>(e)) return;
+			auto& rect = ecs.GetComponent<Component::UIRectTransform>(e);
+			rect.width = width;
+			rect.height = height;
+			rect.worldMatrixDirty = true;
+			rect.worldRectCached = false;
+		}
+
+		void SetUIRectTransformAnchor(uint32_t e, float minX, float minY, float maxX, float maxY) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIRectTransform>(e)) return;
+			auto& rect = ecs.GetComponent<Component::UIRectTransform>(e);
+			rect.anchorMinX = minX;
+			rect.anchorMinY = minY;
+			rect.anchorMaxX = maxX;
+			rect.anchorMaxY = maxY;
+			rect.worldMatrixDirty = true;
+			rect.worldRectCached = false;
+		}
+
+		void SetUIRectTransformPivot(uint32_t e, float pivotX, float pivotY) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIRectTransform>(e)) return;
+			auto& rect = ecs.GetComponent<Component::UIRectTransform>(e);
+			rect.pivotX = pivotX;
+			rect.pivotY = pivotY;
+			rect.worldMatrixDirty = true;
+			rect.worldRectCached = false;
+		}
+
+		void SetUIRectTransformRotation(uint32_t e, float rotZ) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIRectTransform>(e)) return;
+			auto& rect = ecs.GetComponent<Component::UIRectTransform>(e);
+			rect.rotationZ = rotZ;
+			rect.worldMatrixDirty = true;
+			rect.worldRectCached = false;
+		}
+
+		void SetUIRectTransformScale(uint32_t e, float scaleX, float scaleY) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIRectTransform>(e)) return;
+			auto& rect = ecs.GetComponent<Component::UIRectTransform>(e);
+			rect.scaleX = scaleX;
+			rect.scaleY = scaleY;
+			rect.worldMatrixDirty = true;
+			rect.worldRectCached = false;
+		}
+
+		//=========================================================================
 		// UI CANVAS HELPERS
 		//=========================================================================
 
