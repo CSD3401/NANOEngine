@@ -236,7 +236,7 @@ namespace Editor::Assets::ModelAssetInternal {
 			mat->SetTexture("u_MetallicMap", desc.metallicMapUUID);
 			mat->SetUniformInt("h_HasMetallicMap", desc.metallicMapUUID != "" ? 1 : 0);
 
-			mat->SetTexture("u_AmbientOcclusion", desc.ambientOcclusionMapUUID);
+			mat->SetTexture("u_AmbientOcclusionMap", desc.ambientOcclusionMapUUID);
 			mat->SetUniformInt("h_HasAmbientOcclusionMap", desc.ambientOcclusionMapUUID != "" ? 1 : 0);
 
 			matEd.Save();

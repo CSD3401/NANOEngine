@@ -246,8 +246,8 @@ namespace NE::Graphics {
 
 					light.dirShadowRes[c] = m_shadowRes;
 
-					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
@@ -290,8 +290,8 @@ namespace NE::Graphics {
 			GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
 		// Recommended defaults for shadow maps
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
@@ -466,8 +466,6 @@ namespace NE::Graphics {
 		using NE::Math::Mat4;
 
 		const float n = std::max(0.01f, view.nearPlane);
-		const float f = std::max(n + 0.01f, view.farPlane);
-
 		const float cascadeNear = (cascadeIdx == 0) ? n : light.dirCascadeSplitsVS[cascadeIdx - 1];
 		const float cascadeFar = light.dirCascadeSplitsVS[cascadeIdx];
 
@@ -499,34 +497,45 @@ namespace NE::Graphics {
 		Vec3 right, up;
 		BuildStableBasisFromDir(dir, right, up);
 
-		// Use bounding sphere radius for stable size (rotation-invariant)
 		float radius = 0.0f;
 		for (auto& p : frustumWS) {
 			float dist = (p - center).Length();
 			radius = std::max(radius, dist);
 		}
 
-		// Build light view matrix with stable orientation
-		const float pullBack = 500.0f;
+		const float cascadeDepth = std::max(cascadeFar - cascadeNear, 1.0f);
+		const float pullBack = radius + cascadeDepth;
 		Vec3 eye = center - dir * pullBack;
 		Mat4 lightView = Mat4::BuildViewMtx(eye, center, up);
 
-		// Compute depth range from frustum corners in light space
-		float minZ = +FLT_MAX, maxZ = -FLT_MAX;
+		float minX = +FLT_MAX, minY = +FLT_MAX, minZ = +FLT_MAX;
+		float maxX = -FLT_MAX, maxY = -FLT_MAX, maxZ = -FLT_MAX;
 		for (auto& pWS : frustumWS) {
 			Vec3 pLS = TransformPoint(lightView, pWS, 1.0f);
+			minX = std::min(minX, pLS.x);
+			maxX = std::max(maxX, pLS.x);
+			minY = std::min(minY, pLS.y);
+			maxY = std::max(maxY, pLS.y);
 			minZ = std::min(minZ, pLS.z);
 			maxZ = std::max(maxZ, pLS.z);
 		}
 
-		// Symmetric ortho bounds (using radius for stability)
-		float minX = -radius;
-		float maxX = +radius;
-		float minY = -radius;
-		float maxY = +radius;
+		float extentX = std::max(maxX - minX, 1e-3f);
+		float extentY = std::max(maxY - minY, 1e-3f);
+		float unitsPerTexelX = extentX / float(m_shadowRes);
+		float unitsPerTexelY = extentY / float(m_shadowRes);
+		float centerX = 0.5f * (minX + maxX);
+		float centerY = 0.5f * (minY + maxY);
 
-		// Depth padding to catch shadow casters behind the frustum
-		const float padZ = 200.0f;
+		centerX = std::floor(centerX / unitsPerTexelX) * unitsPerTexelX;
+		centerY = std::floor(centerY / unitsPerTexelY) * unitsPerTexelY;
+
+		minX = centerX - 0.5f * extentX;
+		maxX = centerX + 0.5f * extentX;
+		minY = centerY - 0.5f * extentY;
+		maxY = centerY + 0.5f * extentY;
+
+		const float padZ = std::max(cascadeDepth * 0.5f, 10.0f);
 		float nearP = -maxZ - padZ;
 		float farP = -minZ + padZ;
 

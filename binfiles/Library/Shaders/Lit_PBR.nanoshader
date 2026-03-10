@@ -546,7 +546,7 @@ Light MakeLightFromGPULight(GPULight g) {
     L.innerCutoff = g.params.x;
     L.outerCutoff = g.params.y;
     L.range = g.params.z;
-    L.shadowIndex = int(g.params.w + 0.5);
+    L.shadowIndex = int(round(g.params.w));
     L.shadowType = int(g.direction.w + 0.5);
     return L;
 }
@@ -618,7 +618,8 @@ void main() {
         metal = clamp(texture(u_MetallicMap, uv).r, 0.0, 1.0);
     }
 
-    float ao = clamp(u_AmbientOcclusion, 0.0, 1.0);
+    float ao = 1.0;
+    ao *= clamp(u_AmbientOcclusion, 0.0, 1.0);
     if (h_HasAmbientOcclusionMap != 0) {
         ao *= clamp(texture(u_AmbientOcclusionMap, uv).r, 0.0, 1.0);
     }

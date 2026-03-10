@@ -1301,7 +1301,7 @@ namespace NE::Graphics {
                         dirSplits[c] = dirForSplits->dirCascadeSplitsVS[c];
                 }
 
-                shader->SetUniformInt("i_DirCascadeCount", ECS::Component::Light::DIR_CASCADES);
+                shader->SetUniformInt("i_DirCascadeCount", dirCascadeCount);
 
                 for (int c = 0; c < NE::ECS::Component::Light::DIR_CASCADES; ++c) {
                     std::string splitName = "i_DirCascadeSplitsVS[" + std::to_string(c) + "]";
