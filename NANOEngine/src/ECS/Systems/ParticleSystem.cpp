@@ -378,27 +378,53 @@ namespace NE::ECS::Systems {
 
 	NE::Math::Vec3 ParticleSystem::SampleInitialVelocity(ParticleEmitter& e)
 	{
-		NE::Math::Vec3 dir = {
-			RandRange(e.rngState, -1.f, 1.f),
-			RandRange(e.rngState, -1.f, 1.f),
-			RandRange(e.rngState, -1.f, 1.f)
-		};
-		dir = NormalizeSafe(dir);
+		// Local emitter forward.
+		// If particles shoot backwards, change this to { 0.f, 0.f, 1.f }.
+		const NE::Math::Vec3 forward{ 0.f, 0.f, -1.f };
+		const NE::Math::Vec3 right{ 1.f, 0.f,  0.f };
+		const NE::Math::Vec3 up{ 0.f, 1.f, 0.f };
 
-		// Cone bias: bias direction towards +Y based on coneAngle
+		NE::Math::Vec3 dir = forward;
+
 		if (e.shape == ParticleEmitter::ShapeType::Cone)
 		{
-			const float bias = Clamp01(e.coneAngle / 90.0f);
-			const NE::Math::Vec3 up{ 0.f, 1.f, 0.f };
-			dir = NormalizeSafe({
-				up.x * (1.0f - bias) + dir.x * bias,
-				up.y * (1.0f - bias) + dir.y * bias,
-				up.z * (1.0f - bias) + dir.z * bias
-				});
+			// Sample inside a cone around local forward using coneAngle
+			const float theta = RandRange(e.rngState, 0.0f, 2.0f * 3.14159265359f);
+			const float angleDeg = RandRange(e.rngState, 0.0f, e.coneAngle);
+			const float angleRad = angleDeg * (3.14159265359f / 180.0f);
+
+			const float sinA = std::sin(angleRad);
+			const float cosA = std::cos(angleRad);
+
+			dir = NormalizeSafe(
+				forward * cosA +
+				right * (sinA * std::cos(theta)) +
+				up * (sinA * std::sin(theta))
+			);
+		}
+		else if (e.shape == ParticleEmitter::ShapeType::Point)
+		{
+			// Point emitter shoots straight forward
+			dir = forward;
+		}
+		else if (e.shape == ParticleEmitter::ShapeType::Sphere)
+		{
+			// Sphere keeps the old "all directions" style
+			dir = {
+				RandRange(e.rngState, -1.f, 1.f),
+				RandRange(e.rngState, -1.f, 1.f),
+				RandRange(e.rngState, -1.f, 1.f)
+			};
+			dir = NormalizeSafe(dir);
+		}
+		else if (e.shape == ParticleEmitter::ShapeType::Box)
+		{
+			// Box emitter also shoots forward by default
+			dir = forward;
 		}
 
 		const float speed = RandRange(e.rngState, e.speedMin, e.speedMax);
-		return { dir.x * speed, dir.y * speed, dir.z * speed };
+		return dir * speed;
 	}
 
 	// =========================================================
