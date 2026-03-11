@@ -1000,7 +1000,7 @@ namespace NE::Graphics {
     uint32_t GraphicsManager::s_ScreenHeight = 1080;
 	uint32_t GraphicsManager::s_GameViewWidth = 1920;
 	uint32_t GraphicsManager::s_GameViewHeight = 1080;
-    std::vector<ECS::Component::Light*> GraphicsManager::m_lights;
+    std::vector<RenderLightRef> GraphicsManager::m_lights;
     int GraphicsManager::drawCount = 0;
     bool GraphicsManager::enableSorting = true;
 
@@ -1200,45 +1200,51 @@ namespace NE::Graphics {
             std::vector<GLuint>     shadowTextures;
             shadowVPs.reserve(MAX_SHADOWS);
             shadowTextures.reserve(MAX_SHADOWS);
-            ECS::Component::Light* dirForSplits = nullptr;
+            RenderLightRef* dirForSplits = nullptr;
 
             int shadowCount = 0;
-            for (auto* l : m_lights) {
+            for (auto& lightRef : m_lights) {
+                auto* l = lightRef.light;
                 if (!l) continue;
-                l->shadowIndex = -1;
+
+                LightShadowRuntime* runtime = s_shadowRenderer ? s_shadowRenderer->FindRuntime(lightRef.entity) : nullptr;
+                if (runtime) {
+                    runtime->shadowIndex = -1;
+                }
 
                 if (l->shadowType == NE::ECS::Component::Light::None) continue;
+                if (!runtime) continue;
 
                 // Directional CSM
                 if (l->type == NE::ECS::Component::Light::Directional && 
-                    l->shadowCascadeCount == NE::ECS::Component::Light::DIR_CASCADES) 
+                    runtime->shadowCascadeCount == NE::ECS::Component::Light::DIR_CASCADES) 
                 {
                     if (shadowCount + NE::ECS::Component::Light::DIR_CASCADES > MAX_SHADOWS) continue;
 
-                    if (!dirForSplits) dirForSplits = l;
+                    if (!dirForSplits) dirForSplits = &lightRef;
 
-                    l->shadowIndex = shadowCount;
+                    runtime->shadowIndex = shadowCount;
                     for (int c = 0; c < NE::ECS::Component::Light::DIR_CASCADES; ++c) {
-                        shadowVPs.push_back(l->dirLightVP[c]);
-                        shadowTextures.push_back(l->dirShadowTex[c]);
+                        shadowVPs.push_back(runtime->dirLightVP[c]);
+                        shadowTextures.push_back(runtime->dirShadowTex[c]);
                         ++shadowCount;
                     }
                     continue;
                 }
 
                 // Single-map (Spot)
-                if (l->shadowMapTex != 0 && l->shadowCascadeCount == 1) {
+                if (runtime->shadowMapTex != 0 && runtime->shadowCascadeCount == 1) {
                     if (shadowCount >= MAX_SHADOWS) continue;
-                    l->shadowIndex = shadowCount;
-                    shadowVPs.push_back(l->lightViewProj);
-                    shadowTextures.push_back(l->shadowMapTex);
+                    runtime->shadowIndex = shadowCount;
+                    shadowVPs.push_back(runtime->lightViewProj);
+                    shadowTextures.push_back(runtime->shadowMapTex);
                     ++shadowCount;
                 }
             }
 
             RenderView viewForLighting = view;
             viewForLighting.projection = camProj;
-            s_clusteredLighting->BuildForView(viewForLighting, m_lights);
+            s_clusteredLighting->BuildForView(viewForLighting, *s_shadowRenderer, m_lights);
 
             // Prepare instance data buffer and batching variables
             std::vector<InstanceData> instanceData;
@@ -1290,11 +1296,14 @@ namespace NE::Graphics {
                 float dirSplits[NE::ECS::Component::Light::DIR_CASCADES] = {};
 
                 if (dirForSplits) {
+                    const LightShadowRuntime* dirRuntime = s_shadowRenderer ? s_shadowRenderer->FindRuntime(dirForSplits->entity) : nullptr;
                     // Directional cascade splits are derived from the active view, so one upload
                     // is shared across directional lights in the current renderer design.
-                    dirCascadeCount = dirForSplits->shadowCascadeCount;
-                    for (int c = 0; c < NE::ECS::Component::Light::DIR_CASCADES; ++c)
-                        dirSplits[c] = dirForSplits->dirCascadeSplitsVS[c];
+                    if (dirRuntime) {
+                        dirCascadeCount = dirRuntime->shadowCascadeCount;
+                        for (int c = 0; c < NE::ECS::Component::Light::DIR_CASCADES; ++c)
+                            dirSplits[c] = dirRuntime->dirCascadeSplitsVS[c];
+                    }
                 }
 
                 shader->SetUniformInt("i_DirCascadeCount", dirCascadeCount);
@@ -1918,6 +1927,10 @@ namespace NE::Graphics {
             s_PostPipeline->Shutdown();
             s_PostPipeline.reset();
         }
+        if (s_shadowRenderer) {
+            s_shadowRenderer->Shutdown();
+            s_shadowRenderer.reset();
+        }
 		s_RenderViewManager->Shutdown();
         s_skybox.reset();
         s_CommandBuffer.reset();
@@ -1932,6 +1945,7 @@ namespace NE::Graphics {
         s_DecalGizmoMaterial.reset();
         s_DecalCubeMesh.reset();
         s_DecalQueue.clear();
+        m_lights.clear();
         s_NormalPrepassShader.reset();
 #ifndef PRODUCTION_BUILD
         s_EditorDebugViewShader.reset();

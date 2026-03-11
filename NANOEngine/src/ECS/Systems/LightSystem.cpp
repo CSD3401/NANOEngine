@@ -61,7 +61,7 @@ namespace NE::ECS::Systems {
                 auto& light = m_componentManager->GetComponent<Component::Light>(entity);
                 light.position = t.worldMatrix.GetTranslation();
                 light.direction = t.worldMatrix.Forward();
-                Graphics::GraphicsManager::m_lights.push_back(&light);
+                Graphics::GraphicsManager::m_lights.push_back({ entity, &light });
 
 #ifndef PRODUCTION_BUILD
                 Graphics::LightGizmoCommand gizmoCommand{};

@@ -1598,8 +1598,6 @@ namespace Editor {
 					comp.data.emplace<Light::AreaLightData>();
 					break;
 				}
-
-				comp.isDirty = true;
 			}
 		}
 
