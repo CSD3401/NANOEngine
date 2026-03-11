@@ -32,6 +32,7 @@ namespace NE {
 
 	NANOENGINE_API void* GetNativeWindowHandle();
 	NANOENGINE_API bool WindowShouldClose();
+	NANOENGINE_API void RequestClose();
 	NANOENGINE_API uint32_t GetSceneColorAttachment();
 	NANOENGINE_API uint32_t GetSceneDebugAttachment();
 	NANOENGINE_API uint32_t GetGameColorAttachment();

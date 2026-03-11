@@ -1017,6 +1017,21 @@ namespace Scripting {
 
 	SCRIPT_API void SetMouseVisible(bool visible);
 
+    /**
+     * @brief Request the engine to close and exit gracefully
+     *
+     * This signals the engine to shut down properly, allowing all systems
+     * to clean up their resources (graphics, physics, scripting, etc.)
+     *
+     * Example:
+     * @code
+     * if (NE::Input::WasKeyPressed(NE::Input::KeyCode::Escape)) {
+     *     NE::Scripting::RequestClose();
+     * }
+     * @endcode
+     */
+    SCRIPT_API void RequestClose();
+
     //=========================================================================
     // EVENT API (SDK-level event system for script communication)
     //=========================================================================
@@ -1417,6 +1432,11 @@ namespace Events {
     inline void ClearAllListeners() {
         NE::Scripting::ClearScriptEventListeners();
     }
+}
+
+/// Engine control namespace - game lifecycle and engine state
+namespace Engine {
+    inline void RequestClose() { return NE::Scripting::RequestClose(); }
 }
 
 /// Coroutine system namespace - delayed and sequenced actions
