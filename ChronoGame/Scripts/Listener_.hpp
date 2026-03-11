@@ -108,7 +108,7 @@ public:
     void Awake() override {}
     void Initialize(Entity entity) override {
         SCRIPT_ENUM_FIELD(listenerType, "ANY_SOLVE", "ALL_SOLVE");
-        SCRIPT_ENUM_VECTOR_FIELD(puzzleKeys, "_1", "_2", "_3", "_4", "_5", "_6");
+        SCRIPT_ENUM_VECTOR_FIELD(puzzleKeys, "_1", "_2", "_3", "_4", "_5", "_6", "_TrainKey01", "_TrainKey02", "_TrainKey03");
     }
     void Start() override {
         LOG_DEBUG("Listener_ Start called!");

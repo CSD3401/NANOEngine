@@ -8,20 +8,29 @@
 
 class Misc_MaterialSwitcher : public IScript {
 public:
-    Misc_MaterialSwitcher() = default;
-    ~Misc_MaterialSwitcher() override = default;
-
-    // === Lifecycle Methods ===
-    void Awake() override {}
-
-    void Initialize(Entity entity) override {
+    Misc_MaterialSwitcher() {
         SCRIPT_COMPONENT_REF(pastMaterial, MaterialRef);
         SCRIPT_COMPONENT_REF(presentMaterial, MaterialRef);
     }
+    ~Misc_MaterialSwitcher() override = default;
+
+    // === Lifecycle Methods ===
+    void Awake() override {
+        if (eventsRegistered) return;
+        Events::Listen("ChronoActivated", [this](void*) {
+            ShowPast();
+            });
+        Events::Listen("ChronoDeactivated", [this](void*) {
+            ShowPresent();
+            });
+        eventsRegistered = true;
+    }
+
+    void Initialize(Entity entity) override { (void)entity; }
 
     void Start() override {}
 
-    void Update(double deltaTime) override {}
+    void Update(double deltaTime) override { (void)deltaTime; }
 
     void OnDestroy() override {}
 
@@ -56,6 +65,7 @@ public:
 private:
     MaterialRef pastMaterial;
     MaterialRef presentMaterial;
+    bool eventsRegistered = false;
 
     void ApplyMaterial(const MaterialRef& material, bool isPast) {
         if (!material.IsValid()) {
@@ -73,7 +83,8 @@ private:
                 const Entity child = GetChild(i, targetEntity);
                 appliedAny = ApplyMaterialToEntity(child, material) || appliedAny;
             }
-        } else {
+        }
+        else {
             appliedAny = ApplyMaterialToEntity(targetEntity, material);
         }
 

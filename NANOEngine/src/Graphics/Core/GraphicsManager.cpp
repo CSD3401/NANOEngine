@@ -1145,6 +1145,7 @@ namespace NE::Graphics {
             const auto& view = it->second;
 
             const auto& commands = s_DrawQueue->GetCommands();
+            // Shadow fitting must use the unjittered camera matrices from RenderView.
             s_shadowRenderer->Update(view, m_lights, commands);
 
             s_RenderViewManager->Bind(handle);
@@ -1289,6 +1290,8 @@ namespace NE::Graphics {
                 float dirSplits[NE::ECS::Component::Light::DIR_CASCADES] = {};
 
                 if (dirForSplits) {
+                    // Directional cascade splits are derived from the active view, so one upload
+                    // is shared across directional lights in the current renderer design.
                     dirCascadeCount = dirForSplits->shadowCascadeCount;
                     for (int c = 0; c < NE::ECS::Component::Light::DIR_CASCADES; ++c)
                         dirSplits[c] = dirForSplits->dirCascadeSplitsVS[c];

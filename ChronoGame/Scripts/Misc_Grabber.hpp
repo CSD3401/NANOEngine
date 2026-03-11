@@ -37,7 +37,13 @@ public:
     void OnDestroy() override {}
 
     // === Optional Callbacks ===
-    void OnEnable() override {}
+    void OnEnable() override {
+        Events::Listen("LetGo", [this](void* data) {
+
+            LetGo();
+
+            });
+    }
     void OnDisable() override {}
     void OnValidate() override {}
     const char* GetTypeName() const override { return "Misc_Grabber"; }

@@ -225,6 +225,15 @@ int ChooseDirCascade(vec3 worldPos) {
     return i_DirCascadeCount - 1;
 }
 
+float ComputeShadowBias(int shadowIndex, vec3 normal, vec3 lightDir) {
+    vec3 N = normalize(normal);
+    vec3 L = normalize(lightDir);
+    float ndotl = max(dot(N, L), 0.0);
+    float texel = 1.0 / float(textureSize(i_ShadowMaps[shadowIndex], 0).x);
+    float slope = 1.0 - ndotl;
+    return max(0.00035 + texel * (1.5 + 3.0 * slope), 0.00035);
+}
+
 float SampleShadowHardIndexed(int shadowIndex, vec3 worldPos, vec3 normal, vec3 lightDir) {
     if (shadowIndex < 0 || shadowIndex >= i_NumShadowMaps) {
         return 1.0;
@@ -244,10 +253,7 @@ float SampleShadowHardIndexed(int shadowIndex, vec3 worldPos, vec3 normal, vec3 
 
     float closestDepth = texture(i_ShadowMaps[shadowIndex], projCoords.xy).r;
     float currentDepth = projCoords.z;
-
-    float ndotl = max(dot(normalize(normal), normalize(lightDir)), 0.0);
-    float texel = 1.0 / float(textureSize(i_ShadowMaps[shadowIndex], 0).x);
-    float bias  = max((0.0005 + 2.0 * texel) * (1.0 - ndotl), 0.0005);
+    float bias = ComputeShadowBias(shadowIndex, normal, lightDir);
 
     return (currentDepth - bias > closestDepth) ? 0.0 : 1.0;
 }
@@ -270,23 +276,23 @@ float SampleShadowSoftIndexed(int shadowIndex, vec3 worldPos, vec3 normal, vec3 
     }
 
     float currentDepth = projCoords.z;
-    float ndotl = max(dot(normalize(normal), normalize(lightDir)), 0.0);
-    float bias  = max(0.0005 * (1.0 - ndotl), 0.0005);
+    float bias = ComputeShadowBias(shadowIndex, normal, lightDir);
 
     vec2 texelSize = 1.0 / vec2(textureSize(i_ShadowMaps[shadowIndex], 0));
     float shadowSum = 0.0;
-    int samples = 0;
 
-    for (int x = -1; x <= 1; ++x) {
-        for (int y = -1; y <= 1; ++y) {
+    for (int x = -2; x <= 2; ++x) {
+        float wx = float(3 - abs(x));
+        for (int y = -2; y <= 2; ++y) {
+            float wy = float(3 - abs(y));
+            float weight = wx * wy;
             vec2 offset = vec2(x, y) * texelSize;
             float closestDepth = texture(i_ShadowMaps[shadowIndex], projCoords.xy + offset).r;
-            shadowSum += (currentDepth - bias > closestDepth) ? 0.0 : 1.0;
-            samples++;
+            shadowSum += ((currentDepth - bias > closestDepth) ? 0.0 : 1.0) * weight;
         }
     }
 
-    return shadowSum / float(samples);
+    return shadowSum / 81.0;
 }
 
 vec2 ParallaxOcclusionMapping(vec2 uv, vec3 V_ts) {
@@ -337,6 +343,7 @@ float ComputeShadowForLight(in Light L, vec3 worldPos, vec3 N) {
         lightDir = normalize(-L.direction);
         int c = ChooseDirCascade(worldPos);
         shadowSlot = L.shadowIndex + c;
+        return SampleShadowSoftIndexed(shadowSlot, worldPos, N, lightDir);
     } else {
         lightDir = normalize(L.position - worldPos);
     }
