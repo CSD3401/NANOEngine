@@ -96,7 +96,6 @@ namespace NE::ECS::Component {
         LightTypeData data;
         ShadowType shadowType = ShadowType::None;
         ShadowUpdateMode shadowUpdateMode = ShadowUpdateMode::NoneUpdate;
-        bool isDirty = false;
 
         uint32_t shadowMapTex = 0;
         uint32_t shadowMapFBO = 0;
