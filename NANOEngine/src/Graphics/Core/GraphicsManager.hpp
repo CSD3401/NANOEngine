@@ -11,6 +11,7 @@
 #include "DecalCommand.hpp"
 #include "DecalGizmoCommand.hpp"
 #include "DrawQueue.hpp"
+#include "LightShadowRuntime.hpp"
 #include "RenderViewManager.hpp"
 #include "RenderSettings.hpp"
 #include "PostProcessingSettings.hpp"
@@ -146,7 +147,7 @@ namespace NE::Graphics {
         static void ClearSelectedEntities();
 
         // lights
-        static std::vector<ECS::Component::Light*> m_lights;
+        static std::vector<RenderLightRef> m_lights;
 
         // Draw Count Profiling
         static int drawCount;
