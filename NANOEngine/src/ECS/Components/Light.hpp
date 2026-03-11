@@ -8,9 +8,6 @@
 #include "Core/Reflection.hpp"
 
 namespace NE::ECS::Component {
-
-    // Maybe add radius next time
-
 	struct Light {
         static constexpr int DIR_CASCADES = 4;
 
@@ -87,6 +84,8 @@ namespace NE::ECS::Component {
         
         // Internal (Set by transform component)
         Math::Vec3 position{ 0.f, 0.f, 0.f };
+        Math::Vec3 right{ 1.f, 0.f, 0.f };
+        Math::Vec3 up{ 0.f, 1.f, 0.f };
         Math::Vec3 direction{ 0.f, -1.f, 0.f };
 
         // Exposed Shared

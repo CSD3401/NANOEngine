@@ -83,6 +83,10 @@ namespace NE::Graphics {
         std::array<std::shared_ptr<Material>, 4> s_LightGizmoMaterials;
         std::shared_ptr<Material> s_DecalGizmoMaterial;
         std::shared_ptr<IGeometryBuffer> s_DecalCubeMesh;
+        GLuint s_LtcMatTexture = 0;
+        GLuint s_LtcAmpTexture = 0;
+        std::uint64_t s_LtcMatHandle = 0;
+        std::uint64_t s_LtcAmpHandle = 0;
 
         inline Math::Vec3 TransformPoint(const Math::Mat4& M, const Math::Vec3& p) {
             Math::Vec4 v = M * Math::Vec4(p.x, p.y, p.z, 1.0f);
@@ -263,6 +267,31 @@ namespace NE::Graphics {
             }
         }
 
+        inline void AppendWireRectangle(
+            std::vector<Vec3>& vertices,
+            const Vec3& center,
+            const Vec3& axisX,
+            const Vec3& axisY,
+            float halfWidth,
+            float halfHeight)
+        {
+            if (halfWidth <= 0.0f || halfHeight <= 0.0f) return;
+
+            const Vec3 corner0 = center - axisX * halfWidth - axisY * halfHeight;
+            const Vec3 corner1 = center + axisX * halfWidth - axisY * halfHeight;
+            const Vec3 corner2 = center + axisX * halfWidth + axisY * halfHeight;
+            const Vec3 corner3 = center - axisX * halfWidth + axisY * halfHeight;
+
+            vertices.push_back(corner0);
+            vertices.push_back(corner1);
+            vertices.push_back(corner1);
+            vertices.push_back(corner2);
+            vertices.push_back(corner2);
+            vertices.push_back(corner3);
+            vertices.push_back(corner3);
+            vertices.push_back(corner0);
+        }
+
         //inline void QueueLightDebugGeometryForView(
         //    RenderViewHandle handle,
         //    RenderViewHandle sceneViewHandle,
@@ -398,6 +427,87 @@ namespace NE::Graphics {
             material->SetUniformInt("u_HasOpacityMap", 1);
 
             s_DecalGizmoMaterial = std::move(material);
+        }
+
+        void CreateRectLightLtcTextures() {
+            if (s_LtcMatTexture != 0 && s_LtcAmpTexture != 0) {
+                return;
+            }
+
+            constexpr int kLtcLutSize = 64;
+            std::vector<float> matPixels(static_cast<size_t>(kLtcLutSize) * static_cast<size_t>(kLtcLutSize) * 4u, 0.0f);
+            std::vector<float> ampPixels(static_cast<size_t>(kLtcLutSize) * static_cast<size_t>(kLtcLutSize) * 4u, 0.0f);
+
+            for (int y = 0; y < kLtcLutSize; ++y) {
+                const float roughness = static_cast<float>(y) / static_cast<float>(kLtcLutSize - 1);
+                const float alpha = std::max(roughness * roughness, 0.02f);
+
+                for (int x = 0; x < kLtcLutSize; ++x) {
+                    const float ndotv = static_cast<float>(x) / static_cast<float>(kLtcLutSize - 1);
+                    const float grazing = 1.0f - ndotv;
+                    const float sharpness = 1.0f - alpha;
+
+                    const float scaleX = std::max(0.14f, 1.0f - sharpness * (0.82f + 0.12f * grazing));
+                    const float scaleY = std::max(0.10f, 1.0f - sharpness * (0.90f - 0.20f * ndotv));
+                    const float skew = grazing * sharpness * 0.35f;
+                    const float amplitude = std::max(0.08f, (0.35f + 0.65f * ndotv) * (0.55f + 0.45f * (1.0f - 0.5f * roughness)));
+
+                    const size_t index = (static_cast<size_t>(y) * static_cast<size_t>(kLtcLutSize) + static_cast<size_t>(x)) * 4u;
+                    matPixels[index + 0u] = scaleX;
+                    matPixels[index + 1u] = skew;
+                    matPixels[index + 2u] = scaleY;
+                    matPixels[index + 3u] = 1.0f;
+
+                    ampPixels[index + 0u] = amplitude;
+                    ampPixels[index + 1u] = 1.0f;
+                    ampPixels[index + 2u] = 0.0f;
+                    ampPixels[index + 3u] = 1.0f;
+                }
+            }
+
+            auto createTexture = [](GLuint& texture, const std::vector<float>& pixels) {
+                glCreateTextures(GL_TEXTURE_2D, 1, &texture);
+                glTextureStorage2D(texture, 1, GL_RGBA16F, kLtcLutSize, kLtcLutSize);
+                glTextureSubImage2D(
+                    texture,
+                    0,
+                    0,
+                    0,
+                    kLtcLutSize,
+                    kLtcLutSize,
+                    GL_RGBA,
+                    GL_FLOAT,
+                    pixels.data());
+                glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                glTextureParameteri(texture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                glTextureParameteri(texture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            };
+
+            createTexture(s_LtcMatTexture, matPixels);
+            createTexture(s_LtcAmpTexture, ampPixels);
+
+            s_LtcMatHandle = OpenGL::GetClampBindlessHandleForTexture(s_LtcMatTexture);
+            s_LtcAmpHandle = OpenGL::GetClampBindlessHandleForTexture(s_LtcAmpTexture);
+        }
+
+        void DestroyRectLightLtcTextures() {
+            if (s_LtcMatHandle != 0u) {
+                glMakeTextureHandleNonResidentARB(s_LtcMatHandle);
+                s_LtcMatHandle = 0u;
+            }
+            if (s_LtcAmpHandle != 0u) {
+                glMakeTextureHandleNonResidentARB(s_LtcAmpHandle);
+                s_LtcAmpHandle = 0u;
+            }
+            if (s_LtcMatTexture != 0u) {
+                glDeleteTextures(1, &s_LtcMatTexture);
+                s_LtcMatTexture = 0u;
+            }
+            if (s_LtcAmpTexture != 0u) {
+                glDeleteTextures(1, &s_LtcAmpTexture);
+                s_LtcAmpTexture = 0u;
+            }
         }
 
         void RenderLightGizmosForView(
@@ -1069,6 +1179,7 @@ namespace NE::Graphics {
         }
 
         s_clusteredLighting = std::make_shared<OpenGL::GLClusteredLighting>();
+        CreateRectLightLtcTextures();
 
         InitDebugPrimitives();
         DebugDrawSystem::SetStateCache(s_StateCache.get());
@@ -1212,7 +1323,8 @@ namespace NE::Graphics {
                     runtime->shadowIndex = -1;
                 }
 
-                if (l->shadowType == NE::ECS::Component::Light::None) continue;
+                if (l->shadowType == NE::ECS::Component::Light::None ||
+                    l->type == NE::ECS::Component::Light::Area) continue;
                 if (!runtime) continue;
 
                 // Directional CSM
@@ -1274,6 +1386,8 @@ namespace NE::Graphics {
                 shader->SetUniformMat4("u_Projection", camProj);
                 shader->SetUniformVec3("u_CameraPos", camPos);
                 BindSceneLightmapUniforms(*shader);
+                shader->SetUniformHandle("u_LtcMatTexture", s_LtcMatHandle);
+                shader->SetUniformHandle("u_LtcAmpTexture", s_LtcAmpHandle);
 
                 shader->SetUniformVec3("i_GlobalAmbientColor", renderSettings.ambientColour);
                 shader->SetUniformFloat("i_GlobalAmbientIntensity", renderSettings.ambientIntensity);
@@ -1931,6 +2045,7 @@ namespace NE::Graphics {
             s_shadowRenderer->Shutdown();
             s_shadowRenderer.reset();
         }
+        DestroyRectLightLtcTextures();
 		s_RenderViewManager->Shutdown();
         s_skybox.reset();
         s_CommandBuffer.reset();
@@ -2246,6 +2361,52 @@ namespace NE::Graphics {
                 );
                 GraphicsManager::AddDebugLinesBatch(vertices, baseColor * 0.6f);
             }
+            break;
+        }
+        case ECS::Component::Light::Type::Area: {
+            const auto* areaData = std::get_if<ECS::Component::Light::AreaLightData>(&light.data);
+            if (!areaData) break;
+
+            const float halfWidth = std::max(areaData->width * 0.5f, LIGHT_DEBUG_MIN_RANGE * 0.5f);
+            const float halfHeight = std::max(areaData->height * 0.5f, LIGHT_DEBUG_MIN_RANGE * 0.5f);
+
+            Vec3 lightRight = light.right;
+            if (lightRight.LengthSquared() < 1e-6f) {
+                lightRight = { 1.0f, 0.0f, 0.0f };
+            }
+            lightRight.Normalize();
+
+            Vec3 lightUp = light.up;
+            if (lightUp.LengthSquared() < 1e-6f) {
+                lightUp = { 0.0f, 1.0f, 0.0f };
+            }
+            lightUp.Normalize();
+
+            Vec3 emitNormal = light.direction;
+            if (emitNormal.LengthSquared() < 1e-6f) {
+                emitNormal = { 0.0f, 0.0f, -1.0f };
+            }
+            emitNormal.Normalize();
+
+            vertices.clear();
+            AppendWireRectangle(vertices, light.position, lightRight, lightUp, halfWidth, halfHeight);
+
+            const float markerLength = std::max(std::min(std::max(areaData->width, areaData->height) * 0.35f, areaData->range * 0.35f), LIGHT_DEBUG_MIN_RANGE);
+            const float markerWing = std::max(markerLength * 0.2f, LIGHT_DEBUG_MIN_RANGE * 0.5f);
+            const Vec3 arrowTip = light.position + emitNormal * markerLength;
+            const Vec3 arrowBase = arrowTip - emitNormal * markerWing * 1.5f;
+            vertices.push_back(light.position);
+            vertices.push_back(arrowTip);
+            vertices.push_back(arrowTip);
+            vertices.push_back(arrowBase + lightRight * markerWing);
+            vertices.push_back(arrowTip);
+            vertices.push_back(arrowBase - lightRight * markerWing);
+            vertices.push_back(arrowTip);
+            vertices.push_back(arrowBase + lightUp * markerWing);
+            vertices.push_back(arrowTip);
+            vertices.push_back(arrowBase - lightUp * markerWing);
+
+            GraphicsManager::AddDebugLinesBatch(vertices, baseColor);
             break;
         }
         default:

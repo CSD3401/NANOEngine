@@ -22,11 +22,13 @@ namespace Editor::Lightmapping {
 	namespace {
 		constexpr float kFiniteEpsilon = 1e-6f;
 		constexpr size_t kMaxWarningExamples = 64;
+		constexpr int kAreaLightBakeSamples = 16;
 
 		enum class BakeLightKind : uint8_t {
 			Directional,
 			Point,
-			Spot
+			Spot,
+			Area
 		};
 
 		struct BakeLightSnapshot {
@@ -36,11 +38,15 @@ namespace Editor::Lightmapping {
 			BakeLightKind kind = BakeLightKind::Directional;
 			NE::Math::Vec3 position{ 0.0f, 0.0f, 0.0f };
 			NE::Math::Vec3 direction{ 0.0f, -1.0f, 0.0f };
+			NE::Math::Vec3 right{ 1.0f, 0.0f, 0.0f };
+			NE::Math::Vec3 up{ 0.0f, 1.0f, 0.0f };
 			NE::Math::Vec3 color{ 1.0f, 1.0f, 1.0f };
 			float intensity = 0.0f;
 			float range = 0.0f;
 			float innerCos = 0.0f;
 			float outerCos = 0.0f;
+			float halfWidth = 0.0f;
+			float halfHeight = 0.0f;
 			bool castsBakedShadow = false;
 		};
 
@@ -173,6 +179,9 @@ namespace Editor::Lightmapping {
 			if (warning.find("skipped light because its range is invalid") != std::string::npos) {
 				return "Invalid finite light range";
 			}
+			if (warning.find("area light because its size is invalid") != std::string::npos) {
+				return "Invalid area light size";
+			}
 			if (warning.find("no longer marked static") != std::string::npos) {
 				return "Receiver no longer static";
 			}
@@ -274,9 +283,17 @@ namespace Editor::Lightmapping {
 					: static_cast<uint64_t>(entity);
 				snapshot.entityName = GetEntityNameOrFallback(entity);
 				snapshot.position = transform.worldMatrix.GetTranslation();
+				snapshot.right = transform.worldMatrix.Right().Normalized();
+				snapshot.up = transform.worldMatrix.Up().Normalized();
 				snapshot.direction = transform.worldMatrix.Forward().Normalized();
 				if (!IsFiniteVec3(snapshot.direction) || snapshot.direction.LengthSquared() <= kFiniteEpsilon) {
 					snapshot.direction = { 0.0f, -1.0f, 0.0f };
+				}
+				if (!IsFiniteVec3(snapshot.right) || snapshot.right.LengthSquared() <= kFiniteEpsilon) {
+					snapshot.right = { 1.0f, 0.0f, 0.0f };
+				}
+				if (!IsFiniteVec3(snapshot.up) || snapshot.up.LengthSquared() <= kFiniteEpsilon) {
+					snapshot.up = { 0.0f, 1.0f, 0.0f };
 				}
 				snapshot.color = light.color;
 				snapshot.castsBakedShadow = (light.shadowType != NE::ECS::Component::Light::ShadowType::None);
@@ -306,6 +323,11 @@ namespace Editor::Lightmapping {
 						}
 						snapshot.innerCos = std::cos(lightData.innerConeAngleDeg * NE::Math::DEG_TO_RAD);
 						snapshot.outerCos = std::cos(lightData.outerConeAngleDeg * NE::Math::DEG_TO_RAD);
+					} else if constexpr (std::is_same_v<T, NE::ECS::Component::Light::AreaLightData>) {
+						snapshot.kind = BakeLightKind::Area;
+						snapshot.range = lightData.range;
+						snapshot.halfWidth = 0.5f * lightData.width;
+						snapshot.halfHeight = 0.5f * lightData.height;
 					} else {
 						supported = false;
 					}
@@ -319,9 +341,15 @@ namespace Editor::Lightmapping {
 					continue;
 				}
 
-				if ((snapshot.kind == BakeLightKind::Point || snapshot.kind == BakeLightKind::Spot) &&
+				if ((snapshot.kind == BakeLightKind::Point || snapshot.kind == BakeLightKind::Spot || snapshot.kind == BakeLightKind::Area) &&
 					(!std::isfinite(snapshot.range) || snapshot.range <= 0.0f)) {
 					PushWarning(warnings, snapshot.entityName + ": skipped light because its range is invalid for baking.");
+					continue;
+				}
+				if (snapshot.kind == BakeLightKind::Area &&
+					(!std::isfinite(snapshot.halfWidth) || !std::isfinite(snapshot.halfHeight) ||
+					 snapshot.halfWidth <= 0.0f || snapshot.halfHeight <= 0.0f)) {
+					PushWarning(warnings, snapshot.entityName + ": skipped area light because its size is invalid for baking.");
 					continue;
 				}
 
@@ -393,11 +421,30 @@ namespace Editor::Lightmapping {
 			return attenuation * attenuation;
 		}
 
+		float RectDistanceAttenuation(float distanceToCenter, float range, float rectExtent) {
+			if (range <= 0.0f) {
+				return 0.0f;
+			}
+
+			if (distanceToCenter > range + rectExtent) {
+				return 0.0f;
+			}
+
+			return DistanceAttenuation(std::max(distanceToCenter - rectExtent, 0.0f), range);
+		}
+
 		NE::Math::Vec3 SafeNormalize(const NE::Math::Vec3& value, const NE::Math::Vec3& fallback) {
 			if (!IsFiniteVec3(value) || value.LengthSquared() <= kFiniteEpsilon) {
 				return fallback;
 			}
 			return value.Normalized();
+		}
+
+		NE::Math::Vec3 BuildStablePerpendicular(const NE::Math::Vec3& normal) {
+			NE::Math::Vec3 reference = (std::abs(normal.y) < 0.99f)
+				? NE::Math::Vec3{ 0.0f, 1.0f, 0.0f }
+				: NE::Math::Vec3{ 1.0f, 0.0f, 0.0f };
+			return SafeNormalize(reference.Cross(normal), { 1.0f, 0.0f, 0.0f });
 		}
 
 		void PublishProgress(const std::string& stage, size_t processedInstances, size_t totalInstances, const DirectLightBakeStats& liveStats) {
@@ -540,6 +587,8 @@ namespace Editor::Lightmapping {
 				[](const BakeLightSnapshot& light) { return light.kind == BakeLightKind::Point; });
 			result.stats.spotLightCount = std::count_if(input.lights.begin(), input.lights.end(),
 				[](const BakeLightSnapshot& light) { return light.kind == BakeLightKind::Spot; });
+			result.stats.areaLightCount = std::count_if(input.lights.begin(), input.lights.end(),
+				[](const BakeLightSnapshot& light) { return light.kind == BakeLightKind::Area; });
 			result.stats.collectedDiscardedTriangleCount = input.receiverCollectionStats.discardedTriangleCount;
 			result.stats.collectedOutOfRangeIndexTriangleCount = input.receiverCollectionStats.outOfRangeIndexTriangleCount;
 			result.stats.collectedNonFiniteUvTriangleCount = input.receiverCollectionStats.nonFiniteUvTriangleCount;
@@ -655,6 +704,7 @@ namespace Editor::Lightmapping {
 							float lightDistance = input.directionalShadowDistance;
 							float attenuation = 1.0f;
 							float spotAttenuation = 1.0f;
+							bool handledByAreaLight = false;
 
 							switch (light.kind) {
 							case BakeLightKind::Directional:
@@ -686,6 +736,116 @@ namespace Editor::Lightmapping {
 								attenuation = DistanceAttenuation(lightDistance, light.range);
 								break;
 							}
+							case BakeLightKind::Area: {
+								const NE::Math::Vec3 emitterNormal = SafeNormalize(light.direction, { 0.0f, 0.0f, -1.0f });
+								const NE::Math::Vec3 toReceiverFromCenter = sample.worldPosition - light.position;
+								if (emitterNormal.Dot(toReceiverFromCenter) <= 0.0f) {
+									handledByAreaLight = true;
+									break;
+								}
+
+								const float centerDistance = toReceiverFromCenter.Length();
+								if (!std::isfinite(centerDistance) || centerDistance <= kFiniteEpsilon) {
+									handledByAreaLight = true;
+									break;
+								}
+
+								const float rectExtent = std::sqrt(light.halfWidth * light.halfWidth + light.halfHeight * light.halfHeight);
+								const float rectAttenuation = RectDistanceAttenuation(centerDistance, light.range, rectExtent);
+								if (rectAttenuation <= 0.0f) {
+									handledByAreaLight = true;
+									break;
+								}
+
+								const NE::Math::Vec3 lightRight = SafeNormalize(light.right, { 1.0f, 0.0f, 0.0f });
+								const NE::Math::Vec3 lightUp = SafeNormalize(light.up, { 0.0f, 1.0f, 0.0f });
+								const NE::Math::Vec3 sampleRight = BuildStablePerpendicular(sample.shadingNormal);
+								const NE::Math::Vec3 sampleUp = SafeNormalize(sample.shadingNormal.Cross(sampleRight), { 0.0f, 1.0f, 0.0f });
+
+								NE::Math::Vec3 sampleAccumulated{ 0.0f, 0.0f, 0.0f };
+								const uint64_t sampleSeedBase =
+									(static_cast<uint64_t>(linearIndex) * 1315423911ull) ^
+									(light.stableId * 2654435761ull);
+								for (int areaSampleIndex = 0; areaSampleIndex < kAreaLightBakeSamples; ++areaSampleIndex) {
+									const uint64_t sampleSeed = sampleSeedBase + static_cast<uint64_t>(areaSampleIndex);
+									const float jitterX = (static_cast<float>((sampleSeed * 48271ull) % 65521ull) + 0.5f) / 65521.0f;
+									const float jitterY = (static_cast<float>((sampleSeed * 69621ull + 17ull) % 65521ull) + 0.5f) / 65521.0f;
+									const int gridX = areaSampleIndex & 3;
+									const int gridY = areaSampleIndex >> 2;
+									const float u = (static_cast<float>(gridX) + jitterX) * 0.25f - 0.5f;
+									const float v = (static_cast<float>(gridY) + jitterY) * 0.25f - 0.5f;
+
+									const NE::Math::Vec3 emitterPoint =
+										light.position +
+										lightRight * (u * light.halfWidth * 2.0f) +
+										lightUp * (v * light.halfHeight * 2.0f);
+
+									const NE::Math::Vec3 lightVector = emitterPoint - sample.worldPosition;
+									const float sampleDistance = lightVector.Length();
+									if (!std::isfinite(sampleDistance) || sampleDistance <= kFiniteEpsilon) {
+										continue;
+									}
+
+									const NE::Math::Vec3 sampleLightDirection = lightVector / sampleDistance;
+									const float nDotL = sample.shadingNormal.Dot(sampleLightDirection);
+									if (!std::isfinite(nDotL) || nDotL <= 0.0f) {
+										continue;
+									}
+
+									const float lightFacing = emitterNormal.Dot(-sampleLightDirection);
+									if (!std::isfinite(lightFacing) || lightFacing <= 0.0f) {
+										continue;
+									}
+
+									bool occluded = false;
+									if (light.castsBakedShadow) {
+										NE::Math::Vec3 biasNormal = sample.geometricNormal;
+										if (biasNormal.Dot(sample.shadingNormal) < 0.0f) {
+											biasNormal = -biasNormal;
+										}
+										biasNormal = SafeNormalize(biasNormal, sample.shadingNormal);
+
+										BakeRay ray{};
+										ray.origin = sample.worldPosition + (biasNormal * input.settings.rayOriginBias);
+										ray.direction = sampleLightDirection;
+										ray.tMin = input.settings.rayMinDistance;
+										ray.tMax = std::max(sampleDistance - input.settings.finiteLightDistanceEpsilon, ray.tMin);
+
+										++localStats.raysCast;
+										occluded = SceneBakeBVHAnyHit(ray);
+										if (occluded) {
+											++localStats.occludedRayCount;
+										} else {
+											++localStats.visibleRayCount;
+										}
+									}
+
+									if (occluded) {
+										continue;
+									}
+
+									const NE::Math::Vec3 localLightVector{
+										sampleRight.Dot(lightVector),
+										sampleUp.Dot(lightVector),
+										sample.shadingNormal.Dot(lightVector)
+									};
+									const NE::Math::Vec3 localLightDirection = SafeNormalize(localLightVector, { 0.0f, 0.0f, 1.0f });
+									const float polygonWeight = std::max(localLightDirection.z, 0.0f);
+									if (polygonWeight <= 0.0f) {
+										continue;
+									}
+
+									sampleAccumulated += light.color * (light.intensity * rectAttenuation * lightFacing * polygonWeight);
+								}
+
+								accumulated += sampleAccumulated / static_cast<float>(kAreaLightBakeSamples);
+								handledByAreaLight = true;
+								break;
+							}
+							}
+
+							if (handledByAreaLight) {
+								continue;
 							}
 
 							const float nDotL = sample.shadingNormal.Dot(lightDirection);

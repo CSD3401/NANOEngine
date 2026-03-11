@@ -81,6 +81,7 @@ namespace Editor::Lightmapping {
 		size_t directionalLightCount = 0;
 		size_t pointLightCount = 0;
 		size_t spotLightCount = 0;
+		size_t areaLightCount = 0;
 		double setupMs = 0.0;
 		double rasterizationMs = 0.0;
 		double evaluationMs = 0.0;

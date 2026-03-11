@@ -490,7 +490,7 @@ namespace Editor {
 				ImGui::Separator();
 				ImGui::Spacing();
 
-				ImGui::TextWrapped("Direct light baking rasterizes UV1 triangles into atlas texels, reconstructs world-space samples from barycentrics, evaluates direct Lambert lighting for supported lights, and uses the bake BVH for any-hit shadow visibility.");
+				ImGui::TextWrapped("Direct light baking rasterizes UV1 triangles into atlas texels, reconstructs world-space samples from barycentrics, evaluates direct lighting for directional, point, spot, and area lights, and uses the bake BVH for any-hit shadow visibility.");
 				ImGui::Spacing();
 
 				ImGui::Text("Worker Count");
@@ -598,6 +598,10 @@ namespace Editor {
 					ImGui::Text("Supported Lights");
 					ImGui::SameLine();
 					ImGui::TextDisabled("%zu", stats.supportedLightCount);
+
+					ImGui::Text("Area Lights");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.areaLightCount);
 
 					ImGui::Text("Raster Triangles");
 					ImGui::SameLine();

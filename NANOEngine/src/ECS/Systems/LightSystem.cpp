@@ -23,22 +23,9 @@ namespace NE::ECS::Systems {
         : m_componentManager(cm), m_entityManager(em) {}
 
     void LightSystem::OnEntityAdded(Entity /*entity*/) {
-        //auto& t = m_componentManager->GetComponent<Component::Transform>(entity);
-        //auto& sl = m_componentManager->GetComponent<Component::Light>(entity);
-        //sl.position = t.localPosition;
-        //Graphics::GraphicsManager::m_lights.push_back(&sl);
     }
 
     void LightSystem::OnEntityRemoved(Entity /*entity*/) {
-        //auto& sl = m_componentManager->GetComponent<Component::Light>(entity);
-
-        //Graphics::GraphicsManager::m_lights.erase(
-        //    std::remove_if(Graphics::GraphicsManager::m_lights.begin(), Graphics::GraphicsManager::m_lights.end(),
-        //        [&sl](Component::Light * lightPtr) {
-        //            return lightPtr == &sl;
-        //        }),
-        //    Graphics::GraphicsManager::m_lights.end()
-        //);
     }
 
     void LightSystem::OnEntityActive(Entity /*entity*/) {}
@@ -60,6 +47,8 @@ namespace NE::ECS::Systems {
                 auto& t = m_componentManager->GetComponent<Component::Transform>(entity);
                 auto& light = m_componentManager->GetComponent<Component::Light>(entity);
                 light.position = t.worldMatrix.GetTranslation();
+                light.right = t.worldMatrix.Right();
+                light.up = t.worldMatrix.Up();
                 light.direction = t.worldMatrix.Forward();
                 Graphics::GraphicsManager::m_lights.push_back({ entity, &light });
 

@@ -199,8 +199,11 @@ namespace NE::Graphics {
 			LightShadowRuntime& runtime = GetOrCreateRuntime(lightRef.entity);
 
 			if (light->shadowType == ECS::Component::Light::ShadowType::None ||
-				light->type == ECS::Component::Light::Type::Point)
+				light->type == ECS::Component::Light::Type::Point ||
+				light->type == ECS::Component::Light::Type::Area) {
+				ReleaseRuntimeResources(runtime);
 				continue;
+			}
 
 			switch (light->shadowUpdateMode) {
 			case ECS::Component::Light::ShadowUpdateMode::NoneUpdate:

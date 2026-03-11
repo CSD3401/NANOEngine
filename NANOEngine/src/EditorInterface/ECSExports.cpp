@@ -783,6 +783,35 @@ namespace NE::ECS {
 			return newEntity;
 		}
 
+		uint32_t CreateAreaLightEntity(uint32_t parentEntt) {
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::EntityMeta{ .name{"Area Light"}, .luid = Core::LUIDGenerator::Generate("em") }
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Transform{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Hierarchy{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Light{
+					.type = Component::Light::Type::Area,
+					.data = Component::Light::AreaLightData{}
+				}
+			);
+
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
+			return newEntity;
+		}
+
 		uint32_t CreateUICanvasEntity() {
 			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
 			GetScene().GetECSCoordinator().AddComponent(

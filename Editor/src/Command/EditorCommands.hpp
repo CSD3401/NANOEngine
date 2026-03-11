@@ -139,6 +139,19 @@ namespace Editor {
         uint32_t m_parentEntity;
     };
 
+    class CreateAreaLightCommand final : public ICommand {
+    public:
+        CreateAreaLightCommand(uint32_t parentEntity);
+
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create Area Light"; }
+
+    private:
+        uint32_t m_entity;
+        uint32_t m_parentEntity;
+    };
+
     // Helper function to find or create a canvas
     uint32_t FindOrCreateCanvas();
 
