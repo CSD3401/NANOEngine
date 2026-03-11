@@ -47,5 +47,6 @@ namespace NE::Graphics {
 
 		std::shared_ptr<OpenGL::GLShader> m_shadowShader;
 		int m_shadowRes = 2048;
+		float m_directionalShadowDistance = 60.0f;
 	};
 }

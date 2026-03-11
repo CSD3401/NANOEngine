@@ -275,35 +275,34 @@ namespace NE::Graphics {
 			return;
 		}
 
-		if (light.shadowMapTex != 0 && light.shadowMapFBO != 0)
-			return;
-
-		// Create depth texture
-		if (light.shadowMapTex == 0) {
+		if (light.shadowMapTex == 0)
 			glGenTextures(1, &light.shadowMapTex);
-		}
+
+		if (light.shadowMapFBO == 0)
+			glGenFramebuffers(1, &light.shadowMapFBO);
+
+		const bool needsAlloc = (light.shadowMapRes != m_shadowRes);
+
 		glBindTexture(GL_TEXTURE_2D, light.shadowMapTex);
 
-		// Allocate storage (Depth24 is fine)
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24,
-			m_shadowRes, m_shadowRes, 0,
-			GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+		if (needsAlloc) {
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24,
+				m_shadowRes, m_shadowRes, 0,
+				GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
-		// Recommended defaults for shadow maps
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+			light.shadowMapRes = m_shadowRes;
 
-		float border[4] = { 1.f, 1.f, 1.f, 1.f };
-		glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+			const float border[4] = { 1.f, 1.f, 1.f, 1.f };
+			glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border);
+		}
 
 		glBindTexture(GL_TEXTURE_2D, 0);
 
-		// Create FBO
-		if (light.shadowMapFBO == 0) {
-			glGenFramebuffers(1, &light.shadowMapFBO);
-		}
 		glBindFramebuffer(GL_FRAMEBUFFER, light.shadowMapFBO);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
 			GL_TEXTURE_2D, light.shadowMapTex, 0);
@@ -371,7 +370,7 @@ namespace NE::Graphics {
 		glClear(GL_DEPTH_BUFFER_BIT);
 
 		glEnable(GL_POLYGON_OFFSET_FILL);
-		glPolygonOffset(1.0f, 1.0f);
+		glPolygonOffset(0.5f, 1.0f);
 
 		m_shadowShader->Bind();
 		m_shadowShader->SetUniformMat4("u_LightVP", lightVP);
@@ -414,7 +413,7 @@ namespace NE::Graphics {
 		glClear(GL_DEPTH_BUFFER_BIT);
 
 		glEnable(GL_POLYGON_OFFSET_FILL);
-		glPolygonOffset(1.0f, 1.0f);
+		glPolygonOffset(0.5f, 1.0f);
 
 		m_shadowShader->Bind();
 		m_shadowShader->SetUniformMat4("u_LightVP", lightVP);
@@ -441,7 +440,8 @@ namespace NE::Graphics {
 		constexpr int C = ECS::Component::Light::DIR_CASCADES;
 
 		const float n = std::max(0.01f, view.nearPlane);
-		const float f = std::max(n + 0.01f, view.farPlane);
+		const float shadowFar = std::min(view.farPlane, m_directionalShadowDistance);
+		const float f = std::max(n + 0.01f, shadowFar);
 
 		const float lambda = 0.65f;
 
@@ -543,30 +543,6 @@ namespace NE::Graphics {
 		if (farP <= nearP) farP = nearP + 1.0f;
 
 		Mat4 lightProj = Mat4::BuildOrtho(minX, maxX, minY, maxY, nearP, farP);
-		Mat4 lightVP = lightProj * lightView;
-
-		// === Texel Snapping ===
-		// Snap the shadow matrix to texel boundaries to eliminate sub-pixel jitter.
-		// Project world origin to shadow clip space and round to nearest texel.
-		float* vp = lightVP.Data();
-
-		// Transform world origin (0,0,0) through lightVP - just the translation column
-		float originClipX = vp[12];  // = vp * (0,0,0,1) -> x component
-		float originClipY = vp[13];  // = vp * (0,0,0,1) -> y component
-
-		// Convert clip space [-1,1] to texel space [0, shadowRes]
-		float halfRes = float(m_shadowRes) * 0.5f;
-		float texelX = originClipX * halfRes;
-		float texelY = originClipY * halfRes;
-
-		// Round to nearest texel and compute offset back to clip space
-		float offsetX = (std::round(texelX) - texelX) / halfRes;
-		float offsetY = (std::round(texelY) - texelY) / halfRes;
-
-		// Apply offset to the VP matrix translation
-		vp[12] += offsetX;
-		vp[13] += offsetY;
-
-		return lightVP;
+		return lightProj * lightView;
 	}
 }
