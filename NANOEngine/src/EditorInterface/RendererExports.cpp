@@ -16,7 +16,7 @@
 #include "ECS/Components/UIImage.hpp"
 #include "ECS/Components/UICanvas.hpp"
 #include "ECS/Components/UIRectTransform.hpp"
-#include "ECS/Components/PERenderer.hpp"
+#include "ECS/Components/ParticleEmitter.hpp"
 
 namespace NE {
 	SceneManagement::Scene& GetScene();
@@ -129,8 +129,8 @@ namespace NE::Renderer {
 					ConfigureDecalMaterial(d.material);
 				}
 			}
-			else if (GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::PERenderer>(e)) {
-				auto& r = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::PERenderer>(e);
+			else if (GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::ParticleEmitter>(e)) {
+				auto& r = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::ParticleEmitter>(e);
 				r.materialUUID = uuid;
 				r.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>(uuid);
 			}
