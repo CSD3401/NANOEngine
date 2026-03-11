@@ -141,6 +141,10 @@ namespace NE {
 		return s_window->ShouldClose();
 	}
 
+	void RequestClose() {
+		glfwSetWindowShouldClose(static_cast<GLFWwindow*>(s_window->GetNativeWindow()), GLFW_TRUE);
+	}
+
 	uint32_t GetSceneColorAttachment() {
 		return Graphics::GraphicsManager::GetSceneColorAttachment();
 	}
