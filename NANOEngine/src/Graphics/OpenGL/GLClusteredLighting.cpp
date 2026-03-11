@@ -276,14 +276,24 @@ namespace NE::Graphics::OpenGL {
                 dst.params[2] = range;
                 dst.params[3] = runtime ? static_cast<float>(runtime->shadowIndex) : -1.0f;
 
+                auto right = src->right.Normalized();
+                auto up = src->up.Normalized();
                 auto dir = src->direction.Normalized();
+                if (src->type == ECS::Component::Light::Type::Area) {
+                    dir = -right.Cross(up);
+                    if (dir.LengthSquared() < 1e-6f) {
+                        dir = src->direction;
+                    }
+                    if (dir.LengthSquared() < 1e-6f) {
+                        dir = { 0.0f, 0.0f, -1.0f };
+                    }
+                    dir.Normalize();
+                }
                 dst.direction[0] = dir.x;
                 dst.direction[1] = dir.y;
                 dst.direction[2] = dir.z;
                 dst.direction[3] = (float)src->shadowType;
 
-                auto right = src->right.Normalized();
-                auto up = src->up.Normalized();
                 dst.areaRight[0] = right.x;
                 dst.areaRight[1] = right.y;
                 dst.areaRight[2] = right.z;

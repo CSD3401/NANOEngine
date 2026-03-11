@@ -337,6 +337,16 @@ namespace Editor::Lightmapping {
 					continue;
 				}
 
+				if (snapshot.kind == BakeLightKind::Area) {
+					snapshot.direction = -snapshot.right.Cross(snapshot.up);
+					if (!IsFiniteVec3(snapshot.direction) || snapshot.direction.LengthSquared() <= kFiniteEpsilon) {
+						snapshot.direction = { 0.0f, 0.0f, -1.0f };
+					}
+					else {
+						snapshot.direction.Normalize();
+					}
+				}
+
 				if (!IsFiniteVec3(snapshot.color) || snapshot.intensity <= 0.0f || !std::isfinite(snapshot.intensity)) {
 					continue;
 				}
