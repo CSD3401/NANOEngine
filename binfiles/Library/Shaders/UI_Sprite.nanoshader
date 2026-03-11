@@ -1,0 +1,48 @@
+#type vertex
+#version 460 core
+
+// Per-vertex attributes (matches UIVertex2 layout)
+layout(location = 0) in vec3 aPos;      // Position (Vec3)
+layout(location = 1) in vec2 aTexCoord; // TexCoord (Vec2)
+layout(location = 2) in vec4 aColor;    // Color (Vec4)
+layout(location = 3) in uint texHandleLo; // Bindless texture handle low 32 bits
+layout(location = 4) in uint texHandleHi; // Bindless texture handle high 32 bits
+
+out vec2 vUV;
+out vec4 vColor;
+flat out uvec2 vTexHandle;
+
+uniform vec2 uScreenSize;
+
+void main() {
+    // Convert pixel coordinates to NDC (-1 to 1)
+    float ndcX = (aPos.x / uScreenSize.x) * 2.0 - 1.0;
+    float ndcY = 1.0 - (aPos.y / uScreenSize.y) * 2.0;
+
+    gl_Position = vec4(ndcX, ndcY, aPos.z, 1.0);
+    vUV = aTexCoord;
+    vColor = aColor;
+    vTexHandle = uvec2(texHandleLo, texHandleHi);
+}
+
+#type fragment
+#version 460 core
+#extension GL_ARB_bindless_texture : require
+#extension GL_NV_gpu_shader5 : enable
+#extension GL_ARB_gpu_shader_int64 : enable
+
+in vec2 vUV;
+in vec4 vColor;
+flat in uvec2 vTexHandle;
+out vec4 FragColor;
+
+void main() {
+    uint64_t handle = uint64_t(vTexHandle.y) << 32 | uint64_t(vTexHandle.x);
+    if (handle != 0u) {
+        sampler2D tex = sampler2D(handle);
+        vec4 texColor = texture(tex, vUV);
+        FragColor = texColor * vColor;
+    } else {
+        FragColor = vColor;
+    }
+}

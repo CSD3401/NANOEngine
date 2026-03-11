@@ -5,6 +5,14 @@
       <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="Production|Win32">
+      <Configuration>Production</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Production|x64">
+      <Configuration>Production</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Release|Win32">
       <Configuration>Release</Configuration>
       <Platform>Win32</Platform>
@@ -19,12 +27,33 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\pch.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\ECS\Systems\DecalProjectorSystem.hpp" />
+    <ClInclude Include="src\ECS\Components\DecalProjector.hpp" />
+    <ClInclude Include="src\ECS\Components\LightmapBinding.hpp" />
+    <ClInclude Include="src\ECS\ECSEvents.hpp" />
+    <ClInclude Include="src\Graphics\Core\DecalCommand.hpp" />
+    <ClInclude Include="src\Graphics\Core\DecalGizmoCommand.hpp" />
+    <ClInclude Include="src\Graphics\Core\RenderGraph\TextureFormats.hpp" />
+    <ClInclude Include="src\Graphics\Core\ShadowRenderer.hpp" />
+    <ClInclude Include="src\Graphics\Core\PostProcessPipeline.hpp" />
+    <ClInclude Include="src\EditorInterface\AudioExports.hpp" />
+    <ClInclude Include="src\Graphics\DebugRenderer\DebugDrawSystem.hpp" />
+    <ClInclude Include="src\Physics\ContactDefs.hpp" />
+    <ClInclude Include="src\Physics\ContactListenerImpl.hpp" />
+    <ClInclude Include="src\Animation\AnimationClip.hpp" />
+    <ClInclude Include="src\Animation\AnimatorController.hpp" />
+    <ClInclude Include="src\ECS\Systems\CharacterControllerSystem.hpp" />
     <ClInclude Include="src\ECS\Components\CharacterController.hpp" />
     <ClInclude Include="src\ECS\Systems\PrefabSystem.hpp" />
     <ClInclude Include="src\ECS\Components\PrefabInstance.hpp" />
     <ClInclude Include="src\ECS\Components\PrefabLink.hpp" />
+    <ClInclude Include="src\Graphics\Core\RenderGraph.hpp" />
     <ClInclude Include="src\Graphics\Core\Shaders.hpp" />
     <ClInclude Include="src\Graphics\OpenGL\GladImportExport.hpp" />
+    <ClInclude Include="src\Physics\ContactPair.hpp" />
     <ClInclude Include="src\Physics\ForceMode.hpp" />
     <ClInclude Include="src\Physics\ObjectLayerFilterImpl.hpp" />
     <ClInclude Include="src\Physics\BroadPhaseLayerInterfaceImpl.hpp" />
@@ -42,12 +71,18 @@
     <ClInclude Include="include\ScriptSDK\Reflection.h" />
     <ClInclude Include="include\ScriptSDK\Renderer.h" />
     <ClInclude Include="include\ScriptSDK\ScriptAPI.h" />
-    <ClInclude Include="include\ScriptSDK\ScriptMacros.h" />
     <ClInclude Include="include\ScriptSDK\ScriptTypes.h" />
-    <ClInclude Include="src\ECS\Systems\UITransformSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\PostProcessingSettings.hpp" />
     <ClInclude Include="src\Graphics\Core\UIImageMeshGenerator.hpp" />
-    <ClInclude Include="src\Math\UILayoutCalculator.hpp" />
+    <ClInclude Include="src\Graphics\Core\UITextMeshGenerator.hpp" />
+    <ClInclude Include="src\Graphics\Core\UIGeometryBuffer.hpp" />
+    <ClInclude Include="src\Graphics\Core\FontAtlas.hpp" />
+    <ClInclude Include="src\Graphics\Core\Font.hpp" />
+    <ClInclude Include="src\ECS\Systems\UIEventSystem.hpp" />
+    <ClInclude Include="src\ECS\Systems\UILayoutEngine.hpp" />
+    <ClInclude Include="src\ECS\Systems\UILayoutSystem.hpp" />
+    <ClInclude Include="src\ECS\Systems\UITransformUtilities.hpp" />
+    <ClInclude Include="src\Events\UIEvents.hpp" />
     <ClInclude Include="src\Graphics\Core\RenderSettings.hpp" />
     <ClInclude Include="src\Graphics\Interfaces\IClusteredLighting.hpp" />
     <ClInclude Include="src\Graphics\OpenGL\GLClusteredLighting.hpp" />
@@ -57,9 +92,11 @@
     <ClInclude Include="src\PrefabManagement\PrefabManager.hpp" />
     <ClInclude Include="src\Graphics\Core\RenderViewManager.hpp" />
     <ClInclude Include="src\Graphics\Core\InstanceData.hpp" />
+    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoAnimClipHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoMatHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoModelHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoShdHeader.hpp" />
+    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoLightingHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoThumbHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryView.hpp" />
     <ClInclude Include="src\ResourceManagement\IResource.hpp" />
@@ -73,20 +110,25 @@
     <ClInclude Include="src\ECS\Components\UIImage.hpp" />
     <ClInclude Include="src\ECS\Components\UIRectTransform.hpp" />
     <ClInclude Include="src\ECS\Components\UIText.hpp" />
+    <ClInclude Include="src\ECS\Components\UISlider.hpp" />
+    <ClInclude Include="src\ECS\Components\UIToggle.hpp" />
+    <ClInclude Include="src\ECS\Components\UILayoutGroup.hpp" />
+    <ClInclude Include="src\ECS\Components\UIGridLayoutGroup.hpp" />
+    <ClInclude Include="src\ECS\Components\UILayoutElement.hpp" />
+    <ClInclude Include="src\ECS\Components\UIScrollRect.hpp" />
+    <ClInclude Include="src\ECS\Components\UIAutoSize.hpp" />
+    <ClInclude Include="src\ECS\Components\UIInputField.hpp" />
+    <ClInclude Include="src\ECS\Components\UIDropdown.hpp" />
     <ClInclude Include="src\ECS\Systems\UIRenderSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\GizmosRenderer.hpp" />
-    <ClInclude Include="src\ECS\Components\PhysicsBody.hpp" />
     <ClInclude Include="src\EditorInterface\PhysicsExports.hpp" />
     <ClInclude Include="src\Graphics\Core\DrawCommand.hpp" />
     <ClInclude Include="src\Graphics\Core\DrawQueue.hpp" />
     <ClInclude Include="src\Graphics\Core\PipelineData.hpp" />
     <ClInclude Include="src\Graphics\Core\RenderQueue.hpp" />
-    <ClInclude Include="src\Graphics\Core\UIDrawCommand.hpp" />
-    <ClInclude Include="src\Graphics\Core\UIRenderer.hpp" />
     <ClInclude Include="src\Graphics\Interfaces\IStateCache.hpp" />
     <ClInclude Include="src\Graphics\OpenGL\GLStateCache.hpp" />
     <ClInclude Include="src\Core\SpdLoggerInternal.hpp" />
-    <ClInclude Include="src\Physics\PhysicsContactListener.hpp" />
     <ClInclude Include="src\ECS\Components\Animator.hpp" />
     <ClInclude Include="src\ECS\Systems\AnimatorSystem.hpp" />
     <ClInclude Include="src\Audio\AudioBank.hpp" />
@@ -126,7 +168,10 @@
     <ClInclude Include="src\Graphics\Core\Skybox.hpp" />
     <ClInclude Include="src\ECS\Systems\RenderSystem.hpp" />
     <ClInclude Include="src\Events\EventBus.hpp" />
+    <ClInclude Include="src\Lighting\LightingAsset.hpp" />
     <ClInclude Include="src\SceneManagement\Scene.hpp" />
+    <ClInclude Include="src\SceneManagement\SceneLighting.hpp" />
+    <ClInclude Include="src\SceneManagement\SceneLightmapRuntime.hpp" />
     <ClInclude Include="src\SceneManagement\SceneManager.hpp" />
     <ClInclude Include="src\ECS\Core\ECSCoordinator.hpp" />
     <ClInclude Include="src\ECS\Components\Renderer.hpp" />
@@ -181,9 +226,30 @@
     <ClInclude Include="src\Tween\TweenBase.hpp" />
     <ClInclude Include="src\Tween\TweenManager.hpp" />
     <ClInclude Include="src\Core\LUIDGenerator.hpp" />
+    <ClInclude Include="src\Physics\StreamOutImpl.hpp" />
+    <ClInclude Include="src\Physics\StreamInImpl.hpp" />
+    <ClInclude Include="src\Graphics\Core\RenderGraph\TexturePool.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\ECS\Core\SystemManager.cpp" />
+    <ClCompile Include="src\pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Production|x64'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\ECS\Systems\DecalProjectorSystem.cpp" />
+    <ClCompile Include="src\Lighting\LightingAsset.cpp" />
+    <ClCompile Include="src\Graphics\DebugRenderer\DebugDrawSystem.cpp" />
+    <ClCompile Include="src\Graphics\Core\ShadowRenderer.cpp" />
+    <ClCompile Include="src\Graphics\Core\PostProcessPipeline.cpp" />
+    <ClCompile Include="src\EditorInterface\AudioExports.cpp" />
+    <ClCompile Include="src\Math\Vec3.cpp" />
+    <ClCompile Include="src\Physics\ContactListenerImpl.cpp" />
+    <ClCompile Include="src\Animation\AnimationClip.cpp" />
+    <ClCompile Include="src\Animation\AnimatorController.cpp" />
+    <ClCompile Include="src\ECS\Systems\CharacterControllerSystem.cpp" />
     <ClCompile Include="src\ECS\Systems\PrefabSystem.cpp" />
+    <ClCompile Include="src\Graphics\Core\RenderGraph.cpp" />
     <ClCompile Include="src\Graphics\Core\Shaders.cpp" />
     <ClCompile Include="src\Physics\ObjectLayerFilterImpl.cpp" />
     <ClCompile Include="src\Physics\BroadPhaseLayerInterfaceImpl.cpp" />
@@ -191,23 +257,28 @@
     <ClCompile Include="src\Physics\ObjectVsBroadPhaseLayerFilterImpl.cpp" />
     <ClCompile Include="src\Physics\ObjectLayerPairFilterImpl.cpp" />
     <ClCompile Include="src\ECS\Systems\HierarchySystem.cpp" />
+    <ClCompile Include="src\SceneManagement\SceneLightmapRuntime.cpp" />
     <ClCompile Include="src\Core\LUIDRegistry.cpp" />
     <ClCompile Include="src\Graphics\OpenGL\GLClusteredLighting.cpp" />
-    <ClCompile Include="src\ECS\Systems\UITransformSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\UIImageMeshGenerator.cpp" />
+    <ClCompile Include="src\Graphics\Core\UITextMeshGenerator.cpp" />
+    <ClCompile Include="src\Graphics\Core\UIGeometryBuffer.cpp" />
+    <ClCompile Include="src\Graphics\Core\FontAtlas.cpp" />
+    <ClCompile Include="src\Graphics\Core\Font.cpp" />
     <ClCompile Include="src\PrefabManagement\PrefabManager.cpp" />
     <ClCompile Include="src\Graphics\Core\RenderViewManager.cpp" />
     <ClCompile Include="src\ResourceManagement\ResourceManager.cpp" />
     <ClCompile Include="src\ECS\Systems\CameraSystem.cpp" />
     <ClCompile Include="src\Core\Couroutine.cpp" />
     <ClCompile Include="src\ECS\Systems\UIRenderSystem.cpp" />
+    <ClCompile Include="src\ECS\Systems\UIEventSystem.cpp" />
+    <ClCompile Include="src\ECS\Systems\UILayoutEngine.cpp" />
+    <ClCompile Include="src\ECS\Systems\UILayoutSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\GizmosRenderer.cpp" />
     <ClCompile Include="src\EditorInterface\PhysicsExports.cpp" />
     <ClCompile Include="src\Graphics\Core\DrawQueue.cpp" />
-    <ClCompile Include="src\Graphics\Core\UIRenderer.cpp" />
     <ClCompile Include="src\Graphics\OpenGL\GLStateCache.cpp" />
     <ClCompile Include="src\Core\SpdLogger.cpp" />
-    <ClCompile Include="src\Physics\PhysicsContactListener.cpp" />
     <ClCompile Include="src\ECS\Systems\AnimatorSystem.cpp" />
     <ClCompile Include="src\Audio\AudioBank.cpp" />
     <ClCompile Include="src\ECS\Systems\AudioSystem.cpp" />
@@ -250,20 +321,26 @@
     <ClCompile Include="src\Graphics\OpenGL\GLShader.cpp" />
     <ClCompile Include="src\Graphics\OpenGL\GLPipeline.cpp" />
     <ClCompile Include="src\Graphics\OpenGL\GLCommandBuffer.cpp" />
-    <ClCompile Include="src\Graphics\OpenGL\glad.c" />
+    <ClCompile Include="src\Graphics\OpenGL\glad.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Production|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\Graphics\OpenGL\GLContext.cpp" />
     <ClCompile Include="src\Graphics\Core\Window.cpp" />
     <ClCompile Include="src\Math\Mat3.cpp" />
     <ClCompile Include="src\Math\Mat4.cpp" />
     <ClCompile Include="src\Math\Quat.cpp" />
     <ClCompile Include="src\Math\Vec2.cpp" />
-    <ClCompile Include="src\Math\Vec3.cpp" />
     <ClCompile Include="src\Math\Vec4.cpp" />
     <ClCompile Include="src\ECS\Systems\TransformSystem.cpp" />
     <ClCompile Include="src\Serialisation\Serializer.cpp" />
     <ClCompile Include="src\Tween\TweenBase.cpp" />
     <ClCompile Include="src\Tween\TweenManager.cpp" />
     <ClCompile Include="src\Core\LUIDGenerator.cpp" />
+    <ClCompile Include="src\Physics\StreamOutImpl.cpp" />
+    <ClCompile Include="src\Physics\StreamInImpl.cpp" />
+    <ClCompile Include="src\Graphics\Core\RenderGraph\TexturePool.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
@@ -287,6 +364,13 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Production|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -294,6 +378,13 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Production|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
@@ -311,10 +402,16 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Production|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Production|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
@@ -324,6 +421,11 @@
     <ExternalIncludePath>$(ProjectDir)vendor\include;$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)bin\$(ProjectName)\$(Configuration)-$(Platform)\</OutDir>
+    <IntDir>$(SolutionDir).tmp\$(ProjectName)\$(Configuration)-$(Platform)\</IntDir>
+    <ExternalIncludePath>$(ProjectDir)vendor\include;$(ExternalIncludePath)</ExternalIncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Production|x64'">
     <OutDir>$(SolutionDir)bin\$(ProjectName)\$(Configuration)-$(Platform)\</OutDir>
     <IntDir>$(SolutionDir).tmp\$(ProjectName)\$(Configuration)-$(Platform)\</IntDir>
     <ExternalIncludePath>$(ProjectDir)vendor\include;$(ExternalIncludePath)</ExternalIncludePath>
@@ -356,17 +458,35 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Production|Win32'">
+    <ClCompile>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>ENGINE_BUILD_DLL;NOMINMAX;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>ENGINE_BUILD_DLL;NOMINMAX;NANOENGINE_EXPORTS;_DEBUG;_CONSOLE;JPH_FLOATING_POINT_EXCEPTIONS_ENABLED;JPH_DEBUG_RENDERER;JPH_PROFILE_ENABLED;JPH_OBJECT_STREAM;JPH_USE_AVX2;JPH_USE_AVX;JPH_USE_SSE4_1;JPH_USE_SSE4_2;JPH_USE_LZCNT;JPH_USE_TZCNT;JPH_USE_F16C;JPH_USE_FMADD;GLAD_GLAPI_EXPORT;GLAD_GLAPI_EXPORT_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>ENGINE_BUILD_DLL;NOMINMAX;NANOENGINE_EXPORTS;_DEBUG;_CONSOLE;JPH_FLOATING_POINT_EXCEPTIONS_ENABLED;JPH_DEBUG_RENDERER;JPH_PROFILE_ENABLED;JPH_OBJECT_STREAM;JPH_USE_AVX2;JPH_USE_AVX;JPH_USE_SSE4_1;JPH_USE_SSE4_2;JPH_USE_LZCNT;JPH_USE_TZCNT;JPH_USE_F16C;JPH_USE_FMADD;GLAD_GLAPI_EXPORT;GLAD_GLAPI_EXPORT_BUILD;NE_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>false</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(ProjectDir)vendor\include;$(ProjectDir)src</AdditionalIncludeDirectories>
       <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -377,7 +497,8 @@
     <PostBuildEvent>
       <Command>xcopy /Y "$(TargetPath)" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"
 xcopy /y /d "$(ProjectDir)vendor\lib\fmod\*.dll" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"
-</Command>
+xcopy /Y "$(TargetPath)" "$(SolutionDir)bin\Chrono\$(Configuration)-$(Platform)\"
+xcopy /y /d "$(ProjectDir)vendor\lib\fmod\*.dll" "$(SolutionDir)bin\Chrono\$(Configuration)-$(Platform)\"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>xcopy /Y "$(ProjectDir)vendor\lib\glfw\glfw3.dll" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"</Command>
@@ -395,6 +516,42 @@ xcopy /y /d "$(ProjectDir)vendor\lib\fmod\*.dll" "$(SolutionDir)bin\Editor\$(Con
       <TreatWarningAsError>false</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(ProjectDir)vendor\include;$(ProjectDir)src</AdditionalIncludeDirectories>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(ProjectDir)vendor\lib\Jolt\$(Configuration);$(ProjectDir)vendor\lib\glfw;$(ProjectDir)vendor\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3dll.lib;opengl32.lib;Jolt.lib;fmod\fmodL_vc.lib;fmod\fmodstudioL_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>xcopy /Y "$(TargetPath)" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"
+xcopy /y /d "$(ProjectDir)vendor\lib\fmod\*.dll" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"
+xcopy /Y "$(TargetPath)" "$(SolutionDir)bin\Chrono\$(Configuration)-$(Platform)\"
+xcopy /y /d "$(ProjectDir)vendor\lib\fmod\*.dll" "$(SolutionDir)bin\Chrono\$(Configuration)-$(Platform)\"</Command>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>xcopy /Y "$(ProjectDir)vendor\lib\glfw\glfw3.dll" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"
+xcopy /Y "$(ProjectDir)vendor\lib\glfw\glfw3.dll" "$(SolutionDir)bin\Chrono\$(Configuration)-$(Platform)\"</Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Production|x64'">
+    <ClCompile>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>ENGINE_BUILD_DLL;NOMINMAX;NANOENGINE_EXPORTS;NDEBUG;_CONSOLE;JPH_FLOATING_POINT_EXCEPTIONS_ENABLED;JPH_DEBUG_RENDERER;JPH_PROFILE_ENABLED;JPH_OBJECT_STREAM;JPH_USE_AVX2;JPH_USE_AVX;JPH_USE_SSE4_1;JPH_USE_SSE4_2;JPH_USE_LZCNT;JPH_USE_TZCNT;JPH_USE_F16C;JPH_USE_FMADD;GLAD_GLAPI_EXPORT;GLAD_GLAPI_EXPORT_BUILD;PRODUCTION_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalIncludeDirectories>$(ProjectDir)vendor\include;$(ProjectDir)src</AdditionalIncludeDirectories>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

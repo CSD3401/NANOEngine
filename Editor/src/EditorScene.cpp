@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "EditorScene.hpp"
 #include <algorithm>
 #include <EditorInterface/ECSExports.hpp>
@@ -95,6 +96,32 @@ namespace Editor {
         }
     }
 
+    uint32_t EditorScene::GetParent(NE::ECS::Entity e) {
+        auto& h = NE::ECS::Query::GetEntityHierarchy(e);
+        return h.parent;
+    }
+
+    uint32_t EditorScene::GetIndexInParentOrRoot(NE::ECS::Entity e) {
+        auto& h = NE::ECS::Query::GetEntityHierarchy(e);
+        NE::ECS::Entity parent = (h.parent == NE::ECS::Component::INVALID_PARENT)
+            ? NE::ECS::NO_ENTITY
+            : static_cast<NE::ECS::Entity>(h.parent);
+        if (parent == NE::ECS::NO_ENTITY) {
+            auto it = std::find(s_rootOrder.begin(), s_rootOrder.end(), e);
+            if (it != s_rootOrder.end()) {
+                return static_cast<uint32_t>(std::distance(s_rootOrder.begin(), it));
+            }
+        } else {
+            auto& parentHierarchy = NE::ECS::Query::GetEntityHierarchy(parent);
+            auto& siblings = parentHierarchy.children;
+            auto it = std::find(siblings.begin(), siblings.end(), e);
+            if (it != siblings.end()) {
+                return static_cast<uint32_t>(std::distance(siblings.begin(), it));
+            }
+        }
+		return NE::ECS::NO_ENTITY;
+    }
+
     void EditorScene::CopySelected() {
         if (s_selection.GetLastClicked() == NE::ECS::NO_ENTITY) return;
 
@@ -104,16 +131,32 @@ namespace Editor {
     void EditorScene::PasteSelected() {
         if (clipboard.empty()) return;
 
-        auto rootEntt = NE::PasteEntity(clipboard);
-        RegisterRoot(rootEntt);
-        s_selection.SetSingle(rootEntt);
+        auto pastedEntt = NE::PasteEntity(clipboard);
+
+        if (s_selection.GetLastClicked() != NE::ECS::NO_ENTITY) {
+            auto parentEntt = NE::ECS::Query::GetEntityHierarchy(s_selection.GetLastClicked()).parent;
+			if (parentEntt != NE::ECS::Component::INVALID_PARENT)
+                NE::ECS::Command::SetParent(pastedEntt, parentEntt, -1, false);
+            else
+                RegisterRoot(pastedEntt);
+        } else {
+            RegisterRoot(pastedEntt);
+        }
+
+        s_selection.SetSingle(pastedEntt);
 
         EditorScene::isDirty = true;
     }
 
     void EditorScene::DuplicateSelected() {
+        auto& h = NE::ECS::Query::GetEntityHierarchy(s_selection.GetLastClicked());
 		auto rootEntt = NE::DuplicateEntity(s_selection.GetLastClicked());
-        RegisterRoot(rootEntt);
+
+        if (h.parent != NE::ECS::Component::INVALID_PARENT)
+            SetParent(rootEntt, h.parent, -1, false);
+        else
+            RegisterRoot(rootEntt);
+        
         s_selection.SetSingle(rootEntt);
 
         EditorScene::isDirty = true;

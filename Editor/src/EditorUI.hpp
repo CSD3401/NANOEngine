@@ -7,6 +7,7 @@
 #include <Core/Reflection.hpp>
 
 namespace NE::Math {
+    struct Vec2;
     struct Vec3;
 }
 
@@ -16,11 +17,15 @@ namespace Editor {
         float  intensity; // HDR intensity multiplier
     };
 
+    struct FieldUIResult {
+        bool changed = false;
+        bool activated = false;
+        bool active = false;
+        bool deactivated_after_edit = false;
+    };
+
     bool BeginPillCombo(const char* id, const char* preview);
     void EndPillCombo();
-
-    // A pretty Vec3 control with color coding and reset buttons
-    bool DrawVec3Control(const std::string& label, NE::Math::Vec3& values, float resetValue = 0.0f, float columnWidth = 100.0f);
 
     // Generic float
     bool DrawFloatControl(const std::string& label, float& value, float step = 0.1f);
@@ -60,10 +65,36 @@ namespace Editor {
         int itemsCount,
         float rightWidth = 180.0f);
 
+    using AssetDropFn = std::function<void(const ImGuiPayload* payload)>;
+    void DrawAssetField(
+        const char* label,
+        const std::string& assetPath,
+        bool rightAligned = false,
+        bool* openPopup = nullptr,
+        ImVec2 size = ImVec2(0, 0),
+        float plusWidth = 28.0f,
+        const char* dndPayloadType = nullptr,
+        AssetDropFn onDrop = nullptr
+    );
+
     void DrawAssetField(const char* label, const std::string& assetPath, bool* openPopup = nullptr, bool rightAligned = true, ImVec2 size = { 380.f, 0.f }, float plusWidth = 38.f);
 
     // New Styling
+    void ToolTip(const char* text);
     bool DrawFloatSliderWithField(const char* label, float& value, float min, float max, float step, bool rightAligned);
     bool DrawFloatField(const char* label, float& value, float step, bool rightAligned);
     bool DrawIntField(const char* label, int& value, bool rightAligned);
+    bool DrawVec3Control(const char* label,
+        NE::Math::Vec3& v,
+        float label_width,
+        float drag_speed_per_pixel = 0.01f,
+        float reset_value = 0.0f,
+        int precision = 3);
+
+    bool DrawVec2Control(const char* label,
+        NE::Math::Vec2& v,
+        float label_width,
+        float drag_speed_per_pixel = 0.01f,
+        float reset_value = 0.0f,
+        int precision = 3);
 }

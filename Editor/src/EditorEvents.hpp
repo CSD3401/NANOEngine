@@ -1,5 +1,6 @@
 #pragma once
-//#include <string>
+
+#include <string>
 #include <vector>
 
 namespace Editor::Events {
@@ -22,6 +23,9 @@ namespace Editor::Events {
 	struct CreatePlaneEntityEvent {
 		uint32_t parentEntity;
 	};
+	struct CreateQuadEntityEvent {
+		uint32_t parentEntity;
+	};
 
 	struct CreateDirectionalLightEvent {
 		uint32_t parentEntity;
@@ -35,20 +39,41 @@ namespace Editor::Events {
 		uint32_t parentEntity;
 	};
 
+	// UI Creation Events (Unity-like workflow)
+	struct CreateUICanvasEvent {};
+	struct CreateUITextEvent { uint32_t parentEntity; };
+	struct CreateUIImageEvent { uint32_t parentEntity; };
+	struct CreateUIButtonEvent { uint32_t parentEntity; };
+	struct CreateUIPanelEvent { uint32_t parentEntity; };
+	struct CreateUISliderEvent { uint32_t parentEntity; };
+	struct CreateUIToggleEvent { uint32_t parentEntity; };
+
+	struct HierarchyChangeEvent {
+		uint32_t childEntity;
+		uint32_t newParentEntity;
+		int insertIndex;
+	};
+
 	struct DeleteEntityEvent {
-		std::vector<uint32_t> entitiesToBeDeleted;
+		std::vector<uint32_t> rootEntitiesToDelete;
 	};
 
+	struct HideCursorEvent {};
+	struct ShowCursorEvent {};
 
-	struct CreateUICanvasEntityEvent {};
-	struct CreateUIImageEntityEvent {
-		uint32_t parentCanvas;  // Which canvas to parent to
-	};
+
 	struct SelectEntityEvent {
 		uint32_t selectedEntity;
 	};
 
 	struct GotoAssetPathEvent {
 		std::string assetPath;
+	};
+
+	struct SceneChangedEvent {};
+
+	struct AutoKeyRecordEvent {
+		uint32_t componentTypeId; 
+		uint32_t fieldId;
 	};
 }

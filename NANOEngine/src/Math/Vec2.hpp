@@ -4,11 +4,13 @@
 #include <ostream>
 #include <cmath>
 
+#include "../NANOEngineAPI.hpp"
+
 namespace NE::Math {
 	struct Vec3;
 	struct Vec4;
 
-	struct Vec2 {
+	struct NANOENGINE_API Vec2 {
 		float x, y;
 
 		Vec2(float a = 0, float b = 0) noexcept;

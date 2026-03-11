@@ -4,12 +4,20 @@
 #include "IAsset.hpp"
 
 #include <optional>
+#include <string>
+#include <vector>
+#include <rapidjson/document.h>
 
 #include "../Settings/ModelImportSettings.hpp"
 
 namespace Editor::Assets {
 	class ModelAsset final : public IAsset {
 	public:
+		struct SubmeshEntry {
+			std::string name;
+			int32_t index;
+		};
+
 		bool Cook(const std::string& sourcePath,
 			const std::string& outPath) const override;
 
@@ -18,8 +26,13 @@ namespace Editor::Assets {
 
 		ModelImportSettings& GetImportSettings();
 
+		std::vector<SubmeshEntry>& GetSubmeshes();
 	private:
-		std::optional<ModelImportSettings> importSettings;
+		void ParseSubmeshes(const rapidjson::Value& arr);
+
+		mutable std::string m_uuid;
+		mutable std::vector<SubmeshEntry> m_submeshes;
+		mutable std::optional<ModelImportSettings> importSettings;
 	};
 }
 

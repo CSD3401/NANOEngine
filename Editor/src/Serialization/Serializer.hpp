@@ -7,6 +7,7 @@ namespace Editor {
 		namespace JSON {
 			void SerializeScene(const std::string& path);
 			void SerializePrefab(const std::string& path, bool isScene = false);
+			bool CookPrefabToBinary(const std::string& jsonPath, const std::string& binPath);
 			void SerializeProjectSettings();
 			void SerializeUserSettings();
 		}
@@ -15,6 +16,7 @@ namespace Editor {
 	namespace Deserialization {
 		namespace JSON {
 			void DeserializeScene(const std::string& path);
+			void DeserializeModel(const std::string& metaPath);
 			void DeserializeProjectSettings();
 			void DeserializeUserSettings();
 		}

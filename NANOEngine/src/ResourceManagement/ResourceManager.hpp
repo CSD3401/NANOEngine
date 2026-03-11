@@ -74,22 +74,20 @@ namespace NE::Resource {
 					return std::static_pointer_cast<T>(NE::Graphics::CreateSphere());
 				if (id == "builtin:model/capsule")
 					return std::static_pointer_cast<T>(NE::Graphics::CreateCapsule());
+				if (id == "builtin:model/quad")
+					return std::static_pointer_cast<T>(NE::Graphics::CreateQuad());
 			} 
 			else if constexpr (std::is_same_v<T, NE::Graphics::OpenGL::GLShader>) {
 				if (id == "neunlit")
 					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/Unlit.nanoshader"));
 				if (id == "nelitpbr")
 					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/Lit_PBR.nanoshader"));
-				if (id == "nebloomblur")
-					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/BloomBlur.nanoshader"));
-				if (id == "nebloomcomposite")
-					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/BloomComposite.nanoshader"));
+				if (id == "necomposite")
+					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/Composite.nanoshader"));
 				if (id == "nebloomdownsample")
 					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/BloomDownsample.nanoshader"));
 				if (id == "nebloomupsample")
 					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/BloomUpsample.nanoshader"));
-				if (id == "nebrightpass")
-					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/BrightPass.nanoshader"));
 				if (id == "neskybox")
 					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/Skybox.nanoshader"));
 				if (id == "nefpfill")
@@ -100,6 +98,34 @@ namespace NE::Resource {
 					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/ShadowDepth.nanoshader"));
 				if (id == "nessao")
 					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/SSAO.nanoshader"));
+				if (id == "nenormalprepass")
+					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/NormalPrepass.nanoshader"));
+				if (id == "netaa")
+					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/TAA.nanoshader"));
+				if (id == "nessr")
+					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/SSR.nanoshader"));
+				if (id == "nessrresolve")
+					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/SSRResolve.nanoshader"));
+				if (id == "nessrhizbuild")
+					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/SSRHiZBuild.nanoshader"));
+				if (id == "nessrtemporal")
+					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/SSRTemporal.nanoshader"));
+				if (id == "nessrapply")
+					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/SSRApply.nanoshader"));
+                if (id == "nedecalprojected")
+                    return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/Decal_Projected.nanoshader"));
+				if (id == "neselectionmaskfrompicking")
+					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/SelectionMaskFromPicking.nanoshader"));
+				if (id == "neselectioncomposite")
+					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/SelectionComposite.nanoshader"));
+                if (id == "neuisprite")
+                    return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/UI_Sprite.nanoshader"));
+                if (id == "neuitext")
+                    return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/UI_Text.nanoshader"));
+                if (id == "neuiworld")
+                    return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/UI_World.nanoshader"));
+                if (id == "neuiworldtext")
+                    return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/UI_World_Text.nanoshader"));
 			}
 			return nullptr;
 		}
@@ -118,4 +144,3 @@ namespace NE::Resource {
 	};
 
 }
-

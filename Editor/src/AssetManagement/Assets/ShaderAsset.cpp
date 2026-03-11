@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "ShaderAsset.hpp"
 
 #include <fstream>
@@ -23,6 +24,7 @@ namespace Editor::Assets {
 			if (type == "vertex") return GL_VERTEX_SHADER;
 			if (type == "fragment") return GL_FRAGMENT_SHADER;
 			if (type == "compute") return GL_COMPUTE_SHADER;
+			return 0;
 		}
 
 		std::string LoadShaderSource(const std::string& path) {

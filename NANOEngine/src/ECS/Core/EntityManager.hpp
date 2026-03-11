@@ -25,6 +25,9 @@ namespace NE::ECS {
 		Signature GetSignature(Entity entity);
 		void SetSignature(Entity entity, Signature sig);
 
+		void ToggleActive(Entity e, bool active);
+		bool GetActive(Entity e);
+
 		std::vector<Entity>& GetUsedEntities() { return m_usedEntities; }
 
 		Core::LayerID GetLayer(Entity entity) const noexcept;
@@ -35,6 +38,8 @@ namespace NE::ECS {
 		std::vector<Entity> m_usedEntities{}; // TEMP;
 		std::vector<Entity> m_availableEntities{};
 		std::array<Signature, MAX_ENTITIES> m_signatures{};
+
+		std::bitset<MAX_ENTITIES> m_active;
 	};
 
 }

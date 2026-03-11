@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "TweenBase.hpp"
 
 void TweenBase::Interpolate(float& t, TweenType type)

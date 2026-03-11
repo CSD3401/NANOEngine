@@ -1,8 +1,25 @@
+#include "pch.h"
 #include "PrefabAsset.hpp"
 
 #include <Engine.hpp>
 #include <ResourceManagement/ResourcePaths.hpp>
 
+// Components
+#include <ECS/Components/EntityMeta.hpp>
+#include <ECS/Components/Transform.hpp>
+#include <ECS/Components/Renderer.hpp>
+#include <ECS/Components/Light.hpp>
+#include <ECS/Components/Collider.hpp>
+#include <ECS/Components/Rigidbody.hpp>
+#include <ECS/Components/NativeScript.hpp>
+#include <ECS/Components/Camera.hpp>
+#include <ECS/Components/UIRectTransform.hpp>
+#include <ECS/Components/UICanvas.hpp>
+#include <ECS/Components/UIImage.hpp>
+#include <ECS/Components/Hierarchy.hpp>
+#include <ECS/Components/PrefabLink.hpp>
+#include <ECS/Components/PrefabInstance.hpp>
+#include <ECS/Components/CharacterController.hpp>
 
 #include "../../EditorScene.hpp"
 #include "../../Serialization/Serializer.hpp"
@@ -10,14 +27,10 @@
 
 
 namespace Editor::Assets {
-
 	bool PrefabAsset::Cook(const std::string& sourcePath,
 		const std::string& outPath) const {
-		if (m_isScene)
-			NE::CookPrefab(EditorScene::s_rootOrder[0], outPath);
-		else
-			NE::CookPrefab(EditorScene::s_selection.GetLastDropped(), outPath);
-		return true;
+
+		return Serialization::JSON::CookPrefabToBinary(sourcePath, outPath);
 	}
 
 	bool PrefabAsset::LoadImportSettings(const std::string& /*sourcePath*/) { // No Import Settings
@@ -41,7 +54,7 @@ namespace Editor::Assets {
 
 		Serialization::JSON::SerializePrefab(outPath, isScene);
 
-		return Cook({}, path);
+		return Cook(outPath, path);
 	}
 
 }

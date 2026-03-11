@@ -12,6 +12,6 @@ namespace NE::Physics {
 	}
 
 	namespace Command {
-		void NANOENGINE_API DrawSelectedCollider(ECS::Entity e);
+		NANOENGINE_API void DrawSelectedCollider(ECS::Entity e);
 	}
 }

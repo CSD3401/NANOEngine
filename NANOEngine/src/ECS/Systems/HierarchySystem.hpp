@@ -1,15 +1,25 @@
 #pragma once
 
 #include "../Core/System.hpp"
-#include "ECS/Core/ComponentManager.hpp"
+
+namespace NE::Core {
+	class LUIDRegistry;
+}
+
+namespace NE::ECS {
+	class ComponentManager;
+	class ECSCoordinator;
+}
 
 namespace NE::ECS::Systems {
 	class HierarchySystem final : public System {
 	public:
-		explicit HierarchySystem(ComponentManager* cm);
+		explicit HierarchySystem(ComponentManager* cm, ECSCoordinator* em, Core::LUIDRegistry* lr);
 
 		void OnEntityAdded(Entity e) override;
 		void OnEntityRemoved(Entity e) override;
+		void OnEntityActive(Entity entity) override;
+		void OnEntityInactive(Entity entity) override;
 
 		void Init() override;
 		void Update(double) override;
@@ -20,9 +30,9 @@ namespace NE::ECS::Systems {
 			Entity newParent,
 			int insertIndex,
 			bool keepWorld = true);
-		void SetActive(Entity root, bool isActive);
 
 	private:
+		void SetActive(Entity root, bool isActive);
 		void ResolvePendingParentsForAll(bool keepWorldForNewParents);
 
 		struct PendingParent {
@@ -32,6 +42,9 @@ namespace NE::ECS::Systems {
 
 		std::unordered_map<uint64_t, Entity> m_luidToEntity;
 		std::vector<PendingParent>  m_pendingParents;
+
 		ComponentManager* m_componentManager;
+		ECSCoordinator* m_ecsCoordinator;
+		Core::LUIDRegistry* m_luidRegistry;
 	};
 }

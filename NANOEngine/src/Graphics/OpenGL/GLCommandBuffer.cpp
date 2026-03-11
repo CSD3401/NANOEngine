@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "GLCommandBuffer.hpp"
 #include <glad/glad.h>
 #include "GLPipeline.hpp"
@@ -15,8 +16,9 @@ namespace NE::Graphics::OpenGL {
     }
 
     void GLCommandBuffer::Begin() {
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glClearColor(1.f, 1.f, 1.f, 1.f);
+        glClearDepth(1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 
     void GLCommandBuffer::End() {

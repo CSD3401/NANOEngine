@@ -7,10 +7,18 @@ namespace NE::SceneManagement {
 
 	class SceneManager {
 	public:
+		enum class SceneManagerMode {
+			Editor,
+			RuntimeOnly
+		};
+
 		SceneManager() = default;
 		~SceneManager() = default;
 
-		bool LoadScene(const std::string& scenePath);
+		void SetMode(SceneManagerMode mode) { m_mode = mode; }
+		SceneManagerMode GetMode() const { return m_mode; }
+
+		bool LoadScene(const std::string& uuid);
 		void Update(double dt);
 		void Render();
 		void ExitScene();
@@ -34,6 +42,9 @@ namespace NE::SceneManagement {
 		Scene* GetEditorScene() { return m_editor.get(); }
 		Scene* GetPrefabScene() { return m_prefabScene.get(); }
 
+		// Queue a scene switch to happen at the end of the frame (safe for scripts to call during Update)
+		void QueueSceneSwitch(const std::string& scenePath);
+
 	private:
 		std::string m_loadedPath;
 
@@ -44,6 +55,12 @@ namespace NE::SceneManagement {
 		bool m_isPlaying = false;
 		bool m_isEditingPrefab = false;
 		std::string m_prefabPath;
+
+		SceneManagerMode m_mode = SceneManagerMode::Editor;
+
+		// Scene switch queue (processed at end of frame)
+		std::string m_queuedScenePath;
+		bool m_hasQueuedSceneSwitch = false;
 	};
 
 }

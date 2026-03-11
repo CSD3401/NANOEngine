@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include <ECS/Core/Entity.hpp>
+
 namespace Editor {
 
     class CreateEmptyEntityCommand final : public ICommand {
@@ -85,6 +87,19 @@ namespace Editor {
         uint32_t m_parentEntity;
     };
 
+    class CreateQuadEntityCommand final : public ICommand {
+    public:
+        CreateQuadEntityCommand(uint32_t parentEntity);
+
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create Quad"; }
+
+    private:
+        uint32_t m_entity;
+        uint32_t m_parentEntity;
+    };
+
     class CreateDirectionalLightCommand final : public ICommand {
     public:
         CreateDirectionalLightCommand(uint32_t parentEntity);
@@ -124,37 +139,123 @@ namespace Editor {
         uint32_t m_parentEntity;
     };
 
-    class CreateUICanvasEntityCommand final : public ICommand {
+    // Helper function to find or create a canvas
+    uint32_t FindOrCreateCanvas();
+
+    class CreateUICanvasCommand final : public ICommand {
     public:
-        CreateUICanvasEntityCommand();
+        CreateUICanvasCommand();
         void Execute() override;
         void Undo() override;
         const char* GetName() const override { return "Create UI Canvas"; }
     private:
-        uint32_t m_entity;
+        uint32_t m_entity = NE::ECS::NO_ENTITY;
     };
 
-    class CreateUIImageEntityCommand final : public ICommand {
+    class CreateUITextCommand final : public ICommand {
     public:
-        CreateUIImageEntityCommand(uint32_t parentCanvas);
+        CreateUITextCommand(uint32_t parentEntity);
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create UI Text"; }
+    private:
+        uint32_t m_entity = NE::ECS::NO_ENTITY;
+        uint32_t m_parentEntity;
+        uint32_t m_canvasEntity = NE::ECS::NO_ENTITY;
+        bool m_createdCanvas = false;
+    };
+
+    class CreateUIImageCommand final : public ICommand {
+    public:
+        CreateUIImageCommand(uint32_t parentEntity);
         void Execute() override;
         void Undo() override;
         const char* GetName() const override { return "Create UI Image"; }
     private:
-        uint32_t m_entity;
-        uint32_t m_parentCanvas;
+        uint32_t m_entity = NE::ECS::NO_ENTITY;
+        uint32_t m_parentEntity;
+        uint32_t m_canvasEntity = NE::ECS::NO_ENTITY;
+        bool m_createdCanvas = false;
+    };
+
+    class CreateUIButtonCommand final : public ICommand {
+    public:
+        CreateUIButtonCommand(uint32_t parentEntity);
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create UI Button"; }
+    private:
+        uint32_t m_entity = NE::ECS::NO_ENTITY;
+        uint32_t m_textEntity = NE::ECS::NO_ENTITY;
+        uint32_t m_parentEntity;
+        uint32_t m_canvasEntity = NE::ECS::NO_ENTITY;
+        bool m_createdCanvas = false;
+    };
+
+    class CreateUIPanelCommand final : public ICommand {
+    public:
+        CreateUIPanelCommand(uint32_t parentEntity);
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create UI Panel"; }
+    private:
+        uint32_t m_entity = NE::ECS::NO_ENTITY;
+        uint32_t m_parentEntity;
+        uint32_t m_canvasEntity = NE::ECS::NO_ENTITY;
+        bool m_createdCanvas = false;
+    };
+
+    class CreateUISliderCommand final : public ICommand {
+    public:
+        CreateUISliderCommand(uint32_t parentEntity);
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create UI Slider"; }
+    private:
+        uint32_t m_entity = NE::ECS::NO_ENTITY;           // Slider root
+        uint32_t m_backgroundEntity = NE::ECS::NO_ENTITY; // Background image
+        uint32_t m_fillEntity = NE::ECS::NO_ENTITY;       // Fill image
+        uint32_t m_handleEntity = NE::ECS::NO_ENTITY;     // Handle image
+        uint32_t m_parentEntity;
+        uint32_t m_canvasEntity = NE::ECS::NO_ENTITY;
+        bool m_createdCanvas = false;
+    };
+
+    class CreateUIToggleCommand final : public ICommand {
+    public:
+        CreateUIToggleCommand(uint32_t parentEntity);
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create UI Toggle"; }
+    private:
+        uint32_t m_entity = NE::ECS::NO_ENTITY;           // Toggle root
+        uint32_t m_backgroundEntity = NE::ECS::NO_ENTITY; // Background image
+        uint32_t m_checkmarkEntity = NE::ECS::NO_ENTITY;  // Checkmark image
+        uint32_t m_labelEntity = NE::ECS::NO_ENTITY;      // Label text
+        uint32_t m_parentEntity;
+        uint32_t m_canvasEntity = NE::ECS::NO_ENTITY;
+        bool m_createdCanvas = false;
     };
 
     class DeleteEntityCommand final : public ICommand {
     public:
-        DeleteEntityCommand(std::vector<uint32_t> deletedEntity);
+        explicit DeleteEntityCommand(std::vector<uint32_t> rootEntitiesToDelete);
 
         void Execute() override;
         void Undo() override;
         const char* GetName() const override { return "Delete Entity"; }
 
     private:
-        std::vector<uint32_t> m_entities;
+        struct DeletedRootSnapshot {
+            std::vector<uint8_t> blob;
+            uint32_t oldParent = NE::ECS::NO_ENTITY;
+            int oldIndex = -1;
+            bool wasRoot = false;
+            uint32_t liveEntityId = NE::ECS::NO_ENTITY;
+        };
+
+        std::vector<uint32_t> m_initialRootEntities;
+        std::vector<DeletedRootSnapshot> m_snapshots;
 
         //struct DeletedUIEntityInfo {
         //    uint32_t id;
@@ -163,6 +264,24 @@ namespace Editor {
         //    uint32_t parentId;  // For UI images
         //};
         //std::vector<DeletedUIEntityInfo> m_deletedEntities;
+    };
+
+    class HierarchyChangeCommand final : public ICommand {
+    public:
+        HierarchyChangeCommand(uint32_t child, uint32_t newParent, int newInsertIndex);
+
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Hierarchy Change"; }
+
+    private:
+        uint32_t childEntity = NE::ECS::NO_ENTITY;
+
+        uint32_t oldParentEntity = NE::ECS::NO_ENTITY;
+        int      oldInsertIndex = -1;
+
+        uint32_t newParentEntity = NE::ECS::NO_ENTITY;
+        int      newInsertIndex = -1;
     };
 
     class RenameEntityCommand final : public ICommand {

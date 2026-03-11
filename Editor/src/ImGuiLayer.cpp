@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "ImGuiLayer.hpp"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
@@ -5,6 +6,8 @@
 #include <imgui/widgets/imsearch/imsearch.h>
 
 namespace Editor {
+    static float s_fontSize = 15.0f;
+    static float s_pendingFontSize = 0.0f; // 0 means no rebuild pending
     void InitImGui(GLFWwindow* window) {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
@@ -119,7 +122,7 @@ namespace Editor {
 
         ImFont* uiFont = io.Fonts->AddFontFromFileTTF(
             "Library/Fonts/NotoSans-Regular.ttf",
-            15.0f,
+            s_fontSize,
             &config
         );
 
@@ -127,6 +130,43 @@ namespace Editor {
 
         ImGui_ImplGlfw_InitForOpenGL(window, false);
         ImGui_ImplOpenGL3_Init("#version 430");
+    }
+
+    void RebuildFonts(float fontSize) {
+        s_pendingFontSize = fontSize;
+    }
+
+    void FlushPendingFontRebuild() {
+        if (s_pendingFontSize == 0.0f) return;
+
+        s_fontSize = s_pendingFontSize;
+        s_pendingFontSize = 0.0f;
+
+        ImGuiIO& io = ImGui::GetIO();
+
+        ImGui_ImplOpenGL3_DestroyFontsTexture();
+
+        io.Fonts->Clear();
+
+        ImFontConfig config;
+        config.OversampleH = 2;
+        config.OversampleV = 2;
+        config.PixelSnapH = false;
+
+        ImFont* uiFont = io.Fonts->AddFontFromFileTTF(
+            "Library/Fonts/NotoSans-Regular.ttf",
+            s_fontSize,
+            &config
+        );
+
+        io.FontDefault = uiFont;
+        io.Fonts->Build();
+
+        ImGui_ImplOpenGL3_CreateFontsTexture();
+    }
+
+    float GetFontSize() {
+        return s_fontSize;
     }
 
     void ShutdownImGui() {

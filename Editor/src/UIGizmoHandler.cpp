@@ -1,12 +1,15 @@
+#include "pch.h"
 #include "UIGizmoHandler.hpp"
 #include "imgui/imgui_internal.h"
 #include "EditorInterface/ECSExports.hpp"
+#include "ECS/Components/Hierarchy.hpp"
 #include "Command/CommandHistory.hpp"
 #include <algorithm>
 #include <cstring>
 #include <cmath>
 #include <limits>
 #include <iostream>
+#include <vector>
 
 namespace Editor {
 
@@ -47,56 +50,53 @@ namespace Editor {
         if (!Query::HasUIRectTransform(entityId))
             return identity;
 
-        auto& rect = Query::GetUIRectTransform(entityId);
-
-        constexpr float PI = 3.14159265358979f;
-
-        // Start from local
-        NE::Math::Vec3 accumulatedPos = rect.GetPosition();
-        NE::Math::Vec3 accumulatedScale = rect.GetScale();
-
-        float accumulatedRotX = rect.rotationX;
-        float accumulatedRotY = rect.rotationY;
-        float accumulatedRotZ = rect.rotationZ;
-
-        // Accumulate parents (just like a normal Transform hierarchy)
-        uint32_t parentEntity = rect.parent;
-        while (parentEntity != std::numeric_limits<uint32_t>::max() &&
-            Query::HasUIRectTransform(parentEntity))
+        // Build chain from entity up to root, then reverse (root → leaf)
+        std::vector<uint32_t> chain;
+        uint32_t current = entityId;
+        while (current != std::numeric_limits<uint32_t>::max() &&
+               Query::HasUIRectTransform(current))
         {
-            auto& parentRect = Query::GetUIRectTransform(parentEntity);
+            chain.push_back(current);
+            current = Query::HasHierarchy(current)
+                ? Query::GetEntityHierarchy(current).parent
+                : std::numeric_limits<uint32_t>::max();
+        }
+        std::reverse(chain.begin(), chain.end());
 
-            accumulatedPos.x += parentRect.x;
-            accumulatedPos.y += parentRect.y;
-            accumulatedPos.z += parentRect.z;
+        // Accumulate root → leaf: position scaled by accumulated parent scale
+        float accPosX = 0.0f, accPosY = 0.0f, accPosZ = 0.0f;
+        float accScaleX = 1.0f, accScaleY = 1.0f, accScaleZ = 1.0f;
+        float accRotX = 0.0f, accRotY = 0.0f, accRotZ = 0.0f;
 
-            accumulatedScale.x *= parentRect.scaleX;
-            accumulatedScale.y *= parentRect.scaleY;
-            accumulatedScale.z *= parentRect.scaleZ;
+        for (uint32_t e : chain)
+        {
+            auto& r = Query::GetUIRectTransform(e);
 
-            accumulatedRotX += parentRect.rotationX;
-            accumulatedRotY += parentRect.rotationY;
-            accumulatedRotZ += parentRect.rotationZ;
+            // Position is in parent's local space — scale by accumulated parent scale
+            accPosX += r.x * accScaleX;
+            accPosY += r.y * accScaleY;
+            accPosZ += r.z * accScaleZ;
 
-            parentEntity = parentRect.parent;
+            // Apply own scale
+            accScaleX *= r.scaleX;
+            accScaleY *= r.scaleY;
+            accScaleZ *= r.scaleZ;
+
+            // Rotation: sum Euler angles (degrees — BuildXRotation takes degrees)
+            accRotX += r.rotationX;
+            accRotY += r.rotationY;
+            accRotZ += r.rotationZ;
         }
 
-        NE::Math::Mat4 S = NE::Math::Mat4::BuildScaling(
-            accumulatedScale.x,
-            accumulatedScale.y,
-            accumulatedScale.z
-        );
+        NE::Math::Mat4 S = NE::Math::Mat4::BuildScaling(accScaleX, accScaleY, accScaleZ);
 
-        NE::Math::Mat4 Rx = NE::Math::Mat4::BuildXRotation(accumulatedRotX * PI / 180.0f);
-        NE::Math::Mat4 Ry = NE::Math::Mat4::BuildYRotation(accumulatedRotY * PI / 180.0f);
-        NE::Math::Mat4 Rz = NE::Math::Mat4::BuildZRotation(accumulatedRotZ * PI / 180.0f);
+        // BuildX/Y/ZRotation take DEGREES — do NOT multiply by PI/180
+        NE::Math::Mat4 Rx = NE::Math::Mat4::BuildXRotation(accRotX);
+        NE::Math::Mat4 Ry = NE::Math::Mat4::BuildYRotation(accRotY);
+        NE::Math::Mat4 Rz = NE::Math::Mat4::BuildZRotation(accRotZ);
         NE::Math::Mat4 R = Rz * Ry * Rx;
 
-        NE::Math::Mat4 T = NE::Math::Mat4::BuildTranslation(
-            accumulatedPos.x,
-            accumulatedPos.y,
-            accumulatedPos.z
-        );
+        NE::Math::Mat4 T = NE::Math::Mat4::BuildTranslation(accPosX, accPosY, accPosZ);
 
         // TRS, no width/height/pivot here
         return T * R * S;
@@ -226,33 +226,60 @@ namespace Editor {
             NE::Math::Mat4 newWorld;
             memcpy(newWorld.Data(), matrix, sizeof(float) * 16);
 
-            // 2. Build parent world matrix
+            // 2. Build parent world matrix (using BuildUIWorldTRS of parent entity)
             NE::Math::Mat4 parentWorld;
             parentWorld.SetToIdentity();
 
-            uint32_t p = rectCmd.parent;
-            while (p != std::numeric_limits<uint32_t>::max() &&
-                NE::ECS::Query::HasUIRectTransform(p))
+            uint32_t parentId = NE::ECS::Query::HasHierarchy(uiEntityId)
+                ? NE::ECS::Query::GetEntityHierarchy(uiEntityId).parent
+                : std::numeric_limits<uint32_t>::max();
+
+            if (parentId != std::numeric_limits<uint32_t>::max() &&
+                NE::ECS::Query::HasUIRectTransform(parentId))
             {
-                auto& parentRect = NE::ECS::Query::GetUIRectTransform(p);
-
-                // Build parent's TRS
-                constexpr float PI = 3.14159265358979f;
-                NE::Math::Mat4 pT = NE::Math::Mat4::BuildTranslation(parentRect.x, parentRect.y, parentRect.z);
-                NE::Math::Mat4 pRx = NE::Math::Mat4::BuildXRotation(parentRect.rotationX * PI / 180.0f);
-                NE::Math::Mat4 pRy = NE::Math::Mat4::BuildYRotation(parentRect.rotationY * PI / 180.0f);
-                NE::Math::Mat4 pRz = NE::Math::Mat4::BuildZRotation(parentRect.rotationZ * PI / 180.0f);
-                NE::Math::Mat4 pR = pRz * pRy * pRx;
-                NE::Math::Mat4 pS = NE::Math::Mat4::BuildScaling(parentRect.scaleX, parentRect.scaleY, parentRect.scaleZ);
-
-                parentWorld = parentWorld * (pT * pR * pS);
-
-                p = parentRect.parent;
+                parentWorld = BuildUIWorldTRS(parentId);
             }
 
             // 3. Convert to local matrix: local = parent^-1 * world
-            NE::Math::Mat4 invParent = parentWorld.Inverse();
+            // Guard against singular parent matrix (scale near zero)
+            NE::Math::Mat4 invParent;
+            invParent.SetToIdentity();
+            {
+                float det = parentWorld.Determinant();
+                if (std::abs(det) > 1e-6f) {
+                    invParent = parentWorld.Inverse();
+                    // Verify inversion didn't produce NaN/Inf
+                    bool hasNaN = false;
+                    for (int i = 0; i < 16; ++i) {
+                        float val = invParent.Data()[i];
+                        if (std::isnan(val) || std::isinf(val)) {
+                            hasNaN = true;
+                            break;
+                        }
+                    }
+                    if (hasNaN) {
+                        invParent.SetToIdentity();
+                    }
+                }
+            }
             NE::Math::Mat4 newLocal = invParent * newWorld;
+
+            // Validate the result matrix before decomposing
+            bool localHasNaN = false;
+            for (int i = 0; i < 16; ++i) {
+                float val = newLocal.Data()[i];
+                if (std::isnan(val) || std::isinf(val)) {
+                    localHasNaN = true;
+                    break;
+                }
+            }
+
+            // If we got NaN, skip the gizmo update this frame
+            if (localHasNaN) {
+                s_gizmoActive = false;
+                End3DGizmo(uiEntityId);
+                return;
+            }
 
             // 4. Decompose LOCAL matrix (not world!)
             float localMatrix[16];
@@ -325,30 +352,17 @@ namespace Editor {
         float panelScaleX = panelSize.x / fbWidth;
         float panelScaleY = panelSize.y / fbHeight;
 
-        // Calculate world pivot position and accumulated scale
-        float worldPivotX = rectTransform.x;
-        float worldPivotY = rectTransform.y;
-        float worldScaleX = rectTransform.scaleX;
-        float worldScaleY = rectTransform.scaleY;
+        // Use cached world rect from UIRenderSystem/UILayoutEngine
+        // These are populated each frame with correct anchor offsets, pivot corrections,
+        // and canvas scale factor - matching exactly where the element is rendered.
+        float topLeftX = rectTransform.cachedWorldX;
+        float topLeftY = rectTransform.cachedWorldY;
+        float scaledWidth = rectTransform.cachedWorldWidth;
+        float scaledHeight = rectTransform.cachedWorldHeight;
 
-        uint32_t currentParent = rectTransform.parent;
-        while (currentParent != std::numeric_limits<uint32_t>::max()) {
-            if (!NE::ECS::Query::HasUIRectTransform(currentParent)) break;
-            auto& parentRect = NE::ECS::Query::GetUIRectTransform(currentParent);
-            worldPivotX += parentRect.x;
-            worldPivotY += parentRect.y;
-            worldScaleX *= parentRect.scaleX;
-            worldScaleY *= parentRect.scaleY;
-            currentParent = parentRect.parent;
-        }
-
-        // Apply world scale to dimensions
-        float scaledWidth = rectTransform.width * worldScaleX;
-        float scaledHeight = rectTransform.height * worldScaleY;
-
-        // Calculate top-left from pivot (using scaled dimensions)
-        float topLeftX = worldPivotX - scaledWidth * rectTransform.pivotX;
-        float topLeftY = worldPivotY - scaledHeight * rectTransform.pivotY;
+        // Derive the world pivot position from top-left + pivot offset
+        float worldPivotX = topLeftX + scaledWidth * rectTransform.pivotX;
+        float worldPivotY = topLeftY + scaledHeight * rectTransform.pivotY;
 
         // Convert to screen coordinates
         ImVec2 topLeft(
@@ -725,12 +739,12 @@ namespace Editor {
             float origWorldScaleY = s_originalTransform.scaleY;
 
             // Accumulate parent scale from original state
-            uint32_t p = s_originalTransform.parent;
+            uint32_t p = NE::ECS::Query::HasHierarchy(uiEntityId) ? NE::ECS::Query::GetEntityHierarchy(uiEntityId).parent : NE::ECS::NO_ENTITY;
             while (p != std::numeric_limits<uint32_t>::max() && NE::ECS::Query::HasUIRectTransform(p)) {
                 auto& parentRect = NE::ECS::Query::GetUIRectTransform(p);
                 origWorldScaleX *= parentRect.scaleX;
                 origWorldScaleY *= parentRect.scaleY;
-                p = parentRect.parent;
+                p = NE::ECS::Query::HasHierarchy(p) ? NE::ECS::Query::GetEntityHierarchy(p).parent : NE::ECS::NO_ENTITY;
             }
 
             // Convert to local units (divide by world scale)
@@ -796,12 +810,12 @@ namespace Editor {
             float origWorldScaleX = s_originalTransform.scaleX;
             float origWorldScaleY = s_originalTransform.scaleY;
 
-            uint32_t p = s_originalTransform.parent;
+            uint32_t p = NE::ECS::Query::HasHierarchy(uiEntityId) ? NE::ECS::Query::GetEntityHierarchy(uiEntityId).parent : NE::ECS::NO_ENTITY;
             while (p != std::numeric_limits<uint32_t>::max() && NE::ECS::Query::HasUIRectTransform(p)) {
                 auto& parentRect = NE::ECS::Query::GetUIRectTransform(p);
                 origWorldScaleX *= parentRect.scaleX;
                 origWorldScaleY *= parentRect.scaleY;
-                p = parentRect.parent;
+                p = NE::ECS::Query::HasHierarchy(p) ? NE::ECS::Query::GetEntityHierarchy(p).parent : NE::ECS::NO_ENTITY;
             }
 
             // Convert to local units

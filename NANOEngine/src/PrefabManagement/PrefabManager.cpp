@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "PrefabManager.hpp"
 #include <unordered_set>
 #include <fstream>

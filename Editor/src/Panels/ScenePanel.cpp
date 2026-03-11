@@ -1,10 +1,12 @@
-﻿#include "ScenePanel.hpp"
+#include "pch.h"
+#include "ScenePanel.hpp"
 #include "Math/Vec3.hpp"
 #include <imgui/imgui.h>
 #include <unordered_set>
 #include <ECS/Core/Entity.hpp>
 #include "../AssetManagement/AssetManager.hpp"
 #include <EditorInterface/RendererExports.hpp>
+#include <Graphics/Core/SelectionHighlightSettings.hpp>
 #include "../EditorUI.hpp"
 #include "../EditorScene.hpp"
 #include "Engine.hpp"
@@ -16,43 +18,130 @@
 #include <ECS/Components/UICanvas.hpp>
 #include "../Command/EditorSetTransformCommand.hpp"
 #include "../Command/CommandHistory.hpp"
-#include "Graphics/Core/UIRenderer.hpp"
 #include "../UIGizmoHandler.hpp"
 #include <limits>
 #include <algorithm>
-#include "../EditorState.hpp"
+#include "../Serialization/Serializer.hpp"
+#include <Events/EventBus.hpp>
+#include "../EditorEvents.hpp"
+
+#include "../Util/HierarchyUtils.hpp"
+
+#define NOMINMAX
+#include <Windows.h>
 
 
-namespace {
-	// helper function for ui
-	// calculate world position by walking up parent hierarchy
-	ImVec2 CalculateUIWorldPosition(uint32_t entity) {
-		auto& rect = NE::ECS::Query::GetUIRectTransform(entity);
-
-		float worldX = rect.x;
-		float worldY = rect.y;
-
-		// Walk up parent chain
-		uint32_t currentParent = rect.parent;
-		while (currentParent != std::numeric_limits<uint32_t>::max()) {
-			if (!NE::ECS::Query::HasUIRectTransform(currentParent)) {
-				break;
-			}
-
-			auto& parentRect = NE::ECS::Query::GetUIRectTransform(currentParent);
-			worldX += parentRect.x;
-			worldY += parentRect.y;
-
-			currentParent = parentRect.parent;
-		}
-
-		return ImVec2(worldX, worldY);
-	}
-}
 
 namespace Editor {
+	namespace {
+		static constexpr const char* kPosName = "Position";
+		static constexpr const char* kRotName = "Rotation";
+		static constexpr const char* kSclName = "Scale";
+
+
+		uint32_t FNV1a32(std::string_view s) {
+			uint32_t h = 2166136261u;
+			for (unsigned char c : s) { h ^= c; h *= 16777619u; }
+			return h;
+		}
+
+		uint32_t MakeFieldId(const char* componentName, std::string_view fieldName) {
+			std::string full;
+			full.reserve(std::strlen(componentName) + 1 + fieldName.size());
+			full.append(componentName);
+			full.push_back('.');
+			full.append(fieldName.data(), fieldName.size());
+			return FNV1a32(full);
+		}
+		const uint32_t posFieldId = MakeFieldId("Transform", kPosName);
+		const uint32_t rotFieldId = MakeFieldId("Transform", kRotName);
+		const uint32_t sclFieldId = MakeFieldId("Transform", kSclName);
+
+		// helper function for ui
+		// calculate world position by walking up parent hierarchy
+		ImVec2 CalculateUIWorldPosition(uint32_t entity) {
+			auto& rect = NE::ECS::Query::GetUIRectTransform(entity);
+
+			float worldX = rect.x;
+			float worldY = rect.y;
+
+			// Walk up parent chain
+			uint32_t currentParent = NE::ECS::Query::HasHierarchy(entity) ? NE::ECS::Query::GetEntityHierarchy(entity).parent : NE::ECS::NO_ENTITY;
+			while (currentParent != std::numeric_limits<uint32_t>::max()) {
+				if (!NE::ECS::Query::HasUIRectTransform(currentParent)) {
+					break;
+				}
+
+				auto& parentRect = NE::ECS::Query::GetUIRectTransform(currentParent);
+				worldX += parentRect.x;
+				worldY += parentRect.y;
+
+				currentParent = NE::ECS::Query::HasHierarchy(currentParent) ? NE::ECS::Query::GetEntityHierarchy(currentParent).parent : NE::ECS::NO_ENTITY;
+			}
+
+			return ImVec2(worldX, worldY);
+		}
+
+		bool WrapCursorInCurrentMonitor(bool useWorkArea, int marginPx, bool& outWarped) {
+			outWarped = false;
+
+			POINT p;
+			if (!GetCursorPos(&p))
+				return false;
+
+			HMONITOR mon = MonitorFromPoint(p, MONITOR_DEFAULTTONEAREST);
+
+			MONITORINFO mi{};
+			mi.cbSize = sizeof(mi);
+			if (!GetMonitorInfo(mon, &mi))
+				return false;
+
+			RECT r = useWorkArea ? mi.rcWork : mi.rcMonitor;
+
+			const int left = r.left;
+			const int top = r.top;
+			const int right = r.right;
+			const int bottom = r.bottom;
+
+			bool changed = false;
+
+			if (p.x <= left + marginPx) { p.x = right - marginPx - 1; changed = true; } else if (p.x >= right - marginPx) { p.x = left + marginPx + 1;  changed = true; }
+
+			if (p.y <= top + marginPx) { p.y = bottom - marginPx - 1; changed = true; } else if (p.y >= bottom - marginPx) { p.y = top + marginPx + 1;    changed = true; }
+
+			if (changed) {
+				SetCursorPos(p.x, p.y);
+				outWarped = true;
+			}
+
+			return true;
+		}
+
+		ImVec2 GetCursorScreenPosImVec2() {
+			POINT p;
+			GetCursorPos(&p);
+			return ImVec2((float)p.x, (float)p.y);
+		}
+
+		std::vector<uint32_t> BuildDeleteRoots(const std::vector<uint32_t>& selection) {
+			std::unordered_set<uint32_t> selected;
+			selected.reserve(selection.size() * 2);
+			for (auto e : selection) selected.insert(e);
+
+			std::vector<uint32_t> roots;
+			roots.reserve(selection.size());
+			for (auto e : selection) {
+				if (!Utility::IsDescendantOfSelected(e, selected))
+					roots.push_back(e);
+			}
+			return roots;
+		}
+	}
+
 	static std::unique_ptr<Editor::SetTransformCommand> s_gizmoCmd;
 	static bool s_gizmoActive = false;
+
+	static bool rebuildScene = false;
 
 	struct GizmoMultiTarget {
 		uint32_t entity;
@@ -94,6 +183,10 @@ namespace Editor {
 	void ScenePanel::OnImGuiRender()
 	{
 		using namespace NE::Math;
+		if (rebuildScene) {
+			EditorScene::BuildRoot();
+			rebuildScene = false;
+		}
 
 		ImGui::Begin("Scene", nullptr,
 			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
@@ -101,6 +194,29 @@ namespace Editor {
 
 		ImVec2 panelPos = ImGui::GetCursorScreenPos();
 		ImVec2 panelSize = ImGui::GetContentRegionAvail();
+
+		// Convert panel position from screen coordinates to GLFW window coordinates
+		// GLFW mouse coordinates are relative to the window (0,0 at top-left)
+		// ImGui screen coordinates may include window position on multi-monitor setups
+		ImGuiViewport* mainViewport = ImGui::GetMainViewport();
+		ImVec2 mainViewportPos = mainViewport->Pos;
+		float panelPosX = panelPos.x - mainViewportPos.x;
+		float panelPosY = panelPos.y - mainViewportPos.y;
+
+		// Set viewport bounds for UI interaction system
+		NE::ECS::Command::SetUIViewportBounds(
+			panelPosX, panelPosY,
+			panelSize.x, panelSize.y,
+			static_cast<float>(NE::GetUIScreenWidth()),
+			static_cast<float>(NE::GetUIScreenHeight())
+		);
+
+		float newAspect = (panelSize.y > 0.0f) ? (panelSize.x / panelSize.y) : (16.0f / 9.0f);
+
+		if (fabsf(newAspect - m_aspectRatio) > 1e-4f) {
+			m_aspectRatio = newAspect;
+			EditorScene::m_editorCamera.SetPerspective(m_fov, m_aspectRatio, m_nearPlane, m_farPlane);
+		}
 
 		float deltaTime = ImGui::GetIO().DeltaTime;
 
@@ -123,8 +239,15 @@ namespace Editor {
 			ImVec2 camMin = ImGui::GetItemRectMin();
 			ImVec2 camMax = ImGui::GetItemRectMax();
 
+			ImGui::SameLine();
+
+			bool openSelection = ImGui::Button("Selection Settings");
+			ImVec2 selectionMin = ImGui::GetItemRectMin();
+			ImVec2 selectionMax = ImGui::GetItemRectMax();
+
 			if (openGrid)   ImGui::OpenPopup("ToggleGridPopup");
 			if (openCamera) ImGui::OpenPopup("CameraSettingsPopup");
+			if (openSelection) ImGui::OpenPopup("SelectionSettingsPopup");
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
@@ -172,6 +295,83 @@ namespace Editor {
 
 				ImGui::EndPopup();
 			}
+
+			ImGui::SetNextWindowPos(ImVec2(selectionMin.x, selectionMax.y), ImGuiCond_Appearing);
+			ImGui::SetNextWindowSize(ImVec2(420.f, 320.f));
+			if (ImGui::BeginPopup("SelectionSettingsPopup")) {
+				auto& selectionSettings = NE::Renderer::Command::GetSelectionHighlightSettings();
+
+				ImGui::Text("Selection Highlight");
+				Editor::DrawCheckbox("Enabled", selectionSettings.enabled);
+				Editor::DrawCheckbox("Fill Tint", selectionSettings.fillEnabled);
+
+				ImGui::Spacing();
+				ImGui::Text("Outline");
+				ImGui::ColorEdit4("Outline Color", &selectionSettings.outlineColor.x);
+				Editor::DrawFloatSliderWithField("Thickness (px)", selectionSettings.outlineThicknessPx, 1.0f, 7.0f, 0.01f, true);
+				Editor::DrawFloatSliderWithField("Opacity", selectionSettings.outlineOpacity, 0.0f, 1.0f, 0.01f, true);
+				Editor::DrawFloatSliderWithField("Softness", selectionSettings.outlineSoftness, 0.0f, 3.0f, 0.01f, true);
+
+				ImGui::Spacing();
+				ImGui::Text("Fill");
+				ImGui::ColorEdit4("Fill Color", &selectionSettings.fillColor.x);
+				Editor::DrawFloatSliderWithField("Fill Intensity", selectionSettings.fillIntensity, 0.0f, 0.5f, 0.01f, true);
+
+				selectionSettings.outlineThicknessPx = std::clamp(selectionSettings.outlineThicknessPx, 1.0f, 4.0f);
+				selectionSettings.outlineOpacity = std::clamp(selectionSettings.outlineOpacity, 0.0f, 1.0f);
+				selectionSettings.outlineSoftness = std::clamp(selectionSettings.outlineSoftness, 0.0f, 3.0f);
+				selectionSettings.fillIntensity = std::clamp(selectionSettings.fillIntensity, 0.0f, 0.5f);
+
+				ImGui::EndPopup();
+			}
+
+						const char* previewModeNames[] = { "Shaded", "Normals", "UV0", "UV1", "Lightmap UV", "Lightmap" };
+			int previewMode = static_cast<int>(NE::GetScenePreviewMode());
+			previewMode = std::clamp(previewMode, 0, 5);
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(130.0f);
+			if (ImGui::BeginCombo("Preview", previewModeNames[previewMode])) {
+				for (int i = 0; i < 6; ++i) {
+					const bool selected = (previewMode == i);
+					if (ImGui::Selectable(previewModeNames[i], selected)) {
+						previewMode = i;
+						NE::SetScenePreviewMode(static_cast<uint8_t>(previewMode));
+					}
+					if (selected) ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
+
+			if (previewMode == 2 || previewMode == 3 || previewMode == 4) {
+				const float uvScaleValues[] = { 1.0f, 4.0f, 10.0f, 20.0f };
+				const char* uvScaleLabels[] = { "1", "4", "10", "20" };
+
+				float uvScale = NE::GetScenePreviewUvScale();
+				int uvScaleIndex = 0;
+				bool matchedScale = false;
+				for (int i = 0; i < 4; ++i) {
+					if (fabsf(uvScale - uvScaleValues[i]) <= 0.001f) {
+						uvScaleIndex = i;
+						matchedScale = true;
+						break;
+					}
+				}
+
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(100.0f);
+				if (ImGui::BeginCombo("UV Scale", matchedScale ? uvScaleLabels[uvScaleIndex] : "Custom")) {
+					for (int i = 0; i < 4; ++i) {
+						const bool selected = (uvScaleIndex == i);
+						if (ImGui::Selectable(uvScaleLabels[i], selected)) {
+							uvScaleIndex = i;
+							NE::SetScenePreviewUvScale(uvScaleValues[i]);
+						}
+						if (selected) ImGui::SetItemDefaultFocus();
+					}
+					ImGui::EndCombo();
+				}
+			}
+
 			ImGui::PopStyleVar(3);
 			ImGui::PopStyleColor(3);
 			ImGui::PopStyleVar(2);
@@ -179,8 +379,16 @@ namespace Editor {
 			ImGui::EndMenuBar();
 		}
 
+		uint32_t sceneTexture = NE::GetSceneColorAttachment();
+		if (NE::GetScenePreviewMode() != 0) {
+			const uint32_t debugTexture = NE::GetSceneDebugAttachment();
+			if (debugTexture != 0) {
+				sceneTexture = debugTexture;
+			}
+		}
+
 		ImGui::Image(
-			(ImTextureID)(uintptr_t)NE::GetSceneColorAttachment(),
+			(ImTextureID)(uintptr_t)sceneTexture,
 			panelSize,
 			ImVec2(0, 1),
 			ImVec2(1, 0)
@@ -192,18 +400,18 @@ namespace Editor {
 			ImVec2 p1 = m_dragEndScreen;
 
 			// Normalize corners
-			ImVec2 min(
+			ImVec2 dragMin(
 				std::min(p0.x, p1.x),
 				std::min(p0.y, p1.y)
 			);
-			ImVec2 max(
+			ImVec2 dragMax(
 				std::max(p0.x, p1.x),
 				std::max(p0.y, p1.y)
 			);
 
-			dl->AddRect(min, max,
+			dl->AddRect(dragMin, dragMax,
 				IM_COL32(0, 150, 255, 200)); // outline
-			dl->AddRectFilled(min, max,
+			dl->AddRectFilled(dragMin, dragMax,
 				IM_COL32(0, 150, 255, 40));  // translucent fill
 		}
 
@@ -213,6 +421,10 @@ namespace Editor {
 				std::string uuid = Assets::AssetManager::GetInstance().GetRecordBySource(dropped)->id;
 
 				auto newRootEntt = NE::LoadPrefab(uuid);
+				if (newRootEntt == NE::ECS::NO_ENTITY) {
+					ImGui::EndDragDropTarget();
+					return;
+				}
 				EditorScene::s_rootOrder.push_back(newRootEntt);
 				EditorScene::s_selection.SetSingle(newRootEntt);
 
@@ -269,6 +481,12 @@ namespace Editor {
 
 				//// Clear asset selection since we just selected an entity
 				//Editor::EditorScene::selectedAsset.clear();
+			} else if (const ImGuiPayload* materialPayload = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH")) {
+				std::string dropped((const char*)materialPayload->Data, materialPayload->DataSize - 1);
+				//std::string uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
+				std::string metaPath = dropped + ".meta";
+				Deserialization::JSON::DeserializeModel(metaPath);
+				rebuildScene = true;
 			} else if (const ImGuiPayload* materialPayload = ImGui::AcceptDragDropPayload("MATERIAL_PATH")) {
 				std::string dropped((const char*)materialPayload->Data, materialPayload->DataSize - 1);
 				std::string uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
@@ -291,83 +509,31 @@ namespace Editor {
 							NE::Renderer::Command::AssignMaterial(id, uuid);
 					}
 				}
-			} else if (const ImGuiPayload* modalPayload = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH")) {
+			} else if (const ImGuiPayload* modalPayload = ImGui::AcceptDragDropPayload("ASSET_SUBMESH")) {
 				std::string dropped((const char*)modalPayload->Data, modalPayload->DataSize - 1);
 				std::string uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
 
-				if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-					ImVec2 mousePos = ImGui::GetMousePos();
-					if (mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
-						mousePos.y >= panelPos.y && mousePos.y < panelPos.y + panelSize.y) {
-						float localX = mousePos.x - panelPos.x;
-						float localY = mousePos.y - panelPos.y;
-						float spMouseX = localX / panelSize.x;
-						float spMouseY = localY / panelSize.y;
+				//if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+				//	ImVec2 mousePos = ImGui::GetMousePos();
+				//	if (mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
+				//		mousePos.y >= panelPos.y && mousePos.y < panelPos.y + panelSize.y) {
+				//		float localX = mousePos.x - panelPos.x;
+				//		float localY = mousePos.y - panelPos.y;
+				//		float spMouseX = localX / panelSize.x;
+				//		float spMouseY = localY / panelSize.y;
 
-						uint32_t x = static_cast<int>(spMouseX * 1920.f);
-						uint32_t y = static_cast<int>(1080 - 1 - (spMouseY * 1080));
+				//		uint32_t x = static_cast<int>(spMouseX * 1920.f);
+				//		uint32_t y = static_cast<int>(1080 - 1 - (spMouseY * 1080));
 
-						uint32_t id = NE::GetPickedEntity(x, y);
+				//		uint32_t id = NE::GetPickedEntity(x, y);
 
-						if (id != NE::ECS::NO_ENTITY)
-							NE::Renderer::Command::AssignModel(id, uuid);
-					}
-				}
+				//		if (id != NE::ECS::NO_ENTITY)
+				//			NE::Renderer::Command::AssignModel(id, uuid);
+				//	}
+				//}
 			}
 			ImGui::EndDragDropTarget();
 		}
-		// --- Floating Play Controls ---
-		{
-			// Centered at the top of the viewport
-			ImVec2 overlaySize(200, 40);
-			ImVec2 overlayPos(panelPos.x + panelSize.x * 0.5f - overlaySize.x * 0.5f,
-				panelPos.y + 10.0f);
-
-			ImGui::SetNextWindowPos(overlayPos);
-			ImGui::SetNextWindowSize(overlaySize);
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
-			ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0.5f)); // translucent
-
-			if (ImGui::Begin("PlayControls", nullptr,
-				ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-				ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
-				ImGuiWindowFlags_NoScrollWithMouse)) {
-				static bool playing = false;
-				static bool paused = false;
-
-				if (ImGui::Button("Play")) {
-					playing = true;
-					paused = false;
-					auto sceneAsset = dynamic_cast<Assets::SceneAsset*>(Assets::AssetManager::GetInstance().GetRecord(EditorScene::s_currentSceneUUID)->asset.get());
-					sceneAsset->SaveScene(EditorScene::s_currentScenePath);
-					NE::StartRuntime();
-					EditorScene::BuildRoot();
-					g_EditorState = EditorState::Play;
-					ImGui::SetWindowFocus("Game");
-				}
-				ImGui::SameLine();
-				if (ImGui::Button("Pause")) {
-					if (playing) paused = !paused;
-
-					g_EditorState = EditorState::Paused;
-				}
-				ImGui::SameLine();
-				if (ImGui::Button("Stop")) {
-					playing = false;
-					paused = false;
-
-					NE::StopRuntime();
-					g_EditorState = EditorState::Edit;
-					EditorScene::BuildRoot();
-					ImGui::SetWindowFocus("Scene");
-				}
-			}
-			ImGui::End();
-			ImGui::PopStyleColor();
-			ImGui::PopStyleVar(2);
-		}
-
 		
 		ImGuiIO& io = ImGui::GetIO();
 
@@ -378,7 +544,19 @@ namespace Editor {
 				mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
 				mousePos.y >= panelPos.y && mousePos.y < panelPos.y + panelSize.y;
 
-			if (insideScene) {
+			if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem)) {
+				if (ImGui::IsKeyPressed(ImGuiKey_Delete, false) && !EditorScene::s_selection.Empty()) {
+					std::vector<uint32_t> toDelete = BuildDeleteRoots(EditorScene::s_selection.GetSelection());
+					if (!toDelete.empty()) {
+						NANOEngine::Events::EventBus::Get().Dispatch(
+							NANOEngine::Events::EventDomain::Editor,
+							Events::DeleteEntityEvent{ toDelete }
+						);
+					}
+				}
+			}
+
+			if (insideScene && !ImGui::IsAnyItemHovered()) {
 				if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
 					m_dragSelecting = true;
 					m_dragStartScreen = mousePos;
@@ -432,10 +610,12 @@ namespace Editor {
 		if (ImGui::IsWindowFocused()) {
 			if (ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
 				if (!m_rightMouseHeld) {
-					m_lastMousePos = io.MousePos;
 					m_rightMouseHeld = true;
 					m_currentMoveSpeed = 0.0f;
 					m_lastMoveDir = Vec3(0.0f);
+
+					m_lastMousePos = GetCursorScreenPosImVec2();
+					m_wrapIgnoreNextDelta = true;
 				}
 
 				Vec3 move(0.0f);
@@ -464,7 +644,6 @@ namespace Editor {
 						m_currentMoveSpeed = boost ? EditorScene::m_cameraMaxSpeed : EditorScene::m_cameraSpeed;
 					}
 				} else {
-					// No input but RMB still held
 					if (EditorScene::m_cameraUseEasing) {
 						m_currentMoveSpeed -= m_cameraDeceleration * deltaTime;
 						if (m_currentMoveSpeed < 0.0f)
@@ -494,12 +673,30 @@ namespace Editor {
 					);
 				}
 
-				ImVec2 delta = { io.MousePos.x - m_lastMousePos.x, io.MousePos.y - m_lastMousePos.y };
-				m_lastMousePos = io.MousePos;
+				ImVec2 cur = GetCursorScreenPosImVec2();
+
+				ImVec2 delta = { cur.x - m_lastMousePos.x, cur.y - m_lastMousePos.y };
+
+				bool warped = false;
+				WrapCursorInCurrentMonitor(/*useWorkArea=*/true, /*marginPx=*/2, warped);
+
+				if (warped) {
+					ImVec2 afterWarp = GetCursorScreenPosImVec2();
+					m_lastMousePos = afterWarp;
+					m_wrapIgnoreNextDelta = true;
+					delta = ImVec2(0, 0);
+				} else {
+					m_lastMousePos = cur;
+				}
+
+				if (m_wrapIgnoreNextDelta) {
+					delta = ImVec2(0, 0);
+					m_wrapIgnoreNextDelta = false;
+				}
 
 				EditorScene::m_cameraYaw += delta.x * m_mouseSensitivity;
 				EditorScene::m_cameraPitch -= delta.y * m_mouseSensitivity;
-
+				
 				if (EditorScene::m_cameraPitch > 89.0f) EditorScene::m_cameraPitch = 89.0f;
 				if (EditorScene::m_cameraPitch < -89.0f) EditorScene::m_cameraPitch = -89.0f;
 			} else {
@@ -510,23 +707,33 @@ namespace Editor {
 		}
 
 		// transform gizmos
+		static uint32_t s_lastUIGizmoEntity = NE::ECS::NO_ENTITY;
+
 		if (!EditorScene::s_selection.Empty()) {
 			static ImGuizmo::OPERATION currentOperation = ImGuizmo::TRANSLATE;
 			if (ImGui::IsKeyPressed(ImGuiKey_W)) currentOperation = ImGuizmo::TRANSLATE;
 			if (ImGui::IsKeyPressed(ImGuiKey_E)) currentOperation = ImGuizmo::ROTATE;
 			if (ImGui::IsKeyPressed(ImGuiKey_R)) currentOperation = ImGuizmo::SCALE;
+			if (ImGui::IsKeyPressed(ImGuiKey_T)) currentOperation = ImGuizmo::BOUNDS;
 
 			ImGuizmo::SetOrthographic(false);
 			ImGuizmo::SetDrawlist();
 			ImGuizmo::SetRect(panelPos.x, panelPos.y, panelSize.x, panelSize.y);
 
 			using Owner = NE::ECS::Component::Transform;
-			const uint32_t last = EditorScene::s_selection.GetPrimary();
+			const uint32_t last = EditorScene::s_selection.GetLastClicked();
 
-			bool lastHasTransform = (last != NE::ECS::NO_ENTITY) && NE::ECS::Query::HasTransform(last);
-			bool lastHasUIRectTransform = (last != NE::ECS::NO_ENTITY) && NE::ECS::Query::HasUIRectTransform(last);
+			bool isUI = NE::ECS::Query::HasUIRectTransform(last);
 
-			if (lastHasTransform) {
+			// End the previous 2D gizmo if we switched to a different entity
+			if (s_lastUIGizmoEntity != NE::ECS::NO_ENTITY &&
+				s_lastUIGizmoEntity != last &&
+				UIGizmoHandler::IsGizmoActive()) {
+				UIGizmoHandler::End2DGizmo(s_lastUIGizmoEntity);
+				s_lastUIGizmoEntity = NE::ECS::NO_ENTITY;
+			}
+
+			if (!isUI) {
 				auto topLevel = EditorScene::s_selection.GetTopLevelSelection(
 					[](uint32_t e) {
 						const auto& h = NE::ECS::Query::GetEntityHierarchy(e);
@@ -667,6 +874,25 @@ namespace Editor {
 
 							if (changed) {
 								Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(tgt.cmd));
+
+								if (s_gizmoMask & Editor::SetTransformCommand::Pos) {
+									NANOEngine::Events::EventBus::Get().Dispatch(
+										NANOEngine::Events::EventDomain::Editor,
+										Events::AutoKeyRecordEvent{ NE::ECS::Query::GetTransformComponentType(), posFieldId }
+									);
+								}
+								if (s_gizmoMask & Editor::SetTransformCommand::Rot) {
+									NANOEngine::Events::EventBus::Get().Dispatch(
+										NANOEngine::Events::EventDomain::Editor,
+										Events::AutoKeyRecordEvent{ NE::ECS::Query::GetTransformComponentType(), rotFieldId }
+									);
+								}
+								if (s_gizmoMask & Editor::SetTransformCommand::Scl) {
+									NANOEngine::Events::EventBus::Get().Dispatch(
+										NANOEngine::Events::EventDomain::Editor,
+										Events::AutoKeyRecordEvent{ NE::ECS::Query::GetTransformComponentType(), sclFieldId }
+									);
+								}
 							}
 						}
 
@@ -674,68 +900,74 @@ namespace Editor {
 						s_gizmoActive = false;
 					}
 				}
-			} else if (lastHasUIRectTransform) {
-				auto& rectTransform = NE::ECS::Command::GetUIRectTransform(last);
+			} else {
+				// UI element selected - use UIGizmoHandler for interactive handles
+				if (NE::ECS::Query::HasUIRectTransform(last)) {
+					// Find the canvas this UI element belongs to
+					uint32_t canvasEntity = NE::ECS::NO_ENTITY;
+					uint32_t current = last;
 
-				// Get the canvas parent to check render mode
-				uint32_t canvasEntityId = std::numeric_limits<uint32_t>::max();
-				NE::ECS::Component::UICanvas* canvas = nullptr;
-
-				// First check if this entity itself is a canvas
-				if (NE::ECS::Query::HasUICanvas(last)) {
-					canvasEntityId = last;
-					canvas = &NE::ECS::Command::GetUICanvas(last);
-				} else {
-					// Walk up parent chain to find canvas
-					uint32_t currentParent = rectTransform.parent;
-					while (currentParent != std::numeric_limits<uint32_t>::max()) {
-						if (NE::ECS::Query::HasUICanvas(currentParent)) {
-							canvasEntityId = currentParent;
-							canvas = &NE::ECS::Command::GetUICanvas(currentParent);
+					while (current != NE::ECS::NO_ENTITY) {
+						if (NE::ECS::Query::HasUICanvas(current)) {
+							canvasEntity = current;
 							break;
 						}
-						if (!NE::ECS::Query::HasUIRectTransform(currentParent)) break;
-						currentParent = NE::ECS::Query::GetUIRectTransform(currentParent).parent;
-					}
-				}
-
-				if (!canvas) {
-					// No canvas parent found, skip
-					ImGui::End();
-					return;
-				}
-
-				// Setup operation keys for 3D gizmo
-				UIGizmoHandler::SetOperation(currentOperation);
-
-				// World space canvas (3D gizmo)
-				if (canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::WORLD_SPACE) {
-					NE::Math::Mat4 view = EditorScene::m_editorCamera.GetViewMatrix();
-					NE::Math::Mat4 proj = EditorScene::m_editorCamera.GetProjectionMatrix();
-
-					Editor::UIGizmoHandler::Update3DGizmo(last, view, proj, panelPos, panelSize);
-					s_usingUIGizmo = Editor::UIGizmoHandler::IsGizmoActive();
-				}
-				// Screen space canvas (2D gizmo with corner/edge handles)
-				else if (canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY ||
-					canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_CAMERA) {
-					// Begin 2D gizmo if not already active
-					if (!UIGizmoHandler::IsGizmoActive()) {
-						UIGizmoHandler::Begin2DGizmo(last);
-						s_usingUIGizmo = true;
+						if (NE::ECS::Query::HasUIRectTransform(current)) {
+							auto& rect = NE::ECS::Query::GetUIRectTransform(current);
+							current = NE::ECS::Query::HasHierarchy(current) ? NE::ECS::Query::GetEntityHierarchy(current).parent : NE::ECS::NO_ENTITY;
+						} else {
+							break;
+						}
 					}
 
-					// Update 2D gizmo
-					if (UIGizmoHandler::IsGizmoActive()) {
-						UIGizmoHandler::Update2DGizmo(last, panelPos, panelSize, 1920.f, 1080.f);
+					// Determine render mode
+					bool isWorldSpace = false;
+					if (canvasEntity != NE::ECS::NO_ENTITY && NE::ECS::Query::HasUICanvas(canvasEntity)) {
+						auto& canvas = NE::ECS::Query::GetUICanvas(canvasEntity);
+						isWorldSpace = (canvas.renderMode == NE::ECS::Component::UICanvas::RenderMode::WORLD_SPACE);
 					}
 
-					// End 2D gizmo on mouse release
-					if (!ImGui::IsMouseDown(ImGuiMouseButton_Left) && UIGizmoHandler::IsGizmoActive()) {
-						UIGizmoHandler::End2DGizmo(last);
-						s_usingUIGizmo = false;
+					// Track UI gizmo state for drag selection blocking
+					s_usingUIGizmo = UIGizmoHandler::IsGizmoActive();
+
+					if (isWorldSpace) {
+						// World-space UI uses 3D gizmo with ImGuizmo
+						UIGizmoHandler::SetOperation(currentOperation);
+						UIGizmoHandler::Update3DGizmo(
+							last,
+							EditorScene::m_editorCamera.GetViewMatrix(),
+							EditorScene::m_editorCamera.GetProjectionMatrix(),
+							panelPos,
+							panelSize
+						);
+					} else {
+						// Screen-space UI uses custom 2D handles
+						// Framebuffer dimensions (matching the picking resolution)
+						constexpr float fbWidth = 1920.0f;
+						constexpr float fbHeight = 1080.0f;
+
+						// Begin the 2D gizmo if not already active
+						if (!UIGizmoHandler::IsGizmoActive()) {
+							UIGizmoHandler::Begin2DGizmo(last);
+						}
+
+						// Track the current UI entity for cleanup
+						s_lastUIGizmoEntity = last;
+
+						// Update the 2D gizmo (draws handles and handles input)
+						UIGizmoHandler::Update2DGizmo(last, panelPos, panelSize, fbWidth, fbHeight);
 					}
+
+					// Update flag after gizmo operations
+					s_usingUIGizmo = UIGizmoHandler::IsGizmoActive();
 				}
+			}
+		} else {
+			// Selection is empty - clean up any active UI gizmo
+			if (s_lastUIGizmoEntity != NE::ECS::NO_ENTITY && UIGizmoHandler::IsGizmoActive()) {
+				UIGizmoHandler::End2DGizmo(s_lastUIGizmoEntity);
+				s_lastUIGizmoEntity = NE::ECS::NO_ENTITY;
+				s_usingUIGizmo = false;
 			}
 		}
 
@@ -745,6 +977,9 @@ namespace Editor {
 		dir.y = sinf(Radians(EditorScene::m_cameraPitch));
 		dir.z = sinf(Radians(EditorScene::m_cameraYaw)) * cosf(Radians(EditorScene::m_cameraPitch));
 		EditorScene::m_editorCamera.LookAt(EditorScene::m_editorCamera.GetPosition() + dir, Vec3(0, 1, 0));
+
+		// Keep renderer-side highlight selection in sync with editor selection.
+		NE::Renderer::Command::SetSelectedEntities(EditorScene::s_selection.GetSelection());
 
 		NE::UpdateEditorCameraData();
 

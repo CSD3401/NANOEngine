@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "Engine.hpp"
 
 #include <memory>
@@ -25,6 +26,9 @@
 #include "ECS/Components/PrefabInstance.hpp"
 #include "ECS/Components/Hierarchy.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
+#include "Animation/AnimationClip.hpp"
+#include "ECS/Systems/AnimatorSystem.hpp"
+#include "Events/EventBus.hpp"
 
 namespace {
 
@@ -92,36 +96,28 @@ namespace NE {
 		s_renderContext = std::make_unique<Graphics::OpenGL::GLContext>();
 		s_renderContext->Init(s_window->GetNativeWindow());
 
-		// here for now
-		glEnable(GL_CULL_FACE);
-
 		Graphics::GraphicsManager::Init();
 		Physics::PhysicsManager::GetInstance().Init();
 		Scripting::ScriptingEngine::GetInstance().Initialize();
 	}
 
 	void Run(double dt) {
+#ifndef PRODUCTION_BUILD
 		NE_PROFILE_FUNCTION();
-		//s_window->PollEvents();
-
-		//Physics::PhysicsManager::Update(static_cast<float>(dt));
-		Physics::PhysicsManager::GetInstance().DrawBodies();
+#endif
 		Physics::JoltDebugRenderer::BeginFrame();
 		
 		gSceneManager.Update(dt);
-
-		Graphics::GraphicsManager::SubmitSkybox(); // Submit skybox once per frame
-
 		Physics::JoltDebugRenderer::EndFrame();
+
+
 		gSceneManager.Render();
 
 		Graphics::GraphicsManager::Clear(); // Clear draw commands after rendering
 
 		TweenManager::Get().Update(static_cast<float>(dt));
 
-		if (InputManager::WasKeyPressed(GLFW_KEY_ESCAPE)) {
-			glfwSetInputMode(static_cast<GLFWwindow*>(s_window->GetNativeWindow()), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-		}
+		//NANOEngine::Events::EventBus::Get().DispatchQueued();
 	}
 
 	void Shutdown() {
@@ -149,8 +145,40 @@ namespace NE {
 		return Graphics::GraphicsManager::GetSceneColorAttachment();
 	}
 
+	uint32_t GetSceneDebugAttachment() {
+		return Graphics::GraphicsManager::GetSceneDebugAttachment();
+	}
+
 	uint32_t GetGameColorAttachment() {
 		return Graphics::GraphicsManager::GetGameColorAttachment();
+	}
+
+	void SetScenePreviewMode(uint8_t mode) {
+		Graphics::GraphicsManager::SetScenePreviewMode(mode);
+	}
+
+	uint8_t GetScenePreviewMode() {
+		return Graphics::GraphicsManager::GetScenePreviewMode();
+	}
+
+	void SetScenePreviewUvScale(float scale) {
+		Graphics::GraphicsManager::SetScenePreviewUvScale(scale);
+	}
+
+	float GetScenePreviewUvScale() {
+		return Graphics::GraphicsManager::GetScenePreviewUvScale();
+	}
+
+	void SetGameViewResolution(uint32_t width, uint32_t height) {
+		Graphics::GraphicsManager::SetGameViewResolution(width, height);
+	}
+
+	uint32_t GetGameViewWidth() {
+		return Graphics::GraphicsManager::GetGameViewWidth();
+	}
+
+	uint32_t GetGameViewHeight() {
+		return Graphics::GraphicsManager::GetGameViewHeight();
 	}
 
 	void UpdateEditorCameraData() {
@@ -175,8 +203,8 @@ namespace NE {
 		NE::Serialization::SerializeScene(GetScene().GetECSCoordinator(), rootNodes, _artifactPath);
 	}
 
-	bool LoadScene(const std::string& _artifactPath) {
-		return gSceneManager.LoadScene(Resource::ComputeArtifactPathFromUUID(_artifactPath, Resource::ResourceType::Scene));
+	bool LoadScene(const std::string& _uuid) {
+		return gSceneManager.LoadScene(_uuid);
 	}
 
 	void CreateSceneFallback(const std::string& _artifactPath) {
@@ -188,7 +216,7 @@ namespace NE {
 	}
 
 	void CookPrefab(const ECS::Entity rootNode, const std::string& _artifactPath) {
-		NE::Serialization::SerializePrefab(GetScene().GetECSCoordinator(), rootNode, _artifactPath);
+		//NE::Serialization::SerializePrefab(GetScene().GetECSCoordinator(), rootNode, _artifactPath);
 	}
 
 	uint32_t LoadPrefab(const std::string& _uuid) {
@@ -245,8 +273,9 @@ namespace NE {
 		return buffer;
 	}
 
-	uint32_t PasteEntity(std::vector<uint8_t> clipboard) {
-		return NE::Deserialization::DeserializeEntitiesFromMemory(gSceneManager.GetActive()->GetECSCoordinator(), clipboard);
+	uint32_t PasteEntity(const std::vector<uint8_t>& clipboard) {
+		std::vector<uint8_t> buffer = clipboard;
+		return NE::Deserialization::DeserializeEntitiesFromMemory(gSceneManager.GetActive()->GetECSCoordinator(), buffer);
 	}
 
 	void CreatePrefabFromEntity(uint32_t entity, std::string& uuid, uint32_t& localID, bool isRoot) {
@@ -358,6 +387,10 @@ namespace NE {
 		return ofs.good();
 	}
 
+	void UseProductionSceneManager() {
+		gSceneManager.SetMode(SceneManagement::SceneManager::SceneManagerMode::RuntimeOnly);
+	}
+
 	void StartRuntime() {
 		gSceneManager.LoadRuntime();
 	}
@@ -370,6 +403,14 @@ namespace NE {
 		return Graphics::GraphicsManager::drawCount;
 	}
 
+	uint32_t GetUIScreenWidth() {
+		return Graphics::GraphicsManager::GetScreenWidth();
+	}
+
+	uint32_t GetUIScreenHeight() {
+		return Graphics::GraphicsManager::GetScreenHeight();
+	}
+
 	void DisplayFinalOutput(int windowWidth, int windowHeight) {
 		Graphics::GraphicsManager::DisplayFinalOutput(windowWidth, windowHeight);
 	}
@@ -380,5 +421,19 @@ namespace NE {
 
 	void DestroyGLTexture(unsigned int id) {
 		Resource::ResourceManager::GetInstance().DestroyGLTexture(id);
+	}
+
+	bool CookMeshCollider(const std::vector<Math::Vec3>& vertices,
+		const std::vector<uint32_t>& indices, std::vector<uint8_t>& outBlob) 
+	{
+		return NE::Physics::PhysicsManager::GetInstance().CookMeshCollider(vertices, indices, outBlob);
+	}
+
+	void PreviewAnimation(uint32_t entity, const Animation::AnimationClip& animClip, float timeInSeconds) {
+		gSceneManager.GetActive()->GetECSCoordinator().m_animatorSystem->ApplyClipAtTime(entity, animClip, timeInSeconds);
+	}
+	
+	void SetCursorVisible(bool visible) {
+		glfwSetInputMode(static_cast<GLFWwindow*>(s_window->GetNativeWindow()), GLFW_CURSOR, visible ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
 	}
 }

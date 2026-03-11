@@ -16,6 +16,8 @@ namespace Editor {
 		void OnImGuiRender() override;
 
 	private:
+		void SceneChanged();
+
 		void DrawEntityNode(NE::ECS::Entity e, std::vector<NE::ECS::Entity>& preorder, NE::ECS::Entity parent, int indexInParent);
 		void HandleDragSource(NE::ECS::Entity e,
 			const std::vector<NE::ECS::Entity>& preorder);
@@ -30,6 +32,8 @@ namespace Editor {
 
 		NE::ECS::Entity m_lastPrimary = NE::ECS::NO_ENTITY;
 		bool selectionChanged = false;
+		NE::ECS::Entity m_scrollToEntity = NE::ECS::NO_ENTITY;
+		bool m_scrollToEntityPending = false;
 
 		NE::ECS::Entity m_dragRep = NE::ECS::NO_ENTITY;
 		std::vector<NE::ECS::Entity> m_draggedEntities;
@@ -53,3 +57,4 @@ namespace Editor {
 		std::string m_searchLower;
 	};
 }
+

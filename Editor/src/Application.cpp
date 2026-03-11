@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "Application.hpp"
 // Needed for one shared instance of GLFW
 #define GLFW_DLL
@@ -21,11 +22,13 @@
 #include "Panels/GamePanel.hpp"
 #include "Panels/ProfilerPanel.hpp"
 #include "Panels/LoggerPanel.hpp"
+#include "Panels/AnimationPanel.hpp"
 #include <stb_image/stb_image.h>
 #include <Input/InputManager.hpp>
 #include "EditorScene.hpp"
 #include "AssetManagement/AssetManager.hpp"
 #include "Serialization/Serializer.hpp"
+#include <Events/EventBus.hpp>
 
 namespace Editor {
 	bool Application::isRunning = true;
@@ -34,6 +37,20 @@ namespace Editor {
 	static bool s_showUnsavedChangesPopup = false;
 
 	void Application::Init() {
+		NANOEngine::Events::EventBus::Get().Subscribe<Events::ShowCursorEvent>(
+			NANOEngine::Events::EventDomain::Editor,
+			[&](const Events::ShowCursorEvent&) {
+				this->ShowCursor();
+			}
+		);
+
+		NANOEngine::Events::EventBus::Get().Subscribe<Events::HideCursorEvent>(
+			NANOEngine::Events::EventDomain::Editor,
+			[&](const Events::HideCursorEvent&) {
+				this->HideCursor();
+			}
+		);
+
 		timer.Start();
 
 		// Enable logging BEFORE engine initialization
@@ -43,7 +60,9 @@ namespace Editor {
 		// Now initialize engine (logs will be captured)
 		NE::Initialize();
 
-		GLFWwindow* window = static_cast<GLFWwindow*>(NE::GetNativeWindowHandle());
+		window = static_cast<GLFWwindow*>(NE::GetNativeWindowHandle());
+
+		editorLayer.Init();
 
 		GLFWimage icon;
 		icon.pixels = stbi_load("icon.png", &icon.width, &icon.height, 0, 4);
@@ -124,8 +143,7 @@ namespace Editor {
 		Deserialization::JSON::DeserializeProjectSettings();
 	}
 
-	void Application::Run()
-	{
+	void Application::Run() {
 		while (!NE::WindowShouldClose()) {
 			Profiler::BeginFrame();
 			timer.Update(); // move to engine run
@@ -135,6 +153,7 @@ namespace Editor {
 
 			NE::Run(timer.GetDeltaTime());
 
+			FlushPendingFontRebuild();
 			ImGui_ImplOpenGL3_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();
@@ -197,5 +216,17 @@ namespace Editor {
 		Serialization::JSON::SerializeUserSettings();
 
 		NE::Shutdown();
+	}
+
+	void Application::ShowCursor() {
+		ImGuiIO& io = ImGui::GetIO();
+		io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+	}
+
+	void Application::HideCursor() {
+		ImGuiIO& io = ImGui::GetIO();
+		io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	}
 }

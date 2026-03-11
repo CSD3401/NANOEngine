@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "PrefabSystem.hpp"
 
 #include "../Core/ComponentManager.hpp"
@@ -24,6 +25,9 @@ namespace NE::ECS::Systems {
 			m_componentManager->GetComponent<Component::PrefabInstance>(entity).prefabUUID,
 			entity);
 	}
+
+	void PrefabSystem::OnEntityActive(Entity /*entity*/) {}
+	void PrefabSystem::OnEntityInactive(Entity /*entity*/) {}
 
 	void PrefabSystem::Init() {
 	}

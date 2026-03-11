@@ -1,17 +1,24 @@
 #pragma once
 
 #include "../Core/System.hpp"
-#include "../Core/ComponentManager.hpp"
+
+namespace NE::ECS {
+    class ComponentManager;
+    class EntityManager;
+}
 
 namespace NE::ECS::Systems {
 
     class LightSystem final : public System {
     public:
-        explicit LightSystem(ComponentManager* cm);
+        explicit LightSystem(ComponentManager* cm, EntityManager* em);
 
         void OnEntityAdded(Entity entity) override;
         void OnEntityRemoved(Entity entity) override;
 
+
+        void OnEntityActive(Entity entity) override;
+        void OnEntityInactive(Entity entity) override;
         void Init() override;
         void Update(double deltaTime) override;
         void UploadLights();
@@ -23,7 +30,7 @@ namespace NE::ECS::Systems {
 
     private:
         ComponentManager* m_componentManager;
-
+		EntityManager* m_entityManager;
         //std::vector<Component::DirectionalLight*> m_directionalLights;
         //std::vector<Component::PointLight*> m_pointLights;
         //std::vector<Component::SpotLight*> m_spotLights;

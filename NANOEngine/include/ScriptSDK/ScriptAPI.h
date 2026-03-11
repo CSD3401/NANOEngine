@@ -152,6 +152,12 @@ namespace Scripting {
         virtual void OnCollisionExit(Entity other) = 0;
 
         /**
+         * Called when this entity is colliding with another entity.
+         * @param other The other entity involved in collision
+		 */
+        virtual void OnCollisionStay(Entity other) = 0;
+
+        /**
          * Called when this entity triggers another entity.
          * @param other The other entity that entered trigger
          */
@@ -163,6 +169,12 @@ namespace Scripting {
          */
         virtual void OnTriggerExit(Entity other) = 0;
 
+        /**
+         * Called when this entity is triggering another entity.
+         * @param other The other entity involved in trigger
+		 */
+		virtual void OnTriggerStay(Entity other) = 0;
+
         //=====================================================================
         // ENTITY & SCRIPT STATE
         //=====================================================================
@@ -172,7 +184,7 @@ namespace Scripting {
          * @return Entity ID
          */
         Entity GetEntity() const { return m_entity; }
-
+         
         /**
          * Check if the script is currently enabled.
          * @return true if enabled, false otherwise
@@ -240,40 +252,42 @@ namespace Scripting {
         bool IsPrefabRoot(Entity entity = DEFAULT_ENTITY_PARAM) const;
 
         //=====================================================================
-        // TRANSFORM OPERATIONS (Unity-style)
+        // TRANSFORM OPERATIONS (TF_*)
         // All functions support optional Entity parameter:
         // - If not specified, operates on this script's entity (m_entity)
         // - If specified, operates on the target entity
         //=====================================================================
 
         // Position
-        Vec3 GetPosition(Entity entity = DEFAULT_ENTITY_PARAM) const;
-        Vec3 GetWorldPosition(Entity entity = DEFAULT_ENTITY_PARAM) const;
-        void SetPosition(const Vec3& pos, Entity entity = DEFAULT_ENTITY_PARAM);
-        void SetPosition(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
+        Vec3 TF_GetPosition(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        Vec3 TF_GetLocalPosition(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void TF_SetPosition(const Vec3& pos, Entity entity = DEFAULT_ENTITY_PARAM);
+        void TF_SetPosition(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
         // Rotation (Euler angles in degrees)
-        Vec3 GetRotation(Entity entity = DEFAULT_ENTITY_PARAM) const;
-        void SetRotation(const Vec3& rot, Entity entity = DEFAULT_ENTITY_PARAM);
-        void SetRotation(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
+        Vec3 TF_GetRotation(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        Vec3 TF_GetLocalRotation(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void TF_SetRotation(const Vec3& rot, Entity entity = DEFAULT_ENTITY_PARAM);
+        void TF_SetRotation(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
         // Scale
-        Vec3 GetScale(Entity entity = DEFAULT_ENTITY_PARAM) const;
-        void SetScale(const Vec3& scale, Entity entity = DEFAULT_ENTITY_PARAM);
-        void SetScale(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
-        void SetScale(float uniformScale, Entity entity = DEFAULT_ENTITY_PARAM);
+        Vec3 TF_GetScale(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        Vec3 TF_GetLocalScale(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void TF_SetScale(const Vec3& scale, Entity entity = DEFAULT_ENTITY_PARAM);
+        void TF_SetScale(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
+        void TF_SetScale(float uniformScale, Entity entity = DEFAULT_ENTITY_PARAM);
 
         // Relative transforms
-        void Translate(const Vec3& translation, Entity entity = DEFAULT_ENTITY_PARAM);
-        void Translate(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
+        void TF_Translate(const Vec3& translation, Entity entity = DEFAULT_ENTITY_PARAM);
+        void TF_Translate(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        void Rotate(const Vec3& rotation, Entity entity = DEFAULT_ENTITY_PARAM);
-        void Rotate(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
+        void TF_Rotate(const Vec3& rotation, Entity entity = DEFAULT_ENTITY_PARAM);
+        void TF_Rotate(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
         // Direction vectors (based on rotation)
-        Vec3 GetForward(Entity entity = DEFAULT_ENTITY_PARAM) const;
-        Vec3 GetRight(Entity entity = DEFAULT_ENTITY_PARAM) const;
-        Vec3 GetUp(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        Vec3 TF_GetForward(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        Vec3 TF_GetRight(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        Vec3 TF_GetUp(Entity entity = DEFAULT_ENTITY_PARAM) const;
 
         //=====================================================================
         // HIERARCHY OPERATIONS
@@ -310,39 +324,60 @@ namespace Scripting {
         std::vector<Entity> GetChildren(Entity entity = DEFAULT_ENTITY_PARAM) const;
 
         //=====================================================================
-        // RIGIDBODY PHYSICS (Unity-style)
+        // RIGIDBODY PHYSICS (RB_*)
         // All functions support optional Entity parameter
         //=====================================================================
 
-        bool HasRigidbody(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        bool RB_HasRigidbody(Entity entity = DEFAULT_ENTITY_PARAM) const;
 
         // Mass
-        float GetMass(Entity entity = DEFAULT_ENTITY_PARAM) const;
-        void SetMass(float mass, Entity entity = DEFAULT_ENTITY_PARAM);
+        float RB_GetMass(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void RB_SetMass(float mass, Entity entity = DEFAULT_ENTITY_PARAM);
 
         // Gravity
-        bool GetUseGravity(Entity entity = DEFAULT_ENTITY_PARAM) const;
-        void SetUseGravity(bool use, Entity entity = DEFAULT_ENTITY_PARAM);
+        bool RB_GetUseGravity(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void RB_SetUseGravity(bool use, Entity entity = DEFAULT_ENTITY_PARAM);
 
         // Static/Dynamic
-        bool IsStatic(Entity entity = DEFAULT_ENTITY_PARAM) const;
-        void SetStatic(bool isStatic, Entity entity = DEFAULT_ENTITY_PARAM);
+        bool RB_IsStatic(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void RB_SetStatic(bool isStatic, Entity entity = DEFAULT_ENTITY_PARAM);
 
         // Rotation locking
-        void LockRotation(bool lockX, bool lockY, bool lockZ, Entity entity = DEFAULT_ENTITY_PARAM);
+        void RB_LockRotation(bool lockX, bool lockY, bool lockZ, Entity entity = DEFAULT_ENTITY_PARAM);
 
         // Velocity
-        Vec3 GetVelocity(Entity entity = DEFAULT_ENTITY_PARAM) const;
-        void SetVelocity(const Vec3& velocity, Entity entity = DEFAULT_ENTITY_PARAM);
-        void SetVelocity(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
+        Vec3 RB_GetVelocity(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void RB_SetVelocity(const Vec3& velocity, Entity entity = DEFAULT_ENTITY_PARAM);
+        void RB_SetVelocity(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        // Angular Velocity (Rotation)
+        Vec3 RB_GetAngularVelocity(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void RB_SetAngularVelocity(const Vec3& angularVelocity, Entity entity = DEFAULT_ENTITY_PARAM);
+        void RB_SetAngularVelocity(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
         // Forces
-        void AddForce(const Vec3& force, Entity entity = DEFAULT_ENTITY_PARAM);
-        void AddForce(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
+        void RB_AddForce(const Vec3& force, Entity entity = DEFAULT_ENTITY_PARAM);
+        void RB_AddForce(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
         // Impulses
-        void AddImpulse(const Vec3& impulse, Entity entity = DEFAULT_ENTITY_PARAM);
-        void AddImpulse(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
+        void RB_AddImpulse(const Vec3& impulse, Entity entity = DEFAULT_ENTITY_PARAM);
+        void RB_AddImpulse(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        void RB_SetIsTrigger(bool isTrigger, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        //=====================================================================
+        // CHARACTER CONTROLLER PHYSICS (CC_*)
+        // All functions support optional Entity parameter
+        //=====================================================================
+
+		void CC_Move(const Vec3& displacement, Entity entity = DEFAULT_ENTITY_PARAM);
+		void CC_Rotate(float yawDegrees, Entity entity = DEFAULT_ENTITY_PARAM);
+        bool CC_IsGrounded(Entity entity = DEFAULT_ENTITY_PARAM) const;
+		Vec3 CC_GetGroundNormal(Entity entity = DEFAULT_ENTITY_PARAM) const;
+		void CC_SetPosition(const Vec3& position, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        void Anim_Play(Entity entity = DEFAULT_ENTITY_PARAM);
+		void Anim_Stop(Entity entity = DEFAULT_ENTITY_PARAM);
 
         //=====================================================================
         // PHYSICS RAYCASTING
@@ -358,10 +393,33 @@ namespace Scripting {
         std::vector<RaycastHit> RaycastAll(const Vec3& origin, const Vec3& direction,
                                             float maxDistance, uint32_t layerMask = 0xFFFFFFFF) const;
 
+        RaycastHit SphereCast(const Vec3& origin, float radius, const Vec3& direction,
+                              float maxDistance, uint32_t layerMask = 0xFFFFFFFF) const;
+
+        RaycastHit SphereCast(float originX, float originY, float originZ,
+                              float radius,
+                              float dirX, float dirY, float dirZ,
+                              float maxDistance, uint32_t layerMask = 0xFFFFFFFF) const;
+
         //=====================================================================
         // AUDIO SOURCE
         // All functions support optional Entity parameter
         //=====================================================================
+
+        void PlayAudio(const std::string& eventName); // directly using FMOD
+        void StopAudio(const std::string& eventName); // directly using FMOD
+        void StopAllAudio(); // directly using FMOD
+
+		void SetMasterVolume(float volume); // min 0.0, max 1.0
+        void SetBGMVolume(float volume);  // min 0.0, max 1.0
+        void SetSFXVolume(float volume); // min 0.0, max 1.0
+        void SetAmbienceVolume(float volume); // min 0.0, max 1.0
+
+		float GetMasterVolume() const; // if returns -1.0f, means invalid master bus
+        float GetBGMVolume() const; // if returns -1.0f, means invalid BGM bus
+        float GetSFXVolume() const; // if returns -1.0f, means invalid SFX bus
+        float GetAmbienceVolume() const; // if returns -1.0f, means invalid Ambience bus
+
 
         bool HasAudioSource(Entity entity = DEFAULT_ENTITY_PARAM) const;
 
@@ -516,6 +574,14 @@ namespace Scripting {
         MaterialRef GetMaterialRef(const std::string& materialUUID) const;
 
         /**
+         * Get the material reference from an entity's renderer component.
+         * Convenience helper that combines GetMaterial() and GetMaterialRef().
+         * @param entity Entity ID to get material from
+         * @return Material reference (check IsValid() before use)
+         */
+        MaterialRef GetEntityMaterial(Entity entity) const;
+
+        /**
          * Get a reference to a prefab asset by UUID.
          * Use this to store references to prefabs that can be instantiated at runtime.
          * @param prefabUUID Prefab asset UUID string
@@ -565,6 +631,10 @@ namespace Scripting {
         void SetVelocity(const RigidbodyRef& ref, const Vec3& velocity);
         void AddForce(const RigidbodyRef& ref, const Vec3& force);
 
+        // Renderer operations on ComponentRef
+        MaterialRef GetMaterialRef(const RendererRef& ref) const;
+        void SetMaterialRef(const RendererRef& ref, const MaterialRef& materialRef);
+
         //=====================================================================
         // FIELD REGISTRATION FOR EDITOR (Protected - use macros in scripts)
         //=====================================================================
@@ -593,10 +663,20 @@ namespace Scripting {
         void RegisterEntityVectorField(const std::string& name, std::vector<Entity>* memberPtr);
         void RegisterMaterialRefVectorField(const std::string& name, std::vector<MaterialRef>* memberPtr);
         void RegisterPrefabRefVectorField(const std::string& name, std::vector<PrefabRef>* memberPtr);
+        void RegisterGameObjectRefVectorField(const std::string& name, std::vector<GameObjectRef>* memberPtr);
+        void RegisterTransformRefVectorField(const std::string& name, std::vector<TransformRef>* memberPtr);
+        void RegisterRigidbodyRefVectorField(const std::string& name, std::vector<RigidbodyRef>* memberPtr);
+        void RegisterRendererRefVectorField(const std::string& name, std::vector<RendererRef>* memberPtr);
+        void RegisterAudioSourceRefVectorField(const std::string& name, std::vector<AudioSourceRef>* memberPtr);
+        void RegisterLayerRefVectorField(const std::string& name, std::vector<LayerRef>* memberPtr);
 
         // Enum field registration (with automatic enum options)
         template<typename EnumType>
         void RegisterEnumField(const std::string& name, EnumType* memberPtr, const std::vector<std::string>& enumOptions);
+
+        // Enum vector field registration (vector of enums with dropdown support)
+        template<typename EnumType>
+        void RegisterEnumVectorField(const std::string& name, std::vector<EnumType>* memberPtr, const std::vector<std::string>& enumOptions);
 
         // LayerMask field registration (multi-select layer picker in editor)
         void RegisterLayerMaskField(const std::string& name, LayerMask* memberPtr);
@@ -718,9 +798,6 @@ namespace Scripting {
             std::function<std::string()> getValue,
             std::function<bool(const std::string&)> setValue);
 
-        // Helper function for Unity-style hierarchy active state propagation
-        void PropagateActiveStateToChildren(const std::vector<uint32_t>& children, bool parentActive) const;
-
         // Helper methods for template functions to access FieldRegistry
         void SetFieldEnumOptions(const std::string& name, const std::vector<std::string>& options);
         void SetFieldEnumCallbacks(const std::string& name,
@@ -730,6 +807,18 @@ namespace Scripting {
         void SetFieldLayerMaskCallbacks(const std::string& name,
             std::function<uint32_t()> getLayerMaskValue,
             std::function<void(uint32_t)> setLayerMaskValue);
+
+        // Helper for enum vector field registration
+        void RegisterEnumVectorFieldInternal(
+            const std::string& name,
+            const std::vector<std::string>& enumOptions,
+            std::function<std::string()> getValue,
+            std::function<bool(const std::string&)> setValue,
+            std::function<size_t()> getSize,
+            std::function<std::string(size_t)> getElement,
+            std::function<bool(size_t, const std::string&)> setElement,
+            std::function<void()> addElement,
+            std::function<void(size_t)> removeElement);
 
      Entity m_entity = INVALID_ENTITY;
         bool m_enabled = true;
@@ -776,10 +865,24 @@ namespace Scripting {
     };
 
     //=========================================================================
+// MASTER VOLUME (GLOBAL)
+//=========================================================================
+/**
+ * @brief Set master volume level (discrete 0..5)
+ */
+    SCRIPT_API void SetMasterVolumeLevel(int level);
+
+    /**
+     * @brief Get current master volume level (0..5)
+     */
+    SCRIPT_API int GetMasterVolumeLevel();
+
+
+    //=========================================================================
     // SCENE API (SDK-level Scene Management functions)
     //=========================================================================
 
-    SCRIPT_API void SwitchScene(const std::string& path);
+    SCRIPT_API void SwitchScene(std::string path);
 
     //=========================================================================
     // LOGGING API (SDK-level logging functions)
@@ -911,6 +1014,8 @@ namespace Scripting {
      * @return true if mouse is locked
      */
     SCRIPT_API bool IsMouseLocked();
+
+	SCRIPT_API void SetMouseVisible(bool visible);
 
     //=========================================================================
     // EVENT API (SDK-level event system for script communication)
@@ -1101,6 +1206,180 @@ namespace Scripting {
     SCRIPT_API void SetFogEnd(float end);
     SCRIPT_API float GetFogDensity();
     SCRIPT_API void SetFogDensity(float density);
+
+    //=========================================================================
+    // UI TEXT API
+    //=========================================================================
+
+    /**
+     * @brief Set the text content of a UIText component
+     * @param entity The entity with UIText component
+     * @param text The text string to display
+     */
+    SCRIPT_API void SetUIText(Entity entity, const char* text);
+
+    /**
+     * @brief Set the color of a UIText component
+     * @param entity The entity with UIText component
+     * @param r Red component (0.0 to 1.0)
+     * @param g Green component (0.0 to 1.0)
+     * @param b Blue component (0.0 to 1.0)
+     * @param a Alpha component (0.0 to 1.0)
+     */
+    SCRIPT_API void SetUITextColor(Entity entity, float r, float g, float b, float a);
+
+    /**
+     * @brief Get the text content of a UIText component
+     * @param entity The entity with UIText component
+     * @return The text string, or empty string if no UIText component
+     */
+    SCRIPT_API const char* GetUIText(Entity entity);
+
+    //=========================================================================
+    // UI BUTTON API
+    //=========================================================================
+
+    /**
+     * @brief Check if a button is currently hovered
+     * @param entity The entity with UIButton component
+     * @return true if the button is hovered
+     */
+    SCRIPT_API bool IsButtonHovered(Entity entity);
+
+    /**
+     * @brief Check if a button is currently pressed
+     * @param entity The entity with UIButton component
+     * @return true if the button is pressed
+     */
+    SCRIPT_API bool IsButtonPressed(Entity entity);
+
+    /**
+     * @brief Check if a button was clicked this frame
+     * @param entity The entity with UIButton component
+     * @return true if the button was clicked (released while hovered)
+     */
+    SCRIPT_API bool WasButtonClicked(Entity entity);
+
+    /**
+     * @brief Set whether a button is interactable
+     * @param entity The entity with UIButton component
+     * @param interactable true to enable interaction, false to disable
+     */
+    SCRIPT_API void SetButtonInteractable(Entity entity, bool interactable);
+
+    /**
+     * @brief Check if a button is interactable
+     * @param entity The entity with UIButton component
+     * @return true if the button is interactable
+     */
+    SCRIPT_API bool IsButtonInteractable(Entity entity);
+
+    //=========================================================================
+    // UI SLIDER API
+    //=========================================================================
+
+    /**
+     * @brief Get the current value of a slider
+     * @param entity The entity with UISlider component
+     * @return Current slider value (between minValue and maxValue)
+     */
+    SCRIPT_API float GetSliderValue(Entity entity);
+
+    /**
+     * @brief Set the value of a slider
+     * @param entity The entity with UISlider component
+     * @param value New value (will be clamped to min/max range)
+     */
+    SCRIPT_API void SetSliderValue(Entity entity, float value);
+
+    /**
+     * @brief Get the normalized value of a slider (0.0 to 1.0)
+     * @param entity The entity with UISlider component
+     * @return Normalized value between 0.0 and 1.0
+     */
+    SCRIPT_API float GetSliderNormalizedValue(Entity entity);
+
+    /**
+     * @brief Set the normalized value of a slider (0.0 to 1.0)
+     * @param entity The entity with UISlider component
+     * @param normalizedValue Value between 0.0 and 1.0
+     */
+    SCRIPT_API void SetSliderNormalizedValue(Entity entity, float normalizedValue);
+
+    /**
+     * @brief Set the min and max values for a slider
+     * @param entity The entity with UISlider component
+     * @param minValue Minimum value
+     * @param maxValue Maximum value
+     */
+    SCRIPT_API void SetSliderMinMax(Entity entity, float minValue, float maxValue);
+
+    /**
+     * @brief Check if slider value changed this frame
+     * @param entity The entity with UISlider component
+     * @return true if the slider value was changed
+     */
+    SCRIPT_API bool SliderValueChanged(Entity entity);
+
+    /**
+     * @brief Check if a slider is interactable
+     * @param entity The entity with UISlider component
+     * @return true if the slider is interactable
+     */
+    SCRIPT_API bool IsSliderInteractable(Entity entity);
+
+    /**
+     * @brief Set whether a slider is interactable
+     * @param entity The entity with UISlider component
+     * @param interactable true to enable interaction, false to disable
+     */
+    SCRIPT_API void SetSliderInteractable(Entity entity, bool interactable);
+
+    //=========================================================================
+    // UI TOGGLE API
+    //=========================================================================
+
+    /**
+     * @brief Check if a toggle is currently on
+     * @param entity The entity with UIToggle component
+     * @return true if the toggle is on
+     */
+    SCRIPT_API bool IsToggleOn(Entity entity);
+
+    /**
+     * @brief Set the toggle state
+     * @param entity The entity with UIToggle component
+     * @param isOn true to turn on, false to turn off
+     */
+    SCRIPT_API void SetToggleOn(Entity entity, bool isOn);
+
+    /**
+     * @brief Check if toggle value changed this frame
+     * @param entity The entity with UIToggle component
+     * @return true if the toggle value was changed
+     */
+    SCRIPT_API bool ToggleValueChanged(Entity entity);
+
+    /**
+     * @brief Check if toggle was clicked this frame
+     * @param entity The entity with UIToggle component
+     * @return true if the toggle was clicked
+     */
+    SCRIPT_API bool WasToggleClicked(Entity entity);
+
+    /**
+     * @brief Check if a toggle is interactable
+     * @param entity The entity with UIToggle component
+     * @return true if the toggle is interactable
+     */
+    SCRIPT_API bool IsToggleInteractable(Entity entity);
+
+    /**
+     * @brief Set whether a toggle is interactable
+     * @param entity The entity with UIToggle component
+     * @param interactable true to enable interaction, false to disable
+     */
+    SCRIPT_API void SetToggleInteractable(Entity entity, bool interactable);
 
 } // namespace Scripting
 } // namespace NE
@@ -1444,6 +1723,227 @@ namespace RenderSettings {
     }
 }
 
+/// Audio system namespace - global controls (master volume)
+namespace Audio {
+    inline void SetMasterVolumeLevel(int level) {
+        NE::Scripting::SetMasterVolumeLevel(level);
+    }
+
+    inline int GetMasterVolumeLevel() {
+        return NE::Scripting::GetMasterVolumeLevel();
+    }
+} // namespace Audio
+
+
+/// UI system namespace - text and button interaction
+namespace UI {
+    /**
+     * @brief Set the text content of a UIText component
+     * @param entity The entity with UIText component
+     * @param text The text string to display
+     */
+    inline void SetText(NE::Scripting::Entity entity, const char* text) {
+        NE::Scripting::SetUIText(entity, text);
+    }
+
+    /**
+     * @brief Set the color of a UIText component
+     * @param entity The entity with UIText component
+     * @param r Red component (0.0 to 1.0)
+     * @param g Green component (0.0 to 1.0)
+     * @param b Blue component (0.0 to 1.0)
+     * @param a Alpha component (0.0 to 1.0)
+     */
+    inline void SetTextColor(NE::Scripting::Entity entity, float r, float g, float b, float a) {
+        NE::Scripting::SetUITextColor(entity, r, g, b, a);
+    }
+
+    /**
+     * @brief Get the text content of a UIText component
+     * @param entity The entity with UIText component
+     * @return The text string, or empty string if no UIText component
+     */
+    inline const char* GetText(NE::Scripting::Entity entity) {
+        return NE::Scripting::GetUIText(entity);
+    }
+
+    /**
+     * @brief Check if a button is currently hovered
+     * @param entity The entity with UIButton component
+     * @return true if the button is hovered
+     */
+    inline bool IsButtonHovered(NE::Scripting::Entity entity) {
+        return NE::Scripting::IsButtonHovered(entity);
+    }
+
+    /**
+     * @brief Check if a button is currently pressed
+     * @param entity The entity with UIButton component
+     * @return true if the button is pressed
+     */
+    inline bool IsButtonPressed(NE::Scripting::Entity entity) {
+        return NE::Scripting::IsButtonPressed(entity);
+    }
+
+    /**
+     * @brief Check if a button was clicked this frame
+     * @param entity The entity with UIButton component
+     * @return true if the button was clicked (released while hovered)
+     */
+    inline bool WasButtonClicked(NE::Scripting::Entity entity) {
+        return NE::Scripting::WasButtonClicked(entity);
+    }
+
+    /**
+     * @brief Set whether a button is interactable
+     * @param entity The entity with UIButton component
+     * @param interactable true to enable interaction, false to disable
+     */
+    inline void SetButtonInteractable(NE::Scripting::Entity entity, bool interactable) {
+        NE::Scripting::SetButtonInteractable(entity, interactable);
+    }
+
+    /**
+     * @brief Check if a button is interactable
+     * @param entity The entity with UIButton component
+     * @return true if the button is interactable
+     */
+    inline bool IsButtonInteractable(NE::Scripting::Entity entity) {
+        return NE::Scripting::IsButtonInteractable(entity);
+    }
+
+    // === Slider ===
+
+    /**
+     * @brief Get the current value of a slider
+     * @param entity The entity with UISlider component
+     * @return Current slider value
+     */
+    inline float GetSliderValue(NE::Scripting::Entity entity) {
+        return NE::Scripting::GetSliderValue(entity);
+    }
+
+    /**
+     * @brief Set the value of a slider
+     * @param entity The entity with UISlider component
+     * @param value New value (will be clamped to min/max range)
+     */
+    inline void SetSliderValue(NE::Scripting::Entity entity, float value) {
+        NE::Scripting::SetSliderValue(entity, value);
+    }
+
+    /**
+     * @brief Get the normalized value of a slider (0.0 to 1.0)
+     * @param entity The entity with UISlider component
+     * @return Normalized value
+     */
+    inline float GetSliderNormalizedValue(NE::Scripting::Entity entity) {
+        return NE::Scripting::GetSliderNormalizedValue(entity);
+    }
+
+    /**
+     * @brief Set the normalized value of a slider (0.0 to 1.0)
+     * @param entity The entity with UISlider component
+     * @param normalizedValue Value between 0.0 and 1.0
+     */
+    inline void SetSliderNormalizedValue(NE::Scripting::Entity entity, float normalizedValue) {
+        NE::Scripting::SetSliderNormalizedValue(entity, normalizedValue);
+    }
+
+    /**
+     * @brief Set the min and max values for a slider
+     * @param entity The entity with UISlider component
+     * @param minValue Minimum value
+     * @param maxValue Maximum value
+     */
+    inline void SetSliderMinMax(NE::Scripting::Entity entity, float minValue, float maxValue) {
+        NE::Scripting::SetSliderMinMax(entity, minValue, maxValue);
+    }
+
+    /**
+     * @brief Check if slider value changed this frame
+     * @param entity The entity with UISlider component
+     * @return true if the value was changed
+     */
+    inline bool SliderValueChanged(NE::Scripting::Entity entity) {
+        return NE::Scripting::SliderValueChanged(entity);
+    }
+
+    /**
+     * @brief Check if a slider is interactable
+     * @param entity The entity with UISlider component
+     * @return true if the slider is interactable
+     */
+    inline bool IsSliderInteractable(NE::Scripting::Entity entity) {
+        return NE::Scripting::IsSliderInteractable(entity);
+    }
+
+    /**
+     * @brief Set whether a slider is interactable
+     * @param entity The entity with UISlider component
+     * @param interactable true to enable interaction, false to disable
+     */
+    inline void SetSliderInteractable(NE::Scripting::Entity entity, bool interactable) {
+        NE::Scripting::SetSliderInteractable(entity, interactable);
+    }
+
+    // === Toggle ===
+
+    /**
+     * @brief Check if a toggle is currently on
+     * @param entity The entity with UIToggle component
+     * @return true if the toggle is on
+     */
+    inline bool IsToggleOn(NE::Scripting::Entity entity) {
+        return NE::Scripting::IsToggleOn(entity);
+    }
+
+    /**
+     * @brief Set the toggle state
+     * @param entity The entity with UIToggle component
+     * @param isOn true to turn on, false to turn off
+     */
+    inline void SetToggleOn(NE::Scripting::Entity entity, bool isOn) {
+        NE::Scripting::SetToggleOn(entity, isOn);
+    }
+
+    /**
+     * @brief Check if toggle value changed this frame
+     * @param entity The entity with UIToggle component
+     * @return true if the value was changed
+     */
+    inline bool ToggleValueChanged(NE::Scripting::Entity entity) {
+        return NE::Scripting::ToggleValueChanged(entity);
+    }
+
+    /**
+     * @brief Check if toggle was clicked this frame
+     * @param entity The entity with UIToggle component
+     * @return true if clicked
+     */
+    inline bool WasToggleClicked(NE::Scripting::Entity entity) {
+        return NE::Scripting::WasToggleClicked(entity);
+    }
+
+    /**
+     * @brief Check if a toggle is interactable
+     * @param entity The entity with UIToggle component
+     * @return true if the toggle is interactable
+     */
+    inline bool IsToggleInteractable(NE::Scripting::Entity entity) {
+        return NE::Scripting::IsToggleInteractable(entity);
+    }
+
+    /**
+     * @brief Set whether a toggle is interactable
+     * @param entity The entity with UIToggle component
+     * @param interactable true to enable interaction, false to disable
+     */
+    inline void SetToggleInteractable(NE::Scripting::Entity entity, bool interactable) {
+        NE::Scripting::SetToggleInteractable(entity, interactable);
+    }
+}
+
 //=============================================================================
 // LOGGING MACROS (Convenience macros for stream-style logging)
 //=============================================================================
@@ -1489,6 +1989,10 @@ namespace NE::Scripting {
      */
     template<typename EnumType>
     inline void IScript::RegisterEnumField(const std::string& name, EnumType* memberPtr, const std::vector<std::string>& enumOptions) {
+        // Get the option count once for validation
+        const size_t optionCount = enumOptions.size();
+
+        // Register the field FIRST (creates the entry)
         RegisterFieldInternal(
             name,
             "enum",
@@ -1497,11 +2001,11 @@ namespace NE::Scripting {
             [memberPtr]() -> std::string {
                 return std::to_string(static_cast<int>(*memberPtr));
             },
-            // setValue: Set enum from string index
-            [memberPtr, enumOptions](const std::string& value) -> bool {
+            // setValue: Set enum from string index (capture count, not vector)
+            [memberPtr, optionCount](const std::string& value) -> bool {
                 try {
                     int idx = std::stoi(value);
-                    if (idx >= 0 && idx < static_cast<int>(enumOptions.size())) {
+                    if (idx >= 0 && idx < static_cast<int>(optionCount)) {
                         *memberPtr = static_cast<EnumType>(idx);
                         return true;
                     }
@@ -1512,14 +2016,99 @@ namespace NE::Scripting {
             }
         );
 
-        // Store enum options and accessor functions using helper methods
+        // Store enum options AFTER field is registered (so it can find the entry)
         SetFieldEnumOptions(name, enumOptions);
+
+        // Store accessor functions
         SetFieldEnumCallbacks(name,
             [memberPtr]() -> int {
                 return static_cast<int>(*memberPtr);
             },
             [memberPtr](int value) {
                 *memberPtr = static_cast<EnumType>(value);
+            }
+        );
+    }
+
+    /**
+     * Register a vector of enum field with dropdown support in editor
+     * @param name Field name
+     * @param memberPtr Pointer to vector of enum member variable
+     * @param enumOptions List of enum value names (in order)
+     */
+    template<typename EnumType>
+    inline void IScript::RegisterEnumVectorField(const std::string& name, std::vector<EnumType>* memberPtr, const std::vector<std::string>& enumOptions) {
+        // Get option count once for validation (avoids capturing vector by value)
+        const size_t optionCount = enumOptions.size();
+
+        RegisterEnumVectorFieldInternal(
+            name,
+            enumOptions,
+            // getValue: Serialize entire vector as "size idx0 idx1 idx2 ..."
+            [memberPtr]() -> std::string {
+                std::ostringstream oss;
+                oss << memberPtr->size();
+                for (const auto& val : *memberPtr) {
+                    oss << " " << static_cast<int>(val);
+                }
+                return oss.str();
+            },
+            // setValue: Deserialize entire vector from "size idx0 idx1 idx2 ..."
+            [memberPtr, optionCount](const std::string& value) -> bool {
+                try {
+                    std::istringstream iss(value);
+                    size_t size;
+                    iss >> size;
+
+                    memberPtr->clear();
+                    memberPtr->reserve(size);
+
+                    for (size_t i = 0; i < size; ++i) {
+                        int idx;
+                        iss >> idx;
+                        if (idx >= 0 && idx < static_cast<int>(optionCount)) {
+                            memberPtr->push_back(static_cast<EnumType>(idx));
+                        } else {
+                            memberPtr->push_back(static_cast<EnumType>(0));
+                        }
+                    }
+                    return true;
+                } catch (...) {
+                    return false;
+                }
+            },
+            // getSize
+            [memberPtr]() -> size_t {
+                return memberPtr->size();
+            },
+            // getElement
+            [memberPtr](size_t index) -> std::string {
+                if (index >= memberPtr->size()) return "0";
+                return std::to_string(static_cast<int>((*memberPtr)[index]));
+            },
+            // setElement
+            [memberPtr, optionCount](size_t index, const std::string& value) -> bool {
+                if (index >= memberPtr->size()) return false;
+                try {
+                    int idx = std::stoi(value);
+                    if (idx >= 0 && idx < static_cast<int>(optionCount)) {
+                        (*memberPtr)[index] = static_cast<EnumType>(idx);
+                        return true;
+                    }
+                    return false;
+                } catch (...) {
+                    return false;
+                }
+            },
+            // addElement
+            [memberPtr]() -> void {
+                memberPtr->push_back(static_cast<EnumType>(0));
+            },
+            // removeElement
+            [memberPtr](size_t index) -> void {
+                if (index < memberPtr->size()) {
+                    memberPtr->erase(memberPtr->begin() + index);
+                }
             }
         );
     }

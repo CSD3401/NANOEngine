@@ -1,9 +1,23 @@
+#include "pch.h"
 #include "GLTexture.hpp"
 #include <glad/glad.h>
 #include "Core/SpdLogger.hpp"
 #include "ResourceManagement/BinaryHeaders/NanoTexHeader.hpp"
 
 namespace {
+    GLuint EnsureClampSampler() {
+        static GLuint s_ClampSampler = 0;
+        if (s_ClampSampler != 0) {
+            return s_ClampSampler;
+        }
+
+        glCreateSamplers(1, &s_ClampSampler);
+        glSamplerParameteri(s_ClampSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glSamplerParameteri(s_ClampSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glSamplerParameteri(s_ClampSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glSamplerParameteri(s_ClampSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        return s_ClampSampler;
+    }
 
     // --- Helpers for BC formats (BC7 here). Adjust if you add others ---
     static inline size_t BCBytesForLevel(uint32_t w, uint32_t h, uint8_t format /*enum*/) {
@@ -61,10 +75,23 @@ namespace {
 }
 
 namespace NE::Graphics::OpenGL {
+    std::uint64_t GetClampBindlessHandleForTexture(unsigned int textureId) {
+        if (textureId == 0u) {
+            return 0;
+        }
+
+        const std::uint64_t handle = glGetTextureSamplerHandleARB(textureId, EnsureClampSampler());
+        if (handle != 0u) {
+            glMakeTextureHandleResidentARB(handle);
+        }
+        return handle;
+    }
+
     GLTexture::GLTexture() {}
 
     GLTexture::~GLTexture() {
         if (m_Handle) glMakeTextureHandleNonResidentARB(m_Handle);
+        if (m_ClampHandle) glMakeTextureHandleNonResidentARB(m_ClampHandle);
         if (m_ID)     glDeleteTextures(1, &m_ID);
     }
 
@@ -127,6 +154,8 @@ namespace NE::Graphics::OpenGL {
         // Bindless (optional)
         m_Handle = glGetTextureHandleARB(m_ID);
         glMakeTextureHandleResidentARB(m_Handle);
+        m_ClampHandle = glGetTextureSamplerHandleARB(m_ID, EnsureClampSampler());
+        glMakeTextureHandleResidentARB(m_ClampHandle);
 
         // clear TLS staging
         m_stage = ParsedTexture{};
@@ -134,5 +163,8 @@ namespace NE::Graphics::OpenGL {
 
     void GLTexture::MakeResident() {
         glMakeTextureHandleResidentARB(m_Handle);
+        if (m_ClampHandle != 0) {
+            glMakeTextureHandleResidentARB(m_ClampHandle);
+        }
     }
 }

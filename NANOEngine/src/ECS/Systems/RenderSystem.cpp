@@ -1,44 +1,90 @@
+#include "pch.h"
+#include <cmath>
+#include <limits>
+
 #include "RenderSystem.hpp"
-#include "../Components/Renderer.hpp"
-#include "../Components/Transform.hpp"
-#include "../Components/Collider.hpp"
-#include "../Components/Light.hpp"
-#include "../Components/EntityMeta.hpp"
-#include "../../Graphics/Core/GraphicsManager.hpp"
-#include "../../Graphics/Core/Vertex.hpp"
-#include "../../Graphics/OpenGL/GLVertexBuffer.hpp"
-#include "../../Graphics/OpenGL/GLIndexBuffer.hpp"
-#include "../../Graphics/OpenGL/GLGeometryBuffer.hpp"
-#include "../../Graphics/OpenGL/GLShader.hpp"
-#include "../../Graphics/OpenGL/GLPipeline.hpp"
-#include "../../Graphics/Core/Material.hpp"
-#include "../../Graphics/Core/DrawCommand.hpp"
-#include "../../Core/Profiler.hpp"
-#include "ResourceManagement/ResourceManager.hpp"
-#include <glad/glad.h>
+#include "Core/Profiler.hpp"
 #include "Core/LUIDGenerator.hpp"
 #include "Core/LUIDRegistry.hpp"
-
-using namespace NE::Math;
-using NE::Graphics::Frustum;
-using NE::Graphics::GraphicsManager;
+#include "Engine.hpp"
+#include "ECS/Core/ComponentManager.hpp"
+#include "ECS/Core/EntityManager.hpp"
+#include "ECS/Components/Renderer.hpp"
+#include "ECS/Components/Transform.hpp"
+#include "Graphics/Core/GraphicsManager.hpp"
+#include "Graphics/Core/Material.hpp"
+#include "Graphics/Core/DrawCommand.hpp"
+#include "SceneManagement/SceneLightmapRuntime.hpp"
+#include "ResourceManagement/ResourceManager.hpp"
+#include "ECS/Components/LightmapBinding.hpp"
 
 namespace NE::ECS::Systems {
+    namespace {
+        void ResolveRendererResources(NE::ECS::Component::Renderer& renderer) {
+            auto& resourceManager = Resource::ResourceManager::GetInstance();
 
-    RenderSystem::RenderSystem(ComponentManager* cm, Core::LUIDRegistry* lr) 
-        : m_componentManager(cm), m_luidRegistry(lr)
-    {
+            if (!renderer.materialUUID.empty()) {
+                renderer.material = resourceManager.LoadResource<Graphics::Material>(renderer.materialUUID);
+            }
+            if (!renderer.material) {
+                renderer.materialUUID = "nelitmat";
+                renderer.material = resourceManager.LoadResource<Graphics::Material>("nelitmat");
+            }
+
+            if (!renderer.modelUUID.empty()) {
+                renderer.model = resourceManager.LoadResource<Graphics::Model>(renderer.modelUUID);
+            }
+            if (!renderer.model) {
+                renderer.modelUUID = "builtin:model/cube";
+                renderer.model = resourceManager.LoadResource<Graphics::Model>("builtin:model/cube");
+                renderer.subMeshIndex = 0;
+            }
+
+            if (renderer.model && !renderer.model->meshes.empty()) {
+                if (renderer.subMeshIndex < 0 || renderer.subMeshIndex >= (int32_t)renderer.model->meshes.size()) {
+                    renderer.subMeshIndex = 0;
+                }
+            } else {
+                renderer.subMeshIndex = -1;
+            }
+
+            renderer.isDirty = false;
+        }
+
+        inline float MaxScaleAxis(const NE::Math::Mat4& M) {
+            NE::Math::Vec3 x = { M.GetElement(0, 0), M.GetElement(1, 0), M.GetElement(2, 0) };
+            NE::Math::Vec3 y = { M.GetElement(0, 1), M.GetElement(1, 1), M.GetElement(2, 1) };
+            NE::Math::Vec3 z = { M.GetElement(0, 2), M.GetElement(1, 2), M.GetElement(2, 2) };
+
+            float sx = x.Length();
+            float sy = y.Length();
+            float sz = z.Length();
+            return std::max(sx, std::max(sy, sz));
+        }
+
+        inline NE::Math::Vec3 TransformPoint(const NE::Math::Mat4& M, const NE::Math::Vec3& p) {
+            NE::Math::Vec4 v = M * NE::Math::Vec4(p.x, p.y, p.z, 1.0f);
+            return { v.x, v.y, v.z };
+        }
+
+        inline bool IsFiniteMatrix(const NE::Math::Mat4& matrix) {
+            for (float value : matrix.a) {
+                if (!std::isfinite(value)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
     }
+
+    RenderSystem::RenderSystem(ComponentManager* cm, EntityManager* em, Core::LUIDRegistry* lr)
+        : m_componentManager(cm), m_entityManager(em), m_luidRegistry(lr) {}
 
     void RenderSystem::OnEntityAdded(Entity entity) {
         auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
-
-        if (!renderer.materialUUID.empty())
-            renderer.material = Resource::ResourceManager::GetInstance().
-            LoadResource<Graphics::Material>(renderer.materialUUID);
-        if (!renderer.modelUUID.empty())
-            renderer.model = Resource::ResourceManager::GetInstance().
-            LoadResource<Graphics::Model>(renderer.modelUUID);
+        ResolveRendererResources(renderer);
 
         if (renderer.luid == 0)
             renderer.luid = Core::LUIDGenerator::Generate("rd");
@@ -51,164 +97,153 @@ namespace NE::ECS::Systems {
         m_luidRegistry->Unregister(renderer.luid);
     }
 
+    void RenderSystem::OnEntityActive(Entity /*entity*/) {}
+    void RenderSystem::OnEntityInactive(Entity /*entity*/) {}
+
     void RenderSystem::Init() {
     }
 
-    void RenderSystem::Update(double deltaTime) {
+    void RenderSystem::Update(double /*deltaTime*/) {
+#ifndef PRODUCTION_BUILD
 		NE_PROFILE_FUNCTION();
+#endif
+        const auto& entities = m_entities.GetDenseContainer();
+        auto& activeScene = NE::GetScene();
+        const auto* lightmapState = SceneManagement::GetSceneLightmapRuntimeState(&activeScene);
+#ifndef PRODUCTION_BUILD
+        SceneManagement::LightmapRuntimeDebugStats frameLightmapStats{};
+        if (lightmapState) {
+            frameLightmapStats.resolvedPageCount = lightmapState->debugStats.resolvedPageCount;
+            frameLightmapStats.failedPageResolveCount = lightmapState->debugStats.failedPageResolveCount;
+        }
+#endif
 
-        FrustumCulling();
-
-        const auto& entities = GetEntities();
         for (Entity entity : entities) {
-            // Skip inactive entities
-            if (m_componentManager->HasComponent<Component::EntityMeta>(entity)) {
-                const auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(entity);
-                if (!meta.isActive) {
-                    continue;
-                }
-            }
+            if (!m_entityManager->GetActive(entity)) continue;
 
             auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
-            if (!renderer.visible || !renderer.model) continue;
+            if (renderer.isDirty) {
+                ResolveRendererResources(renderer);
+            }
+
+            if (!renderer.model) continue;
+            if (renderer.subMeshIndex < 0 || renderer.subMeshIndex >= (int32_t)renderer.model->meshes.size()) continue;
+
             auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
 
-			for (auto& sub : renderer.model->meshes) {
-				Graphics::DrawCommand cmd;
-				cmd.mesh = sub.buffer;
-				cmd.material = renderer.material;
-				cmd.transform = transform.worldMatrix;
+            const auto& ms = renderer.model->meshes[renderer.subMeshIndex].localSphere;
+            float baseR = ms.radius;
 
-                float r = (float)(entity & 0xFF) / 255.0f;
-                float g = (float)((entity >> 8) & 0xFF) / 255.0f;
-                float b = (float)((entity >> 16) & 0xFF) / 255.0f;
-				cmd.idRGB = Vec3{ r, g, b };
+            Graphics::DrawCommand cmd;
+            cmd.mesh = renderer.model->meshes[renderer.subMeshIndex].buffer;
+            cmd.material = renderer.material;
+            cmd.transform = transform.worldMatrix;
 
-                cmd.castsShadow = (renderer.shadowCastMode != Component::Renderer::ShadowCastMode::Off);
-                cmd.receivesShadow = renderer.receiveShadows;
+            float r = (float)(entity & 0xFF) / 255.0f;
+            float g = (float)((entity >> 8) & 0xFF) / 255.0f;
+            float b = (float)((entity >> 16) & 0xFF) / 255.0f;
+            cmd.idRGB = Math::Vec3{ r, g, b };
 
-                //cmd.material->SetUniformVec3("u_Material.ambient", { 0.1f, 0.1f, 0.1f });
-                //cmd.material->SetUniformVec3("u_Material.diffuse", { 1.0f, 0.5f, 0.31f });
-                //cmd.material->SetUniformVec3("u_Material.specular", { 0.5f, 0.5f, 0.5f });
-                //cmd.material->SetUniformFloat("u_Material.shininess", 32.0f);
-                //if (renderer.model && renderer.model->HasSkeleton()) {
-                //    // advance time (dt variable is available in Update)
-                //    renderer.model->UpdateAnimation(deltaTime);
+            cmd.boundsCenterWS = TransformPoint(transform.worldMatrix, ms.center);
+            cmd.boundsRadiusWs = baseR * MaxScaleAxis(transform.worldMatrix);
 
-                //    // upload bones to the material (Material::Bind will push them to the shader)
-                //    const auto& bones = renderer.model->GetBoneMatrices();
-                //    if (!bones.empty()) {
-                //        renderer.material->SetUniformMat4Array("u_Bones", bones);
-                //    }
-                //}
+            cmd.castsShadow = (renderer.shadowCastMode != Component::Renderer::ShadowCastMode::Off);
+            cmd.receivesShadow = renderer.receiveShadows;
+            cmd.hasUv1 = renderer.model->meshes[renderer.subMeshIndex].hasUv1;
 
-				Graphics::GraphicsManager::Submit(cmd);
-			}
+            const bool hasLightmapBinding = m_componentManager->HasComponent<Component::LightmapBinding>(entity);
+            if (hasLightmapBinding) {
+                auto& binding = m_componentManager->GetComponent<Component::LightmapBinding>(entity);
+                binding.pageResolved = false;
+                binding.resolvedPageSlot = Component::INVALID_LIGHTMAP_PAGE_SLOT;
+            }
+
+            if (hasLightmapBinding) {
+                auto& binding = m_componentManager->GetComponent<Component::LightmapBinding>(entity);
+                if (binding.enabled) {
+                    const Math::Vec2 uvScale = binding.uvScale;
+                    const Math::Vec2 uvOffset = binding.uvOffset;
+                    const std::string& pageId = binding.pageId;
+
+                    if (!cmd.hasUv1) {
+#ifndef PRODUCTION_BUILD
+                        ++frameLightmapStats.skippedMissingUv1Count;
+                        SceneManagement::EmitSceneLightmapWarningOnce(
+                            activeScene,
+                            "missing-uv1:" + std::to_string(entity),
+                            "Skipping lightmap sampling for entity " + std::to_string(entity) +
+                            " because the bound mesh has no UV1 channel.");
+#endif
+                    } else if (!IsFiniteMatrix(transform.worldMatrix)) {
+#ifndef PRODUCTION_BUILD
+                        ++frameLightmapStats.skippedInvalidTransformCount;
+                        SceneManagement::EmitSceneLightmapWarningOnce(
+                            activeScene,
+                            "invalid-world-matrix:" + std::to_string(entity),
+                            "Skipping lightmap sampling for entity " + std::to_string(entity) +
+                            " because its world transform contains non-finite values.");
+#endif
+                    } else if (!lightmapState || !lightmapState->lightingUsable) {
+#ifndef PRODUCTION_BUILD
+                        ++frameLightmapStats.skippedMissingPageCount;
+#endif
+                    } else if (!SceneManagement::IsFiniteLightmapTransform(uvScale, uvOffset)) {
+#ifndef PRODUCTION_BUILD
+                        ++frameLightmapStats.skippedInvalidBindingCount;
+                        SceneManagement::EmitSceneLightmapWarningOnce(
+                            activeScene,
+                            "invalid-lightmap-transform:" + std::to_string(entity),
+                            "Skipping lightmap sampling for entity " + std::to_string(entity) +
+                            " because its LightmapBinding atlas transform is invalid.");
+#endif
+                    } else if (pageId.empty()) {
+#ifndef PRODUCTION_BUILD
+                        ++frameLightmapStats.skippedInvalidBindingCount;
+                        SceneManagement::EmitSceneLightmapWarningOnce(
+                            activeScene,
+                            "missing-lightmap-page-id:" + std::to_string(entity),
+                            "Skipping lightmap sampling for entity " + std::to_string(entity) +
+                            " because its LightmapBinding has no page id.");
+#endif
+                    } else {
+                        cmd.lightmapEnabled = true;
+                        cmd.lightmapUvScale = uvScale;
+                        cmd.lightmapUvOffset = uvOffset;
+
+                        std::uint32_t pageSlot = std::numeric_limits<std::uint32_t>::max();
+                        if (lightmapState &&
+                            lightmapState->lightingUsable &&
+                            SceneManagement::TryResolveSceneLightmapPageSlot(activeScene, pageId, pageSlot)) {
+                            binding.pageResolved = true;
+                            binding.resolvedPageSlot = pageSlot;
+                            cmd.lightmapPageSlot = pageSlot;
+#ifndef PRODUCTION_BUILD
+                            ++frameLightmapStats.lightmappedDrawCount;
+#endif
+                        } else {
+#ifndef PRODUCTION_BUILD
+                            ++frameLightmapStats.skippedMissingPageCount;
+                            if (lightmapState && lightmapState->manifestResolved) {
+                                SceneManagement::EmitSceneLightmapWarningOnce(
+                                    activeScene,
+                                    "missing-lightmap-page:" + pageId,
+                                    "Skipping lightmap sampling because lightmap page '" + pageId +
+                                    "' could not be resolved to a usable runtime texture.");
+                            }
+#endif
+                        }
+                    }
+                }
+            }
+            Graphics::GraphicsManager::Submit(cmd);
         }
+
+#ifndef PRODUCTION_BUILD
+        SceneManagement::SetSceneLightmapDebugStats(activeScene, frameLightmapStats);
+#endif
     }
 
     void RenderSystem::Exit()
     {
     }
-
-    Frustum RenderSystem::BuildFrustum() 
-    {
-        auto* cam = GraphicsManager::GetEditorCamera();
-
-        if (!cam)
-        {
-            return Frustum::ExtractPlanesFromVP(Mat4{}); // default
-        }
-
-        const Mat4& V = cam->GetViewMatrix();
-        const Mat4& P = cam->GetProjectionMatrix();
-
-        Mat4 nonConstPCopy = P;
-        return Frustum::ExtractPlanesFromVP(nonConstPCopy * V);
-    }
-
-    bool RenderSystem::TestSphereFrustum(const Frustum& F, const Mat4& M, const Vec3& centerLS, float radiusLS) 
-    {
-        // transform center from local space to world space
-        Vec3 centerWS{
-            M.a[0] * centerLS.x + M.a[4] * centerLS.y + M.a[8] * centerLS.z + M.a[12],
-            M.a[1] * centerLS.x + M.a[5] * centerLS.y + M.a[9] * centerLS.z + M.a[13],
-            M.a[2] * centerLS.x + M.a[6] * centerLS.y + M.a[10] * centerLS.z + M.a[14]
-        };
-
-        // get the scaling factors
-        Vec3 scale = M.GetScale();
-
-        // compute the radius in world space using the largest scaling factor
-        float radiusWS = radiusLS * std::max({ scale.x, scale.y, scale.z });
-
-        // test intersection of bounding sphere with frustum
-        return F.IntersectsSphere(centerWS, radiusWS);
-    }
-
-
-    //bool RenderSystem::TestAABBFrustum(const Frustum& F, const Mat4& M, const NE::Math::Vec3& minLS, const NE::Math::Vec3& maxLS) {
-    //    // 8 local corners of the AABB
-    //    const Vec3 cornersLS[8]{
-    //        {minLS.x, minLS.y, minLS.z},
-    //        {maxLS.x, minLS.y, minLS.z},
-    //        {minLS.x, maxLS.y, minLS.z},
-    //        {maxLS.x, maxLS.y, minLS.z},
-    //        {minLS.x, minLS.y, maxLS.z},
-    //        {maxLS.x, minLS.y, maxLS.z},
-    //        {minLS.x, maxLS.y, maxLS.z},
-    //        {maxLS.x, maxLS.y, maxLS.z},
-    //    };
-
-    //    // helps to transform a point in local space to world space
-    //    auto pointLSToWS = [](const Mat4& matrix, const Vec3& p) -> Vec3 {
-    //        return Vec3{
-    //            matrix.a[0] * p.x + matrix.a[4] * p.y + matrix.a[8] * p.z + matrix.a[12],
-    //            matrix.a[1] * p.x + matrix.a[5] * p.y + matrix.a[9] * p.z + matrix.a[13],
-    //            matrix.a[2] * p.x + matrix.a[6] * p.y + matrix.a[10] * p.z + matrix.a[14]
-    //        };
-    //        };
-
-    //    // seed with first corner
-    //    Vec3 minWS = pointLSToWS(M, cornersLS[0]);
-    //    Vec3 maxWS = minWS;
-
-    //    // continue with the remaining corners
-    //    for (int i = 1; i < 8; ++i)
-    //    {
-    //        Vec3 cornerWS = pointLSToWS(M, cornersLS[i]);
-    //        minWS = Vec3{ std::min(minWS.x, cornerWS.x), std::min(minWS.y, cornerWS.y), std::min(minWS.z, cornerWS.z) };
-    //        maxWS = Vec3{ std::max(maxWS.x, cornerWS.x), std::max(maxWS.y, cornerWS.y), std::max(maxWS.z, cornerWS.z) };
-    //    }
-
-    //    // test intersection of AABB with frustum
-    //    return F.IntersectsAABB(minWS, maxWS);
-    //}
-
-    void RenderSystem::FrustumCulling() {
-        //// build frustum from the active camera
-        //const Frustum frustum = BuildFrustum();
-
-        //const auto& entities = GetEntities();
-        //for (Entity e : entities)
-        //{
-        //    const auto& transform = m_componentManager->GetComponent<NE::ECS::Component::Transform>(e);
-        //    auto& renderer = m_componentManager->GetComponent<NE::ECS::Component::Renderer>(e);
-
-        //    const Mat4& modelMatrix = transform.modelMatrix;
-
-        //    if (renderer.model && renderer.model->hasSphereBoundsLS)
-        //    {
-        //        const Vec3 centerLS = renderer.model->sphereCenterLS;
-        //        const float radiusLS = renderer.model->sphereRadiusLS;
-
-        //        renderer.visible = TestSphereFrustum(frustum, modelMatrix, centerLS, radiusLS);
-        //    }
-        //    else
-        //    {
-        //        renderer.visible = TestSphereFrustum(frustum, modelMatrix, Vec3(0.0f), 0.5f); // default
-        //    }
-        //}
-    }
-
 }

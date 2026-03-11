@@ -12,9 +12,9 @@
 namespace Editor::Assets {
 	constexpr uint16_t CURRENT_META_SCHEMA_VERSION = 1;
 
-	// Helper: number of asset types (assumes Prefab is last)
+	// Helper: number of asset types (tracks the last enum entry)
 	inline constexpr size_t AssetTypeCount =
-		static_cast<size_t>(AssetType::Prefab) + 1;
+		static_cast<size_t>(AssetType::Lighting) + 1;
 
 	class AssetManager {
 	public:
@@ -22,6 +22,7 @@ namespace Editor::Assets {
 
 		void GenerateMetadata(const std::string& sourcePath, std::string uuid = "");
 		void ReimportAsset(const std::string& sourcePath);
+		void CleanupOrphanArtifacts();
 
 		std::string RetrieveUUID(const std::string& sourcePath);
 		std::string RetrieveFilename(const std::string& uuid);

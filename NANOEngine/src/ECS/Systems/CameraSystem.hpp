@@ -27,7 +27,9 @@ namespace NE::ECS::Systems {
 
 		void OnEntityAdded(Entity entity) override;
 		void OnEntityRemoved(Entity entity) override;
-
+
+		void OnEntityActive(Entity entity) override;
+		void OnEntityInactive(Entity entity) override;
 		void Init() override;
 		void Update(double deltaTime) override; // override in concrete systems
 		void Exit() override;
@@ -36,7 +38,6 @@ namespace NE::ECS::Systems {
 		// Helper functions for camera management
 		void BuildProjection(Camera& cam);
 		void BuildView(Camera& cam, Transform& transform);		
-		inline Vec3 ForwardFromEuler(const Vec3& euler);
 
 		std::optional<Entity> m_mainCameraEntity; // Track main camera entity
 		

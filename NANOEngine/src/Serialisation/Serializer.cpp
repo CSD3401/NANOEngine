@@ -1,8 +1,10 @@
+#include "pch.h"
 #include "Serializer.hpp"
 
 #include <fstream>
 
 #include "BinaryReflection.hpp"
+#include "Engine.hpp"
 #include "ECS/Core/ECSCoordinator.hpp"
 #include "Graphics/Core/GraphicsManager.hpp"
 #include "Core/LUIDGenerator.hpp"
@@ -11,6 +13,7 @@
 #include "ECS/Components/EntityMeta.hpp"
 #include "ECS/Components/Transform.hpp"
 #include "ECS/Components/Renderer.hpp"
+#include "ECS/Components/LightmapBinding.hpp"
 #include "ECS/Components/Light.hpp"
 #include "ECS/Components/Collider.hpp"
 #include "ECS/Components/Rigidbody.hpp"
@@ -19,13 +22,69 @@
 #include "ECS/Components/UIRectTransform.hpp"
 #include "ECS/Components/UICanvas.hpp"
 #include "ECS/Components/UIImage.hpp"
+#include "ECS/Components/UIText.hpp"
+#include "ECS/Components/UIButton.hpp"
+#include "ECS/Components/UISlider.hpp"
+#include "ECS/Components/UIToggle.hpp"
+#include "ECS/Components/UILayoutGroup.hpp"
+#include "ECS/Components/UIGridLayoutGroup.hpp"
+#include "ECS/Components/UILayoutElement.hpp"
+#include "ECS/Components/UIScrollRect.hpp"
+#include "ECS/Components/UIAutoSize.hpp"
+#include "ECS/Components/UIInputField.hpp"
+#include "ECS/Components/UIDropdown.hpp"
 #include "ECS/Components/Hierarchy.hpp"
 #include "ECS/Components/PrefabLink.hpp"
 #include "ECS/Components/PrefabInstance.hpp"
+#include "ECS/Components/CharacterController.hpp"
+#include "ECS/Components/Animator.hpp"
+#include "ECS/Components/DecalProjector.hpp"
+#include "SceneManagement/Scene.hpp"
 
 namespace NE {
 	namespace {
-		using ComponentTypes = std::tuple<
+		using SceneComponentTypes = std::tuple<
+			ECS::Component::EntityMeta,
+			ECS::Component::Hierarchy,
+			ECS::Component::PrefabInstance,
+			ECS::Component::PrefabLink,
+			ECS::Component::Transform,
+			ECS::Component::Renderer,
+			ECS::Component::LightmapBinding,
+			ECS::Component::Light,
+			ECS::Component::Collider,
+			ECS::Component::Rigidbody,
+			ECS::Component::NativeScript,
+			ECS::Component::Camera,
+			ECS::Component::UIRectTransform,
+			ECS::Component::UICanvas,
+			ECS::Component::UIImage,
+			ECS::Component::UIText,
+			ECS::Component::UIButton,
+			ECS::Component::UISlider,
+			ECS::Component::UIToggle,
+			ECS::Component::UILayoutGroup,
+			ECS::Component::UIGridLayoutGroup,
+			ECS::Component::UILayoutElement,
+			ECS::Component::UIScrollRect,
+			ECS::Component::UIAutoSize,
+			ECS::Component::UIInputField,
+			ECS::Component::UIDropdown,
+			ECS::Component::CharacterController,
+			ECS::Component::Animator,
+            ECS::Component::DecalProjector
+		>;
+
+		using ComponentMask = std::uint64_t;
+
+		template <class F>
+		void ForEachSceneComponentType(F&& f) {
+			std::apply([&](auto&&... t) {
+				(f.template operator() < std::decay_t<decltype(t)> > (), ...);
+				}, SceneComponentTypes{});
+		}
+
+		using PrefabComponentTypes = std::tuple<
 			ECS::Component::EntityMeta,
 			ECS::Component::Hierarchy,
 			ECS::Component::PrefabInstance,
@@ -39,23 +98,35 @@ namespace NE {
 			ECS::Component::Camera,
 			ECS::Component::UIRectTransform,
 			ECS::Component::UICanvas,
-			ECS::Component::UIImage
+			ECS::Component::UIImage,
+			ECS::Component::UIText,
+			ECS::Component::UIButton,
+			ECS::Component::UISlider,
+			ECS::Component::UIToggle,
+			ECS::Component::UILayoutGroup,
+			ECS::Component::UIGridLayoutGroup,
+			ECS::Component::UILayoutElement,
+			ECS::Component::UIScrollRect,
+			ECS::Component::UIAutoSize,
+			ECS::Component::UIInputField,
+			ECS::Component::UIDropdown,
+			ECS::Component::CharacterController,
+			ECS::Component::Animator,
+			ECS::Component::DecalProjector
 		>;
 
-		using ComponentMask = std::uint64_t;
-
 		template <class F>
-		void ForEachComponentType(F&& f) {
+		void ForEachPrefabComponentType(F&& f) {
 			std::apply([&](auto&&... t) {
 				(f.template operator() < std::decay_t<decltype(t)> > (), ...);
-				}, ComponentTypes{});
+				}, PrefabComponentTypes{});
 		}
 
 		inline constexpr uint32_t NSCE_MAGIC = 0x4E534345;
-		inline constexpr int CURRENT_NANOSCENE_FORMAT_VERSION = 2;
+		inline constexpr int CURRENT_NANOSCENE_FORMAT_VERSION = 10;
 
 		inline constexpr uint32_t NFAB_MAGIC = 0x4E464142;
-		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 1;
+		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 9;
 
 		void AppendPreorder(ECS::ECSCoordinator& ecs, ECS::Entity e, std::vector<ECS::Entity>& out) {
 			out.push_back(e);
@@ -140,10 +211,12 @@ namespace NE {
 			void WriteOneEntity(ECS::ECSCoordinator& ecs, ByteBuffer& buf, ECS::Entity e) {
 				const uint8_t layer = static_cast<uint8_t>(ecs.GetEntityManager().GetLayer(e));
 				ToBinary(buf, layer);
+				const bool active = ecs.GetEntityManager().GetActive(e);
+				ToBinary(buf, active);
 
 				ComponentMask mask = 0;
 				uint32_t idx = 0;
-				ForEachComponentType([&]<typename C>() {
+				ForEachSceneComponentType([&]<typename C>() {
 					if (ecs.HasComponent<C>(e))
 						mask |= (ComponentMask(1) << idx);
 					++idx;
@@ -152,7 +225,7 @@ namespace NE {
 				ToBinary(buf, (std::uint64_t)mask);
 
 				idx = 0;
-				ForEachComponentType([&]<typename C>() {
+				ForEachSceneComponentType([&]<typename C>() {
 					if (mask & (ComponentMask(1) << idx)) {
 						const auto& c = ecs.GetComponent<C>(e);
 						ToBinary(buf, c);
@@ -168,10 +241,12 @@ namespace NE {
 			{
 				const uint8_t layer = static_cast<uint8_t>(ecs.GetEntityManager().GetLayer(e));
 				ToBinary(buf, layer);
+				const bool active = ecs.GetEntityManager().GetActive(e);
+				ToBinary(buf, active);
 
 				ComponentMask mask = 0;
 				uint32_t idx = 0;
-				ForEachComponentType([&]<typename C>() {
+				ForEachPrefabComponentType([&]<typename C>() {
 					if (ecs.HasComponent<C>(e))
 						mask |= (ComponentMask(1) << idx);
 					++idx;
@@ -180,7 +255,7 @@ namespace NE {
 				ToBinary(buf, (std::uint64_t)mask);
 
 				idx = 0;
-				ForEachComponentType([&]<typename C>() {
+				ForEachPrefabComponentType([&]<typename C>() {
 					if (mask & (ComponentMask(1) << idx)) {
 						C copy = ecs.GetComponent<C>(e);                 // copy
 						PatchForCopy<C>(copy, e, entityToLocalId);       // patch
@@ -209,6 +284,8 @@ namespace NE {
 
 			auto& pp = Graphics::GraphicsManager::postProcessingSettings;
 			ToBinary(buf, pp);
+
+			ToBinary(buf, NE::GetScene().GetLightingContainer());
 
 			std::vector<NE::ECS::Entity> flat;
 			for (auto root : rootNodes)
@@ -276,65 +353,65 @@ namespace NE {
 			outBuffer.assign(buf.data(), buf.data() + buf.size());
 		}
 
-		// Custom binary serialization for NativeScript component
-		size_t ToBinary(ByteBuffer& out, const NE::ECS::Component::NativeScript& nsc) {
-			const size_t before = out.size();
+		//// Custom binary serialization for NativeScript component
+		//size_t ToBinary(ByteBuffer& out, const NE::ECS::Component::NativeScript& nsc) {
+		//	const size_t before = out.size();
 
-			// Serialize ScriptNames using reflection
-			ToBinary(out, nsc.ScriptNames);
+		//	// Serialize ScriptNames using reflection
+		//	ToBinary(out, nsc.ScriptNames);
 
-			// Serialize SerializedFields (unordered_map<string, string>)
-			AppendU64LE(out, static_cast<uint64_t>(nsc.SerializedFields.size()));
-			for (const auto& [key, value] : nsc.SerializedFields) {
-				ToBinary(out, key);
-				ToBinary(out, value);
-			}
+		//	// Serialize SerializedFields (unordered_map<string, string>)
+		//	AppendU64LE(out, static_cast<uint64_t>(nsc.SerializedFields.size()));
+		//	for (const auto& [key, value] : nsc.SerializedFields) {
+		//		ToBinary(out, key);
+		//		ToBinary(out, value);
+		//	}
 
-			// Serialize EntityReferenceFields (unordered_set<string>)
-			AppendU64LE(out, static_cast<uint64_t>(nsc.EntityReferenceFields.size()));
-			for (const auto& field : nsc.EntityReferenceFields) {
-				ToBinary(out, field);
-			}
+		//	// Serialize EntityReferenceFields (unordered_set<string>)
+		//	AppendU64LE(out, static_cast<uint64_t>(nsc.EntityReferenceFields.size()));
+		//	for (const auto& field : nsc.EntityReferenceFields) {
+		//		ToBinary(out, field);
+		//	}
 
-			return out.size() - before;
-		}
+		//	return out.size() - before;
+		//}
 	}
 
 	namespace Deserialization {
 		// Custom deserialization for NativeScript component (must be BEFORE DeserializeScene)
-		bool FromBinary(const uint8_t*& it, const uint8_t* end, NE::ECS::Component::NativeScript& nsc) {
-			// Deserialize ScriptNames using reflection
-			if (!FromBinary(it, end, nsc.ScriptNames))
-				return false;
+		//bool FromBinary(const uint8_t*& it, const uint8_t* end, NE::ECS::Component::NativeScript& nsc) {
+		//	// Deserialize ScriptNames using reflection
+		//	if (!FromBinary(it, end, nsc.ScriptNames))
+		//		return false;
 
-			// Deserialize SerializedFields (unordered_map<string, string>)
-			uint64_t fieldsCount = 0;
-			if (!ReadU64LE(it, end, fieldsCount))
-				return false;
+		//	// Deserialize SerializedFields (unordered_map<string, string>)
+		//	uint64_t fieldsCount = 0;
+		//	if (!ReadU64LE(it, end, fieldsCount))
+		//		return false;
 
-			nsc.SerializedFields.clear();
-			for (uint64_t i = 0; i < fieldsCount; ++i) {
-				std::string key, value;
-				if (!FromBinary(it, end, key) || !FromBinary(it, end, value))
-					return false;
-				nsc.SerializedFields[key] = value;
-			}
+		//	nsc.SerializedFields.clear();
+		//	for (uint64_t i = 0; i < fieldsCount; ++i) {
+		//		std::string key, value;
+		//		if (!FromBinary(it, end, key) || !FromBinary(it, end, value))
+		//			return false;
+		//		nsc.SerializedFields[key] = value;
+		//	}
 
-			// Deserialize EntityReferenceFields (unordered_set<string>)
-			uint64_t refFieldsCount = 0;
-			if (!ReadU64LE(it, end, refFieldsCount))
-				return false;
+		//	// Deserialize EntityReferenceFields (unordered_set<string>)
+		//	uint64_t refFieldsCount = 0;
+		//	if (!ReadU64LE(it, end, refFieldsCount))
+		//		return false;
 
-			nsc.EntityReferenceFields.clear();
-			for (uint64_t i = 0; i < refFieldsCount; ++i) {
-				std::string field;
-				if (!FromBinary(it, end, field))
-					return false;
-				nsc.EntityReferenceFields.insert(field);
-			}
+		//	nsc.EntityReferenceFields.clear();
+		//	for (uint64_t i = 0; i < refFieldsCount; ++i) {
+		//		std::string field;
+		//		if (!FromBinary(it, end, field))
+		//			return false;
+		//		nsc.EntityReferenceFields.insert(field);
+		//	}
 
-			return true;
-		}
+		//	return true;
+		//}
 
 		namespace {
 			bool ReadAllBytes(const std::string& path, NE::ByteBuffer& out) {
@@ -355,7 +432,7 @@ namespace NE {
 			}
 		}
 
-		bool DeserializeScene(ECS::ECSCoordinator& ecs, const std::string& path) {
+		bool DeserializeScene(ECS::ECSCoordinator& ecs, const std::string& path, SceneManagement::Scene* owningScene) {
 			NE::ByteBuffer bytes;
 			if (!ReadAllBytes(path, bytes))
 				return false;
@@ -370,10 +447,14 @@ namespace NE {
 			if (magic != NSCE_MAGIC) return false;
 
 			if (!ReadT(it, end, version)) return false;
-			if (version != CURRENT_NANOSCENE_FORMAT_VERSION) return false;
+			if (version != CURRENT_NANOSCENE_FORMAT_VERSION)
+				return false;
+
+			SceneManagement::Scene* targetScene = owningScene ? owningScene : &NE::GetScene();
 
 			if (!ReadT(it, end, Graphics::GraphicsManager::renderSettings)) return false;
 			if (!ReadT(it, end, Graphics::GraphicsManager::postProcessingSettings)) return false;
+			if (!ReadT(it, end, targetScene->GetLightingContainer())) return false;
 
 			std::uint64_t entityCount = 0;
 			if (!ReadT(it, end, entityCount)) return false;
@@ -384,21 +465,50 @@ namespace NE {
 				uint8_t layer = 0;
 				ReadT(it, end, layer);
 				ecs.GetEntityManager().SetLayer(e, layer);
+				bool entityActive = true;
+				ReadT(it, end, entityActive);
 
 				std::uint64_t maskU64 = 0;
 				if (!ReadT(it, end, maskU64)) return false;
 				const std::uint64_t mask = maskU64;
 
 				std::uint32_t idx = 0;
-				ForEachComponentType([&]<typename C>() {
+				ForEachSceneComponentType([&]<typename C>() {
 					if (mask & (std::uint64_t(1) << idx)) {
 						C c{};
-						if (!ReadT(it, end, c)) return false;
+						if (!ReadT(it, end, c)) { ++idx; return; }
 						ecs.AddComponent<C>(e, c);
 					}
 					++idx;
 				});
+
+				//if (!hasEntityActiveBit && ecs.HasComponent<ECS::Component::EntityMeta>(e)) {
+				//	entityActive = ecs.GetComponent<ECS::Component::EntityMeta>(e).isActive;
+				//}
+
+				ecs.GetEntityManager().ToggleActive(e, entityActive);
+				if (ecs.HasComponent<ECS::Component::EntityMeta>(e)) {
+					ecs.GetComponent<ECS::Component::EntityMeta>(e).isActive = entityActive;
+				}
 			}
+			//// Resolve UISlider child entity refs from Hierarchy luids (registered by HierarchySystem)
+			//{
+			//	auto& luidReg = ecs.GetLUIDRegistry();
+			//	auto resolve = [&](uint64_t luid) -> uint32_t {
+			//		if (luid == 0) return UINT32_MAX;
+			//		const auto* rec = luidReg.Find(luid);
+			//		return rec ? static_cast<uint32_t>(rec->m_entityOwner) : UINT32_MAX;
+			//	};
+			//	for (ECS::Entity e : ecs.GetEntityManager().GetUsedEntities()) {
+			//		if (!ecs.HasComponent<ECS::Component::UISlider>(e)) continue;
+			//		auto& slider = ecs.GetComponent<ECS::Component::UISlider>(e);
+			//		slider.fillRect            = resolve(slider.fillRectLuid);
+			//		slider.handleRect          = resolve(slider.handleRectLuid);
+			//		slider.backgroundRect      = resolve(slider.backgroundRectLuid);
+			//		slider.fillAreaRect        = resolve(slider.fillAreaRectLuid);
+			//		slider.handleSlideAreaRect = resolve(slider.handleSlideAreaRectLuid);
+			//	}
+			//}
 			return true;
 		}
 
@@ -455,6 +565,10 @@ namespace NE {
 				ReadT(it, end, layer);
 				ecs.GetEntityManager().SetLayer(e, layer);
 
+				bool active;
+				ReadT(it, end, active);
+				ecs.GetEntityManager().ToggleActive(e, active);
+
 				std::uint64_t maskU64 = 0;
 				ok = ReadT(it, end, maskU64);
 				if (!ok) break;
@@ -462,33 +576,32 @@ namespace NE {
 				const std::uint64_t mask = maskU64;
 
 				std::uint32_t idx = 0;
-				ForEachComponentType([&]<typename C>() {
+				ForEachPrefabComponentType([&]<typename C>() {
 					if (!ok) { ++idx; return; }
 
 					if (mask & (std::uint64_t(1) << idx)) {
-						C c{};
-						if (!ReadT(it, end, c)) { ok = false; ++idx; return; }
-
 						if constexpr (std::is_same_v<C, ECS::Component::Hierarchy>) {
+							ECS::Component::Hierarchy c{};
+							if (!ReadT(it, end, c)) { ok = false; ++idx; return; }
 							const uint64_t oldMy = c.luid;
 							const uint64_t oldParent = c.parentLuid;
-
 							const uint64_t newMy = Core::LUIDGenerator::Generate("hr");
 							c.luid = newMy;
-
 							c.parent = ECS::Component::INVALID_PARENT;
 							c.parentLuid = 0;
 							c.children.clear();
-
 							ecs.AddComponent<ECS::Component::Hierarchy>(e, c);
-
 							oldLuidToEntity[oldMy] = e;
 							oldLuidToNewLuid[oldMy] = newMy;
 							pending.push_back({ e, oldMy, oldParent });
-
 							if (oldMy == 0)
 								outNewRoot = e;
 						} else {
+							C c{};
+							if (!ReadT(it, end, c)) { ok = false; ++idx; return; }
+							if constexpr (HasLuid<C>) {
+								c.luid = 0;
+							}
 							ecs.AddComponent<C>(e, c);
 						}
 					}
@@ -522,6 +635,25 @@ namespace NE {
 				parentH.children.push_back(p.e);
 			}
 
+			//// Patch UISlider child entity refs using remapped Hierarchy luids
+			//for (ECS::Entity slEnt : created) {
+			//	if (!ecs.HasComponent<ECS::Component::UISlider>(slEnt)) continue;
+			//	auto& slider = ecs.GetComponent<ECS::Component::UISlider>(slEnt);
+			//	auto remap = [&](uint64_t& luidField, uint32_t& entityField) {
+			//		uint64_t oldLuid = luidField;
+			//		if (oldLuid == 0) { entityField = UINT32_MAX; return; }
+			//		auto eit = oldLuidToEntity.find(oldLuid);
+			//		auto lit = oldLuidToNewLuid.find(oldLuid);
+			//		entityField = (eit != oldLuidToEntity.end()) ? static_cast<uint32_t>(eit->second) : UINT32_MAX;
+			//		if (lit != oldLuidToNewLuid.end()) luidField = lit->second;
+			//	};
+			//	remap(slider.fillRectLuid,            slider.fillRect);
+			//	remap(slider.handleRectLuid,          slider.handleRect);
+			//	remap(slider.backgroundRectLuid,      slider.backgroundRect);
+			//	remap(slider.fillAreaRectLuid,        slider.fillAreaRect);
+			//	remap(slider.handleSlideAreaRectLuid, slider.handleSlideAreaRect);
+			//}
+
 			return outNewRoot;
 		}
 
@@ -540,7 +672,8 @@ namespace NE {
 			if (magic != NFAB_MAGIC)    return false;
 
 			if (!ReadT(it, end, version)) return false;
-			if (version != CURRENT_NANOPREFAB_FORMAT_VERSION) return false;
+			if (version != CURRENT_NANOPREFAB_FORMAT_VERSION)
+				return false;
 
 			std::uint64_t entityCount64 = 0;
 			if (!ReadT(it, end, entityCount64)) return false;
@@ -574,6 +707,7 @@ namespace NE {
 			uint64_t oldRootLuid = 0;
 			bool haveOldRootLuid = false;
 
+			// Helper: read component using V3 legacy struct and copy to current layout
 			for (size_t i = 0; i < count && ok; ++i) {
 				const bool skipFirst = (i == 0);
 
@@ -594,41 +728,39 @@ namespace NE {
 				const std::uint64_t mask = maskU64;
 
 				std::uint32_t idx = 0;
-				ForEachComponentType([&]<typename C>() {
+				ForEachPrefabComponentType([&]<typename C>() {
 					if (!ok) { ++idx; return; }
 
 					if (mask & (std::uint64_t(1) << idx)) {
-						C c{};
-						if (!ReadT(it, end, c)) { ok = false; ++idx; return; }
-
 						if constexpr (std::is_same_v<C, ECS::Component::Hierarchy>) {
+							ECS::Component::Hierarchy c{};
+							if (!ReadT(it, end, c)) { ok = false; ++idx; return; }
 							const uint64_t oldMy = c.luid;
 							const uint64_t oldParent = c.parentLuid;
-
 							if (skipFirst) {
 								oldRootLuid = oldMy;
 								haveOldRootLuid = true;
-
 								auto& attachH = ecs.GetComponent<ECS::Component::Hierarchy>(attachRoot);
-
 								oldLuidToEntity[oldMy] = attachRoot;
 								oldLuidToNewLuid[oldMy] = attachH.luid;
 							} else {
 								const uint64_t newMy = Core::LUIDGenerator::Generate("hr");
 								c.luid = newMy;
-
 								c.parent = ECS::Component::INVALID_PARENT;
 								c.parentLuid = 0;
 								c.children.clear();
-
 								ecs.AddComponent<ECS::Component::Hierarchy>(e, c);
-
 								oldLuidToEntity[oldMy] = e;
 								oldLuidToNewLuid[oldMy] = newMy;
 								pending.push_back({ e, oldMy, oldParent });
 							}
 						} else {
+							C c{};
+							if (!ReadT(it, end, c)) { ok = false; ++idx; return; }
 							if (!skipFirst) {
+								if constexpr (HasLuid<C>) {
+									c.luid = 0;
+								}
 								ecs.AddComponent<C>(e, c);
 							}
 						}
@@ -699,6 +831,10 @@ namespace NE {
 				ReadT(it, end, layer);
 				ecs.GetEntityManager().SetLayer(e, layer);
 
+				bool active;
+				ReadT(it, end, active);
+				ecs.GetEntityManager().ToggleActive(e, active);
+
 				uint64_t mask64 = 0;
 				ok = FromBinary(it, end, mask64);
 				if (!ok) break;
@@ -706,7 +842,7 @@ namespace NE {
 				ComponentMask mask = static_cast<ComponentMask>(mask64);
 
 				uint32_t idx = 0;
-				ForEachComponentType([&]<typename C>() {
+				ForEachPrefabComponentType([&]<typename C>() {
 					if (!ok) { ++idx; return; }
 
 					if (mask & (ComponentMask(1) << idx)) {

@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "SceneManager.hpp"
 
 #include "Scripting/ScriptingEngine.hpp"
@@ -5,20 +6,54 @@
 #include "ECS/Components/NativeScript.hpp"
 #include "ECS/Core/Entity.hpp"
 #include "PrefabManagement/PrefabManager.hpp"
+#include "SceneLightmapRuntime.hpp"
 #include "Serialisation/Serializer.hpp"
+#include "Physics/PhysicsManager.hpp"
+#include "ResourceManagement/ResourcePaths.hpp"
 
 namespace NE::SceneManagement {
 
-	bool SceneManager::LoadScene(const std::string& path) {
-		m_loadedPath = path;
+	bool SceneManager::LoadScene(const std::string& uuid) {
+		if (m_mode == SceneManagerMode::RuntimeOnly) {
+			m_loadedPath = Resource::ComputeArtifactPathFromUUID(uuid, Resource::ResourceType::Scene);
+
+			m_editor.reset();
+			m_prefabScene.reset();
+			m_isEditingPrefab = false;
+			m_prefabPath.clear();
+
+			m_runtime = std::make_unique<Scene>();
+			Prefab::PrefabManager::Init(this);
+			Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
+			Physics::PhysicsManager::GetInstance().
+				SetManagers(&m_runtime->GetECSCoordinator().GetComponentManager(),
+					&m_runtime->GetECSCoordinator().GetLUIDRegistry());
+			if (!NE::Deserialization::DeserializeScene(m_runtime->GetECSCoordinator(), m_loadedPath, m_runtime.get())) {
+				m_runtime.reset();
+				Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
+				return false;
+			}
+            ResolveSceneLightmapRuntimeState(*m_runtime);
+			m_runtime->InitRuntime();
+			Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
+			m_isPlaying = true;
+			m_runtime->ScriptStart();
+			return true;
+		}
+
+		m_loadedPath = Resource::ComputeArtifactPathFromUUID(uuid, Resource::ResourceType::Scene);
 		m_editor = std::make_unique<Scene>();
 		Prefab::PrefabManager::Init(this);
 		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
-		if (!NE::Deserialization::DeserializeScene(m_editor->GetECSCoordinator(), path)) {
+		Physics::PhysicsManager::GetInstance().
+			SetManagers(&m_editor->GetECSCoordinator().GetComponentManager(), 
+				&m_editor->GetECSCoordinator().GetLUIDRegistry());
+		if (!NE::Deserialization::DeserializeScene(m_editor->GetECSCoordinator(), m_loadedPath, m_editor.get())) {
 			m_editor.reset();
 			Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
 			return false;
 		}
+        ResolveSceneLightmapRuntimeState(*m_editor);
 		m_editor->InitEdit();
 		Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
 		m_isPlaying = false;
@@ -26,11 +61,24 @@ namespace NE::SceneManagement {
 		return true;
 	}
 
-	void SceneManager::CreateSceneFallback(const std::string& scenePath) {
-		m_loadedPath = scenePath;
+	void SceneManager::CreateSceneFallback(const std::string& uuid) {
+		if (m_editor) {
+			m_editor->ExitEdit();
+			m_editor.reset();
+		}
+
+		if (m_runtime) {
+			m_runtime->ExitRuntime();
+			m_runtime.reset();
+			m_isPlaying = false;
+		}
+
+		m_loadedPath = Resource::ComputeArtifactPathFromUUID(uuid, Resource::ResourceType::Scene);
 		m_editor = std::make_unique<Scene>();
 		Prefab::PrefabManager::Init(this);
 		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
+		Physics::PhysicsManager::GetInstance().SetManagers(&m_editor->GetECSCoordinator().GetComponentManager(),
+			&m_editor->GetECSCoordinator().GetLUIDRegistry());
 	}
 
 	void SceneManager::StartSceneFallback() {
@@ -41,6 +89,7 @@ namespace NE::SceneManagement {
 	}
 
 	void SceneManager::LoadRuntime() {
+		if (m_mode == SceneManagerMode::RuntimeOnly) return;
 		if (!m_editor || m_isPlaying) return;
 
 		// Save editor script field values and transfer to runtime
@@ -53,11 +102,17 @@ namespace NE::SceneManagement {
 		// Load runtime scene from file
 		m_runtime = std::make_unique<Scene>();
 		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
-		NE::Deserialization::DeserializeScene(m_runtime->GetECSCoordinator(), m_loadedPath);
+		Physics::PhysicsManager::GetInstance().SetManagers(&m_runtime->GetECSCoordinator().GetComponentManager(),
+			&m_runtime->GetECSCoordinator().GetLUIDRegistry());
+		NE::Deserialization::DeserializeScene(m_runtime->GetECSCoordinator(), m_loadedPath, m_runtime.get());
+        ResolveSceneLightmapRuntimeState(*m_runtime);
 
 		// Transfer editor field values to runtime scene (before Init)
 		auto& runtimeComponentMgr = m_runtime->GetECSCoordinator().GetComponentManager();
 		Scripting::ScriptingEngine::GetInstance().TransferScriptFields(editorComponentMgr, runtimeComponentMgr);
+
+		// Important to call this to delete editor's renderviews
+		m_editor->CameraExit();
 
 		// Initialize runtime scene (creates instances with transferred field values)
 		m_runtime->InitRuntime();
@@ -70,9 +125,11 @@ namespace NE::SceneManagement {
 	}
 
 	void SceneManager::StopRuntime() {
+		if (m_mode == SceneManagerMode::RuntimeOnly) return;
 		if (!m_isPlaying) return;
 
 		if (m_runtime) {
+            ClearSceneLightmapRuntimeState(m_runtime.get());
 			m_runtime->ScriptStop();
 			m_runtime->ExitRuntime();
 		}
@@ -88,30 +145,72 @@ namespace NE::SceneManagement {
 			auto& entityMgr = coordinator.GetEntityManager();
 			auto& luidRegistry = coordinator.GetLUIDRegistry();
 			Scripting::ScriptingEngine::GetInstance().RecreateScriptInstances(componentMgr, entityMgr, luidRegistry);
+			Physics::PhysicsManager::GetInstance().SetManagers(&m_editor->GetECSCoordinator().GetComponentManager(),
+				&m_editor->GetECSCoordinator().GetLUIDRegistry());
+
+			// Important to recreate the editor's renderviews
+			m_editor->CameraEnter();
 		}
 	}
 
 	bool SceneManager::IsPlaying() const {
+		if (m_mode == SceneManagerMode::RuntimeOnly) return (m_runtime != nullptr);
 		return m_isPlaying;
 	}
 
 	Scene* SceneManager::GetActive() {
+		if (m_mode == SceneManagerMode::RuntimeOnly) return m_runtime.get();
 		if (m_isPlaying)          return m_runtime.get();
 		if (m_isEditingPrefab)    return m_prefabScene.get();
 		return m_editor.get();
 	}
 
 	void SceneManager::Update(double dt) {
-		if (m_isPlaying) {
+		if (m_mode == SceneManagerMode::RuntimeOnly) {
+			if (m_runtime) m_runtime->UpdateRuntime(dt);
+		} else if (m_isPlaying) {
 			if (m_runtime) m_runtime->UpdateRuntime(dt);
 		} else if (m_isEditingPrefab) {
 			if (m_prefabScene) m_prefabScene->UpdateEdit(dt);
 		} else {
 			if (m_editor) m_editor->UpdateEdit(dt);
 		}
+
+		// Process queued scene switch at end of frame (after all scripts have updated)
+		if (m_hasQueuedSceneSwitch) {
+			m_hasQueuedSceneSwitch = false;
+
+			bool wasPlaying = IsPlaying();
+
+			// Stop runtime if currently playing
+			if (wasPlaying) {
+				StopRuntime();
+			}
+
+			// Exit current scene and load new one
+			ExitScene();
+			LoadScene(m_queuedScenePath);
+
+			// Resume playing if we were in play mode
+			if (wasPlaying) {
+				LoadRuntime();
+			}
+
+			m_queuedScenePath.clear();
+		}
+	}
+
+	void SceneManager::QueueSceneSwitch(const std::string& scenePath) {
+		// Queue the scene switch to happen at the end of the current frame
+		m_queuedScenePath = scenePath;
+		m_hasQueuedSceneSwitch = true;
 	}
 
 	void SceneManager::Render() {
+		if (m_mode == SceneManagerMode::RuntimeOnly) {
+			if (m_runtime) m_runtime->Render();
+			return;
+		}
 		if (m_isPlaying) {
 			if (m_runtime) m_runtime->Render();
 		} else if (m_isEditingPrefab) {
@@ -122,6 +221,7 @@ namespace NE::SceneManagement {
 	}
 
 	bool SceneManager::LoadPrefabScene(const std::string& path) {
+		if (m_mode == SceneManagerMode::RuntimeOnly) return false;
 		if (m_prefabScene) {
 			m_prefabScene->ExitEdit();
 			m_prefabScene.reset();
@@ -136,6 +236,7 @@ namespace NE::SceneManagement {
 			SPD_WARNING("Failed to load prefab, try reimporting");
 			return false;
 		}
+        ResolveSceneLightmapRuntimeState(*m_prefabScene);
 		m_prefabScene->InitEdit();
 
 		m_prefabPath = path;
@@ -143,7 +244,9 @@ namespace NE::SceneManagement {
 	}
 
 	void SceneManager::ClosePrefabScene() {
+		if (m_mode == SceneManagerMode::RuntimeOnly) return;
 		if (m_prefabScene) {
+            ClearSceneLightmapRuntimeState(m_prefabScene.get());
 			m_prefabScene->ExitEdit();
 			m_prefabScene.reset();
 		}
@@ -152,8 +255,22 @@ namespace NE::SceneManagement {
 	}
 
 	void SceneManager::ExitScene() {
-		if (m_isPlaying && m_runtime) m_runtime->ExitRuntime();
-		if (m_editor) m_editor->ExitEdit();
+		if (m_mode == SceneManagerMode::RuntimeOnly) {
+			if (m_runtime) {
+                ClearSceneLightmapRuntimeState(m_runtime.get());
+                m_runtime->ExitRuntime();
+            }
+			m_runtime.reset();
+			return;
+		}
+		if (m_isPlaying && m_runtime) {
+            ClearSceneLightmapRuntimeState(m_runtime.get());
+            m_runtime->ExitRuntime();
+        }
+		if (m_editor) {
+            ClearSceneLightmapRuntimeState(m_editor.get());
+            m_editor->ExitEdit();
+        }
 	}
 
 }

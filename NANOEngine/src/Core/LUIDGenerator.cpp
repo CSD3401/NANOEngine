@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "LUIDGenerator.hpp"
 
 namespace NE::Core {

@@ -1,0 +1,1158 @@
+{
+    "Entities": [
+        {
+            "Layer": 0,
+            "EntityMeta": {
+                "name": "SequencerPuzzleTwo",
+                "isActive": 1,
+                "luid": 7308613770083172356
+            },
+            "Hierarchy": {
+                "luid": 7526193927080509446,
+                "parentLuid": 0
+            },
+            "PrefabInstance": {
+                "prefabUUID": "465731fe-5581-40f2-9353-c53ca00d1e22"
+            },
+            "PrefabLink": {
+                "prefabUUID": "465731fe-5581-40f2-9353-c53ca00d1e22",
+                "localID": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.597000002861023,
+                    "y": 0.8289999961853027,
+                    "z": 4.178060054779053
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390885055535644677
+            },
+            "NativeScript": {
+                "ScriptNames": [
+                    "Puzzle_MultiLightSequencer"
+                ],
+                "SerializedFields": {
+                    "Puzzle_MultiLightSequencer.light1": "7308613770094510104",
+                    "Puzzle_MultiLightSequencer.light2": "7308613770107813930",
+                    "Puzzle_MultiLightSequencer.sequenceLength": "3",
+                    "Puzzle_MultiLightSequencer.light3": "7308613770109911099",
+                    "Puzzle_MultiLightSequencer.light4": "0",
+                    "Puzzle_MultiLightSequencer.startDelay": "0.500000",
+                    "Puzzle_MultiLightSequencer.light5": "0",
+                    "Puzzle_MultiLightSequencer.blinkOnTime": "0.350000",
+                    "Puzzle_MultiLightSequencer.light6": "0",
+                    "Puzzle_MultiLightSequencer.light7": "0",
+                    "Puzzle_MultiLightSequencer.lightOffMaterial": "13a8b2c4-1e99-4528-818d-737ae53f5348",
+                    "Puzzle_MultiLightSequencer.solvedEventName": "SequencerSolved",
+                    "Puzzle_MultiLightSequencer.light8": "0",
+                    "Puzzle_MultiLightSequencer.light9": "0",
+                    "Puzzle_MultiLightSequencer.lightOnMaterial": "422f303b-a2fd-44d6-acbf-d930ef363e94",
+                    "Puzzle_MultiLightSequencer.blinkOffTime": "0.200000",
+                    "Puzzle_MultiLightSequencer.failReplayDelay": "0.600000",
+                    "Puzzle_MultiLightSequencer.autoStart": "1",
+                    "Puzzle_MultiLightSequencer.logSequence": "1",
+                    "Puzzle_MultiLightSequencer.puzzleKeyId": "1"
+                },
+                "EntityReferenceFields": [
+                    "light1",
+                    "light2",
+                    "light3",
+                    "light4",
+                    "light5",
+                    "light6",
+                    "light7",
+                    "light8",
+                    "light9"
+                ],
+                "luid": 7958820966316245054
+            }
+        },
+        {
+            "Layer": 0,
+            "EntityMeta": {
+                "name": "Light1",
+                "isActive": 1,
+                "luid": 7308613770095427609
+            },
+            "Hierarchy": {
+                "luid": 7526193927092764699,
+                "parentLuid": 7526193927080509446
+            },
+            "PrefabLink": {
+                "prefabUUID": "465731fe-5581-40f2-9353-c53ca00d1e22",
+                "localID": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 0.9999997615814209,
+                    "z": 0.9999997615814209
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390885055547899930
+            }
+        },
+        {
+            "Layer": 0,
+            "EntityMeta": {
+                "name": "LightBase",
+                "isActive": 1,
+                "luid": 7308613770083827727
+            },
+            "Hierarchy": {
+                "luid": 7526193927081164814,
+                "parentLuid": 7526193927092764699
+            },
+            "PrefabLink": {
+                "prefabUUID": "465731fe-5581-40f2-9353-c53ca00d1e22",
+                "localID": 2
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.000000238418579,
+                    "z": 1.000000238418579
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390885055536300048
+            }
+        },
+        {
+            "Layer": 0,
+            "EntityMeta": {
+                "name": "LightBase",
+                "isActive": 1,
+                "luid": 7308613770083827730
+            },
+            "Hierarchy": {
+                "luid": 7526193927081164817,
+                "parentLuid": 7526193927081164814
+            },
+            "PrefabLink": {
+                "prefabUUID": "465731fe-5581-40f2-9353-c53ca00d1e22",
+                "localID": 3
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.006000000052154064,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390885055536300051
+            },
+            "Renderer": {
+                "modelUUID": "6faa5e2e-8196-4ea1-98b2-5f2ca5d9891a",
+                "materialUUID": "271dc06a-5449-4a65-a070-ea40581bf2ca",
+                "shadowCastMode": 1,
+                "receiveShadows": 1,
+                "subMeshIndex": 0,
+                "luid": 8242829217786494996
+            }
+        },
+        {
+            "Layer": 0,
+            "EntityMeta": {
+                "name": "LightDome",
+                "isActive": 1,
+                "luid": 1
+            },
+            "Hierarchy": {
+                "luid": 7308613770094510101,
+                "parentLuid": 7526193927092764699
+            },
+            "PrefabLink": {
+                "prefabUUID": "465731fe-5581-40f2-9353-c53ca00d1e22",
+                "localID": 4
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.019999999552965164,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.027415569871664047,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 1
+            }
+        },
+        {
+            "Layer": 0,
+            "EntityMeta": {
+                "name": "LightDome",
+                "isActive": 1,
+                "luid": 7308613770094510104
+            },
+            "Hierarchy": {
+                "luid": 7308613770094510102,
+                "parentLuid": 7308613770094510101
+            },
+            "PrefabLink": {
+                "prefabUUID": "465731fe-5581-40f2-9353-c53ca00d1e22",
+                "localID": 5
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 2
+            },
+            "Renderer": {
+                "modelUUID": "0c86db56-77f8-438e-9731-434e47259ab1",
+                "materialUUID": "e778de0c-b7cd-4025-a364-0304a6a5eae6",
+                "shadowCastMode": 1,
+                "receiveShadows": 1,
+                "subMeshIndex": 0,
+                "luid": 8242829217797177367
+            }
+        },
+        {
+            "Layer": 0,
+            "EntityMeta": {
+                "name": "Light2",
+                "isActive": 1,
+                "luid": 7308613770107813917
+            },
+            "Hierarchy": {
+                "luid": 7526193927105151004,
+                "parentLuid": 7526193927080509446
+            },
+            "PrefabLink": {
+                "prefabUUID": "465731fe-5581-40f2-9353-c53ca00d1e22",
+                "localID": 6
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.20000000298023224,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 0.9999995827674866,
+                    "z": 0.9999995827674866
+                },
+                "Rotation": {
+                    "x": -0.027415568009018898,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390885055560286238
+            }
+        },
+        {
+            "Layer": 0,
+            "EntityMeta": {
+                "name": "LightBase",
+                "isActive": 1,
+                "luid": 7308613770107813920
+            },
+            "Hierarchy": {
+                "luid": 7526193927105151007,
+                "parentLuid": 7526193927105151004
+            },
+            "PrefabLink": {
+                "prefabUUID": "465731fe-5581-40f2-9353-c53ca00d1e22",
+                "localID": 7
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.000000238418579,
+                    "z": 1.000000238418579
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390885055560286241
+            }
+        },
+        {
+            "Layer": 0,
+            "EntityMeta": {
+                "name": "LightBase",
+                "isActive": 1,
+                "luid": 7308613770107813923
+            },
+            "Hierarchy": {
+                "luid": 7526193927105151010,
+                "parentLuid": 7526193927105151007
+            },
+            "PrefabLink": {
+                "prefabUUID": "465731fe-5581-40f2-9353-c53ca00d1e22",
+                "localID": 8
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.006000000052154064,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390885055560286244
+            },
+            "Renderer": {
+                "modelUUID": "6faa5e2e-8196-4ea1-98b2-5f2ca5d9891a",
+                "materialUUID": "271dc06a-5449-4a65-a070-ea40581bf2ca",
+                "shadowCastMode": 1,
+                "receiveShadows": 1,
+                "subMeshIndex": 0,
+                "luid": 8242829217810481189
+            }
+        },
+        {
+            "Layer": 0,
+            "EntityMeta": {
+                "name": "LightDome",
+                "isActive": 1,
+                "luid": 7308613770107813927
+            },
+            "Hierarchy": {
+                "luid": 7526193927105151014,
+                "parentLuid": 7526193927105151004
+            },
+            "PrefabLink": {
+                "prefabUUID": "465731fe-5581-40f2-9353-c53ca00d1e22",
+                "localID": 9
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.019999999552965164,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.027415569871664047,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390885055560286248
+            }
+        },
+        {
+            "Layer": 0,
+            "EntityMeta": {
+                "name": "LightDome",
+                "isActive": 1,
+                "luid": 7308613770107813930
+            },
+            "Hierarchy": {
+                "luid": 7526193927105151017,
+                "parentLuid": 7526193927105151014
+            },
+            "PrefabLink": {
+                "prefabUUID": "465731fe-5581-40f2-9353-c53ca00d1e22",
+                "localID": 10
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390885055560286251
+            },
+            "Renderer": {
+                "modelUUID": "0c86db56-77f8-438e-9731-434e47259ab1",
+                "materialUUID": "e778de0c-b7cd-4025-a364-0304a6a5eae6",
+                "shadowCastMode": 1,
+                "receiveShadows": 1,
+                "subMeshIndex": 0,
+                "luid": 8242829217810481196
+            }
+        },
+        {
+            "Layer": 0,
+            "EntityMeta": {
+                "name": "Light3",
+                "isActive": 1,
+                "luid": 7308613770109911086
+            },
+            "Hierarchy": {
+                "luid": 7526193927107248173,
+                "parentLuid": 7526193927080509446
+            },
+            "PrefabLink": {
+                "prefabUUID": "465731fe-5581-40f2-9353-c53ca00d1e22",
+                "localID": 11
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.4000000059604645,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 0.9999994039535522,
+                    "z": 0.9999994039535522
+                },
+                "Rotation": {
+                    "x": -0.026937076821923256,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390885055562383407
+            }
+        },
+        {
+            "Layer": 0,
+            "EntityMeta": {
+                "name": "LightBase",
+                "isActive": 1,
+                "luid": 7308613770109911089
+            },
+            "Hierarchy": {
+                "luid": 7526193927107248176,
+                "parentLuid": 7526193927107248173
+            },
+            "PrefabLink": {
+                "prefabUUID": "465731fe-5581-40f2-9353-c53ca00d1e22",
+                "localID": 12
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.000000238418579,
+                    "z": 1.000000238418579
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390885055562383410
+            }
+        },
+        {
+            "Layer": 0,
+            "EntityMeta": {
+                "name": "LightBase",
+                "isActive": 1,
+                "luid": 7308613770109911092
+            },
+            "Hierarchy": {
+                "luid": 7526193927107248179,
+                "parentLuid": 7526193927107248176
+            },
+            "PrefabLink": {
+                "prefabUUID": "465731fe-5581-40f2-9353-c53ca00d1e22",
+                "localID": 13
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.006000000052154064,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390885055562383413
+            },
+            "Renderer": {
+                "modelUUID": "6faa5e2e-8196-4ea1-98b2-5f2ca5d9891a",
+                "materialUUID": "271dc06a-5449-4a65-a070-ea40581bf2ca",
+                "shadowCastMode": 1,
+                "receiveShadows": 1,
+                "subMeshIndex": 0,
+                "luid": 8242829217812578358
+            }
+        },
+        {
+            "Layer": 0,
+            "EntityMeta": {
+                "name": "LightDome",
+                "isActive": 1,
+                "luid": 7308613770109911096
+            },
+            "Hierarchy": {
+                "luid": 7526193927107248183,
+                "parentLuid": 7526193927107248173
+            },
+            "PrefabLink": {
+                "prefabUUID": "465731fe-5581-40f2-9353-c53ca00d1e22",
+                "localID": 14
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.019999999552965164,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.027415569871664047,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390885055562383417
+            }
+        },
+        {
+            "Layer": 0,
+            "EntityMeta": {
+                "name": "LightDome",
+                "isActive": 1,
+                "luid": 7308613770109911099
+            },
+            "Hierarchy": {
+                "luid": 7526193927107248186,
+                "parentLuid": 7526193927107248183
+            },
+            "PrefabLink": {
+                "prefabUUID": "465731fe-5581-40f2-9353-c53ca00d1e22",
+                "localID": 15
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390885055562383420
+            },
+            "Renderer": {
+                "modelUUID": "0c86db56-77f8-438e-9731-434e47259ab1",
+                "materialUUID": "e778de0c-b7cd-4025-a364-0304a6a5eae6",
+                "shadowCastMode": 1,
+                "receiveShadows": 1,
+                "subMeshIndex": 0,
+                "luid": 8242829217812578365
+            }
+        },
+        {
+            "Layer": 0,
+            "EntityMeta": {
+                "name": "Switch3",
+                "isActive": 1,
+                "luid": 7308613770193272932
+            },
+            "Hierarchy": {
+                "luid": 7526193927190610019,
+                "parentLuid": 7526193927080509446
+            },
+            "PrefabLink": {
+                "prefabUUID": "465731fe-5581-40f2-9353-c53ca00d1e22",
+                "localID": 16
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.4000000059604645,
+                    "y": 0.0,
+                    "z": 0.10000000149011612
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 0.9999995827674866,
+                    "z": 0.9999995827674866
+                },
+                "Rotation": {
+                    "x": -1.597254991531372,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390885055645745253
+            }
+        },
+        {
+            "Layer": 0,
+            "EntityMeta": {
+                "name": "SwitchFlipper3",
+                "isActive": 1,
+                "luid": 7308613770197139564
+            },
+            "Hierarchy": {
+                "luid": 7526193927194476654,
+                "parentLuid": 7526193927190610019
+            },
+            "PrefabLink": {
+                "prefabUUID": "465731fe-5581-40f2-9353-c53ca00d1e22",
+                "localID": 17
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0000003576278687,
+                    "z": 1.0000003576278687
+                },
+                "Rotation": {
+                    "x": 45.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390885055649611885
+            },
+            "Renderer": {
+                "modelUUID": "07c00fd3-f8c0-41d6-a459-d12146fb8b38",
+                "materialUUID": "dd321abe-53ec-4d35-8768-4a3886723cd9",
+                "shadowCastMode": 1,
+                "receiveShadows": 1,
+                "subMeshIndex": 0,
+                "luid": 8242829217900462191
+            },
+            "Collider": {
+                "type": 0,
+                "isTrigger": 0,
+                "center": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "data": {
+                    "index": 0,
+                    "value": {
+                        "halfExtents": {
+                            "x": 0.05000000074505806,
+                            "y": 0.05000000074505806,
+                            "z": 0.05000000074505806
+                        }
+                    }
+                },
+                "luid": 7165061532092137592
+            },
+            "NativeScript": {
+                "ScriptNames": [
+                    "Interactable_SequencerPad"
+                ],
+                "SerializedFields": {
+                    "Interactable_SequencerPad.slotNumber": "3",
+                    "Interactable_SequencerPad.sequencer": "7308613770083172356",
+                    "Interactable_SequencerPad.startPuzzleIfIdle": "0"
+                },
+                "EntityReferenceFields": [
+                    "sequencer"
+                ],
+                "luid": 7958820966424707195
+            }
+        },
+        {
+            "Layer": 0,
+            "EntityMeta": {
+                "name": "SwitchBase",
+                "isActive": 1,
+                "luid": 7308613770193272935
+            },
+            "Hierarchy": {
+                "luid": 7526193927190610022,
+                "parentLuid": 7526193927190610019
+            },
+            "PrefabLink": {
+                "prefabUUID": "465731fe-5581-40f2-9353-c53ca00d1e22",
+                "localID": 18
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0000001192092896,
+                    "z": 1.0000001192092896
+                },
+                "Rotation": {
+                    "x": -1.597733497619629,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390885055645745256
+            },
+            "Renderer": {
+                "modelUUID": "9114e417-99ef-4c37-9024-679b051ea7d2",
+                "materialUUID": "924662ab-d34a-4ef7-86d9-cad6189e225a",
+                "shadowCastMode": 1,
+                "receiveShadows": 1,
+                "subMeshIndex": 0,
+                "luid": 8242829217895940201
+            },
+            "Collider": {
+                "type": 0,
+                "isTrigger": 0,
+                "center": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "data": {
+                    "index": 0,
+                    "value": {
+                        "halfExtents": {
+                            "x": 0.02250000089406967,
+                            "y": 0.0037499999161809683,
+                            "z": 0.03375000134110451
+                        }
+                    }
+                },
+                "luid": 7165061532070838378
+            },
+            "NativeScript": {
+                "ScriptNames": [],
+                "SerializedFields": {},
+                "EntityReferenceFields": [
+                    "sequencer"
+                ],
+                "luid": 7958820966394888299
+            }
+        },
+        {
+            "Layer": 0,
+            "EntityMeta": {
+                "name": "Switch2",
+                "isActive": 1,
+                "luid": 7308613770185277531
+            },
+            "Hierarchy": {
+                "luid": 7526193927182614618,
+                "parentLuid": 7526193927080509446
+            },
+            "PrefabLink": {
+                "prefabUUID": "465731fe-5581-40f2-9353-c53ca00d1e22",
+                "localID": 19
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.20000000298023224,
+                    "y": 0.0,
+                    "z": 0.10000000149011612
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 0.9999996423721313,
+                    "z": 0.9999996423721313
+                },
+                "Rotation": {
+                    "x": -1.597733497619629,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390885055637749852
+            }
+        },
+        {
+            "Layer": 0,
+            "EntityMeta": {
+                "name": "SwitchFlipper2",
+                "isActive": 1,
+                "luid": 7308613770204938353
+            },
+            "Hierarchy": {
+                "luid": 7526193927202275440,
+                "parentLuid": 7526193927182614618
+            },
+            "PrefabLink": {
+                "prefabUUID": "465731fe-5581-40f2-9353-c53ca00d1e22",
+                "localID": 20
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0000004768371582,
+                    "z": 1.0000004768371582
+                },
+                "Rotation": {
+                    "x": 45.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390885055657410674
+            },
+            "Renderer": {
+                "modelUUID": "07c00fd3-f8c0-41d6-a459-d12146fb8b38",
+                "materialUUID": "dd321abe-53ec-4d35-8768-4a3886723cd9",
+                "shadowCastMode": 1,
+                "receiveShadows": 1,
+                "subMeshIndex": 0,
+                "luid": 8242829217907605619
+            },
+            "Collider": {
+                "type": 0,
+                "isTrigger": 0,
+                "center": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "data": {
+                    "index": 0,
+                    "value": {
+                        "halfExtents": {
+                            "x": 0.05000000074505806,
+                            "y": 0.05000000074505806,
+                            "z": 0.05000000074505806
+                        }
+                    }
+                },
+                "luid": 7165061532096725113
+            },
+            "NativeScript": {
+                "ScriptNames": [
+                    "Interactable_SequencerPad"
+                ],
+                "SerializedFields": {
+                    "Interactable_SequencerPad.slotNumber": "2",
+                    "Interactable_SequencerPad.sequencer": "7308613770083172356",
+                    "Interactable_SequencerPad.startPuzzleIfIdle": "0"
+                },
+                "EntityReferenceFields": [
+                    "sequencer"
+                ],
+                "luid": 7958820966426214524
+            }
+        },
+        {
+            "Layer": 0,
+            "EntityMeta": {
+                "name": "SwitchBase",
+                "isActive": 1,
+                "luid": 7308613770185277534
+            },
+            "Hierarchy": {
+                "luid": 7526193927182614621,
+                "parentLuid": 7526193927182614618
+            },
+            "PrefabLink": {
+                "prefabUUID": "465731fe-5581-40f2-9353-c53ca00d1e22",
+                "localID": 21
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0000001192092896,
+                    "z": 1.0000001192092896
+                },
+                "Rotation": {
+                    "x": -1.597733497619629,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390885055637749855
+            },
+            "Renderer": {
+                "modelUUID": "9114e417-99ef-4c37-9024-679b051ea7d2",
+                "materialUUID": "924662ab-d34a-4ef7-86d9-cad6189e225a",
+                "shadowCastMode": 1,
+                "receiveShadows": 1,
+                "subMeshIndex": 0,
+                "luid": 8242829217887944800
+            },
+            "Collider": {
+                "type": 0,
+                "isTrigger": 0,
+                "center": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "data": {
+                    "index": 0,
+                    "value": {
+                        "halfExtents": {
+                            "x": 0.02250000089406967,
+                            "y": 0.0037499999161809683,
+                            "z": 0.03375000134110451
+                        }
+                    }
+                },
+                "luid": 7165061532062842977
+            },
+            "NativeScript": {
+                "ScriptNames": [],
+                "SerializedFields": {},
+                "EntityReferenceFields": [
+                    "sequencer"
+                ],
+                "luid": 7958820966386892898
+            }
+        },
+        {
+            "Layer": 0,
+            "EntityMeta": {
+                "name": "Switch1",
+                "isActive": 1,
+                "luid": 7308613770176233559
+            },
+            "Hierarchy": {
+                "luid": 7526193927173570649,
+                "parentLuid": 7526193927080509446
+            },
+            "PrefabLink": {
+                "prefabUUID": "465731fe-5581-40f2-9353-c53ca00d1e22",
+                "localID": 22
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.10000000149011612
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 0.9999998211860657,
+                    "z": 0.9999998211860657
+                },
+                "Rotation": {
+                    "x": -0.027415569871664047,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390885055628705880
+            }
+        },
+        {
+            "Layer": 0,
+            "EntityMeta": {
+                "name": "SwitchFlipper1",
+                "isActive": 1,
+                "luid": 7308613770209525877
+            },
+            "Hierarchy": {
+                "luid": 7526193927206862964,
+                "parentLuid": 7526193927173570649
+            },
+            "PrefabLink": {
+                "prefabUUID": "465731fe-5581-40f2-9353-c53ca00d1e22",
+                "localID": 23
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0000005960464478,
+                    "z": 1.0000005960464478
+                },
+                "Rotation": {
+                    "x": 45.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390885055661998198
+            },
+            "Renderer": {
+                "modelUUID": "07c00fd3-f8c0-41d6-a459-d12146fb8b38",
+                "materialUUID": "dd321abe-53ec-4d35-8768-4a3886723cd9",
+                "shadowCastMode": 1,
+                "receiveShadows": 1,
+                "subMeshIndex": 0,
+                "luid": 8242829217912193143
+            },
+            "Collider": {
+                "type": 0,
+                "isTrigger": 0,
+                "center": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "data": {
+                    "index": 0,
+                    "value": {
+                        "halfExtents": {
+                            "x": 0.05000000074505806,
+                            "y": 0.05000000074505806,
+                            "z": 0.05000000074505806
+                        }
+                    }
+                },
+                "luid": 7165061532099805306
+            },
+            "NativeScript": {
+                "ScriptNames": [
+                    "Interactable_SequencerPad"
+                ],
+                "SerializedFields": {
+                    "Interactable_SequencerPad.slotNumber": "1",
+                    "Interactable_SequencerPad.sequencer": "7308613770083172356",
+                    "Interactable_SequencerPad.startPuzzleIfIdle": "0"
+                },
+                "EntityReferenceFields": [
+                    "sequencer"
+                ],
+                "luid": 7958820966427197565
+            }
+        },
+        {
+            "Layer": 0,
+            "EntityMeta": {
+                "name": "SwitchBase",
+                "isActive": 1,
+                "luid": 7308613770133569605
+            },
+            "Hierarchy": {
+                "luid": 7526193927130906692,
+                "parentLuid": 7526193927173570649
+            },
+            "PrefabLink": {
+                "prefabUUID": "465731fe-5581-40f2-9353-c53ca00d1e22",
+                "localID": 24
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0000001192092896,
+                    "z": 1.0000001192092896
+                },
+                "Rotation": {
+                    "x": -1.597733497619629,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390885055586041926
+            },
+            "Renderer": {
+                "modelUUID": "9114e417-99ef-4c37-9024-679b051ea7d2",
+                "materialUUID": "924662ab-d34a-4ef7-86d9-cad6189e225a",
+                "shadowCastMode": 1,
+                "receiveShadows": 1,
+                "subMeshIndex": 0,
+                "luid": 8242829217836236871
+            },
+            "NativeScript": {
+                "ScriptNames": [],
+                "SerializedFields": {},
+                "EntityReferenceFields": [
+                    "sequencer"
+                ],
+                "luid": 7958820966345670735
+            }
+        }
+    ]
+}

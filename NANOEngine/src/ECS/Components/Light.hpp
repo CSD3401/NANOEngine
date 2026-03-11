@@ -1,6 +1,7 @@
 #pragma once
 
 #include <variant>
+#include <array>
 
 #include "Math/Vec3.hpp"
 #include "Math/Mat4.hpp"
@@ -11,6 +12,8 @@ namespace NE::ECS::Component {
     // Maybe add radius next time
 
 	struct Light {
+        static constexpr int DIR_CASCADES = 4;
+
         struct DirectionalLightData {
             float intensity = 1.f;
             NE_REFLECT_BEGIN(DirectionalLightData)
@@ -88,20 +91,25 @@ namespace NE::ECS::Component {
 
         // Exposed Shared
         Math::Vec3 color{ 1.f,1.f,1.f };
-        uint64_t luid;
+        uint64_t luid = 0;
         Type type = Type::Directional;
         LightTypeData data;
         ShadowType shadowType = ShadowType::None;
         ShadowUpdateMode shadowUpdateMode = ShadowUpdateMode::NoneUpdate;
-        // Dirty flag for editor changes
-        bool isDirty = false;
 
-        // --- Runtime shadow data (not serialized) ---
         uint32_t shadowMapTex = 0;
         uint32_t shadowMapFBO = 0;
-        int shadowIndex = -1;
+        int shadowMapRes = 0;
         Math::Mat4 lightViewProj{};
+        int shadowIndex = -1;
         bool shadowBaked = false;
+
+        std::array<uint32_t, DIR_CASCADES> dirShadowTex{};  // 0-init
+        std::array<uint32_t, DIR_CASCADES> dirShadowFBO{};  // 0-init
+        std::array<Math::Mat4, DIR_CASCADES> dirLightVP{};
+        std::array<float, DIR_CASCADES> dirCascadeSplitsVS{}; // view-space split depths (positive, in world units)
+        uint8_t shadowCascadeCount = 0;
+        int dirShadowRes[DIR_CASCADES] = { 0,0,0,0 };
 
         NE_REFLECT_BEGIN(Light)
             NE_REFLECT_FIELD_HIDDEN(type),

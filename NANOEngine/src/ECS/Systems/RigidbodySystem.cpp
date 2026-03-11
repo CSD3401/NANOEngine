@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "RigidbodySystem.hpp"
 #include "../Components/Rigidbody.hpp"
 #include "../Components/Transform.hpp"
@@ -6,13 +7,12 @@
 #include "Physics/PhysicsManager.hpp"
 #include "Core/LUIDGenerator.hpp"
 #include "Core/LUIDRegistry.hpp"
+#include "Core/Profiler.hpp"
 
 namespace NE::ECS::Systems {
 
 	RigidbodySystem::RigidbodySystem(ComponentManager* cm, EntityManager* em, Core::LUIDRegistry* lr)
-		: m_componentManager(cm), m_entityManager(em), m_luidRegistry(lr)
-	{
-	}
+		: m_componentManager(cm), m_entityManager(em), m_luidRegistry(lr) { }
 
 	void RigidbodySystem::OnEntityAdded(Entity e) {
 		auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(e);
@@ -28,6 +28,17 @@ namespace NE::ECS::Systems {
 		m_luidRegistry->Unregister(rb.luid);
 	}
 
+	void RigidbodySystem::OnEntityActive(Entity /*e*/) {
+		// Not needed since every rb and cc will have a collider but not every collider will have rb or cc
+		//auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
+		//Physics::PhysicsManager::GetInstance().UpdateBodyState(meta.luid, true);
+	}
+
+	void RigidbodySystem::OnEntityInactive(Entity /*e*/) {
+		//auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
+		//Physics::PhysicsManager::GetInstance().UpdateBodyState(meta.luid, false);
+	}
+
 	void RigidbodySystem::Init() {
 		auto& allEntities = m_entities.GetDenseContainer();
 
@@ -41,13 +52,17 @@ namespace NE::ECS::Systems {
 		}
 	}
 
-	void RigidbodySystem::Update(double dt) {
+	void RigidbodySystem::Update(double /*dt*/) {
+#ifndef PRODUCTION_BUILD
+		NE_PROFILE_FUNCTION();
+#endif
+
 		auto& allEntities = m_entities.GetDenseContainer();
 
 		for (auto& e : allEntities) {
 			auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
 			auto& t = m_componentManager->GetComponent<Component::Transform>(e);
-			Physics::PhysicsManager::GetInstance().SyncBodiesToTransform(meta.luid, t);
+			Physics::PhysicsManager::GetInstance().SyncTransformToBodies(meta.luid, t);
 		}
 	}
 

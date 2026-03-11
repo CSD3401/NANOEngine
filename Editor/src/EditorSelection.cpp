@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "EditorSelection.hpp"
 
 #include <algorithm>
@@ -25,7 +26,7 @@ namespace Editor {
 	}
 
 	bool EditorSelection::Empty() const { 
-		return m_selection.empty(); 
+		return m_selection.empty() && m_primary == NE::ECS::NO_ENTITY && m_lastClicked == NE::ECS::NO_ENTITY;
 	}
 
 	std::vector<NE::ECS::Entity> EditorSelection::GetTopLevelSelection(

@@ -1,10 +1,15 @@
-﻿#include "AudioSystem.hpp"
+#include "pch.h"
+// AudioSystem.cpp - FIXED VERSION
+// This version properly loads FMOD banks using the new ResourceManager system
+
+#include "AudioSystem.hpp"
 #include "../Components/AudioSource.hpp"
 #include "../Components/Transform.hpp"
 #include "../../Core/Profiler.hpp"
 #include "../../Core/SpdLogger.hpp"
+#include "../../ResourceManagement/ResourceManager.hpp"
 #include <fmod/fmod_errors.h>
-
+#include <filesystem>
 #include <direct.h>
 #include <cstring>
 
@@ -19,19 +24,19 @@ namespace NE::ECS::Systems {
 		// Private implementation hidden in .cpp
 
 		// Singleton
-		struct AudioEngine 
+		struct AudioEngine
 		{
 			FMOD::System* system = nullptr;
 			std::unordered_map<std::string, FMOD::Sound*> loadedClips;
 
-			AudioEngine() 
+			AudioEngine()
 			{
 				FMOD::System_Create(&system);
 				system->init(512, FMOD_INIT_NORMAL, 0);
 				SPD_INFO("AudioEngine constructor called");
 			}
 
-			~AudioEngine() 
+			~AudioEngine()
 			{
 				SPD_INFO("AudioEngine destructor called");
 				// Cleanup all loaded sounds
@@ -78,25 +83,8 @@ namespace NE::ECS::Systems {
 #pragma endregion
 
 
-	//const std::vector<std::pair<std::string, std::shared_ptr<NE::Asset::AudioBank>>>& AudioSystem::GetLoadedBanks() const 
-	//{
-	//	auto& assetManager = NE::Asset::AssetManager::GetInstance();
-	//	return assetManager.GetAssetsOfType<NE::Asset::AudioBank>();
-	//}
 
-	std::unordered_map<std::string, NE::Asset::AudioBank::EventInfo> AudioSystem::GetAllEvents() const 
-	{
-		std::unordered_map<std::string, NE::Asset::AudioBank::EventInfo> allEvents;
 
-		//auto banks = GetLoadedBanks(); // This now returns the correct type
-
-		//for (const auto& [uuid, bank] : banks) {
-		//	const auto& bankEvents = bank->GetEvents();
-		//	allEvents.insert(bankEvents.begin(), bankEvents.end());
-		//}
-
-		return allEvents;
-	}
 
 	void AudioSystem::ProcessAudioSource(
 		NE::ECS::Component::AudioSource& audioSource,
@@ -126,7 +114,7 @@ namespace NE::ECS::Systems {
 		FMOD::System* system)
 	{
 
-		if (!audioSource.m_sound) 
+		if (!audioSource.m_sound)
 			return;
 
 		// Stop previous playback
@@ -149,7 +137,7 @@ namespace NE::ECS::Systems {
 			// Set 3D attributes if spatial audio
 			//if (audioSource.spatialBlend > 0.0f) {
 			//	FMOD_VECTOR pos = { transform.position.x, transform.position.y, transform.position.z };
-			//	FMOD_VECTOR vel = { 0, 0,  ⁠0 }; // Zero velocity for now
+			//	FMOD_VECTOR vel = { 0, 0, 0 }; // Zero velocity for now
 			//	channel->set3DAttributes(&pos, &vel);
 			//	channel->set3DMinMaxDistance(audioSource.minDist, audioSource.maxDist);
 			//}
@@ -192,8 +180,10 @@ namespace NE::ECS::Systems {
 			return;
 
 		FMOD_RESULT result = FMOD::Studio::System::create(&studioSystem);
-		if (result != FMOD_OK)
+		if (result != FMOD_OK) {
 			SPD_ERROR("Failed to create FMOD Studio System: " << FMOD_ErrorString(result));
+			return;
+		}
 
 		// initialize the system!
 		result = studioSystem->initialize(
@@ -202,135 +192,180 @@ namespace NE::ECS::Systems {
 			FMOD_INIT_NORMAL,
 			nullptr
 		);
-		if (result != FMOD_OK) 
+		if (result != FMOD_OK)
 		{
 			SPD_ERROR("FMOD init failed: " << FMOD_ErrorString(result));
 			return;
 		}
 
-		// Prepare for Extraction
-		//auto banks = GetLoadedBanks();
-
-		//SPD_INFO("Loading " << banks.size() << " banks into FMOD...");
-
-		//// First pass: Load all .bank files
-		//for (const auto& [uuid, bank] : banks)
-		//{
-		//	FMOD::Studio::Bank* fmodBank = nullptr;
-		//	FMOD_RESULT bankResult = studioSystem->loadBankFile(
-		//		bank->filePath.c_str(),
-		//		FMOD_STUDIO_LOAD_BANK_NORMAL,
-		//		&fmodBank
-		//	);
-
-		//	if (bankResult == FMOD_OK && fmodBank != nullptr) 
-		//	{
-		//		bank->SetFMODBank(fmodBank);
-		//		SPD_INFO("Loaded bank: " << bank->GetDisplayName());
-		//	}
-		//}
-
-		// SECOND PASS: Look for and load the strings bank specifically
-		//SPD_INFO("Looking for strings bank...");
-		//for (const auto& [uuid, bank] : banks) 
-		//{
-		//	std::string bankName = bank->GetDisplayName();
-
-		////	// Check if this is a strings bank (usually ends with .strings)
-		////	if (bankName.find("strings") != std::string::npos ||
-		////		bank->filePath.find("strings") != std::string::npos) {
-
-		//		SPD_INFO("Loading strings bank: " << bankName);
-
-		//		// The strings bank should already be loaded from first pass, but make sure
-		//		// it's processed for string data
-		//		FMOD::Studio::Bank* fmodBank = bank->GetFMODBank();
-		//		if (fmodBank) 
-		//		{
-		//			// Strings bank is automatically used by FMOD once loaded
-		//			SPD_INFO("Strings bank ready: " << bankName);
-		//		}
-		//	}
-		//}
-
-		// Note: This step does not work if there is invalid bank or string bank
-		// THIRD PASS: Now extract events (after strings bank is loaded)
-		//SPD_INFO("Extracting events from all banks...");
-		//for (const auto& [uuid, bank] : banks) 
-		//{
-		//	// Skip strings banks for event extraction
-		//	if (bank->GetDisplayName().find("strings") != std::string::npos) 
-		//	{
-		//		continue;
-		//	}
-
-		//	bank->ExtractEvents(studioSystem);
-		//}
-
+		SPD_INFO("FMOD Studio System initialized successfully");
 	}
 
 	void AudioSystem::PlaySound(const std::string& eventName)
 	{
+		if (!studioSystem) {
+			SPD_ERROR("PlaySound failed: Studio system not initialized");
+			return;
+		}
+
 		// Some audio property in studio that im not too familiar with yet
 		FMOD::Studio::EventDescription* eventDesc = nullptr;
-		studioSystem->getEvent(eventName.c_str(), &eventDesc);
+		FMOD_RESULT result = studioSystem->getEvent(eventName.c_str(), &eventDesc);
 
-		if (eventDesc == nullptr) 
+		if (result != FMOD_OK || eventDesc == nullptr)
 		{
-			SPD_ERROR("Failed to get event: " << eventName);
+			SPD_ERROR("Failed to get event: " << eventName << " - " << FMOD_ErrorString(result));
 			return;
 		}
 
 		FMOD::Studio::EventInstance* eventInstance = nullptr;
-		eventDesc->createInstance(&eventInstance);
+		result = eventDesc->createInstance(&eventInstance);
 
-		if (eventInstance == nullptr)
+		if (result != FMOD_OK || eventInstance == nullptr)
 		{
-			SPD_ERROR("Failed to create eventInstance");
+			SPD_ERROR("Failed to create eventInstance for: " << eventName << " - " << FMOD_ErrorString(result));
 			return;
 		}
 
-		eventInstance->start();	
+		result = eventInstance->start();
+		if (result != FMOD_OK) {
+			SPD_ERROR("Failed to start event: " << eventName << " - " << FMOD_ErrorString(result));
+			eventInstance->release();
+			return;
+		}
+
+		// Optional: Release the instance after it finishes playing
+		// eventInstance->release(); // Let FMOD handle cleanup
 	}
 
 	void AudioSystem::CleanupStudioSystem()
 	{
-		studioSystem->release();
+		if (studioSystem) {
+			// Unload all banks first
+			for (auto& [path, bankPtr] : m_loadedBanks) {
+				if (bankPtr) {
+					bankPtr->Unload();
+				}
+			}
+			m_loadedBanks.clear();
+
+			studioSystem->release();
+			studioSystem = nullptr;
+		}
 	}
 
 
-	void AudioSystem::LoadBankAssets(const std::string& /*audioDirectory*/)
+	void AudioSystem::LoadBankAssets(const std::string& audioDirectory)
 	{
-		//SPD_INFO("LoadBankAssets - Checking directory: " << audioDirectory);
-		//
-		//// Check if directory exists
-		//if (!std::filesystem::exists(audioDirectory)) {
-		//	SPD_WARNING("Audio bank directory does not exist: " << audioDirectory);
-		//	return;
-		//}
+		SPD_INFO("LoadBankAssets - Checking directory: " << audioDirectory);
 
-		//auto& assetManager = Asset::AssetManager::GetInstance();
-		//size_t banksLoaded = 0;
-		//
-		//try {
-		//	for (const auto& entry : std::filesystem::directory_iterator(audioDirectory))
-		//	{
-		//		if (entry.path().extension() == ".bank")
-		//		{
-		//			// Load thru AssetManager (this creates AudioBank assets)
-		//			std::string bankPath = entry.path().string();
-		//			auto bankAsset = assetManager.Load<NE::Asset::AudioBank>(bankPath, false);
-		//			if (bankAsset)
-		//			{
-		//				banksLoaded++;
-		//				SPD_INFO("Loaded bank asset: " << bankAsset->GetDisplayName());
-		//			}
-		//		}
-		//	}
-		//	SPD_INFO(banksLoaded << " banks loaded successfully");
-		//} catch (const std::exception& e) {
-		//	SPD_ERROR("Error loading bank assets: " << e.what());
-		//}
+		// Check if directory exists
+		if (!std::filesystem::exists(audioDirectory)) {
+			SPD_WARNING("Audio bank directory does not exist: " << audioDirectory);
+			return;
+		}
+
+		if (!studioSystem) {
+			SPD_ERROR("Cannot load banks: FMOD Studio System not initialized");
+			return;
+		}
+
+		size_t banksLoaded = 0;
+
+		try {
+			// PASS 1: Load all .bank files (including strings banks)
+			std::vector<std::string> bankPaths;
+			std::vector<std::string> stringsBankPaths;
+
+			for (const auto& entry : std::filesystem::directory_iterator(audioDirectory))
+			{
+				if (entry.path().extension() == ".bank")
+				{
+					std::string bankPath = entry.path().string();
+					std::string filename = entry.path().filename().string();
+
+					// Separate strings banks from regular banks
+					if (filename.find(".strings.bank") != std::string::npos) {
+						stringsBankPaths.push_back(bankPath);
+					}
+					else {
+						bankPaths.push_back(bankPath);
+					}
+				}
+			}
+
+			// Load strings banks first (they must be loaded before main banks)
+			for (const std::string& bankPath : stringsBankPaths)
+			{
+				FMOD::Studio::Bank* fmodBank = nullptr;
+				FMOD_RESULT result = studioSystem->loadBankFile(
+					bankPath.c_str(),
+					FMOD_STUDIO_LOAD_BANK_NORMAL,
+					&fmodBank
+				);
+
+				if (result == FMOD_OK && fmodBank != nullptr)
+				{
+					// Create AudioBank wrapper
+					auto bankAsset = std::make_shared<NE::Asset::AudioBank>();
+					bankAsset->SetFMODBank(fmodBank);
+
+					// Store in our map
+					m_loadedBanks[bankPath] = bankAsset;
+
+					banksLoaded++;
+					std::string displayName = std::filesystem::path(bankPath).stem().string();
+					SPD_INFO("Loaded strings bank: " << displayName);
+				}
+				else
+				{
+					SPD_ERROR("Failed to load strings bank: " << bankPath << " - " << FMOD_ErrorString(result));
+				}
+			}
+
+			// Now load main banks
+			for (const std::string& bankPath : bankPaths)
+			{
+				FMOD::Studio::Bank* fmodBank = nullptr;
+				FMOD_RESULT result = studioSystem->loadBankFile(
+					bankPath.c_str(),
+					FMOD_STUDIO_LOAD_BANK_NORMAL,
+					&fmodBank
+				);
+
+				if (result == FMOD_OK && fmodBank != nullptr)
+				{
+					// Create AudioBank wrapper
+					auto bankAsset = std::make_shared<NE::Asset::AudioBank>();
+					bankAsset->SetFMODBank(fmodBank);
+
+					// Extract events from this bank
+					bankAsset->ExtractEvents(studioSystem);
+
+					// Store in our map
+					m_loadedBanks[bankPath] = bankAsset;
+
+					banksLoaded++;
+					std::string displayName = std::filesystem::path(bankPath).stem().string();
+					SPD_INFO("Loaded bank: " << displayName << " with " << bankAsset->GetEvents().size() << " events");
+
+					// Log all events in this bank
+					//for (const auto& [eventPath, eventInfo] : bankAsset->GetEvents()) {
+					//	SPD_INFO("  - Event: " << eventPath);
+					//}
+				}
+				else
+				{
+					SPD_ERROR("Failed to load bank: " << bankPath << " - " << FMOD_ErrorString(result));
+				}
+			}
+
+			SPD_INFO(banksLoaded << " bank file(s) loaded successfully");
+
+		}
+		catch (const std::exception& e) {
+			SPD_ERROR("Error loading bank assets: " << e.what());
+		}
 	}
 
 	AudioSystem::AudioSystem(ComponentManager* cm) : m_componentManager(cm)
@@ -345,51 +380,107 @@ namespace NE::ECS::Systems {
 	{
 	}
 
+	void AudioSystem::OnEntityActive(Entity /*entity*/) {}
+	void AudioSystem::OnEntityInactive(Entity /*entity*/) {}
+
 	void AudioSystem::Init()
 	{
 		SPD_INFO("AudioSystem::Init() - Starting initialization");
-		
+
 		// Get current directory as std::string
 		std::string currentDir = std::filesystem::current_path().string();
 		std::string bankDir = currentDir + "/Assets/Bank";
 		SPD_INFO("Working directory: " << currentDir);
 		SPD_INFO("Bank directory: " << bankDir);
 
-		LoadBankAssets(bankDir);
+		// Initialize FMOD Studio System first
 		SetupStudioSystem();
-		PlaySound("event:/OnClick");
+
+		// Load all bank files from the directory
+		LoadBankAssets(bankDir);
+
+		// Test play a sound to verify everything works
+		SPD_INFO("Testing audio playback...");
+		//PlaySound("event:/ForestBGM");
+
+
+		FMOD::Studio::Bus* masterBus = nullptr;
+		FMOD_RESULT result = studioSystem->getBus("bus:/", &masterBus);
+		if (result == FMOD_OK && masterBus != nullptr) {
+			SPD_INFO("AudioSystem::Init() - Success get bus:/ (Master)");
+		}
+		else {
+			SPD_ERROR("AudioSystem::Init() - Failed to get bus:/ (Master): " << FMOD_ErrorString(result));
+		}
+
+		FMOD::Studio::Bus* bgmBus = nullptr;
+		result = studioSystem->getBus("bus:/BGM", &bgmBus);
+		if (result == FMOD_OK && bgmBus != nullptr) {
+			SPD_INFO("AudioSystem::Init() - Success get bus:/BGM " << FMOD_ErrorString(result));
+		}
+		else {
+			SPD_ERROR("AudioSystem::Init() - Failed to get bus:/BGM: " << FMOD_ErrorString(result));
+		}
+
+		FMOD::Studio::Bus* sfxBus = nullptr;
+		result = studioSystem->getBus("bus:/SFX", &sfxBus);
+		if (result == FMOD_OK && sfxBus != nullptr) {
+			SPD_INFO("AudioSystem::Init() - Success get bus:/SFX " << FMOD_ErrorString(result));
+		}
+		else {
+			SPD_ERROR("AudioSystem::Init() - Failed to get bus:/SFX: " << FMOD_ErrorString(result));
+		}
+
+		FMOD::Studio::Bus* ambienceBus = nullptr;
+		result = studioSystem->getBus("bus:/Ambience", &ambienceBus);
+		if (result == FMOD_OK && ambienceBus != nullptr) {
+			SPD_INFO("AudioSystem::Init() - Success get bus:/Ambience " << FMOD_ErrorString(result));
+		}
+		else {
+			SPD_ERROR("AudioSystem::Init() - Failed to get bus:/Ambience: " << FMOD_ErrorString(result));
+		}
+
+		FMOD::Studio::Bus* dummyBus = nullptr;
+		result = studioSystem->getBus("bus:/Dummy", &dummyBus);
+		if (result == FMOD_OK && dummyBus != nullptr) {
+			SPD_INFO("AudioSystem::Init() - Success get bus:/Dummy " << FMOD_ErrorString(result));
+		}
+		else {
+			SPD_ERROR("AudioSystem::Init() - Failed to get bus:/Dummy: " << FMOD_ErrorString(result));
+		}
 
 		SPD_INFO("AudioSystem::Init() - Completed");
-		return;
 	}
 
 	void AudioSystem::Update(double)
 	{
+		// Update FMOD Studio System
+		if (studioSystem) {
+			studioSystem->update();
+		}
 
-		studioSystem->update();
-		return; // end of studio testing stuff
+		// Legacy audio source processing (commented out for now)
+		// Uncomment if you want to support old AudioSource component system
+		/*
+		NE_PROFILE_FUNCTION();
+		const auto& entities = GetEntities();
+		auto& engine = GetAudioEngine();
 
-		//if (this == nullptr) 
-		//	return;
+		for (Entity e : entities) {
+			if (m_componentManager->HasComponent<Component::AudioSource>(e) &&
+				m_componentManager->HasComponent<Component::Transform>(e)) {
 
-		//NE_PROFILE_FUNCTION();
-		//const auto& entities = GetEntities();
-		//auto& engine = GetAudioEngine();
+				auto& audioSource = m_componentManager->GetComponent<Component::AudioSource>(e);
+				auto& transform = m_componentManager->GetComponent<Component::Transform>(e);
 
-		//for (Entity e : entities) {
-		//	if (m_componentManager->HasComponent<Component::AudioSource>(e) &&
-		//		m_componentManager->HasComponent<Component::Transform>(e)) {
+				ProcessAudioSource(audioSource, transform, engine.system);
+			}
+		}
 
-		//		auto& audioSource = m_componentManager->GetComponent<Component::AudioSource>(e);
-		//		auto& transform = m_componentManager->GetComponent<Component::Transform>(e);
-
-		//		ProcessAudioSource(audioSource, transform, engine.system);
-		//	}
-		//}
-
-		//if (engine.system) {
-		//	engine.system->update();
-		//}
+		if (engine.system) {
+			engine.system->update();
+		}
+		*/
 	}
 
 	void AudioSystem::Exit()
@@ -398,6 +489,210 @@ namespace NE::ECS::Systems {
 		SPD_INFO("AudioSystem shutdown");
 	}
 
-	
-}
+	std::unordered_map<std::string, NE::Asset::AudioBank::EventInfo> AudioSystem::GetAllEvents() const
+	{
+		std::unordered_map<std::string, NE::Asset::AudioBank::EventInfo> allEvents;
 
+		// Collect events from all loaded banks
+		for (const auto& [bankPath, bankPtr] : m_loadedBanks) {
+			if (bankPtr && bankPtr->IsLoaded()) {
+				const auto& bankEvents = bankPtr->GetEvents();
+				allEvents.insert(bankEvents.begin(), bankEvents.end());
+			}
+		}
+
+		return allEvents;
+	}
+
+	void AudioSystem::SetMasterVolume(float volume)
+	{
+		if (!studioSystem) {
+			SPD_ERROR("Cannot set Master volume: AudioSystem not initialized");
+			return;
+		}
+
+		FMOD::Studio::Bus* bus = nullptr;
+		FMOD_RESULT result = studioSystem->getBus("bus:/", &bus);
+
+		if (result != FMOD_OK || bus == nullptr) {
+			// Try alternative path
+			result = studioSystem->getBus("bus:/Master", &bus);
+		}
+
+		if (result == FMOD_OK && bus != nullptr) {
+			volume = std::max(0.0f, std::min(1.0f, volume));
+			bus->setVolume(volume);
+			SPD_DEBUG("Set Master volume to " << volume);
+		}
+		else {
+			SPD_ERROR("Cannot set Master volume: bus not found");
+		}
+	}
+
+	float AudioSystem::GetMasterVolume() const
+	{
+		if (!studioSystem) {
+			return -1.0f;
+		}
+
+		FMOD::Studio::Bus* bus = nullptr;
+		FMOD_RESULT result = studioSystem->getBus("bus:/", &bus);
+
+		if (result != FMOD_OK || bus == nullptr) {
+			result = studioSystem->getBus("bus:/Master", &bus);
+		}
+
+		if (result == FMOD_OK && bus != nullptr) {
+			float volume = 0.0f;
+			bus->getVolume(&volume);
+			return volume;
+		}
+
+		return -1.0f;
+	}
+
+	void AudioSystem::SetBGMVolume(float volume)
+	{
+		if (!studioSystem) {
+			SPD_ERROR("Cannot set BGM volume: AudioSystem not initialized");
+			return;
+		}
+
+		FMOD::Studio::Bus* bus = nullptr;
+		FMOD_RESULT result = studioSystem->getBus("bus:/BGM", &bus);
+
+		if (result == FMOD_OK && bus != nullptr) {
+			volume = std::max(0.0f, std::min(1.0f, volume));
+			bus->setVolume(volume);
+			SPD_DEBUG("Set BGM volume to " << volume);
+		}
+		else {
+			SPD_ERROR("Cannot set BGM volume: bus not found");
+		}
+	}
+
+	float AudioSystem::GetBGMVolume() const
+	{
+		if (!studioSystem) {
+			return -1.0f;
+		}
+
+		FMOD::Studio::Bus* bus = nullptr;
+		FMOD_RESULT result = studioSystem->getBus("bus:/BGM", &bus);
+
+		if (result == FMOD_OK && bus != nullptr) {
+			float volume = 0.0f;
+			bus->getVolume(&volume);
+			return volume;
+		}
+
+		return -1.0f;
+	}
+
+	void AudioSystem::SetSFXVolume(float volume)
+	{
+		if (!studioSystem) {
+			SPD_ERROR("Cannot set SFX volume: AudioSystem not initialized");
+			return;
+		}
+
+		FMOD::Studio::Bus* bus = nullptr;
+		FMOD_RESULT result = studioSystem->getBus("bus:/SFX", &bus);
+
+		if (result == FMOD_OK && bus != nullptr) {
+			volume = std::max(0.0f, std::min(1.0f, volume));
+			bus->setVolume(volume);
+			SPD_DEBUG("Set SFX volume to " << volume);
+		}
+		else {
+			SPD_ERROR("Cannot set SFX volume: bus not found");
+		}
+	}
+
+	float AudioSystem::GetSFXVolume() const
+	{
+		if (!studioSystem) {
+			return -1.0f;
+		}
+
+		FMOD::Studio::Bus* bus = nullptr;
+		FMOD_RESULT result = studioSystem->getBus("bus:/SFX", &bus);
+
+		if (result == FMOD_OK && bus != nullptr) {
+			float volume = 0.0f;
+			bus->getVolume(&volume);
+			return volume;
+		}
+
+		return -1.0f;
+	}
+
+	void AudioSystem::SetAmbienceVolume(float volume)
+	{
+		if (!studioSystem) {
+			SPD_ERROR("Cannot set Ambience volume: AudioSystem not initialized");
+			return;
+		}
+
+		FMOD::Studio::Bus* bus = nullptr;
+		FMOD_RESULT result = studioSystem->getBus("bus:/Ambience", &bus);
+
+		if (result == FMOD_OK && bus != nullptr) {
+			volume = std::max(0.0f, std::min(1.0f, volume));
+			bus->setVolume(volume);
+			SPD_DEBUG("Set Ambience volume to " << volume);
+		}
+		else {
+			SPD_ERROR("Cannot set Ambience volume: bus not found");
+		}
+	}
+
+	float AudioSystem::GetAmbienceVolume() const
+	{
+		if (!studioSystem) {
+			return -1.0f;
+		}
+
+		FMOD::Studio::Bus* bus = nullptr;
+		FMOD_RESULT result = studioSystem->getBus("bus:/Ambience", &bus);
+
+		if (result == FMOD_OK && bus != nullptr) {
+			float volume = 0.0f;
+			bus->getVolume(&volume);
+			return volume;
+		}
+
+		return -1.0f;
+	}
+
+	// dun use
+	void AudioSystem::ApplyMasterVolume()
+	{
+		// Map 0..5 -> 0.0..1.0
+		const float v = std::clamp(static_cast<float>(m_masterVolumeLevel) / 5.0f, 0.0f, 1.0f);
+
+		// Core (non-studio) sounds
+		auto& engine = GetAudioEngine();
+		if (engine.system) {
+			FMOD::ChannelGroup* masterGroup = nullptr;
+			if (engine.system->getMasterChannelGroup(&masterGroup) == FMOD_OK && masterGroup) {
+				masterGroup->setVolume(v);
+			}
+		}
+
+		// Studio events (FMOD Studio)
+		if (studioSystem) {
+			FMOD::Studio::Bus* masterBus = nullptr;
+			if (studioSystem->getBus("bus:/", &masterBus) == FMOD_OK && masterBus) {
+				masterBus->setVolume(v);
+			}
+		}
+	}
+
+	// dun use
+	void AudioSystem::SetMasterVolumeLevel(int level)
+	{
+		m_masterVolumeLevel = std::clamp(level, 0, 5);
+		ApplyMasterVolume();
+	}
+}

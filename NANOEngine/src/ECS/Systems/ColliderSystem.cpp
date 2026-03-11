@@ -1,8 +1,11 @@
+#include "pch.h"
 #include "ColliderSystem.hpp"
-#include "../Components/Rigidbody.hpp"
-#include "../Components/Transform.hpp"
-#include "../Components/Collider.hpp"
-#include "../Components/EntityMeta.hpp"
+#include "ECS/Components/Collider.hpp"
+#include "ECS/Components/Transform.hpp"
+#include "ECS/Components/Rigidbody.hpp"
+#include "ECS/Components/CharacterController.hpp"
+#include "ECS/Components/Renderer.hpp"
+#include "ECS/Components/EntityMeta.hpp"
 #include "Physics/PhysicsManager.hpp"
 #include "Core/LUIDGenerator.hpp"
 #include "Core/LUIDRegistry.hpp"
@@ -16,27 +19,45 @@ namespace NE::ECS::Systems {
 	void ColliderSystem::OnEntityAdded(Entity e) {
 		auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
 		auto& col = m_componentManager->GetComponent<Component::Collider>(e);
+		auto& t = m_componentManager->GetComponent<Component::Transform>(e);
 
-		// Generate LUID if not set
-		if (col.luid == 0)
+		if (col.luid == 0) {
 			col.luid = Core::LUIDGenerator::Generate("co");
 
-		// Register with LUID registry
+			if (m_componentManager->HasComponent<Component::Renderer>(e)) {
+				if (col.type == Component::Collider::ColliderType::Box) {
+					auto& renderer = m_componentManager->GetComponent<Component::Renderer>(e);
+					if (renderer.model) {
+						Graphics::AABB bounds = renderer.model->meshes[renderer.subMeshIndex].localAABB;
+						auto& boxData = std::get<Component::Collider::BoxColliderData>(col.data);
+						boxData.halfExtents = (bounds.max - bounds.min) * 0.5f;
+					}
+				}
+			}
+		}
+
 		m_luidRegistry->Register(col.luid, &col, e);
 
-		// Existing physics shape creation
-		Physics::PhysicsManager::GetInstance().CreateOrUpdateShape(meta.luid, col);
+		Physics::PhysicsManager::GetInstance().CreateOrUpdateShape(e, meta.luid, col);
 	}
 
 	void ColliderSystem::OnEntityRemoved(Entity e) {
 		auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
 		auto& col = m_componentManager->GetComponent<Component::Collider>(e);
 
-		// Unregister from LUID registry
 		m_luidRegistry->Unregister(col.luid);
 
-		// Existing physics shape removal
 		Physics::PhysicsManager::GetInstance().RemoveShape(meta.luid);
+	}
+
+	void ColliderSystem::OnEntityActive(Entity e) {
+		auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
+		Physics::PhysicsManager::GetInstance().UpdateBodyState(meta.luid, true);
+	}
+
+	void ColliderSystem::OnEntityInactive(Entity e) {
+		auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
+		Physics::PhysicsManager::GetInstance().UpdateBodyState(meta.luid, false);
 	}
 
 	void ColliderSystem::Init() {
@@ -47,8 +68,13 @@ namespace NE::ECS::Systems {
 			auto& t = m_componentManager->GetComponent<Component::Transform>(e);
 			auto& col = m_componentManager->GetComponent<Component::Collider>(e);
 
-			if (!m_componentManager->HasComponent<Component::Rigidbody>(e))
+			bool hasColliderOnly = !(m_componentManager->HasComponent<Component::Rigidbody>(e) || 
+				m_componentManager->HasComponent<Component::CharacterController>(e));
+
+			if (hasColliderOnly) {
 				Physics::PhysicsManager::GetInstance().CreateBody(e, meta.luid, t, col, static_cast<uint8_t>(m_entityManager->GetLayer(e)));
+				if (!m_entityManager->GetActive(e)) Physics::PhysicsManager::GetInstance().UpdateBodyState(meta.luid, false);
+			}
 		}
 	}
 
@@ -57,22 +83,16 @@ namespace NE::ECS::Systems {
 
 		for (auto& e : allEntities) {
 			auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
-			auto& t = m_componentManager->GetComponent<Component::Transform>(e);
 			auto& col = m_componentManager->GetComponent<Component::Collider>(e);
+
 			if (col.isDirty) {
-				Physics::PhysicsManager::GetInstance().CreateOrUpdateShape(meta.luid, col);
+				Physics::PhysicsManager::GetInstance().CreateOrUpdateShape(e, meta.luid, col);
 				col.isDirty = false;
 			}
-
-			//if (col.type != Component::Collider::ColliderType::Mesh)
-			//	Physics::PhysicsManager::GetInstance().DrawShapeGizmo(meta.luid, t, col);
-			//if (col.type != Component::Collider::ColliderType::Mesh)
-			//	Physics::PhysicsManager::GetInstance().DrawShapeGizmo(meta.luid, t);
 		}
 	}
 
 	void ColliderSystem::Exit() {
 
 	}
-
 }

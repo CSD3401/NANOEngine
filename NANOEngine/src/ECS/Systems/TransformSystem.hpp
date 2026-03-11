@@ -1,8 +1,6 @@
 #pragma once
 
 #include "../Core/System.hpp"
-#include <vector>
-#include <unordered_map>
 #include "../Core/ComponentManager.hpp"
 
 namespace NE::Core {
@@ -20,7 +18,9 @@ namespace NE::ECS::Systems {
 
 		void OnEntityAdded(Entity entity) override;
 		void OnEntityRemoved(Entity entity) override;
-
+
+		void OnEntityActive(Entity entity) override;
+		void OnEntityInactive(Entity entity) override;
 		void Init() override;
 		void Update(double deltaTime) override; // override in concrete systems
 		void Exit() override;

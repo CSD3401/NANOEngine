@@ -22,6 +22,7 @@ namespace Editor {
         CommandHistory();
         ~CommandHistory() = default;
 
+        void ClearHistory();
         std::vector<std::unique_ptr<ICommand>> m_undoList;
         std::vector<std::unique_ptr<ICommand>> m_redoList;
     };

@@ -1,0 +1,61 @@
+#type vertex
+#version 460 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 a_Normal;
+layout(location = 2) in vec2 a_TexCoord;
+layout(location = 5) in mat4 i_Model;
+
+uniform mat4 u_View;
+uniform mat4 u_Projection;
+
+out vec3 v_NormalWS;
+out vec2 v_UV;
+
+void main() {
+    vec4 world = i_Model * vec4(aPos, 1.0);
+
+    mat3 normalMtx = transpose(inverse(mat3(i_Model)));
+    v_NormalWS = normalize(normalMtx * a_Normal);
+    v_UV = a_TexCoord;
+
+    gl_Position = u_Projection * u_View * world;
+}
+
+#type fragment
+#version 460 core
+
+in vec3 v_NormalWS;
+in vec2 v_UV;
+
+layout(location = 0) out vec4 OutNormal;
+layout(location = 1) out float OutRoughness;
+
+uniform float u_Roughness;
+uniform sampler2D u_RoughnessMap;
+uniform int h_HasRoughnessMap;
+
+uniform float u_Opacity;
+uniform sampler2D u_OpacityMap;
+uniform int h_HasOpacityMap;
+uniform int u_AlphaClip;
+uniform float u_AlphaCutoff;
+
+void main() {
+    float alpha = clamp(u_Opacity, 0.0, 1.0);
+    if (h_HasOpacityMap != 0) {
+        alpha *= texture(u_OpacityMap, v_UV).r;
+    }
+    if (u_AlphaClip != 0 && alpha < u_AlphaCutoff) {
+        discard;
+    }
+
+    vec3 n = normalize(v_NormalWS);
+    OutNormal = vec4(n * 0.5 + 0.5, 1.0);
+
+    float roughness = clamp(u_Roughness, 0.0, 1.0);
+    if (h_HasRoughnessMap != 0) {
+        roughness *= clamp(texture(u_RoughnessMap, v_UV).r, 0.0, 1.0);
+    }
+    OutRoughness = roughness;
+}

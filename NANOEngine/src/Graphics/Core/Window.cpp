@@ -1,8 +1,9 @@
+#include "pch.h"
 #include "Window.hpp"
 #define GLFW_DLL
 #include <glfw/glfw3.h>
 
-#include "../../src/Core/Logger.hpp"
+#include "Core/Logger.hpp"
 
 namespace NE::Graphics {
 
@@ -41,6 +42,7 @@ namespace NE::Graphics {
         glfwMakeContextCurrent(m_windowHandle);
 
         glfwSwapInterval(m_vsync ? 1 : 0);
+        //glfwSwapInterval(0);
     }
 
     void Window::Shutdown() {

@@ -25,7 +25,7 @@ namespace NE {
 namespace NE::Graphics::OpenGL {
 
 	// Default clustered lighting settings
-	constexpr int MAX_LIGHTS_PER_VIEW = 1024;
+	constexpr int MAX_LIGHTS_PER_VIEW = 2048;
 	constexpr int CLUSTERED_LIGHTING_SIZE_X = 16;
 	constexpr int CLUSTERED_LIGHTING_SIZE_Y = 9;
 	constexpr int CLUSTERED_LIGHTING_SIZE_Z = 24;
@@ -45,7 +45,8 @@ namespace NE::Graphics::OpenGL {
     private:
 
         void UploadLights(const Graphics::RenderView& view, const std::vector<ECS::Component::Light*>& lights);
-        void DispatchCompute();
+
+		bool EnsureBufferCapacity(uint32_t required);
 
 		// Settings for current view
         int clustersX;
@@ -64,6 +65,8 @@ namespace NE::Graphics::OpenGL {
         std::shared_ptr<GLShader> m_countShader;
         std::shared_ptr<GLShader> m_fillShader;
         int m_numLightsThisView = 0;
+
+		
 
         // CPU-side structs matching GLSL layouts
 		// Any changes here must be reflected in the compute shaders
@@ -96,5 +99,8 @@ namespace NE::Graphics::OpenGL {
             uint32_t pad0;
             uint32_t pad1;
         };
+
+        std::vector<ClusterGPU> m_clustersCPU;
+		std::vector<GPULightCPU> m_gpuLightsCPU;
     };
 }

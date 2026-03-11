@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "ConsolePanel.hpp"
 
 namespace Editor {

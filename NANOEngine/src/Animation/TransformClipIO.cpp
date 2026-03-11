@@ -1,3 +1,4 @@
+#include "pch.h"
 // NANOEngine/src/Animation/TransformClipIO.cpp
 #include "TransformClipIO.hpp"
 #include <fstream>

@@ -1,9 +1,13 @@
+#include "pch.h"
 #include "CameraSystem.hpp"
 #include "../Components/Camera.hpp"
 #include "../Components/Transform.hpp"
 #include "../../../src/Math/Vec3.hpp"
 #include "../../../src/Math/Mat4.hpp"
 #include "../../Graphics/Core/GraphicsManager.hpp"
+#include <Core/Profiler.hpp>
+#include <algorithm>
+#include <cmath>
 
 namespace NE::ECS::Systems {
 
@@ -19,8 +23,10 @@ namespace NE::ECS::Systems {
 	{
 	}
 
-	void CameraSystem::Init()
-	{
+	void CameraSystem::OnEntityActive(Entity /*entity*/) {}
+	void CameraSystem::OnEntityInactive(Entity /*entity*/) {}
+
+	void CameraSystem::Init() {
 		const auto& entities = GetEntities();
 		for (Entity entity : entities) {
 			auto& camera = m_componentManager->GetComponent<Component::Camera>(entity);
@@ -41,7 +47,11 @@ namespace NE::ECS::Systems {
 
 			if (camera.renderViewHandles.empty()) {
 				// Create a render view for this camera if it doesn't have one
-				camera.renderViewHandles.push_back(Graphics::GraphicsManager::CreateRenderView(1920, 1080, false));
+				camera.renderViewHandles.push_back(Graphics::GraphicsManager::CreateRenderView(
+					Graphics::GraphicsManager::GetGameViewWidth(),
+					Graphics::GraphicsManager::GetGameViewHeight(),
+					false
+				));
 			}
 
 			if (camera.isActive) {
@@ -51,7 +61,7 @@ namespace NE::ECS::Systems {
 						camera.renderViewHandles[i],
 						camera.projectionMtx,
 						camera.viewMtx,
-						transform.localPosition,
+						transform.worldMatrix.GetTranslation(),
 						camera.nearPlane,
 						camera.farPlane,
 						camera.isMain,
@@ -68,6 +78,18 @@ namespace NE::ECS::Systems {
 
 	void CameraSystem::Update(double)
 	{
+#ifndef PRODUCTION_BUILD
+		NE_PROFILE_FUNCTION();
+#endif
+
+		// If the Game View resolution/aspect changes, rebuild the main camera projection.
+		static float s_lastGameViewAspect = -1.0f;
+		const float desiredAspect = Graphics::GraphicsManager::GetGameViewAspect();
+		const bool aspectChanged = (std::abs(desiredAspect - s_lastGameViewAspect) > 1e-4f);
+		if (aspectChanged) {
+			s_lastGameViewAspect = desiredAspect;
+		}
+
 		const auto& entities = GetEntities();
 		for (Entity entity : entities) {
 			auto& camera = m_componentManager->GetComponent<Component::Camera>(entity);
@@ -93,6 +115,10 @@ namespace NE::ECS::Systems {
 			if (camera.isDirty) {				
 				BuildProjection(camera);
 			}
+			else if (aspectChanged && camera.isMain) {
+				camera.isDirty = true;
+				BuildProjection(camera);
+			}
 
 			// transform isDirty seems to be broken.
 			/*if (transform.isDirty) {
@@ -103,7 +129,11 @@ namespace NE::ECS::Systems {
 
 			if (camera.renderViewHandles.empty()) {
 				// Create a render view for this camera if it doesn't have one
-				camera.renderViewHandles.push_back(Graphics::GraphicsManager::CreateRenderView(1920, 1080, false));
+				camera.renderViewHandles.push_back(Graphics::GraphicsManager::CreateRenderView(
+					Graphics::GraphicsManager::GetGameViewWidth(),
+					Graphics::GraphicsManager::GetGameViewHeight(),
+					false
+				));
 			}
 
 			if (camera.isActive) {
@@ -113,7 +143,7 @@ namespace NE::ECS::Systems {
 						camera.renderViewHandles[i],
 						camera.projectionMtx,
 						camera.viewMtx,
-						transform.localPosition,
+						transform.worldMatrix.GetTranslation(),
 						camera.nearPlane,
 						camera.farPlane,
 						camera.isMain,
@@ -129,6 +159,7 @@ namespace NE::ECS::Systems {
 	}
 
 	void CameraSystem::Exit() {
+		m_mainCameraEntity.reset();
 		const auto& entities = GetEntities();
 		for (Entity entity : entities) {
 			auto& camera = m_componentManager->GetComponent<Component::Camera>(entity);
@@ -136,51 +167,66 @@ namespace NE::ECS::Systems {
 				for (auto& handle : camera.renderViewHandles) {
 					Graphics::GraphicsManager::DestroyRenderView(handle);
 				}
+				camera.renderViewHandles.clear();
 			}
 		}
 	}
 
-	void CameraSystem::BuildProjection(Camera& cam)
-	{
-		// Build perspective projection matrix
-		// Convert FOV from degrees to radians
-		float fovYRadians = cam.fovY * Math::DEG_TO_RAD;
-		float f = 1.0f / std::tan(fovYRadians * 0.5f);
-		float& aspect = cam.aspectRatio;
+	void CameraSystem::BuildProjection(Camera& cam) {
+		const float aspectRaw = cam.isMain ? Graphics::GraphicsManager::GetGameViewAspect() : cam.aspectRatio;
+		const float aspect = std::max(1e-6f, aspectRaw);
 		float& nearPlane = cam.nearPlane;
 		float& farPlane = cam.farPlane;
 
-		cam.projectionMtx.SetToZero();
-		cam.projectionMtx.GetElement(0, 0) = f / aspect;
-		cam.projectionMtx.GetElement(1, 1) = f;
-		cam.projectionMtx.GetElement(2, 2) = (farPlane + nearPlane) / (nearPlane - farPlane);
-		cam.projectionMtx.GetElement(2, 3) = (2 * farPlane * nearPlane) / (nearPlane - farPlane);
-		cam.projectionMtx.GetElement(3, 2) = -1.0f;
-		cam.projectionMtx.GetElement(3, 3) = 0.0f;
+		if (cam.projectionType == Camera::ProjectionType::Orthographic) {
+			const float size = std::max(0.001f, cam.fovY);
+
+			float halfH = size;
+			float halfW = size;
+
+			if (cam.fovAxis == Camera::FieldOfViewAxis::Vertical) {
+				halfH = size;
+				halfW = size * aspect;
+			} else {
+				halfW = size;
+				halfH = (aspect > 1e-6f) ? (size / aspect) : size;
+			}
+
+			const float l = -halfW;
+			const float r = +halfW;
+			const float b = -halfH;
+			const float t = +halfH;
+
+			cam.projectionMtx = Mat4::BuildOrtho(l, r, b, t, nearPlane, farPlane);
+		} else {
+			const float fovDeg = std::clamp(cam.fovY, 1.0f, 179.0f);
+			const float fovRad = fovDeg * Math::DEG_TO_RAD;
+			const float invTan = 1.0f / std::tan(fovRad * 0.5f);
+
+			float xScale = 0.0f;
+			float yScale = 0.0f;
+
+			if (cam.fovAxis == Camera::FieldOfViewAxis::Vertical) {
+				yScale = invTan;
+				xScale = invTan / aspect;
+			} else {
+				xScale = invTan;
+				yScale = invTan * aspect;
+			}
+
+			cam.projectionMtx.SetToZero();
+			cam.projectionMtx.GetElement(0, 0) = xScale;
+			cam.projectionMtx.GetElement(1, 1) = yScale;
+			cam.projectionMtx.GetElement(2, 2) = (farPlane + nearPlane) / (nearPlane - farPlane);
+			cam.projectionMtx.GetElement(2, 3) = (2 * farPlane * nearPlane) / (nearPlane - farPlane);
+			cam.projectionMtx.GetElement(3, 2) = -1.0f;
+			cam.projectionMtx.GetElement(3, 3) = 0.0f;
+		}
 
 		cam.isDirty = false;
-		//cam.projectionMtx = Mat4::BuildOrtho(left, right, bottom, top, nearPlane, farPlane);
 	}
 
-	void CameraSystem::BuildView(Camera& cam, Transform& transform)
-	{
-		const Vec3 eye = transform.worldMatrix.GetTranslation();
-		const Vec3 fwd = ForwardFromEuler(transform.localRotationEuler);
-		const Vec3 target = eye + fwd;
-		const Vec3 up = Vec3{ 0.0f, 1.0f, 0.0f };
-
-		cam.viewMtx = Mat4::BuildViewMtx(eye, target, up);
-	}
-
-	inline Vec3 CameraSystem::ForwardFromEuler(const Vec3& euler)
-	{
-		float pitch = euler.x * Math::DEG_TO_RAD;
-		float yaw = euler.y * Math::DEG_TO_RAD;
-
-		Vec3 forward;
-		forward.x = std::cos(yaw) * std::cos(pitch);
-		forward.y = std::sin(pitch);
-		forward.z = std::sin(yaw) * std::cos(pitch);
-		return forward.Normalize();
+	void CameraSystem::BuildView(Camera& cam, Transform& transform) {
+		cam.viewMtx = transform.worldMatrix.Inverse();
 	}
 }

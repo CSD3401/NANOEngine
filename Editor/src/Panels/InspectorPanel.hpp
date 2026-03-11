@@ -36,6 +36,7 @@ namespace Editor {
 		void DrawPrefabInstanceComponent(uint32_t entity);
 		void DrawTransformComponent(uint32_t entity);
 		void DrawRendererComponent(uint32_t entity);
+		void DrawDecalProjectorComponent(uint32_t entity);
 		void DrawRigidbodyComponent(uint32_t entity);
 		void DrawColliderComponent(uint32_t entity);
 		void DrawLightComponent(uint32_t entity);
@@ -46,6 +47,18 @@ namespace Editor {
 		void DrawRectTransformComponent(uint32_t entity);
 		void DrawCanvasComponent(uint32_t entity);
 		void DrawImageComponent(uint32_t entity);
+		void DrawTextComponent(uint32_t entity);
+		void DrawButtonComponent(uint32_t entity);
+		void DrawSliderComponent(uint32_t entity);
+		void DrawToggleComponent(uint32_t entity);
+		void DrawLayoutGroupComponent(uint32_t entity);
+		void DrawGridLayoutGroupComponent(uint32_t entity);
+		void DrawLayoutElementComponent(uint32_t entity);
+		void DrawScrollRectComponent(uint32_t entity);
+		void DrawAutoSizeComponent(uint32_t entity);
+		void DrawInputFieldComponent(uint32_t entity);
+		void DrawDropdownComponent(uint32_t entity);
+		void DrawCharacterControllerComponent(uint32_t entity);
 		
 
 		std::unique_ptr<MaterialEditor> m_materialEditor;

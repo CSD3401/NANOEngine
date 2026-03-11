@@ -13,8 +13,10 @@ namespace NE::Graphics::OpenGL {
 
     class GLGeometryBuffer final : public IGeometryBuffer {
     public:
-        GLGeometryBuffer(std::shared_ptr<IVertexBuffer> vertexBuffer,
-            std::shared_ptr<IIndexBuffer> indexBuffer);
+        GLGeometryBuffer(
+            std::shared_ptr<IVertexBuffer> vertexBuffer,
+            std::shared_ptr<IIndexBuffer> indexBuffer
+        );
         ~GLGeometryBuffer();
 
         void Bind() const override;
@@ -26,6 +28,7 @@ namespace NE::Graphics::OpenGL {
         static void InitInstanceBuffer();
         static void UpdateInstanceBuffer(const void* instanceData, size_t instanceDataSize);
         static void ShutdownInstanceBuffer();
+        static unsigned int GetInstanceVBO() { return s_InstanceVBO; }
 
     private:
         unsigned int m_VAO = 0;

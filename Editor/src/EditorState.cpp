@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "EditorState.hpp"
 
 namespace Editor {

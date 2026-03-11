@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "Profiler.hpp"
 
 #include <stack>

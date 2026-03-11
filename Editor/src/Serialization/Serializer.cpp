@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "Serializer.hpp"
 
 #include <fstream>
@@ -10,6 +11,7 @@
 #include <ECS/Components/EntityMeta.hpp>
 #include <ECS/Components/Transform.hpp>
 #include <ECS/Components/Renderer.hpp>
+#include <ECS/Components/LightmapBinding.hpp>
 #include <ECS/Components/Light.hpp>
 #include <ECS/Components/Collider.hpp>
 #include <ECS/Components/Rigidbody.hpp>
@@ -18,24 +20,83 @@
 #include <ECS/Components/UIRectTransform.hpp>
 #include <ECS/Components/UICanvas.hpp>
 #include <ECS/Components/UIImage.hpp>
+#include <ECS/Components/UIText.hpp>
+#include <ECS/Components/UIButton.hpp>
+#include <ECS/Components/UISlider.hpp>
+#include <ECS/Components/UIToggle.hpp>
+#include <ECS/Components/UILayoutGroup.hpp>
+#include <ECS/Components/UIGridLayoutGroup.hpp>
+#include <ECS/Components/UILayoutElement.hpp>
+#include <ECS/Components/UIScrollRect.hpp>
+#include <ECS/Components/UIAutoSize.hpp>
+#include <ECS/Components/UIInputField.hpp>
+#include <ECS/Components/UIDropdown.hpp>
 #include <ECS/Components/Hierarchy.hpp>
 #include <ECS/Components/PrefabLink.hpp>
 #include <ECS/Components/PrefabInstance.hpp>
+#include <ECS/Components/CharacterController.hpp>
+#include <ECS/Components/Animator.hpp>
+#include <ECS/Components/DecalProjector.hpp>
 
 #include <EditorInterface/ECSExports.hpp>
 #include <EditorInterface/RendererExports.hpp>
 #include <ECS/Components/ComponentKey.hpp>
+#include <Core/LUIDGenerator.hpp>
 
 #include <Graphics/Core/RenderSettings.hpp>
 #include <Graphics/Core/PostProcessingSettings.hpp>
+#include <Graphics/Core/SelectionHighlightSettings.hpp>
 
 #include "JSONReflection.hpp"
 #include "../EditorScene.hpp"
 #include <Scripting/ScriptingEngine.hpp>
+#include <Serialisation/BinaryReflection.hpp>
 
 namespace Editor {
 	namespace {
-		using ComponentTypes = std::tuple<
+		inline constexpr uint32_t NFAB_MAGIC = 0x4E464142;
+		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 9;
+
+		using SceneComponentTypes = std::tuple<
+			NE::ECS::Component::EntityMeta,
+			NE::ECS::Component::Hierarchy,
+			NE::ECS::Component::PrefabInstance,
+			NE::ECS::Component::PrefabLink,
+			NE::ECS::Component::Transform,
+			NE::ECS::Component::Renderer,
+			NE::ECS::Component::LightmapBinding,
+			NE::ECS::Component::Light,
+			NE::ECS::Component::Collider,
+			NE::ECS::Component::Rigidbody,
+			NE::ECS::Component::NativeScript,
+			NE::ECS::Component::Camera,
+			NE::ECS::Component::UIRectTransform,
+			NE::ECS::Component::UICanvas,
+			NE::ECS::Component::UIImage,
+			NE::ECS::Component::UIText,
+			NE::ECS::Component::UIButton,
+			NE::ECS::Component::UISlider,
+			NE::ECS::Component::UIToggle,
+			NE::ECS::Component::UILayoutGroup,
+			NE::ECS::Component::UIGridLayoutGroup,
+			NE::ECS::Component::UILayoutElement,
+			NE::ECS::Component::UIScrollRect,
+			NE::ECS::Component::UIAutoSize,
+			NE::ECS::Component::UIInputField,
+			NE::ECS::Component::UIDropdown,
+			NE::ECS::Component::CharacterController,
+			NE::ECS::Component::Animator,
+			NE::ECS::Component::DecalProjector
+		>;
+
+		template <class F>
+		void ForEachSceneComponentType(F&& f) {
+			std::apply([&](auto&&... t) {
+				(f.template operator() < std::decay_t<decltype(t)> > (), ...);
+				}, SceneComponentTypes{});
+		}
+
+		using PrefabComponentTypes = std::tuple<
 			NE::ECS::Component::EntityMeta,
 			NE::ECS::Component::Hierarchy,
 			NE::ECS::Component::PrefabInstance,
@@ -49,14 +110,28 @@ namespace Editor {
 			NE::ECS::Component::Camera,
 			NE::ECS::Component::UIRectTransform,
 			NE::ECS::Component::UICanvas,
-			NE::ECS::Component::UIImage
+			NE::ECS::Component::UIImage,
+			NE::ECS::Component::UIText,
+			NE::ECS::Component::UIButton,
+			NE::ECS::Component::UISlider,
+			NE::ECS::Component::UIToggle,
+			NE::ECS::Component::UILayoutGroup,
+			NE::ECS::Component::UIGridLayoutGroup,
+			NE::ECS::Component::UILayoutElement,
+			NE::ECS::Component::UIScrollRect,
+			NE::ECS::Component::UIAutoSize,
+			NE::ECS::Component::UIInputField,
+			NE::ECS::Component::UIDropdown,
+			NE::ECS::Component::CharacterController,
+			NE::ECS::Component::Animator,
+			NE::ECS::Component::DecalProjector
 		>;
 
 		template <class F>
-		void ForEachComponentType(F&& f) {
+		void ForEachPrefabComponentType(F&& f) {
 			std::apply([&](auto&&... t) {
 				(f.template operator() < std::decay_t<decltype(t)> > (), ...);
-				}, ComponentTypes{});
+				}, PrefabComponentTypes{});
 		}
 
 		std::string projectSettingsLoc = "ProjectSettings/";
@@ -132,26 +207,35 @@ namespace Editor {
 					rapidjson::Value& ent, rapidjson::Document::AllocatorType& a) {
 					if (!NE::ECS::Query::HasComponent<C>(e)) return;
 					auto& c = NE::ECS::Query::GetComponent<C>(e);
+
 					ent.AddMember(rapidjson::Value(ComponentKey<C>::value, a), ToJSON(c, a), a);
 				}
 
 				rapidjson::Value WriteEntityRecursive(
 					NE::ECS::Entity e,
 					rapidjson::Value& entities,
-					rapidjson::Document::AllocatorType& a) {
+					rapidjson::Document::AllocatorType& a,
+					bool includeSceneOnlyComponents) {
 					rapidjson::Value ent(rapidjson::kObjectType);
 
 					ent.AddMember("Layer", ToJSON(NE::ECS::Query::GetLayer(e), a), a);
-					ForEachComponentType([&]<typename C>() {
-						WriteComponentIfPresent<C>(e, ent, a);
-					});
+					ent.AddMember("Active", ToJSON(NE::ECS::Query::GetActive(e), a), a);
+					if (includeSceneOnlyComponents) {
+						ForEachSceneComponentType([&]<typename C>() {
+							WriteComponentIfPresent<C>(e, ent, a);
+						});
+					} else {
+						ForEachPrefabComponentType([&]<typename C>() {
+							WriteComponentIfPresent<C>(e, ent, a);
+						});
+					}
 
 					entities.PushBack(ent, a);
 
 					auto& h = NE::ECS::Query::GetEntityHierarchy(e);
 					for (auto childId : h.children) {
 						NE::ECS::Entity child = static_cast<NE::ECS::Entity>(childId);
-						WriteEntityRecursive(child, entities, a);
+						WriteEntityRecursive(child, entities, a, includeSceneOnlyComponents);
 					}
 
 					return ent;
@@ -166,14 +250,14 @@ namespace Editor {
 				// Save all script instance field values to components before serialization
 				auto& coordinator = NE::GetScene().GetECSCoordinator();
 				auto& componentManager = coordinator.GetComponentManager();
-				auto& allEntities = coordinator.GetUsedEntities();
+				//auto& allEntities = coordinator.GetUsedEntities();
 
-				for (NE::ECS::Entity entity : allEntities) {
-					if (componentManager.HasComponent<NE::ECS::Component::NativeScript>(entity)) {
-						auto& nsc = componentManager.GetComponent<NE::ECS::Component::NativeScript>(entity);
-						NE::Scripting::ScriptingEngine::GetInstance().SaveSerializedFields(entity, nsc);
-					}
-				}
+				//for (NE::ECS::Entity entity : allEntities) {
+				//	if (componentManager.HasComponent<NE::ECS::Component::NativeScript>(entity)) {
+				//		auto& nsc = componentManager.GetComponent<NE::ECS::Component::NativeScript>(entity);
+				//		NE::Scripting::ScriptingEngine::GetInstance().SaveSerializedFields(entity, nsc);
+				//	}
+				//}
 
 				Document doc;
 				doc.SetObject();
@@ -185,10 +269,12 @@ namespace Editor {
 				auto& postProcessingSettings = NE::Renderer::Query::GetPostProcessingSettings();
 				doc.AddMember("PostProcessingSettings", ToJSON(postProcessingSettings, a), a);
 
+				doc.AddMember("LightingContainer", ToJSON(NE::GetScene().GetLightingContainer(), a), a);
+
 				Value entities(rapidjson::Type::kArrayType);
 				const auto& sceneRoots = EditorScene::s_rootOrder;
 				for (auto e : sceneRoots) {
-					WriteEntityRecursive(e, entities, a);
+					WriteEntityRecursive(e, entities, a, true);
 				}
 				doc.AddMember("Entities", entities, a);
 
@@ -205,10 +291,6 @@ namespace Editor {
 				using rapidjson::StringBuffer;
 				using rapidjson::PrettyWriter;
 
-				// Save all script instance field values to components before serialization
-				//auto& coordinator = NE::GetScene().GetECSCoordinator();
-				//auto& componentManager = coordinator.GetComponentManager();
-
 				Document doc;
 				doc.SetObject();
 				auto& a = doc.GetAllocator();
@@ -216,9 +298,9 @@ namespace Editor {
 				Value entities(rapidjson::Type::kArrayType);
 				if (!isScene) {
 					const auto& prefabRoot = EditorScene::s_selection.GetLastDropped();
-					WriteEntityRecursive(prefabRoot, entities, a);
+					WriteEntityRecursive(prefabRoot, entities, a, false);
 				} else {
-					WriteEntityRecursive(EditorScene::s_rootOrder[0], entities, a);
+					WriteEntityRecursive(EditorScene::s_rootOrder[0], entities, a, false);
 				}
 				doc.AddMember("Entities", entities, a);
 
@@ -228,6 +310,70 @@ namespace Editor {
 
 				std::ofstream out(path, std::ios::binary);
 				if (out) out.write(sb.GetString(), static_cast<std::streamsize>(sb.GetSize()));
+			}
+
+			bool CookPrefabToBinary(const std::string& jsonPath, const std::string& binPath) {
+				std::string jsonContent;
+				if (!ReadAllText(jsonPath, jsonContent)) return false;
+
+				rapidjson::Document doc;
+				doc.Parse(jsonContent.c_str());
+				if (doc.HasParseError() || !doc.HasMember("Entities")) return false;
+
+				NE::ByteBuffer outputBuffer;
+
+				NE::Serialization::ToBinary(outputBuffer, static_cast<uint64_t>(NFAB_MAGIC));
+				NE::Serialization::ToBinary(outputBuffer, static_cast<uint64_t>(CURRENT_NANOPREFAB_FORMAT_VERSION));
+
+				const auto& entities = doc["Entities"].GetArray();
+				uint64_t entityCount = static_cast<uint64_t>(entities.Size());
+				NE::Serialization::ToBinary(outputBuffer, entityCount);
+
+				for (const auto& entVal : entities) {
+					uint8_t layer = 0;
+					if (entVal.HasMember("Layer")) {
+						Deserialization::FromJSON(entVal["Layer"], layer);
+					}
+					NE::Serialization::ToBinary(outputBuffer, layer);
+
+					bool active = true;
+					if (entVal.HasMember("Active")) {
+						Deserialization::FromJSON(entVal["Active"], active);
+					}
+					NE::Serialization::ToBinary(outputBuffer, active);
+
+					uint64_t mask = 0;
+					uint32_t bitIdx = 0;
+					ForEachPrefabComponentType([&]<typename C>() {
+						if (entVal.HasMember(ComponentKey<C>::value)) {
+							mask |= (uint64_t(1) << bitIdx);
+						}
+						bitIdx++;
+					});
+
+					NE::Serialization::ToBinary(outputBuffer, mask);
+
+					ForEachPrefabComponentType([&]<typename C>() {
+						const char* key = ComponentKey<C>::value;
+						if (entVal.HasMember(key)) {
+							C tempComp{};
+							Deserialization::FromJSON(entVal[key], tempComp);
+							NE::Serialization::ToBinary(outputBuffer, tempComp);
+						}
+					});
+				}
+
+				std::filesystem::path filePath(binPath);
+				std::filesystem::path directory = filePath.parent_path();
+				if (!directory.empty() && !std::filesystem::exists(directory)) {
+					std::filesystem::create_directories(directory);
+				}
+
+				std::ofstream ofs(binPath, std::ios::binary);
+				if (!ofs.is_open()) return false;
+				ofs.write(reinterpret_cast<const char*>(outputBuffer.data()), outputBuffer.size());
+
+				return true;
 			}
 
 			void SerializeProjectSettings() {
@@ -288,6 +434,10 @@ namespace Editor {
 				doc.AddMember("sessionScenePath", ToJSON(EditorScene::s_currentScenePath, a), a);
 				doc.AddMember("sessionSceneUUID", ToJSON(EditorScene::s_currentSceneUUID, a), a);
 
+				// Game panel (main camera) resolution preference.
+				doc.AddMember("gameViewWidth", NE::GetGameViewWidth(), a);
+				doc.AddMember("gameViewHeight", NE::GetGameViewHeight(), a);
+
 				rapidjson::Value obj(rapidjson::kObjectType);
 				obj.AddMember("position", ToJSON(EditorScene::m_editorCamera.GetPosition(), a), a);
 				obj.AddMember("yaw", ToJSON(EditorScene::m_cameraYaw, a), a);
@@ -299,6 +449,9 @@ namespace Editor {
 				obj.AddMember("hasAcceleration", ToJSON(EditorScene::m_cameraUseAcceleration, a), a);
 
 				doc.AddMember("editorCamera", obj, a);
+
+				auto& selectionSettings = NE::Renderer::Command::GetSelectionHighlightSettings();
+				doc.AddMember("selectionHighlight", ToJSON(selectionSettings, a), a);
 
 				rapidjson::StringBuffer sb;
 				rapidjson::PrettyWriter<rapidjson::StringBuffer> w(sb);
@@ -343,21 +496,141 @@ namespace Editor {
 					FromJSON(doc["PostProcessingSettings"], pps);
 				}
 
+				if (doc.HasMember("LightingContainer")) {
+					FromJSON(doc["LightingContainer"], NE::GetScene().GetLightingContainer());
+				} else {
+					NE::GetScene().GetLightingContainer() = {};
+				}
+
 				if (!doc.IsObject() || !doc.HasMember("Entities")) return;
 
 				for (auto& entVal : doc["Entities"].GetArray()) {
 					NE::ECS::Entity e = NE::ECS::Command::CreateEntityNoComponents();
 
-					if (doc.HasMember("Layer")) {
+					if (entVal.HasMember("Layer")) {
 						uint8_t layer = 0;
 						FromJSON(entVal["Layer"], layer);
 						NE::ECS::Command::SetLayer(e, layer);
 					}
 
-					ForEachComponentType([&]<typename C>() {
+					ForEachSceneComponentType([&]<typename C>() {
 						ReadComponentIfPresent<C>(e, entVal);
 					});
+
+					bool isActive = true;
+					if (entVal.HasMember("Active")) {
+						FromJSON(entVal["Active"], isActive);
+					} else if (NE::ECS::Query::HasComponent<NE::ECS::Component::EntityMeta>(e)) {
+						isActive = NE::ECS::Query::GetComponent<NE::ECS::Component::EntityMeta>(e).isActive;
+					}
+
+					NE::ECS::Command::ToggleActive(e, isActive);
+					if (NE::ECS::Query::HasComponent<NE::ECS::Component::EntityMeta>(e)) {
+						NE::ECS::Command::GetComponent<NE::ECS::Component::EntityMeta>(e).isActive = isActive;
+					}
 				}
+			}
+
+			void DeserializeModel(const std::string& metaPath) {
+				using rapidjson::Document;
+
+				std::ifstream in(metaPath, std::ios::binary);
+				if (!in) return;
+
+				std::string data((std::istreambuf_iterator<char>(in)), {});
+				Document doc; doc.Parse(data.c_str());
+				if (doc.HasParseError() || !doc.IsObject()) return;
+
+				if (!doc.HasMember("submeshes") || !doc["submeshes"].IsArray()) return;
+				auto& sms = doc["submeshes"];
+				if (!doc.HasMember("generatedPrefab") || !doc["generatedPrefab"].IsObject()) return;
+				auto& gp = doc["generatedPrefab"];
+				if (!gp.HasMember("Entities") || !gp["Entities"].IsArray()) return;
+				auto& ents = gp["Entities"];
+
+				std::unordered_map<uint64_t, uint64_t> idxToReal;
+				idxToReal.reserve(ents.Size());
+
+				auto readTemplateLuid = [](const rapidjson::Value& entVal) -> uint64_t {
+					if (entVal.HasMember("Hierarchy") && entVal["Hierarchy"].IsObject()) {
+						auto& h = entVal["Hierarchy"];
+						if (h.HasMember("luid") && h["luid"].IsUint64())
+							return h["luid"].GetUint64();
+					}
+					return 0;
+				};
+
+				for (auto& entVal : ents.GetArray()) {
+					if (!entVal.IsObject()) continue;
+					uint64_t tpl = readTemplateLuid(entVal);
+					if (tpl == 0) continue; 
+					if (idxToReal.contains(tpl)) continue;
+					idxToReal[tpl] = NE::Core::LUIDGenerator::Generate("em");
+				}
+
+				for (auto& entVal : ents.GetArray()) {
+					if (!entVal.IsObject()) continue;
+
+					NE::ECS::Entity e = NE::ECS::Command::CreateEntityNoComponents();
+
+					if (entVal.HasMember("Layer")) {
+						uint8_t layer = 0;
+						FromJSON(entVal["Layer"], layer);
+						NE::ECS::Command::SetLayer(e, layer);
+					}
+
+					ForEachPrefabComponentType([&]<typename C>() {
+						if constexpr (std::is_same_v<C, NE::ECS::Component::Hierarchy>) {
+							return;
+						} else {
+							ReadComponentIfPresent<C>(e, entVal);
+						}
+					});
+
+					bool isActive = true;
+					if (entVal.HasMember("Active")) {
+						FromJSON(entVal["Active"], isActive);
+					} else if (NE::ECS::Query::HasComponent<NE::ECS::Component::EntityMeta>(e)) {
+						isActive = NE::ECS::Query::GetComponent<NE::ECS::Component::EntityMeta>(e).isActive;
+					}
+
+					NE::ECS::Command::ToggleActive(e, isActive);
+					if (NE::ECS::Query::HasComponent<NE::ECS::Component::EntityMeta>(e)) {
+						NE::ECS::Command::GetComponent<NE::ECS::Component::EntityMeta>(e).isActive = isActive;
+					}
+
+					if (NE::ECS::Query::HasComponent<NE::ECS::Component::Renderer>(e)) {
+						auto& renderer = NE::ECS::Query::GetComponent<NE::ECS::Component::Renderer>(e);
+						NE::Math::Vec3 pivotOffset = {};
+						FromJSON(sms[renderer.subMeshIndex]["pivotOffset"], pivotOffset);
+
+						auto& transform = NE::ECS::Command::GetComponent<NE::ECS::Component::Transform>(e);
+						transform.localPosition = pivotOffset;
+					}
+
+					uint64_t tplLuid = readTemplateLuid(entVal);
+					uint64_t realLuid = (tplLuid != 0 && idxToReal.contains(tplLuid)) ? idxToReal[tplLuid] : 0;
+
+					if (entVal.HasMember("Hierarchy") && entVal["Hierarchy"].IsObject()) {
+						const auto& hj = entVal["Hierarchy"];
+
+						uint64_t tplParent = 0;
+						if (hj.HasMember("parentLuid") && hj["parentLuid"].IsUint64())
+							tplParent = hj["parentLuid"].GetUint64();
+
+						uint64_t realParent = 0;
+						if (tplParent != 0 && idxToReal.contains(tplParent))
+							realParent = idxToReal[tplParent];
+
+						NE::ECS::Component::Hierarchy h{};
+						h.luid = realLuid;
+						h.parentLuid = realParent;
+
+						NE::ECS::Command::AddComponent(e, h);
+					}
+				}
+
+				EditorScene::BuildRoot();
 			}
 
 			void DeserializeProjectSettings() {
@@ -462,6 +735,14 @@ namespace Editor {
 				if (doc.HasMember("sessionSceneUUID") && doc["sessionSceneUUID"].IsString())
 					EditorScene::s_currentSceneUUID = doc["sessionSceneUUID"].GetString();
 
+				if (doc.HasMember("gameViewWidth") && doc["gameViewWidth"].IsUint() &&
+					doc.HasMember("gameViewHeight") && doc["gameViewHeight"].IsUint())
+				{
+					const uint32_t w = doc["gameViewWidth"].GetUint();
+					const uint32_t h = doc["gameViewHeight"].GetUint();
+					NE::SetGameViewResolution(w, h);
+				}
+
 				if (doc.HasMember("editorCamera") && doc["editorCamera"].IsObject()) {
 					auto& camObj = doc["editorCamera"];
 					if (camObj.HasMember("position")) {
@@ -483,6 +764,11 @@ namespace Editor {
 						FromJSON(camObj["hasEasing"], EditorScene::m_cameraUseEasing);
 					if (camObj.HasMember("hasAcceleration"))
 						FromJSON(camObj["hasAcceleration"], EditorScene::m_cameraUseAcceleration);
+				}
+
+				if (doc.HasMember("selectionHighlight") && doc["selectionHighlight"].IsObject()) {
+					auto& selectionSettings = NE::Renderer::Command::GetSelectionHighlightSettings();
+					FromJSON(doc["selectionHighlight"], selectionSettings);
 				}
 			}
 		}

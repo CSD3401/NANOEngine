@@ -7,6 +7,7 @@
 #include <mutex>
 #include <queue>
 #include "../NANOEngineAPI.hpp"
+#include "../Core/SpdLogger.hpp"
 
 #pragma warning(push)
 #pragma warning(disable: 4251)
@@ -80,24 +81,16 @@ namespace NANOEngine::Events {
         }
 
         // Called once per frame (main thread)
-        void DispatchQueued() {
-            std::queue<std::shared_ptr<IQueuedEvent>> toProcess;
-            {
-                std::scoped_lock lock(mutex_);
-                std::swap(toProcess, queuedEvents_);
-            }
-
-            while (!toProcess.empty()) {
-                auto e = toProcess.front();
-                toProcess.pop();
-                e->Dispatch(*this);
-            }
-        }
+        void DispatchQueued();
 
         template<class EventT>
         void Dispatch(EventDomain domain, const EventT& event) const {
             thread_local bool dispatching = false;
-            if (dispatching) return; // ignore recursive dispatch of same event type
+            if (dispatching) {
+                SPD_WARNING("EventBus: recursive dispatch of " << typeid(EventT).name()
+                            << " blocked (domain=" << static_cast<int>(domain) << ")");
+                return;
+            }
             dispatching = true;
 
             DomainKey key = { domain, std::type_index(typeid(EventT)) };
