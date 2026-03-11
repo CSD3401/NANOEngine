@@ -121,6 +121,7 @@ namespace NE::ECS {
 		template<> inline const Component::UIAutoSize& GetComponent<Component::UIAutoSize>(uint32_t e) { return GetUIAutoSize(e); }
 		template<> inline const Component::UIInputField& GetComponent<Component::UIInputField>(uint32_t e) { return GetUIInputField(e); }
 		template<> inline const Component::UIDropdown& GetComponent<Component::UIDropdown>(uint32_t e) { return GetUIDropdown(e); }
+		template<> inline const Component::ParticleEmitter& GetComponent<Component::ParticleEmitter>(uint32_t e) { return GetParticleEmitter(e); }
 
 		NANOENGINE_API bool HasEntityMeta(uint32_t e);
 		NANOENGINE_API bool HasHierarchy(uint32_t e);
@@ -151,6 +152,7 @@ namespace NE::ECS {
 		NANOENGINE_API bool HasUIAutoSize(uint32_t e);
 		NANOENGINE_API bool HasUIInputField(uint32_t e);
 		NANOENGINE_API bool HasUIDropdown(uint32_t e);
+		NANOENGINE_API bool HasParticleEmitter(uint32_t e);
 
 		template <typename C>
 		bool HasComponent(Entity e);
@@ -184,6 +186,7 @@ namespace NE::ECS {
 		template<> inline bool HasComponent<Component::UIAutoSize>(uint32_t e) { return HasUIAutoSize(e); }
 		template<> inline bool HasComponent<Component::UIInputField>(uint32_t e) { return HasUIInputField(e); }
 		template<> inline bool HasComponent<Component::UIDropdown>(uint32_t e) { return HasUIDropdown(e); }
+		template<> inline bool HasComponent<Component::ParticleEmitter>(uint32_t e) { return HasParticleEmitter(e); }
 
 		//template <typename C>
 		//ComponentType GetComponentType() {
@@ -419,6 +422,7 @@ namespace NE::ECS {
 		template<> inline Component::UIAutoSize& GetComponent<Component::UIAutoSize>(uint32_t e) { return GetUIAutoSize(e); }
 		template<> inline Component::UIInputField& GetComponent<Component::UIInputField>(uint32_t e) { return GetUIInputField(e); }
 		template<> inline Component::UIDropdown& GetComponent<Component::UIDropdown>(uint32_t e) { return GetUIDropdown(e); }
+		template<> inline Component::ParticleEmitter& GetComponent<Component::ParticleEmitter>(uint32_t e) { return GetParticleEmitter(e); }
 
 		// --- Script Management ---
 		NANOENGINE_API std::vector<std::string> GetRegisteredScriptNames();

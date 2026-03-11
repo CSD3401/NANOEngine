@@ -144,6 +144,10 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIDropdown>(e);
 		}
 
+		const Component::ParticleEmitter& GetParticleEmitter(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::ParticleEmitter>(e);
+		}
+
 		bool HasEntityMeta(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::EntityMeta>(e);
 		}
@@ -258,6 +262,10 @@ namespace NE::ECS {
 
 		bool HasUIDropdown(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIDropdown>(e);
+		}
+
+		bool HasParticleEmitter(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::ParticleEmitter>(e);
 		}
 
 		const Component::Animator& GetEntityAnimator(uint32_t e) {
