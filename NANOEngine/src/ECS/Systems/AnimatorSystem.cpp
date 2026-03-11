@@ -243,6 +243,9 @@ namespace NE::ECS::Systems {
         m_luidRegistry->Unregister(anim.luid);
     }
 
+    void AnimatorSystem::OnEntityActive(Entity /*entity*/) {}
+    void AnimatorSystem::OnEntityInactive(Entity /*entity*/) {}
+
     void AnimatorSystem::Init() {
     }
 

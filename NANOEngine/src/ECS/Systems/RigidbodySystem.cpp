@@ -7,7 +7,7 @@
 #include "Physics/PhysicsManager.hpp"
 #include "Core/LUIDGenerator.hpp"
 #include "Core/LUIDRegistry.hpp"
-#include <Core/Profiler.hpp>
+#include "Core/Profiler.hpp"
 
 namespace NE::ECS::Systems {
 
@@ -26,6 +26,17 @@ namespace NE::ECS::Systems {
 	void RigidbodySystem::OnEntityRemoved(Entity e) {
 		auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(e);
 		m_luidRegistry->Unregister(rb.luid);
+	}
+
+	void RigidbodySystem::OnEntityActive(Entity /*e*/) {
+		// Not needed since every rb and cc will have a collider but not every collider will have rb or cc
+		//auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
+		//Physics::PhysicsManager::GetInstance().UpdateBodyState(meta.luid, true);
+	}
+
+	void RigidbodySystem::OnEntityInactive(Entity /*e*/) {
+		//auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
+		//Physics::PhysicsManager::GetInstance().UpdateBodyState(meta.luid, false);
 	}
 
 	void RigidbodySystem::Init() {

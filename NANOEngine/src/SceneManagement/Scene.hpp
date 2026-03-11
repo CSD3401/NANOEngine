@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ECS/Core/ECSCoordinator.hpp"
+#include "SceneLighting.hpp"
 #include "NANOEngineAPI.hpp"
 
 namespace NE::SceneManagement {
@@ -23,8 +24,11 @@ namespace NE::SceneManagement {
 		void CameraExit();
 
 		NANOENGINE_API ECS::ECSCoordinator& GetECSCoordinator();
+		NANOENGINE_API LightingContainer& GetLightingContainer();
+		NANOENGINE_API const LightingContainer& GetLightingContainer() const;
 	private:
 		ECS::ECSCoordinator m_ecsCoordinator;
+		LightingContainer m_lightingContainer;
 	};
 
 }

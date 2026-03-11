@@ -26,12 +26,13 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-    <ItemGroup>
+  <ItemGroup>
     <ClInclude Include="src\pch.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ECS\Systems\DecalProjectorSystem.hpp" />
     <ClInclude Include="src\ECS\Components\DecalProjector.hpp" />
+    <ClInclude Include="src\ECS\Components\LightmapBinding.hpp" />
     <ClInclude Include="src\ECS\ECSEvents.hpp" />
     <ClInclude Include="src\Graphics\Core\DecalCommand.hpp" />
     <ClInclude Include="src\Graphics\Core\DecalGizmoCommand.hpp" />
@@ -95,6 +96,7 @@
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoMatHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoModelHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoShdHeader.hpp" />
+    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoLightingHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoThumbHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryView.hpp" />
     <ClInclude Include="src\ResourceManagement\IResource.hpp" />
@@ -119,7 +121,6 @@
     <ClInclude Include="src\ECS\Components\UIDropdown.hpp" />
     <ClInclude Include="src\ECS\Systems\UIRenderSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\GizmosRenderer.hpp" />
-    <ClInclude Include="src\ECS\Components\PhysicsBody.hpp" />
     <ClInclude Include="src\EditorInterface\PhysicsExports.hpp" />
     <ClInclude Include="src\Graphics\Core\DrawCommand.hpp" />
     <ClInclude Include="src\Graphics\Core\DrawQueue.hpp" />
@@ -167,7 +168,10 @@
     <ClInclude Include="src\Graphics\Core\Skybox.hpp" />
     <ClInclude Include="src\ECS\Systems\RenderSystem.hpp" />
     <ClInclude Include="src\Events\EventBus.hpp" />
+    <ClInclude Include="src\Lighting\LightingAsset.hpp" />
     <ClInclude Include="src\SceneManagement\Scene.hpp" />
+    <ClInclude Include="src\SceneManagement\SceneLighting.hpp" />
+    <ClInclude Include="src\SceneManagement\SceneLightmapRuntime.hpp" />
     <ClInclude Include="src\SceneManagement\SceneManager.hpp" />
     <ClInclude Include="src\ECS\Core\ECSCoordinator.hpp" />
     <ClInclude Include="src\ECS\Components\Renderer.hpp" />
@@ -227,12 +231,14 @@
     <ClInclude Include="src\Graphics\Core\RenderGraph\TexturePool.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\ECS\Core\SystemManager.cpp" />
     <ClCompile Include="src\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Production|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\ECS\Systems\DecalProjectorSystem.cpp" />
+    <ClCompile Include="src\Lighting\LightingAsset.cpp" />
     <ClCompile Include="src\Graphics\DebugRenderer\DebugDrawSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\ShadowRenderer.cpp" />
     <ClCompile Include="src\Graphics\Core\PostProcessPipeline.cpp" />
@@ -251,6 +257,7 @@
     <ClCompile Include="src\Physics\ObjectVsBroadPhaseLayerFilterImpl.cpp" />
     <ClCompile Include="src\Physics\ObjectLayerPairFilterImpl.cpp" />
     <ClCompile Include="src\ECS\Systems\HierarchySystem.cpp" />
+    <ClCompile Include="src\SceneManagement\SceneLightmapRuntime.cpp" />
     <ClCompile Include="src\Core\LUIDRegistry.cpp" />
     <ClCompile Include="src\Graphics\OpenGL\GLClusteredLighting.cpp" />
     <ClCompile Include="src\Graphics\Core\UIImageMeshGenerator.cpp" />

@@ -145,8 +145,40 @@ namespace NE {
 		return Graphics::GraphicsManager::GetSceneColorAttachment();
 	}
 
+	uint32_t GetSceneDebugAttachment() {
+		return Graphics::GraphicsManager::GetSceneDebugAttachment();
+	}
+
 	uint32_t GetGameColorAttachment() {
 		return Graphics::GraphicsManager::GetGameColorAttachment();
+	}
+
+	void SetScenePreviewMode(uint8_t mode) {
+		Graphics::GraphicsManager::SetScenePreviewMode(mode);
+	}
+
+	uint8_t GetScenePreviewMode() {
+		return Graphics::GraphicsManager::GetScenePreviewMode();
+	}
+
+	void SetScenePreviewUvScale(float scale) {
+		Graphics::GraphicsManager::SetScenePreviewUvScale(scale);
+	}
+
+	float GetScenePreviewUvScale() {
+		return Graphics::GraphicsManager::GetScenePreviewUvScale();
+	}
+
+	void SetGameViewResolution(uint32_t width, uint32_t height) {
+		Graphics::GraphicsManager::SetGameViewResolution(width, height);
+	}
+
+	uint32_t GetGameViewWidth() {
+		return Graphics::GraphicsManager::GetGameViewWidth();
+	}
+
+	uint32_t GetGameViewHeight() {
+		return Graphics::GraphicsManager::GetGameViewHeight();
 	}
 
 	void UpdateEditorCameraData() {

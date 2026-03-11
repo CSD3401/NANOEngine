@@ -3493,8 +3493,7 @@ namespace NE {
 				return;
 			}
 
-			// Use HierarchySystem to set active state (handles hierarchy propagation)
-			GetScene().GetECSCoordinator().m_hierarchySystem->SetActive(e, active);
+			GetScene().GetECSCoordinator().ToggleEntityActive(e, active);
 		}
 
 		bool IScript::IsActiveInHierarchy() const {

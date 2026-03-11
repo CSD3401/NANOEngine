@@ -27,6 +27,7 @@ namespace NE::Graphics {
 		static void DrawLines();
 		static void DrawTriangles();
 		static void DrawAll();
+		static void ClearFrameGeometry();
 
 	private:
 		struct DebugLine {

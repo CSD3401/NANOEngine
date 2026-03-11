@@ -20,6 +20,7 @@ public:
         SCRIPT_FIELD(jumpStrength, Float);
         SCRIPT_FIELD(snappiness, Float);
 		SCRIPT_FIELD(gravity, Float);
+        SCRIPT_FIELD(walkSoundInterval, Float);
     }
     ~Player_Controller() override = default;
 
@@ -28,6 +29,18 @@ public:
     {
         lookRotation = Vec3::Zero();
         velocity = Vec3::Zero();
+        explosionCameraOffset = Vec3::Zero();
+		walkSoundTimer = 0.0f;
+    }
+
+    void SetExplosionCameraOffset(const Vec3& offset)
+    {
+        explosionCameraOffset = offset;
+    }
+
+    void ClearExplosionCameraOffset()
+    {
+        explosionCameraOffset = Vec3::Zero();
     }
 
     // === Lifecycle Methods ===
@@ -113,20 +126,11 @@ public:
         // === Walking Sound ===
         bool isMoving = inputDirection.x != 0.0f || inputDirection.z != 0.0f;
 
-        if (isGrounded && isMoving) {
-            // Play walking sound (looping in FMOD)
-            if (!isWalkingSoundPlaying) {
-                PlayAudio("event:/WALK");
-                isWalkingSoundPlaying = true;
-            }
+        if (isGrounded && isMoving && walkSoundTimer < 0.0f) {
+            walkSoundTimer = walkSoundInterval;
+            PlayAudio("event:/WALK");
         }
-        else {
-            // Stop walking sound when not moving or in air
-            if (isWalkingSoundPlaying) {
-                StopAudio("event:/WALK");
-                isWalkingSoundPlaying = false;
-            }
-        }
+        walkSoundTimer -= static_cast<float>(deltaTime);
 
         // Assign
         CC_Move(velocity * static_cast<float>(deltaTime));
@@ -154,6 +158,7 @@ private:
 	GameObjectRef playerCameraRef;
 	Entity playerCameraEntity;
     Vec3 lookRotation;
+    Vec3 explosionCameraOffset = Vec3::Zero();
     float lookSensitivity;
 
     // === Movement ===
@@ -162,7 +167,6 @@ private:
     float jumpStrength;
     float snappiness;
 	float gravity;
-
-    // === Audio ===
-    bool isWalkingSoundPlaying = false;  // ADD THIS
+    float walkSoundInterval;
+    float walkSoundTimer;
 };

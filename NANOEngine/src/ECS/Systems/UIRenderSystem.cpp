@@ -4,26 +4,26 @@
 #include "../Components/UIImage.hpp"
 #include "../Components/UIText.hpp"
 #include "../Components/Hierarchy.hpp"
-#include "../../Graphics/Core/GraphicsManager.hpp"
-#include "../../Graphics/Core/EditorCamera.hpp"
-#include "../../Graphics/Core/UITextMeshGenerator.hpp"
-#include "../../Graphics/OpenGL/GLVertexBuffer.hpp"
-#include "../../Graphics/OpenGL/GLIndexBuffer.hpp"
-#include "../../Graphics/OpenGL/GLGeometryBuffer.hpp"
-#include "../../Graphics/OpenGL/GLPipeline.hpp"
-#include "../../Graphics/OpenGL/GLShader.hpp"
-#include "../../Graphics/Core/Material.hpp"
-#include "../../Graphics/Core/UIGeometryBuffer.hpp"
-#include "../../Graphics/Core/DrawCommand.hpp"
-#include "../../Graphics/Core/Vertex.hpp"
-#include "../../Graphics/Core/InstanceData.hpp"
-#include "../../Graphics/Core/PipelineCache.hpp"
+#include "Graphics/Core/GraphicsManager.hpp"
+#include "Graphics/Core/EditorCamera.hpp"
+#include "Graphics/Core/UITextMeshGenerator.hpp"
+#include "Graphics/OpenGL/GLVertexBuffer.hpp"
+#include "Graphics/OpenGL/GLIndexBuffer.hpp"
+#include "Graphics/OpenGL/GLGeometryBuffer.hpp"
+#include "Graphics/OpenGL/GLPipeline.hpp"
+#include "Graphics/OpenGL/GLShader.hpp"
+#include "Graphics/Core/Material.hpp"
+#include "Graphics/Core/UIGeometryBuffer.hpp"
+#include "Graphics/Core/DrawCommand.hpp"
+#include "Graphics/Core/Vertex.hpp"
+#include "Graphics/Core/InstanceData.hpp"
+#include "Graphics/Core/PipelineCache.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
 #include <iostream>
 #include <algorithm>
 #include <cmath>
 #include <map>
-#include "../Components/EntityMeta.hpp"
+
 // UIRectMask2D folded into UIRectTransform (enableMask + maskPadding fields)
 #include "UITransformUtilities.hpp"
 using namespace NE::ECS;
@@ -45,14 +45,15 @@ namespace NE::ECS::Systems {
     // Lifecycle
     //=========================================================================
 
-    UIRenderSystem::UIRenderSystem(ComponentManager* cm) : m_cm(cm)
+    UIRenderSystem::UIRenderSystem(ComponentManager* cm, EntityManager* em) : m_cm(cm), m_em(em)
     {
         m_currentView.SetToIdentity();
         m_currentProj.SetToIdentity();
     }
+
     bool UIRenderSystem::IsActiveForUI(Entity entity, Entity canvasEntity) const
     {
-        return UIUtil::IsActiveForUI(m_cm, entity, canvasEntity);
+        return UIUtil::IsActiveForUI(m_cm, m_em, entity, canvasEntity);
     }
 
     void UIRenderSystem::OnEntityAdded(Entity e)
@@ -84,6 +85,9 @@ namespace NE::ECS::Systems {
     {
         m_textCache.erase(e);
     }
+
+    void UIRenderSystem::OnEntityActive(Entity /*entity*/) {}
+    void UIRenderSystem::OnEntityInactive(Entity /*entity*/) {}
 
     void UIRenderSystem::Init()
     {
@@ -296,10 +300,10 @@ namespace NE::ECS::Systems {
 
             auto& canvas = m_cm->GetComponent<UICanvas>(e);
 
-            bool metaActive = true;
-            if (m_cm->HasComponent<NE::ECS::Component::EntityMeta>(e)) {
-                metaActive = m_cm->GetComponent<NE::ECS::Component::EntityMeta>(e).isActive;
-            }
+            bool metaActive = m_em->GetActive(e);
+            //if (m_cm->HasComponent<NE::ECS::Component::EntityMeta>(e)) {
+            //    metaActive = m_cm->GetComponent<NE::ECS::Component::EntityMeta>(e).isActive;
+            //}
 
             if (canvas.isActive && metaActive) {
                 canvases.push_back({ canvas.sortingOrder, e });
@@ -665,28 +669,34 @@ namespace NE::ECS::Systems {
         const auto& entities = GetEntities();
 
         for (Entity e : entities) {
-            if (!m_cm->HasComponent<UIRectTransform>(e)) continue;
-            if (m_cm->HasComponent<UICanvas>(e)) continue; // Skip canvas entities themselves
+            if (!m_cm->HasComponent<UICanvas>(e)) continue;
+            CollectChildrenInOrder(e, e, m_canvasChildrenMap[e]);
+        }
+    }
 
-            bool hasImage = m_cm->HasComponent<UIImage>(e);
-            bool hasText = m_cm->HasComponent<UIText>(e);
-            if (!hasImage && !hasText) continue;
+    void UIRenderSystem::CollectChildrenInOrder(Entity canvasEntity, Entity node, CanvasChildren& out)
+    {
+        if (!m_cm->HasComponent<Hierarchy>(node)) return;
 
-            Entity canvasEntity = m_layoutEngine->FindOwningCanvas(e);
-            if (canvasEntity == NO_ENTITY) continue;
+        for (Entity child : m_cm->GetComponent<Hierarchy>(node).children) {
+            // Nested canvas — skip entirely (handled as its own canvas)
+            if (m_cm->HasComponent<UICanvas>(child)) continue;
 
-            // Check active state once
-            if (!IsActiveForUI(e, canvasEntity)) continue;
-
-            auto& children = m_canvasChildrenMap[canvasEntity];
-            if (hasImage) {
-                children.images.push_back(e);
-                m_frameUIElements++;
+            // Not a UI rect — skip this node but still recurse into its children
+            if (!m_cm->HasComponent<UIRectTransform>(child)) {
+                CollectChildrenInOrder(canvasEntity, child, out);
+                continue;
             }
-            if (hasText) {
-                children.texts.push_back(e);
-                m_frameUIElements++;
-            }
+
+            if (!IsActiveForUI(child, canvasEntity)) continue;
+
+            bool hasImage = m_cm->HasComponent<UIImage>(child);
+            bool hasText  = m_cm->HasComponent<UIText>(child);
+
+            if (hasImage) { out.images.push_back(child); m_frameUIElements++; }
+            if (hasText)  { out.texts.push_back(child);  m_frameUIElements++; }
+
+            CollectChildrenInOrder(canvasEntity, child, out);
         }
     }
 

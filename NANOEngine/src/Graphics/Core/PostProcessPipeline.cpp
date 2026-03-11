@@ -151,6 +151,16 @@ namespace NE::Graphics {
 		m_settings = settings;
 	}
 
+	void PostProcessPipeline::SetSelectionSettings(SelectionHighlightSettings* settings) {
+		m_selectionSettings = settings;
+	}
+
+#ifndef PRODUCTION_BUILD
+	void PostProcessPipeline::SetSelectedEntityIds(const std::unordered_set<uint32_t>* selectedIds) {
+		m_selectedEntityIds = selectedIds;
+	}
+#endif
+
 	void PostProcessPipeline::InitFullscreenQuad() {
 		if (m_QuadVAO != 0) return;
 
@@ -560,6 +570,16 @@ namespace NE::Graphics {
 			m_compositeShader = Resource::ResourceManager::GetInstance()
 				.LoadResource<OpenGL::GLShader>("necomposite");
 		}
+		if (!m_selectionCompositeShader) {
+			m_selectionCompositeShader = Resource::ResourceManager::GetInstance()
+				.LoadResource<OpenGL::GLShader>("neselectioncomposite");
+		}
+#ifndef PRODUCTION_BUILD
+		if (!m_selectionMaskFromPickingShader) {
+			m_selectionMaskFromPickingShader = Resource::ResourceManager::GetInstance()
+				.LoadResource<OpenGL::GLShader>("neselectionmaskfrompicking");
+		}
+#endif
 		if (!m_SSAOShader) {
 			m_SSAOShader = Resource::ResourceManager::GetInstance()
 				.LoadResource<OpenGL::GLShader>("nessao");
@@ -613,39 +633,256 @@ namespace NE::Graphics {
 		m_context.taaHasHistory = false;
 		m_context.taaHistoryTex = 0;
 
-		const bool postEnabled = m_settings && m_settings->enabled;
-		if (!postEnabled) {
-			auto sourceFBRes = m_graph->ImportFramebuffer(sourceFB.get(), "BypassSourceFB");
-			auto destFBRes = m_graph->ImportFramebuffer(destFB.get(), "BypassDestFB");
+		auto sceneColor = m_graph->ImportTexture(sourceFB->GetColorAttachment(), "SceneHDR");
+		auto sceneDepth = m_graph->ImportTexture(sourceFB->GetDepthAttachment(), "SceneDepth");
+		auto finalTex = m_graph->ImportTexture(destFB->GetColorAttachment(), "FinalOutput");
 
-			m_graph->AddPass("Bypass Copy")
-				.Read(sourceFBRes)
-				.Write(destFBRes)
-				.Execute([sourceFBRes, destFBRes](const RenderGraphContext& ctx) {
+		RenderGraphResource selectionMask{};
+		RenderGraphResource pickingTex{};
+		bool canBuildMaskFromPicking = false;
+#ifndef PRODUCTION_BUILD
+		canBuildMaskFromPicking = isSceneView
+			&& m_selectionSettings
+			&& m_selectionSettings->enabled
+			&& m_selectionCompositeShader
+			&& m_selectionMaskFromPickingShader
+			&& m_selectedEntityIds
+			&& !m_selectedEntityIds->empty()
+			&& sourceFB->HasPickingAttachment()
+			&& sourceFB->GetPickingAttachment() != 0;
+		if (canBuildMaskFromPicking) {
+			pickingTex = m_graph->ImportTexture(sourceFB->GetPickingAttachment(), "Picking");
+		}
+#endif
+
+		auto addSelectionMaskFromPickingPass = [&](const char* passName, RenderGraphResource pickingInput) {
+			TextureDesc maskDesc;
+			maskDesc.width = sourceFB->GetWidth();
+			maskDesc.height = sourceFB->GetHeight();
+			maskDesc.format = TextureFormat::R8;
+			maskDesc.name = "SelectionMask";
+			auto maskOutput = m_graph->CreateTexture(maskDesc);
+
+#ifndef PRODUCTION_BUILD
+			std::vector<uint32_t> selectedIdsCpu;
+			selectedIdsCpu.reserve(std::min<size_t>(m_selectedEntityIds ? m_selectedEntityIds->size() : 0, 256));
+			if (m_selectedEntityIds) {
+				for (uint32_t id : *m_selectedEntityIds) {
+					if (selectedIdsCpu.size() >= 256) break;
+					selectedIdsCpu.push_back(id);
+				}
+			}
+			const int selectedCount = static_cast<int>(selectedIdsCpu.size());
+#endif
+
+			m_graph->AddPass(passName)
+				.Read(pickingInput)
+				.Write(maskOutput)
+				.Execute([this, pickingInput, maskOutput
+#ifndef PRODUCTION_BUILD
+					, selectedIdsCpu, selectedCount
+#endif
+				](const RenderGraphContext& ctx) {
+#ifndef PRODUCTION_BUILD
+					if (!m_selectionSettings || !m_selectionMaskFromPickingShader || !ctx.graph) return;
+					if (selectedCount <= 0) return;
+
+					auto& pctx = m_context;
+					const uint32_t w = pctx.sourceFB->GetWidth();
+					const uint32_t h = pctx.sourceFB->GetHeight();
+					if (w == 0 || h == 0) return;
+					const uint32_t targetFbo = ctx.graph->GetFramebufferId(maskOutput);
+					if (targetFbo == 0) return;
+
+					if (m_selectedIdsSSBO == 0) {
+						glGenBuffers(1, &m_selectedIdsSSBO);
+						m_selectedIdsCapacity = 0;
+					}
+
+					const size_t neededBytes = selectedIdsCpu.size() * sizeof(uint32_t);
+					glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_selectedIdsSSBO);
+					if (neededBytes > m_selectedIdsCapacity) {
+						glBufferData(GL_SHADER_STORAGE_BUFFER, neededBytes, selectedIdsCpu.data(), GL_DYNAMIC_DRAW);
+						m_selectedIdsCapacity = neededBytes;
+					}
+					else if (neededBytes > 0) {
+						glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, neededBytes, selectedIdsCpu.data());
+					}
+					glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, m_selectedIdsSSBO);
+					glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+					const GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+					const GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
+					GLboolean depthMaskWasEnabled = GL_TRUE;
+					glGetBooleanv(GL_DEPTH_WRITEMASK, &depthMaskWasEnabled);
+
+					glBindFramebuffer(GL_FRAMEBUFFER, targetFbo);
+					glViewport(0, 0, static_cast<GLint>(w), static_cast<GLint>(h));
+
+					const float clearColor[4] = { 0, 0, 0, 0 };
+					glClearBufferfv(GL_COLOR, 0, clearColor);
+
+					glDisable(GL_DEPTH_TEST);
+					glDisable(GL_BLEND);
+					glDepthMask(GL_FALSE);
+
+					m_selectionMaskFromPickingShader->Bind();
+					m_selectionMaskFromPickingShader->SetUniformInt("u_Picking", 0);
+					m_selectionMaskFromPickingShader->SetUniformInt("u_SelectedCount", selectedCount);
+
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(pickingInput));
+
+					glBindVertexArray(m_QuadVAO);
+					glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+					glBindVertexArray(0);
+
+					glDepthMask(depthMaskWasEnabled);
+					if (depthWasEnabled) glEnable(GL_DEPTH_TEST);
+					if (blendWasEnabled) glEnable(GL_BLEND); else glDisable(GL_BLEND);
+					glBindFramebuffer(GL_FRAMEBUFFER, 0);
+#else
+					(void)ctx;
+					(void)this;
+					(void)pickingInput;
+					(void)maskOutput;
+#endif
+				});
+
+			return maskOutput;
+		};
+
+		auto addSelectionCompositePass = [&](const char* passName, RenderGraphResource inputColor) {
+			TextureDesc selectionCompositeDesc;
+			selectionCompositeDesc.width = sourceFB->GetWidth();
+			selectionCompositeDesc.height = sourceFB->GetHeight();
+			selectionCompositeDesc.format = TextureFormat::RGBA8;
+			selectionCompositeDesc.name = "SelectionCompositeOutput";
+			auto selectionCompositeOutput = m_graph->CreateTexture(selectionCompositeDesc);
+
+			m_graph->AddPass(passName)
+				.Read(inputColor)
+				.Read(selectionMask)
+				.Write(selectionCompositeOutput)
+				.Execute([this, inputColor, selectionMask, selectionCompositeOutput](const RenderGraphContext& ctx) {
+					if (!m_selectionSettings || !m_selectionCompositeShader || !ctx.graph) return;
+
+					auto& pctx = m_context;
+					const uint32_t w = pctx.sourceFB->GetWidth();
+					const uint32_t h = pctx.sourceFB->GetHeight();
+					if (w == 0 || h == 0) return;
+					const uint32_t targetFbo = ctx.graph->GetFramebufferId(selectionCompositeOutput);
+					if (targetFbo == 0) return;
+
+					const GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+					const GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
+					GLboolean depthMaskWasEnabled = GL_TRUE;
+					glGetBooleanv(GL_DEPTH_WRITEMASK, &depthMaskWasEnabled);
+
+					glBindFramebuffer(GL_FRAMEBUFFER, targetFbo);
+					glViewport(0, 0, static_cast<GLint>(w), static_cast<GLint>(h));
+#ifndef PRODUCTION_BUILD
+					glClearColor(0, 0, 0, 1);
+					glClear(GL_COLOR_BUFFER_BIT);
+#endif
+
+					glDisable(GL_DEPTH_TEST);
+					glDisable(GL_BLEND);
+					glDepthMask(GL_FALSE);
+
+					m_selectionCompositeShader->Bind();
+					m_selectionCompositeShader->SetUniformInt("u_SceneColor", 0);
+					m_selectionCompositeShader->SetUniformInt("u_SelectionMask", 1);
+					m_selectionCompositeShader->SetUniformVec2("u_TexelSize", {
+						1.0f / static_cast<float>(w),
+						1.0f / static_cast<float>(h)
+					});
+					m_selectionCompositeShader->SetUniformVec4("u_OutlineColor", m_selectionSettings->outlineColor);
+					m_selectionCompositeShader->SetUniformFloat("u_OutlineThicknessPx", m_selectionSettings->outlineThicknessPx);
+					m_selectionCompositeShader->SetUniformFloat("u_OutlineOpacity", m_selectionSettings->outlineOpacity);
+					m_selectionCompositeShader->SetUniformFloat("u_OutlineSoftness", m_selectionSettings->outlineSoftness);
+					m_selectionCompositeShader->SetUniformInt("u_FillEnabled", m_selectionSettings->fillEnabled ? 1 : 0);
+					m_selectionCompositeShader->SetUniformVec4("u_FillColor", m_selectionSettings->fillColor);
+					m_selectionCompositeShader->SetUniformFloat("u_FillIntensity", m_selectionSettings->fillIntensity);
+					m_selectionCompositeShader->SetUniformInt("u_DebugShowMask", m_selectionSettings->debugShowMask ? 1 : 0);
+					m_selectionCompositeShader->SetUniformInt("u_DebugOutlineOnly", m_selectionSettings->debugOutlineOnly ? 1 : 0);
+
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(inputColor));
+					glActiveTexture(GL_TEXTURE1);
+					glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(selectionMask));
+
+					glBindVertexArray(m_QuadVAO);
+					glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+					glBindVertexArray(0);
+
+					glDepthMask(depthMaskWasEnabled);
+					if (depthWasEnabled) glEnable(GL_DEPTH_TEST);
+					if (blendWasEnabled) glEnable(GL_BLEND); else glDisable(GL_BLEND);
+					glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				});
+
+			return selectionCompositeOutput;
+		};
+
+		auto addFinalCopyPass = [&](const char* passName, RenderGraphResource inputColor) {
+			m_graph->AddPass(passName)
+				.Read(inputColor)
+				.Write(finalTex)
+				.Execute([this, inputColor](const RenderGraphContext& ctx) {
 					if (!ctx.graph) return;
 
-					const uint32_t srcFbo = ctx.graph->GetFramebufferId(sourceFBRes);
-					const uint32_t dstFbo = ctx.graph->GetFramebufferId(destFBRes);
-					auto* srcFB = ctx.GetFramebuffer(sourceFBRes);
-					auto* dstFB = ctx.GetFramebuffer(destFBRes);
-					if (srcFbo == 0 || dstFB == nullptr || srcFB == nullptr) return;
+					const uint32_t srcFbo = ctx.graph->GetFramebufferId(inputColor);
+					if (srcFbo == 0) return;
 
+					auto& pctx = m_context;
 					glBindFramebuffer(GL_READ_FRAMEBUFFER, srcFbo);
-					glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dstFbo);
+					glBindFramebuffer(GL_DRAW_FRAMEBUFFER, pctx.destFB->GetFramebuffer());
 					glBlitFramebuffer(
-						0, 0, static_cast<GLint>(srcFB->GetWidth()), static_cast<GLint>(srcFB->GetHeight()),
-						0, 0, static_cast<GLint>(dstFB->GetWidth()), static_cast<GLint>(dstFB->GetHeight()),
+						0, 0, static_cast<GLint>(pctx.sourceFB->GetWidth()), static_cast<GLint>(pctx.sourceFB->GetHeight()),
+						0, 0, static_cast<GLint>(pctx.destFB->GetWidth()), static_cast<GLint>(pctx.destFB->GetHeight()),
 						GL_COLOR_BUFFER_BIT, GL_LINEAR
 					);
 					glBindFramebuffer(GL_FRAMEBUFFER, 0);
 				});
+		};
+
+		const bool postEnabled = m_settings && m_settings->enabled;
+		if (!postEnabled) {
+			if (canBuildMaskFromPicking) {
+				selectionMask = addSelectionMaskFromPickingPass("Selection Mask From Picking", pickingTex);
+				auto selectionComposite = addSelectionCompositePass("Selection Composite", sceneColor);
+				addFinalCopyPass("Final Copy", selectionComposite);
+			} else {
+				auto sourceFBRes = m_graph->ImportFramebuffer(sourceFB.get(), "BypassSourceFB");
+				auto destFBRes = m_graph->ImportFramebuffer(destFB.get(), "BypassDestFB");
+
+				m_graph->AddPass("Bypass Copy")
+					.Read(sourceFBRes)
+					.Write(destFBRes)
+					.Execute([sourceFBRes, destFBRes](const RenderGraphContext& ctx) {
+						if (!ctx.graph) return;
+
+						const uint32_t srcFbo = ctx.graph->GetFramebufferId(sourceFBRes);
+						const uint32_t dstFbo = ctx.graph->GetFramebufferId(destFBRes);
+						auto* srcFB = ctx.GetFramebuffer(sourceFBRes);
+						auto* dstFB = ctx.GetFramebuffer(destFBRes);
+						if (srcFbo == 0 || dstFB == nullptr || srcFB == nullptr) return;
+
+						glBindFramebuffer(GL_READ_FRAMEBUFFER, srcFbo);
+						glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dstFbo);
+						glBlitFramebuffer(
+							0, 0, static_cast<GLint>(srcFB->GetWidth()), static_cast<GLint>(srcFB->GetHeight()),
+							0, 0, static_cast<GLint>(dstFB->GetWidth()), static_cast<GLint>(dstFB->GetHeight()),
+							GL_COLOR_BUFFER_BIT, GL_LINEAR
+						);
+						glBindFramebuffer(GL_FRAMEBUFFER, 0);
+					});
+			}
 
 			m_graph->Compile();
 			return;
 		}
-
-		auto sceneColor = m_graph->ImportTexture(sourceFB->GetColorAttachment(), "SceneHDR");
-		auto sceneDepth = m_graph->ImportTexture(sourceFB->GetDepthAttachment(), "SceneDepth");
 		const bool hasMiniGBuffer = sourceFB->HasMiniGBuffer();
 		const bool hasNormalAttachment = hasMiniGBuffer && sourceFB->GetNormalAttachment() != 0;
 		const bool hasRoughnessAttachment = hasMiniGBuffer && sourceFB->GetRoughnessAttachment() != 0;
@@ -1319,7 +1556,6 @@ namespace NE::Graphics {
 
 		auto bloomDown0 = m_graph->ImportTexture(m_bloomTempTex[0], "BloomDown0");
 		auto bloomTex = m_graph->ImportTexture(m_bloomTex[0], "BloomResult");
-		auto finalTex = m_graph->ImportTexture(destFB->GetColorAttachment(), "FinalOutput");
 
 		if (ssaoEnabled) {
 			m_graph->AddPass("SSAO")
@@ -1490,19 +1726,29 @@ namespace NE::Graphics {
 				});
 		}
 
+		TextureDesc compositeOutputDesc;
+		compositeOutputDesc.width = sourceFB->GetWidth();
+		compositeOutputDesc.height = sourceFB->GetHeight();
+		compositeOutputDesc.format = TextureFormat::RGBA8;
+		compositeOutputDesc.name = "CompositeOutput";
+		auto compositeOutput = m_graph->CreateTexture(compositeOutputDesc);
+
 		m_graph->AddPass("Composite")
 			.Read(sceneColor)
 			.Read(ssaoTex)
 			.Read(bloomTex)
-			.Write(finalTex)
-			.Execute([this, sceneColor, ssaoTex, bloomTex, bloomEnabled, ssaoEnabled](const RenderGraphContext& ctx) {
+			.Write(compositeOutput)
+			.Execute([this, sceneColor, ssaoTex, bloomTex, bloomEnabled, ssaoEnabled, compositeOutput](const RenderGraphContext& ctx) {
 				if (!m_settings || !m_compositeShader) return;
 
 				auto& pctx = m_context;
 				uint32_t w = pctx.sourceFB->GetWidth();
 				uint32_t h = pctx.sourceFB->GetHeight();
 
-				pctx.destFB->Bind();
+				const uint32_t targetFbo = ctx.graph->GetFramebufferId(compositeOutput);
+				if (targetFbo == 0) return;
+
+				glBindFramebuffer(GL_FRAMEBUFFER, targetFbo);
 				glViewport(0, 0, w, h);
 #ifndef PRODUCTION_BUILD
 				glClearColor(0, 0, 0, 1);
@@ -1523,6 +1769,13 @@ namespace NE::Graphics {
 				m_compositeShader->SetUniformInt("u_UseSSAO", ssaoEnabled ? 1 : 0);
 				m_compositeShader->SetUniformFloat("u_AOIntensity", m_settings->ssaoSettings.intensity);
 
+				m_compositeShader->SetUniformInt("u_UseVignette", m_settings->vignetteSettings.enabled);
+				m_compositeShader->SetUniformFloat("u_VignetteIntensity", m_settings->vignetteSettings.intensity);
+				m_compositeShader->SetUniformFloat("u_VignetteRadius", m_settings->vignetteSettings.radius);
+				m_compositeShader->SetUniformFloat("u_VignetteSoftness", m_settings->vignetteSettings.softness);
+				m_compositeShader->SetUniformVec3("u_VignetteTint", m_settings->vignetteSettings.tint);
+				m_compositeShader->SetUniformFloat("u_VignetteTintAmount", m_settings->vignetteSettings.tintIntensity);
+
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(sceneColor));
 
@@ -1542,11 +1795,27 @@ namespace NE::Graphics {
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			});
 
+		if (canBuildMaskFromPicking) {
+			selectionMask = addSelectionMaskFromPickingPass("Selection Mask From Picking", pickingTex);
+			auto selectionComposite = addSelectionCompositePass("Selection Composite", compositeOutput);
+			addFinalCopyPass("Final Copy", selectionComposite);
+		}
+		else {
+			addFinalCopyPass("Final Copy", compositeOutput);
+		}
+
 		m_graph->Compile();
 	}
 
 	void PostProcessPipeline::DestroyResources(bool destroyQuad)
 	{
+#ifndef PRODUCTION_BUILD
+		if (m_selectedIdsSSBO) {
+			glDeleteBuffers(1, &m_selectedIdsSSBO);
+			m_selectedIdsSSBO = 0;
+			m_selectedIdsCapacity = 0;
+		}
+#endif
 		if (destroyQuad) {
 			if (m_QuadVBO) {
 				glDeleteBuffers(1, &m_QuadVBO);

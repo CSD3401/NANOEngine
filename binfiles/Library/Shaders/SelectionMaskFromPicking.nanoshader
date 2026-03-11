@@ -1,0 +1,53 @@
+#type vertex
+#version 460 core
+
+layout(location = 0) in vec2 a_Position;
+
+void main()
+{
+    gl_Position = vec4(a_Position, 0.0, 1.0);
+}
+
+#type fragment
+#version 460 core
+
+layout(location = 0) out float OutMask;
+
+uniform sampler2D u_Picking;
+uniform int u_SelectedCount;
+
+layout(std430, binding = 5) readonly buffer SelectedIds
+{
+    uint ids[];
+} u_SelectedIds;
+
+uint DecodeEntityId(vec3 idRGB)
+{
+    // Matches GraphicsManager::DecodeEntityIdFromRGB for RGBA8 normalized picking output.
+    uvec3 bytes = uvec3(round(clamp(idRGB, 0.0, 1.0) * 255.0));
+    return bytes.r | (bytes.g << 8) | (bytes.b << 16);
+}
+
+void main()
+{
+    ivec2 coord = ivec2(gl_FragCoord.xy);
+    vec4 pick = texelFetch(u_Picking, coord, 0);
+    uint entityId = DecodeEntityId(pick.rgb);
+
+    // 0 is treated as "no entity" (background / invalid).
+    if (entityId == 0u || u_SelectedCount <= 0) {
+        OutMask = 0.0;
+        return;
+    }
+
+    bool selected = false;
+    for (int i = 0; i < u_SelectedCount; ++i) {
+        if (u_SelectedIds.ids[i] == entityId) {
+            selected = true;
+            break;
+        }
+    }
+
+    OutMask = selected ? 1.0 : 0.0;
+}
+

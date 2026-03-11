@@ -2,7 +2,6 @@
 #define UI_RENDER_SYSTEM_HPP
 
 #include "../Core/System.hpp"
-#include "../Core/ComponentManager.hpp"
 #include "../Components/UICanvas.hpp"
 #include "../Components/UIRectTransform.hpp"
 #include "../Components/UIImage.hpp"
@@ -25,6 +24,11 @@
 namespace NE::Graphics {
     class IGeometryBuffer;
     class Material;
+}
+
+namespace NE::ECS {
+	class ComponentManager;
+	class EntityManager;
 }
 
 namespace NE::ECS::Systems {
@@ -101,7 +105,7 @@ namespace NE::ECS::Systems {
         // Lifecycle
         //=================================================================
 
-        explicit UIRenderSystem(ComponentManager* cm);
+        explicit UIRenderSystem(ComponentManager* cm, EntityManager* em);
 
         void SetLayoutEngine(UILayoutEngine* engine) { m_layoutEngine = engine; }
 
@@ -118,6 +122,8 @@ namespace NE::ECS::Systems {
         void Exit() override;
         void OnEntityAdded(Entity e) override;
         void OnEntityRemoved(Entity e) override;
+        void OnEntityActive(Entity entity) override;
+        void OnEntityInactive(Entity entity) override;
 
     private:
 
@@ -172,8 +178,9 @@ namespace NE::ECS::Systems {
         // Built once per frame in Update(), keyed by canvas entity
         std::unordered_map<Entity, CanvasChildren> m_canvasChildrenMap;
 
-        // Single O(N) pass to bucket all UI entities by their owning canvas
+        // Build canvas children map by walking each canvas's hierarchy in sibling order
         void BuildCanvasChildrenMap();
+        void CollectChildrenInOrder(Entity canvasEntity, Entity node, CanvasChildren& out);
 
         //=================================================================
         // Camera Utilities
@@ -207,6 +214,7 @@ namespace NE::ECS::Systems {
 
     private:
         ComponentManager* m_cm;
+        EntityManager* m_em;
         UILayoutEngine* m_layoutEngine = nullptr;
 
         // Text render cache keyed by entity (moved off the UIText component)

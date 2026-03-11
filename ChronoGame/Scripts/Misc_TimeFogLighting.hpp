@@ -14,6 +14,10 @@
       - PRESENT : thicker fog + redder lighting
       - PAST    : restore to the configured normal fog + lighting
 
+    Color input note:
+      - Inspector color fields in this script are treated as standard RGB 0-255 values.
+      - The script converts them to 0-1 internally before sending them to RenderSettings.
+
     Why this version fixes scene-switch issues:
       - The script now exposes NORMAL / PAST fog and ambient settings in the Inspector.
       - Restore no longer depends only on whatever RenderSettings happened to be at runtime.
@@ -104,11 +108,15 @@ public:
 
     void OnValidate() override {
         // Safety clamps for inspector-driven values
+        normalFogColor          = ClampColor255(normalFogColor);
+        normalAmbientColor      = ClampColor255(normalAmbientColor);
         normalFogDensity        = std::max(0.0f, normalFogDensity);
         normalFogStart          = std::max(0.0f, normalFogStart);
         normalFogEnd            = std::max(normalFogStart + 0.01f, normalFogEnd);
         normalAmbientIntensity  = std::max(0.0f, normalAmbientIntensity);
 
+        presentFogColor         = ClampColor255(presentFogColor);
+        presentAmbientColor     = ClampColor255(presentAmbientColor);
         presentFogDensity       = std::max(0.0f, presentFogDensity);
         presentFogStart         = std::max(0.0f, presentFogStart);
         presentFogEnd           = std::max(presentFogStart + 0.01f, presentFogEnd);
@@ -141,30 +149,56 @@ private:
     // NORMAL / PAST fog settings
     bool normalFogEnabled = false;
     RenderSettings::FogMode normalFogMode = RenderSettings::FogMode::Exponential;
-    Vec3 normalFogColor = Vec3(0.5f, 0.5f, 0.5f);
+    Vec3 normalFogColor = Vec3(128.0f, 128.0f, 128.0f);
     float normalFogDensity = 0.01f;
     float normalFogStart = 0.0f;
     float normalFogEnd = 50.0f;
 
     // NORMAL / PAST ambient settings
     RenderSettings::EnvSource normalEnvSource = RenderSettings::EnvSource::Color;
-    Vec3 normalAmbientColor = Vec3(1.0f, 1.0f, 1.0f);
+    Vec3 normalAmbientColor = Vec3(255.0f, 255.0f, 255.0f);
     float normalAmbientIntensity = 1.0f;
 
     // PRESENT fog settings (thicker = higher density, closer end distance, etc.)
     bool  presentFogEnabled = true;
-    Vec3  presentFogColor   = Vec3(0.35f, 0.05f, 0.05f);
+    Vec3  presentFogColor   = Vec3(89.0f, 13.0f, 13.0f);
     float presentFogDensity = 0.055f;
     float presentFogStart   = 0.0f;
     float presentFogEnd     = 18.0f;
 
     // PRESENT ambient settings (redder)
-    Vec3  presentAmbientColor = Vec3(0.45f, 0.10f, 0.10f);
+    Vec3  presentAmbientColor = Vec3(115.0f, 26.0f, 26.0f);
     float presentAmbientIntensity = 1.0f;
 
     // ===== Runtime state =====
     bool eventsRegistered = false;
     bool listeningEnabled = false;
+
+    static float ClampChannel255(float value) {
+        return std::clamp(value, 0.0f, 255.0f);
+    }
+
+    static Vec3 ClampColor255(const Vec3& color) {
+        return Vec3(
+            ClampChannel255(color.x),
+            ClampChannel255(color.y),
+            ClampChannel255(color.z)
+        );
+    }
+
+    static Vec3 NormalizeColor255(const Vec3& color255) {
+        Vec3 clamped = ClampColor255(color255);
+        return clamped / 255.0f;
+    }
+
+    static Vec3 DenormalizeColor255(const Vec3& normalizedColor) {
+        Vec3 clamped(
+            std::clamp(normalizedColor.x, 0.0f, 1.0f),
+            std::clamp(normalizedColor.y, 0.0f, 1.0f),
+            std::clamp(normalizedColor.z, 0.0f, 1.0f)
+        );
+        return clamped * 255.0f;
+    }
 
     void RegisterEventListeners() {
         if (eventsRegistered) return;
@@ -187,13 +221,13 @@ private:
     void CaptureCurrentIntoNormalFields() {
         normalFogEnabled       = RenderSettings::IsFogEnabled();
         normalFogMode          = RenderSettings::GetFogMode();
-        normalFogColor         = RenderSettings::GetFogColor();
+        normalFogColor         = DenormalizeColor255(RenderSettings::GetFogColor());
         normalFogStart         = RenderSettings::GetFogStart();
         normalFogEnd           = RenderSettings::GetFogEnd();
         normalFogDensity       = RenderSettings::GetFogDensity();
 
         normalEnvSource        = RenderSettings::GetEnvSource();
-        normalAmbientColor     = RenderSettings::GetAmbientColor();
+        normalAmbientColor     = DenormalizeColor255(RenderSettings::GetAmbientColor());
         normalAmbientIntensity = RenderSettings::GetAmbientIntensity();
 
         LOG_INFO("Misc_TimeFogLighting: captured current render settings into NORMAL inspector-backed values");
@@ -204,7 +238,7 @@ private:
         if (affectFog) {
             RenderSettings::SetFogEnabled(normalFogEnabled);
             RenderSettings::SetFogMode(normalFogMode);
-            RenderSettings::SetFogColor(normalFogColor);
+            RenderSettings::SetFogColor(NormalizeColor255(normalFogColor));
             RenderSettings::SetFogStart(normalFogStart);
             RenderSettings::SetFogEnd(normalFogEnd);
             RenderSettings::SetFogDensity(normalFogDensity);
@@ -213,7 +247,7 @@ private:
         // Ambient
         if (affectAmbient) {
             RenderSettings::SetEnvSource(normalEnvSource);
-            RenderSettings::SetAmbientColor(normalAmbientColor);
+            RenderSettings::SetAmbientColor(NormalizeColor255(normalAmbientColor));
             RenderSettings::SetAmbientIntensity(normalAmbientIntensity);
         }
 
@@ -224,7 +258,7 @@ private:
         // ===== Fog =====
         if (affectFog) {
             RenderSettings::SetFogEnabled(presentFogEnabled);
-            RenderSettings::SetFogColor(presentFogColor);
+            RenderSettings::SetFogColor(NormalizeColor255(presentFogColor));
 
             // Keep the scene's current fog mode, but push parameters for the present look.
             RenderSettings::FogMode mode = RenderSettings::GetFogMode();
@@ -241,7 +275,7 @@ private:
 
         // ===== Ambient =====
         if (affectAmbient) {
-            RenderSettings::SetAmbientColor(presentAmbientColor);
+            RenderSettings::SetAmbientColor(NormalizeColor255(presentAmbientColor));
             RenderSettings::SetAmbientIntensity(std::max(0.0f, presentAmbientIntensity));
         }
 

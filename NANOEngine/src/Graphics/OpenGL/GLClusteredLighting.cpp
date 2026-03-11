@@ -2,6 +2,7 @@
 #include "GLClusteredLighting.hpp"
 
 #include "../Core/RenderViewManager.hpp"
+#include "../Core/ShadowRenderer.hpp"
 #include "../../ECS/Components/Light.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
 #include "../Interfaces/IShader.hpp"
@@ -122,7 +123,7 @@ namespace NE::Graphics::OpenGL {
         }
     }
 
-	void GLClusteredLighting::BuildForView(const Graphics::RenderView& view, const std::vector<ECS::Component::Light*>& lights)
+	void GLClusteredLighting::BuildForView(const Graphics::RenderView& view, const ShadowRenderer& shadowRenderer, const std::vector<RenderLightRef>& lights)
 	{
         if (!m_countShader || !m_fillShader) {
             return;
@@ -135,7 +136,7 @@ namespace NE::Graphics::OpenGL {
             m_numLightsThisView = maxLights;
         }
 
-        UploadLights(view, lights);
+        UploadLights(view, shadowRenderer, lights);
 
         const int numClusters = clustersX * clustersY * clustersZ;
 		// Early out if no lights
@@ -235,7 +236,7 @@ namespace NE::Graphics::OpenGL {
         glBindBufferBase(GL_UNIFORM_BUFFER, 3, m_clusterParamsUBO);
 	}
 
-    void GLClusteredLighting::UploadLights(const Graphics::RenderView& view, const std::vector<ECS::Component::Light*>& lights)
+    void GLClusteredLighting::UploadLights(const Graphics::RenderView& view, const ShadowRenderer& shadowRenderer, const std::vector<RenderLightRef>& lights)
     {
         using NE::Math::Mat4;
         using NE::Math::Vec3;
@@ -244,13 +245,18 @@ namespace NE::Graphics::OpenGL {
         m_gpuLightsCPU.clear();
         m_gpuLightsCPU.reserve(m_numLightsThisView);
 
-
-        auto pushLight = [&](const ECS::Component::Light* src,
+        auto pushLight = [&](const RenderLightRef& lightRef,
             float intensity,
             float radius,
             float innerCos,
             float outerCos)
             {
+                const ECS::Component::Light* src = lightRef.light;
+                if (!src) {
+                    return;
+                }
+
+                const LightShadowRuntime* runtime = shadowRenderer.FindRuntime(lightRef.entity);
                 GPULightCPU dst{};
 
                 dst.position[0] = src->position.x;
@@ -266,7 +272,7 @@ namespace NE::Graphics::OpenGL {
                 dst.params[0] = innerCos;
                 dst.params[1] = outerCos;
                 dst.params[2] = radius; // range/radius
-                dst.params[3] = (float)src->shadowIndex;
+                dst.params[3] = runtime ? static_cast<float>(runtime->shadowIndex) : -1.0f;
 
                 auto dir = src->direction.Normalized();
                 dst.direction[0] = dir.x;
@@ -278,7 +284,11 @@ namespace NE::Graphics::OpenGL {
         };
 
 		for (int i = 0; i < m_numLightsThisView; ++i) {
-			const auto* src = lights[i];
+			const auto& lightRef = lights[i];
+			const auto* src = lightRef.light;
+            if (!src) {
+                continue;
+            }
             // Extract per-type values from variant
             bool keep = true;
 
@@ -319,7 +329,7 @@ namespace NE::Graphics::OpenGL {
 
             if (!keep) continue;
 
-            pushLight(src, intensity, radius, innerCos, outerCos);
+            pushLight(lightRef, intensity, radius, innerCos, outerCos);
 
             if (static_cast<int>(m_gpuLightsCPU.size()) >= maxLights)
                 break;

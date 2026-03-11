@@ -11,6 +11,7 @@
 #include <ECS/Components/EntityMeta.hpp>
 #include <ECS/Components/Transform.hpp>
 #include <ECS/Components/Renderer.hpp>
+#include <ECS/Components/LightmapBinding.hpp>
 #include <ECS/Components/Light.hpp>
 #include <ECS/Components/Collider.hpp>
 #include <ECS/Components/Rigidbody.hpp>
@@ -44,6 +45,7 @@
 
 #include <Graphics/Core/RenderSettings.hpp>
 #include <Graphics/Core/PostProcessingSettings.hpp>
+#include <Graphics/Core/SelectionHighlightSettings.hpp>
 
 #include "JSONReflection.hpp"
 #include "../EditorScene.hpp"
@@ -53,9 +55,48 @@
 namespace Editor {
 	namespace {
 		inline constexpr uint32_t NFAB_MAGIC = 0x4E464142;
-		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 2;
+		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 9;
 
-		using ComponentTypes = std::tuple<
+		using SceneComponentTypes = std::tuple<
+			NE::ECS::Component::EntityMeta,
+			NE::ECS::Component::Hierarchy,
+			NE::ECS::Component::PrefabInstance,
+			NE::ECS::Component::PrefabLink,
+			NE::ECS::Component::Transform,
+			NE::ECS::Component::Renderer,
+			NE::ECS::Component::LightmapBinding,
+			NE::ECS::Component::Light,
+			NE::ECS::Component::Collider,
+			NE::ECS::Component::Rigidbody,
+			NE::ECS::Component::NativeScript,
+			NE::ECS::Component::Camera,
+			NE::ECS::Component::UIRectTransform,
+			NE::ECS::Component::UICanvas,
+			NE::ECS::Component::UIImage,
+			NE::ECS::Component::UIText,
+			NE::ECS::Component::UIButton,
+			NE::ECS::Component::UISlider,
+			NE::ECS::Component::UIToggle,
+			NE::ECS::Component::UILayoutGroup,
+			NE::ECS::Component::UIGridLayoutGroup,
+			NE::ECS::Component::UILayoutElement,
+			NE::ECS::Component::UIScrollRect,
+			NE::ECS::Component::UIAutoSize,
+			NE::ECS::Component::UIInputField,
+			NE::ECS::Component::UIDropdown,
+			NE::ECS::Component::CharacterController,
+			NE::ECS::Component::Animator,
+			NE::ECS::Component::DecalProjector
+		>;
+
+		template <class F>
+		void ForEachSceneComponentType(F&& f) {
+			std::apply([&](auto&&... t) {
+				(f.template operator() < std::decay_t<decltype(t)> > (), ...);
+				}, SceneComponentTypes{});
+		}
+
+		using PrefabComponentTypes = std::tuple<
 			NE::ECS::Component::EntityMeta,
 			NE::ECS::Component::Hierarchy,
 			NE::ECS::Component::PrefabInstance,
@@ -87,10 +128,10 @@ namespace Editor {
 		>;
 
 		template <class F>
-		void ForEachComponentType(F&& f) {
+		void ForEachPrefabComponentType(F&& f) {
 			std::apply([&](auto&&... t) {
 				(f.template operator() < std::decay_t<decltype(t)> > (), ...);
-				}, ComponentTypes{});
+				}, PrefabComponentTypes{});
 		}
 
 		std::string projectSettingsLoc = "ProjectSettings/";
@@ -173,20 +214,28 @@ namespace Editor {
 				rapidjson::Value WriteEntityRecursive(
 					NE::ECS::Entity e,
 					rapidjson::Value& entities,
-					rapidjson::Document::AllocatorType& a) {
+					rapidjson::Document::AllocatorType& a,
+					bool includeSceneOnlyComponents) {
 					rapidjson::Value ent(rapidjson::kObjectType);
 
 					ent.AddMember("Layer", ToJSON(NE::ECS::Query::GetLayer(e), a), a);
-					ForEachComponentType([&]<typename C>() {
-						WriteComponentIfPresent<C>(e, ent, a);
-					});
+					ent.AddMember("Active", ToJSON(NE::ECS::Query::GetActive(e), a), a);
+					if (includeSceneOnlyComponents) {
+						ForEachSceneComponentType([&]<typename C>() {
+							WriteComponentIfPresent<C>(e, ent, a);
+						});
+					} else {
+						ForEachPrefabComponentType([&]<typename C>() {
+							WriteComponentIfPresent<C>(e, ent, a);
+						});
+					}
 
 					entities.PushBack(ent, a);
 
 					auto& h = NE::ECS::Query::GetEntityHierarchy(e);
 					for (auto childId : h.children) {
 						NE::ECS::Entity child = static_cast<NE::ECS::Entity>(childId);
-						WriteEntityRecursive(child, entities, a);
+						WriteEntityRecursive(child, entities, a, includeSceneOnlyComponents);
 					}
 
 					return ent;
@@ -220,10 +269,12 @@ namespace Editor {
 				auto& postProcessingSettings = NE::Renderer::Query::GetPostProcessingSettings();
 				doc.AddMember("PostProcessingSettings", ToJSON(postProcessingSettings, a), a);
 
+				doc.AddMember("LightingContainer", ToJSON(NE::GetScene().GetLightingContainer(), a), a);
+
 				Value entities(rapidjson::Type::kArrayType);
 				const auto& sceneRoots = EditorScene::s_rootOrder;
 				for (auto e : sceneRoots) {
-					WriteEntityRecursive(e, entities, a);
+					WriteEntityRecursive(e, entities, a, true);
 				}
 				doc.AddMember("Entities", entities, a);
 
@@ -247,9 +298,9 @@ namespace Editor {
 				Value entities(rapidjson::Type::kArrayType);
 				if (!isScene) {
 					const auto& prefabRoot = EditorScene::s_selection.GetLastDropped();
-					WriteEntityRecursive(prefabRoot, entities, a);
+					WriteEntityRecursive(prefabRoot, entities, a, false);
 				} else {
-					WriteEntityRecursive(EditorScene::s_rootOrder[0], entities, a);
+					WriteEntityRecursive(EditorScene::s_rootOrder[0], entities, a, false);
 				}
 				doc.AddMember("Entities", entities, a);
 
@@ -285,9 +336,15 @@ namespace Editor {
 					}
 					NE::Serialization::ToBinary(outputBuffer, layer);
 
+					bool active = true;
+					if (entVal.HasMember("Active")) {
+						Deserialization::FromJSON(entVal["Active"], active);
+					}
+					NE::Serialization::ToBinary(outputBuffer, active);
+
 					uint64_t mask = 0;
 					uint32_t bitIdx = 0;
-					ForEachComponentType([&]<typename C>() {
+					ForEachPrefabComponentType([&]<typename C>() {
 						if (entVal.HasMember(ComponentKey<C>::value)) {
 							mask |= (uint64_t(1) << bitIdx);
 						}
@@ -296,7 +353,7 @@ namespace Editor {
 
 					NE::Serialization::ToBinary(outputBuffer, mask);
 
-					ForEachComponentType([&]<typename C>() {
+					ForEachPrefabComponentType([&]<typename C>() {
 						const char* key = ComponentKey<C>::value;
 						if (entVal.HasMember(key)) {
 							C tempComp{};
@@ -377,6 +434,10 @@ namespace Editor {
 				doc.AddMember("sessionScenePath", ToJSON(EditorScene::s_currentScenePath, a), a);
 				doc.AddMember("sessionSceneUUID", ToJSON(EditorScene::s_currentSceneUUID, a), a);
 
+				// Game panel (main camera) resolution preference.
+				doc.AddMember("gameViewWidth", NE::GetGameViewWidth(), a);
+				doc.AddMember("gameViewHeight", NE::GetGameViewHeight(), a);
+
 				rapidjson::Value obj(rapidjson::kObjectType);
 				obj.AddMember("position", ToJSON(EditorScene::m_editorCamera.GetPosition(), a), a);
 				obj.AddMember("yaw", ToJSON(EditorScene::m_cameraYaw, a), a);
@@ -388,6 +449,9 @@ namespace Editor {
 				obj.AddMember("hasAcceleration", ToJSON(EditorScene::m_cameraUseAcceleration, a), a);
 
 				doc.AddMember("editorCamera", obj, a);
+
+				auto& selectionSettings = NE::Renderer::Command::GetSelectionHighlightSettings();
+				doc.AddMember("selectionHighlight", ToJSON(selectionSettings, a), a);
 
 				rapidjson::StringBuffer sb;
 				rapidjson::PrettyWriter<rapidjson::StringBuffer> w(sb);
@@ -432,20 +496,38 @@ namespace Editor {
 					FromJSON(doc["PostProcessingSettings"], pps);
 				}
 
+				if (doc.HasMember("LightingContainer")) {
+					FromJSON(doc["LightingContainer"], NE::GetScene().GetLightingContainer());
+				} else {
+					NE::GetScene().GetLightingContainer() = {};
+				}
+
 				if (!doc.IsObject() || !doc.HasMember("Entities")) return;
 
 				for (auto& entVal : doc["Entities"].GetArray()) {
 					NE::ECS::Entity e = NE::ECS::Command::CreateEntityNoComponents();
 
-					if (doc.HasMember("Layer")) {
+					if (entVal.HasMember("Layer")) {
 						uint8_t layer = 0;
 						FromJSON(entVal["Layer"], layer);
 						NE::ECS::Command::SetLayer(e, layer);
 					}
 
-					ForEachComponentType([&]<typename C>() {
+					ForEachSceneComponentType([&]<typename C>() {
 						ReadComponentIfPresent<C>(e, entVal);
 					});
+
+					bool isActive = true;
+					if (entVal.HasMember("Active")) {
+						FromJSON(entVal["Active"], isActive);
+					} else if (NE::ECS::Query::HasComponent<NE::ECS::Component::EntityMeta>(e)) {
+						isActive = NE::ECS::Query::GetComponent<NE::ECS::Component::EntityMeta>(e).isActive;
+					}
+
+					NE::ECS::Command::ToggleActive(e, isActive);
+					if (NE::ECS::Query::HasComponent<NE::ECS::Component::EntityMeta>(e)) {
+						NE::ECS::Command::GetComponent<NE::ECS::Component::EntityMeta>(e).isActive = isActive;
+					}
 				}
 			}
 
@@ -497,13 +579,25 @@ namespace Editor {
 						NE::ECS::Command::SetLayer(e, layer);
 					}
 
-					ForEachComponentType([&]<typename C>() {
+					ForEachPrefabComponentType([&]<typename C>() {
 						if constexpr (std::is_same_v<C, NE::ECS::Component::Hierarchy>) {
 							return;
 						} else {
 							ReadComponentIfPresent<C>(e, entVal);
 						}
 					});
+
+					bool isActive = true;
+					if (entVal.HasMember("Active")) {
+						FromJSON(entVal["Active"], isActive);
+					} else if (NE::ECS::Query::HasComponent<NE::ECS::Component::EntityMeta>(e)) {
+						isActive = NE::ECS::Query::GetComponent<NE::ECS::Component::EntityMeta>(e).isActive;
+					}
+
+					NE::ECS::Command::ToggleActive(e, isActive);
+					if (NE::ECS::Query::HasComponent<NE::ECS::Component::EntityMeta>(e)) {
+						NE::ECS::Command::GetComponent<NE::ECS::Component::EntityMeta>(e).isActive = isActive;
+					}
 
 					if (NE::ECS::Query::HasComponent<NE::ECS::Component::Renderer>(e)) {
 						auto& renderer = NE::ECS::Query::GetComponent<NE::ECS::Component::Renderer>(e);
@@ -641,6 +735,14 @@ namespace Editor {
 				if (doc.HasMember("sessionSceneUUID") && doc["sessionSceneUUID"].IsString())
 					EditorScene::s_currentSceneUUID = doc["sessionSceneUUID"].GetString();
 
+				if (doc.HasMember("gameViewWidth") && doc["gameViewWidth"].IsUint() &&
+					doc.HasMember("gameViewHeight") && doc["gameViewHeight"].IsUint())
+				{
+					const uint32_t w = doc["gameViewWidth"].GetUint();
+					const uint32_t h = doc["gameViewHeight"].GetUint();
+					NE::SetGameViewResolution(w, h);
+				}
+
 				if (doc.HasMember("editorCamera") && doc["editorCamera"].IsObject()) {
 					auto& camObj = doc["editorCamera"];
 					if (camObj.HasMember("position")) {
@@ -662,6 +764,11 @@ namespace Editor {
 						FromJSON(camObj["hasEasing"], EditorScene::m_cameraUseEasing);
 					if (camObj.HasMember("hasAcceleration"))
 						FromJSON(camObj["hasAcceleration"], EditorScene::m_cameraUseAcceleration);
+				}
+
+				if (doc.HasMember("selectionHighlight") && doc["selectionHighlight"].IsObject()) {
+					auto& selectionSettings = NE::Renderer::Command::GetSelectionHighlightSettings();
+					FromJSON(doc["selectionHighlight"], selectionSettings);
 				}
 			}
 		}

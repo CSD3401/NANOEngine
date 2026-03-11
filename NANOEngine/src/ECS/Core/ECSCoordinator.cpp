@@ -3,6 +3,7 @@
 
 #include "../Components/Transform.hpp"
 #include "../Components/Renderer.hpp"
+#include "../Components/LightmapBinding.hpp"
 #include "../Components/Light.hpp"
 #include "../Components/Rigidbody.hpp"
 #include "../Components/Collider.hpp"
@@ -65,6 +66,7 @@ namespace NE::ECS {
         RegisterComponent<Component::EntityMeta>();
         RegisterComponent<Component::Transform>();
         RegisterComponent<Component::Renderer>();
+        RegisterComponent<Component::LightmapBinding>();
         RegisterComponent<Component::Collider>();
         RegisterComponent<Component::Rigidbody>();
         RegisterComponent<Component::Light>();
@@ -97,7 +99,7 @@ namespace NE::ECS {
             Signature{}.set(GetComponentType<Component::Transform>())
         );
 
-        m_renderSystem = m_systemManager->RegisterSystem<Systems::RenderSystem>(m_componentManager.get(), m_luidRegistry.get());
+        m_renderSystem = m_systemManager->RegisterSystem<Systems::RenderSystem>(m_componentManager.get(), m_entityManager.get(), m_luidRegistry.get());
         {
             Signature sig;
             sig.set(GetComponentType<Component::Transform>());
@@ -105,7 +107,7 @@ namespace NE::ECS {
             SetSystemSignature<Systems::RenderSystem>(sig);
         }
 
-        m_lightSystem = m_systemManager->RegisterSystem<Systems::LightSystem>(m_componentManager.get());
+        m_lightSystem = m_systemManager->RegisterSystem<Systems::LightSystem>(m_componentManager.get(), m_entityManager.get());
         {
             Signature sig;
             sig.set(GetComponentType<Component::Transform>());
@@ -149,7 +151,7 @@ namespace NE::ECS {
         m_uiLayoutEngine = std::make_unique<UILayoutEngine>(m_componentManager.get());
 
         // UIEventSystem processes input before rendering - handles button states and hit testing
-        m_uiEventSystem = m_systemManager->RegisterSystem<Systems::UIEventSystem>(m_componentManager.get());
+        m_uiEventSystem = m_systemManager->RegisterSystem<Systems::UIEventSystem>(m_componentManager.get(), m_entityManager.get());
         {
             Signature sig;
             sig.set(GetComponentType<Component::UIRectTransform>());
@@ -157,7 +159,7 @@ namespace NE::ECS {
         }
         m_uiEventSystem->SetLayoutEngine(m_uiLayoutEngine.get());
 
-        m_uiRenderSystem = m_systemManager->RegisterSystem<Systems::UIRenderSystem>(m_componentManager.get());
+        m_uiRenderSystem = m_systemManager->RegisterSystem<Systems::UIRenderSystem>(m_componentManager.get(), m_entityManager.get());
         {
             Signature sig;
             sig.set(m_componentManager->GetComponentType<NE::ECS::Component::UIRectTransform>());
@@ -188,7 +190,7 @@ namespace NE::ECS {
             SetSystemSignature<Systems::CameraSystem>(sig);
 		}
 
-        m_hierarchySystem = m_systemManager->RegisterSystem<Systems::HierarchySystem>(m_componentManager.get(), m_luidRegistry.get());
+        m_hierarchySystem = m_systemManager->RegisterSystem<Systems::HierarchySystem>(m_componentManager.get(), this, m_luidRegistry.get());
         {
             Signature sig;
             sig.set(GetComponentType<Component::Hierarchy>());
@@ -230,6 +232,11 @@ namespace NE::ECS {
         m_entityManager->DestroyEntity(e);
         m_systemManager->EntityDestroyed(e);
         m_componentManager->EntityDestroyed(e);
+    }
+
+    void ECSCoordinator::ToggleEntityActive(Entity e, bool active) {
+		m_entityManager->ToggleActive(e, active);
+		m_systemManager->EntityActiveStatusChanged(e, m_entityManager->GetSignature(e), active);
     }
 
     Signature ECSCoordinator::GetSignature(Entity entity) {

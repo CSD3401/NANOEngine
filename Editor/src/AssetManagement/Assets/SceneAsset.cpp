@@ -16,11 +16,11 @@ namespace Editor::Assets {
         return true;
     }
 
-    bool SceneAsset::LoadImportSettings(const std::string& sourcePath) { // No Import Settings
+    bool SceneAsset::LoadImportSettings(const std::string& /*sourcePath*/) { // No Import Settings
         return true;
     }
 
-    bool SceneAsset::SaveImportSettings(const std::string& sourcePath) { // No Import Settings
+    bool SceneAsset::SaveImportSettings(const std::string& /*sourcePath*/) { // No Import Settings
         return true;
     }
 

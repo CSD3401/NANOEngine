@@ -76,13 +76,13 @@ namespace Editor::Assets {
 		return true;
 	}
 
-	bool FontAsset::LoadImportSettings(const std::string& sourcePath) {
+	bool FontAsset::LoadImportSettings(const std::string& /*sourcePath*/) {
 		// Font assets don't have additional import settings yet
 		// Could add settings for: default size, character ranges, etc.
 		return true;
 	}
 
-	bool FontAsset::SaveImportSettings(const std::string& sourcePath) {
+	bool FontAsset::SaveImportSettings(const std::string& /*sourcePath*/) {
 		// Font assets don't have additional import settings yet
 		return true;
 	}

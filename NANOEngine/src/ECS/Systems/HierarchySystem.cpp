@@ -1,14 +1,16 @@
 #include "pch.h"
 #include "HierarchySystem.hpp"
 
+#include "Core/Profiler.hpp"
 #include "Core/LUIDGenerator.hpp"
 #include "Core/LUIDRegistry.hpp"
+#include "ECS/Core/ComponentManager.hpp"
+#include "ECS/Core/ECSCoordinator.hpp"
 #include "Math/Mat4.hpp"
+#include "ECS/Components/EntityMeta.hpp"
 #include "ECS/Components/Hierarchy.hpp"
 #include "ECS/Components/Transform.hpp"
-#include "ECS/Components/EntityMeta.hpp"
 #include "ECS/Components/Rigidbody.hpp"
-#include <Core/Profiler.hpp>
 #include "Physics/PhysicsManager.hpp"
 
 namespace NE::ECS::Systems {
@@ -38,8 +40,8 @@ namespace NE::ECS::Systems {
         }
     }
 
-	HierarchySystem::HierarchySystem(ComponentManager* cm, Core::LUIDRegistry* lr) 
-        : m_componentManager(cm), m_luidRegistry(lr) {}
+	HierarchySystem::HierarchySystem(ComponentManager* cm, ECSCoordinator* ec, Core::LUIDRegistry* lr)
+        : m_componentManager(cm), m_ecsCoordinator(ec), m_luidRegistry(lr) {}
 
 	void HierarchySystem::OnEntityAdded(Entity e) {
 		auto& h = m_componentManager->GetComponent<Component::Hierarchy>(e);
@@ -71,6 +73,20 @@ namespace NE::ECS::Systems {
         m_luidRegistry->Unregister(hier.luid);
         m_luidRegistry->Unregister(meta.luid);
 	}
+
+    void HierarchySystem::OnEntityActive(Entity e) {
+        auto& hier = m_componentManager->GetComponent<Component::Hierarchy>(e);
+
+        for (auto child : hier.children)
+            SetActive(child, true);
+    }
+
+    void HierarchySystem::OnEntityInactive(Entity e) {
+        auto& hier = m_componentManager->GetComponent<Component::Hierarchy>(e);
+
+        for (auto child : hier.children)
+            SetActive(child, false);
+    }
 
 	void HierarchySystem::Init() {
         ResolvePendingParentsForAll(false);
@@ -215,13 +231,8 @@ namespace NE::ECS::Systems {
     }
 
     void HierarchySystem::SetActive(Entity root, bool isActive) {
-        auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(root);
-        meta.isActive = isActive;
+		m_ecsCoordinator->ToggleEntityActive(root, isActive);
         auto& hier = m_componentManager->GetComponent<Component::Hierarchy>(root);
-
-        if (m_componentManager->HasComponent<Component::Rigidbody>(root)) {
-            Physics::PhysicsManager::GetInstance().UpdateBodyState(meta.luid, isActive);
-        }
 
         for (auto child : hier.children)
             SetActive(child, isActive);

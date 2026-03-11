@@ -91,25 +91,11 @@ namespace NE::ECS::Component {
 
         // Exposed Shared
         Math::Vec3 color{ 1.f,1.f,1.f };
-        uint64_t luid;
+        uint64_t luid = 0;
         Type type = Type::Directional;
         LightTypeData data;
         ShadowType shadowType = ShadowType::None;
         ShadowUpdateMode shadowUpdateMode = ShadowUpdateMode::NoneUpdate;
-        bool isDirty = false;
-
-        uint32_t shadowMapTex = 0;
-        uint32_t shadowMapFBO = 0;
-        Math::Mat4 lightViewProj{};
-        int shadowIndex = -1;
-        bool shadowBaked = false;
-
-        std::array<uint32_t, DIR_CASCADES> dirShadowTex{};  // 0-init
-        std::array<uint32_t, DIR_CASCADES> dirShadowFBO{};  // 0-init
-        std::array<Math::Mat4, DIR_CASCADES> dirLightVP{};
-        std::array<float, DIR_CASCADES> dirCascadeSplitsVS{}; // view-space split depths (positive, in world units)
-        uint8_t shadowCascadeCount = 0;
-        int dirShadowRes[DIR_CASCADES] = { 0,0,0,0 };
 
         NE_REFLECT_BEGIN(Light)
             NE_REFLECT_FIELD_HIDDEN(type),

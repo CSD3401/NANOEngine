@@ -27,33 +27,6 @@
 
 
 namespace Editor::Assets {
-	namespace {
-		using ComponentTypes = std::tuple<
-			NE::ECS::Component::EntityMeta,
-			NE::ECS::Component::Hierarchy,
-			NE::ECS::Component::PrefabInstance,
-			NE::ECS::Component::PrefabLink,
-			NE::ECS::Component::Transform,
-			NE::ECS::Component::Renderer,
-			NE::ECS::Component::Light,
-			NE::ECS::Component::Collider,
-			NE::ECS::Component::Rigidbody,
-			NE::ECS::Component::NativeScript,
-			NE::ECS::Component::Camera,
-			NE::ECS::Component::UIRectTransform,
-			NE::ECS::Component::UICanvas,
-			NE::ECS::Component::UIImage,
-			NE::ECS::Component::CharacterController
-		>;
-
-		template <class F>
-		void ForEachComponentType(F&& f) {
-			std::apply([&](auto&&... t) {
-				(f.template operator() < std::decay_t<decltype(t)> > (), ...);
-				}, ComponentTypes{});
-		}
-	}
-
 	bool PrefabAsset::Cook(const std::string& sourcePath,
 		const std::string& outPath) const {
 

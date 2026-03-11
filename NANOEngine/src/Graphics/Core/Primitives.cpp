@@ -8,10 +8,34 @@
 
 namespace NE::Graphics {
 	namespace {
+		NE::Math::Vec2 AtlasUv(const NE::Math::Vec2& uv, int column, int row, int columns, int rows) {
+			const float tileWidth = 1.0f / static_cast<float>(columns);
+			const float tileHeight = 1.0f / static_cast<float>(rows);
+			return {
+				(static_cast<float>(column) + uv.x) * tileWidth,
+				(static_cast<float>(row) + uv.y) * tileHeight
+			};
+		}
+
+		Vertex MakeVertex(const NE::Math::Vec3& position,
+			const NE::Math::Vec3& normal,
+			const NE::Math::Vec3& tangent,
+			const NE::Math::Vec2& texCoord0) {
+			return Vertex{ position, normal, tangent, texCoord0, texCoord0 };
+		}
+
+		Vertex MakeVertex(const NE::Math::Vec3& position,
+			const NE::Math::Vec3& normal,
+			const NE::Math::Vec3& tangent,
+			const NE::Math::Vec2& texCoord0,
+			const NE::Math::Vec2& texCoord1) {
+			return Vertex{ position, normal, tangent, texCoord0, texCoord1 };
+		}
+
 		NE::Graphics::Sphere ComputeSphereBounds(const std::vector<Vertex>& vertices) {
 			float maxDistSq = 0.f;
 			for (const auto& v : vertices) {
-				float distSq = (v.Position).LengthSquared();
+				float distSq = (v.position).LengthSquared();
 				if (distSq > maxDistSq) {
 					maxDistSq = distSq;
 				}
@@ -25,15 +49,15 @@ namespace NE::Graphics {
 			if (vertices.empty()) {
 				return NE::Graphics::AABB();
 			}
-			NE::Math::Vec3 min = vertices[0].Position;
-			NE::Math::Vec3 max = vertices[0].Position;
+			NE::Math::Vec3 min = vertices[0].position;
+			NE::Math::Vec3 max = vertices[0].position;
 			for (const auto& v : vertices) {
-				min.x = std::min(min.x, v.Position.x);
-				min.y = std::min(min.y, v.Position.y);
-				min.z = std::min(min.z, v.Position.z);
-				max.x = std::max(max.x, v.Position.x);
-				max.y = std::max(max.y, v.Position.y);
-				max.z = std::max(max.z, v.Position.z);
+				min.x = std::min(min.x, v.position.x);
+				min.y = std::min(min.y, v.position.y);
+				min.z = std::min(min.z, v.position.z);
+				max.x = std::max(max.x, v.position.x);
+				max.y = std::max(max.y, v.position.y);
+				max.z = std::max(max.z, v.position.z);
 			}
 			NE::Graphics::AABB aabb;
 			aabb.min = min;
@@ -49,35 +73,35 @@ namespace NE::Graphics {
 
 		Vertex verts[] = {
 			// Front
-			{{-hw, -hh,  hd}, {0.f, 0.f, 1.f}, {0.f, 0.f}},
-			{{ hw, -hh,  hd}, {0.f, 0.f, 1.f}, {1.f, 0.f}},
-			{{ hw,  hh,  hd}, {0.f, 0.f, 1.f}, {1.f, 1.f}},
-			{{-hw,  hh,  hd}, {0.f, 0.f, 1.f}, {0.f, 1.f}},
+			MakeVertex({-hw, -hh,  hd}, {0.f, 0.f, 1.f}, {1.f, 0.f, 0.f}, {0.f, 0.f}, AtlasUv({0.f, 0.f}, 0, 1, 3, 2)),
+			MakeVertex({ hw, -hh,  hd}, {0.f, 0.f, 1.f}, {1.f, 0.f, 0.f}, {1.f, 0.f}, AtlasUv({1.f, 0.f}, 0, 1, 3, 2)),
+			MakeVertex({ hw,  hh,  hd}, {0.f, 0.f, 1.f}, {1.f, 0.f, 0.f}, {1.f, 1.f}, AtlasUv({1.f, 1.f}, 0, 1, 3, 2)),
+			MakeVertex({-hw,  hh,  hd}, {0.f, 0.f, 1.f}, {1.f, 0.f, 0.f}, {0.f, 1.f}, AtlasUv({0.f, 1.f}, 0, 1, 3, 2)),
 			// Back
-			{{ hw, -hh, -hd}, {0.f, 0.f,-1.f}, {0.f, 0.f}},
-			{{-hw, -hh, -hd}, {0.f, 0.f,-1.f}, {1.f, 0.f}},
-			{{-hw,  hh, -hd}, {0.f, 0.f,-1.f}, {1.f, 1.f}},
-			{{ hw,  hh, -hd}, {0.f, 0.f,-1.f}, {0.f, 1.f}},
+			MakeVertex({ hw, -hh, -hd}, {0.f, 0.f,-1.f}, {-1.f, 0.f, 0.f}, {0.f, 0.f}, AtlasUv({0.f, 0.f}, 1, 1, 3, 2)),
+			MakeVertex({-hw, -hh, -hd}, {0.f, 0.f,-1.f}, {-1.f, 0.f, 0.f}, {1.f, 0.f}, AtlasUv({1.f, 0.f}, 1, 1, 3, 2)),
+			MakeVertex({-hw,  hh, -hd}, {0.f, 0.f,-1.f}, {-1.f, 0.f, 0.f}, {1.f, 1.f}, AtlasUv({1.f, 1.f}, 1, 1, 3, 2)),
+			MakeVertex({ hw,  hh, -hd}, {0.f, 0.f,-1.f}, {-1.f, 0.f, 0.f}, {0.f, 1.f}, AtlasUv({0.f, 1.f}, 1, 1, 3, 2)),
 			// Left
-			{{-hw, -hh, -hd}, {-1.f, 0.f, 0.f}, {0.f, 0.f}},
-			{{-hw, -hh,  hd}, {-1.f, 0.f, 0.f}, {1.f, 0.f}},
-			{{-hw,  hh,  hd}, {-1.f, 0.f, 0.f}, {1.f, 1.f}},
-			{{-hw,  hh, -hd}, {-1.f, 0.f, 0.f}, {0.f, 1.f}},
+			MakeVertex({-hw, -hh, -hd}, {-1.f, 0.f, 0.f}, {0.f, 0.f, 1.f}, {0.f, 0.f}, AtlasUv({0.f, 0.f}, 2, 1, 3, 2)),
+			MakeVertex({-hw, -hh,  hd}, {-1.f, 0.f, 0.f}, {0.f, 0.f, 1.f}, {1.f, 0.f}, AtlasUv({1.f, 0.f}, 2, 1, 3, 2)),
+			MakeVertex({-hw,  hh,  hd}, {-1.f, 0.f, 0.f}, {0.f, 0.f, 1.f}, {1.f, 1.f}, AtlasUv({1.f, 1.f}, 2, 1, 3, 2)),
+			MakeVertex({-hw,  hh, -hd}, {-1.f, 0.f, 0.f}, {0.f, 0.f, 1.f}, {0.f, 1.f}, AtlasUv({0.f, 1.f}, 2, 1, 3, 2)),
 			// Right
-			{{ hw, -hh,  hd}, {1.f, 0.f, 0.f}, {0.f, 0.f}},
-			{{ hw, -hh, -hd}, {1.f, 0.f, 0.f}, {1.f, 0.f}},
-			{{ hw,  hh, -hd}, {1.f, 0.f, 0.f}, {1.f, 1.f}},
-			{{ hw,  hh,  hd}, {1.f, 0.f, 0.f}, {0.f, 1.f}},
+			MakeVertex({ hw, -hh,  hd}, {1.f, 0.f, 0.f}, {0.f, 0.f,-1.f}, {0.f, 0.f}, AtlasUv({0.f, 0.f}, 0, 0, 3, 2)),
+			MakeVertex({ hw, -hh, -hd}, {1.f, 0.f, 0.f}, {0.f, 0.f,-1.f}, {1.f, 0.f}, AtlasUv({1.f, 0.f}, 0, 0, 3, 2)),
+			MakeVertex({ hw,  hh, -hd}, {1.f, 0.f, 0.f}, {0.f, 0.f,-1.f}, {1.f, 1.f}, AtlasUv({1.f, 1.f}, 0, 0, 3, 2)),
+			MakeVertex({ hw,  hh,  hd}, {1.f, 0.f, 0.f}, {0.f, 0.f,-1.f}, {0.f, 1.f}, AtlasUv({0.f, 1.f}, 0, 0, 3, 2)),
 			// Top
-			{{-hw,  hh,  hd}, {0.f, 1.f, 0.f}, {0.f, 0.f}},
-			{{ hw,  hh,  hd}, {0.f, 1.f, 0.f}, {1.f, 0.f}},
-			{{ hw,  hh, -hd}, {0.f, 1.f, 0.f}, {1.f, 1.f}},
-			{{-hw,  hh, -hd}, {0.f, 1.f, 0.f}, {0.f, 1.f}},
+			MakeVertex({-hw,  hh,  hd}, {0.f, 1.f, 0.f}, {1.f, 0.f, 0.f}, {0.f, 0.f}, AtlasUv({0.f, 0.f}, 1, 0, 3, 2)),
+			MakeVertex({ hw,  hh,  hd}, {0.f, 1.f, 0.f}, {1.f, 0.f, 0.f}, {1.f, 0.f}, AtlasUv({1.f, 0.f}, 1, 0, 3, 2)),
+			MakeVertex({ hw,  hh, -hd}, {0.f, 1.f, 0.f}, {1.f, 0.f, 0.f}, {1.f, 1.f}, AtlasUv({1.f, 1.f}, 1, 0, 3, 2)),
+			MakeVertex({-hw,  hh, -hd}, {0.f, 1.f, 0.f}, {1.f, 0.f, 0.f}, {0.f, 1.f}, AtlasUv({0.f, 1.f}, 1, 0, 3, 2)),
 			// Bottom
-			{{-hw, -hh, -hd}, {0.f,-1.f, 0.f}, {0.f, 0.f}},
-			{{ hw, -hh, -hd}, {0.f,-1.f, 0.f}, {1.f, 0.f}},
-			{{ hw, -hh,  hd}, {0.f,-1.f, 0.f}, {1.f, 1.f}},
-			{{-hw, -hh,  hd}, {0.f,-1.f, 0.f}, {0.f, 1.f}}
+			MakeVertex({-hw, -hh, -hd}, {0.f,-1.f, 0.f}, {1.f, 0.f, 0.f}, {0.f, 0.f}, AtlasUv({0.f, 0.f}, 2, 0, 3, 2)),
+			MakeVertex({ hw, -hh, -hd}, {0.f,-1.f, 0.f}, {1.f, 0.f, 0.f}, {1.f, 0.f}, AtlasUv({1.f, 0.f}, 2, 0, 3, 2)),
+			MakeVertex({ hw, -hh,  hd}, {0.f,-1.f, 0.f}, {1.f, 0.f, 0.f}, {1.f, 1.f}, AtlasUv({1.f, 1.f}, 2, 0, 3, 2)),
+			MakeVertex({-hw, -hh,  hd}, {0.f,-1.f, 0.f}, {1.f, 0.f, 0.f}, {0.f, 1.f}, AtlasUv({0.f, 1.f}, 2, 0, 3, 2))
 		};
 
 		uint32_t inds[] = {
@@ -93,6 +117,7 @@ namespace NE::Graphics {
 		SubMesh sub;
 		sub.vertices.assign(std::begin(verts), std::end(verts));
 		sub.indices.assign(std::begin(inds), std::end(inds));
+		sub.hasUv1 = true;
 		auto vb = std::make_shared<OpenGL::GLVertexBuffer>(sub.vertices.data(),
 			static_cast<uint32_t>(sub.vertices.size() * sizeof(Vertex)),
 			sizeof(Vertex));
@@ -111,10 +136,10 @@ namespace NE::Graphics {
 		float hd = depth * 0.5f;
 
 		Vertex verts[] = {
-			{{-hw, 0.f, -hd}, {0.f, 1.f, 0.f}, {0.f, 0.f}},
-			{{ hw, 0.f, -hd}, {0.f, 1.f, 0.f}, {1.f, 0.f}},
-			{{ hw, 0.f,  hd}, {0.f, 1.f, 0.f}, {1.f, 1.f}},
-			{{-hw, 0.f,  hd}, {0.f, 1.f, 0.f}, {0.f, 1.f}}
+			MakeVertex({-hw, 0.f, -hd}, {0.f, 1.f, 0.f}, {1.f, 0.f, 0.f}, {0.f, 0.f}),
+			MakeVertex({ hw, 0.f, -hd}, {0.f, 1.f, 0.f}, {1.f, 0.f, 0.f}, {1.f, 0.f}),
+			MakeVertex({ hw, 0.f,  hd}, {0.f, 1.f, 0.f}, {1.f, 0.f, 0.f}, {1.f, 1.f}),
+			MakeVertex({-hw, 0.f,  hd}, {0.f, 1.f, 0.f}, {1.f, 0.f, 0.f}, {0.f, 1.f})
 		};
 
 		uint32_t inds[] = {
@@ -126,6 +151,7 @@ namespace NE::Graphics {
 		SubMesh sub;
 		sub.vertices.assign(std::begin(verts), std::end(verts));
 		sub.indices.assign(std::begin(inds), std::end(inds));
+		sub.hasUv1 = true;
 		auto vb = std::make_shared<OpenGL::GLVertexBuffer>(sub.vertices.data(),
 			static_cast<uint32_t>(sub.vertices.size() * sizeof(Vertex)),
 			sizeof(Vertex));
@@ -152,8 +178,9 @@ namespace NE::Graphics {
 			float ca = std::cos(a);
 			float sa = std::sin(a);
 			float u = static_cast<float>(i) / segments;
-			verts.push_back({ {radius * ca, -hh, radius * sa}, {ca, 0.f, sa}, {u, 0.f} });
-			verts.push_back({ {radius * ca,  hh, radius * sa}, {ca, 0.f, sa}, {u, 1.f} });
+			NE::Math::Vec3 tangent(-sa, 0.f, ca);
+			verts.push_back(MakeVertex({ radius * ca, -hh, radius * sa }, { ca, 0.f, sa }, tangent, { u, 0.f }, { u, 0.5f }));
+			verts.push_back(MakeVertex({ radius * ca,  hh, radius * sa }, { ca, 0.f, sa }, tangent, { u, 1.f }, { u, 1.f }));
 		}
 
 		for (int i = 0; i < segments; ++i) {
@@ -168,7 +195,7 @@ namespace NE::Graphics {
 
 		// Top center
 		uint32_t topCenter = static_cast<uint32_t>(verts.size());
-		verts.push_back({ {0.f, hh, 0.f}, {0.f, 1.f, 0.f}, {0.5f, 0.5f} });
+		verts.push_back(MakeVertex({ 0.f, hh, 0.f }, { 0.f, 1.f, 0.f }, { 1.f, 0.f, 0.f }, { 0.5f, 0.5f }, { 0.25f, 0.25f }));
 		uint32_t topRingStart = static_cast<uint32_t>(verts.size());
 		for (int i = 0; i <= segments; ++i) {
 			float a = step * i;
@@ -176,7 +203,7 @@ namespace NE::Graphics {
 			float sa = std::sin(a);
 			float u = (ca + 1.f) * 0.5f;
 			float v = (sa + 1.f) * 0.5f;
-			verts.push_back({ {radius * ca, hh, radius * sa}, {0.f, 1.f, 0.f}, {u, v} });
+			verts.push_back(MakeVertex({ radius * ca, hh, radius * sa }, { 0.f, 1.f, 0.f }, { 1.f, 0.f, 0.f }, { u, v }, { u * 0.5f, v * 0.5f }));
 		}
 		for (int i = 0; i < segments; ++i) {
 			inds.push_back(topRingStart + i + 1);
@@ -186,7 +213,7 @@ namespace NE::Graphics {
 
 		// Bottom center
 		uint32_t bottomCenter = static_cast<uint32_t>(verts.size());
-		verts.push_back({ {0.f, -hh, 0.f}, {0.f, -1.f, 0.f}, {0.5f, 0.5f} });
+		verts.push_back(MakeVertex({ 0.f, -hh, 0.f }, { 0.f, -1.f, 0.f }, { 1.f, 0.f, 0.f }, { 0.5f, 0.5f }, { 0.75f, 0.25f }));
 		uint32_t bottomRingStart = static_cast<uint32_t>(verts.size());
 		for (int i = 0; i <= segments; ++i) {
 			float a = step * i;
@@ -194,7 +221,7 @@ namespace NE::Graphics {
 			float sa = std::sin(a);
 			float u = (ca + 1.f) * 0.5f;
 			float v = (sa + 1.f) * 0.5f;
-			verts.push_back({ {radius * ca, -hh, radius * sa}, {0.f, -1.f, 0.f}, {u, v} });
+			verts.push_back(MakeVertex({ radius * ca, -hh, radius * sa }, { 0.f, -1.f, 0.f }, { 1.f, 0.f, 0.f }, { u, v }, { 0.5f + u * 0.5f, v * 0.5f }));
 		}
 		for (int i = 0; i < segments; ++i) {
 			inds.push_back(bottomRingStart + i);
@@ -206,6 +233,7 @@ namespace NE::Graphics {
 		SubMesh sub;
 		sub.vertices = std::move(verts);
 		sub.indices = std::move(inds);
+		sub.hasUv1 = true;
 		auto vb = std::make_shared<OpenGL::GLVertexBuffer>(sub.vertices.data(),
 			static_cast<uint32_t>(sub.vertices.size() * sizeof(Vertex)),
 			sizeof(Vertex));
@@ -244,9 +272,10 @@ namespace NE::Graphics {
 
 				NE::Math::Vec3 pos(r * cx, y, r * sx);
 				NE::Math::Vec3 nrm = pos.Normalized();
+				NE::Math::Vec3 tangent(-sx, 0.f, cx);
 				NE::Math::Vec2 uv(u, 1.f - v);
 
-				verts.push_back({ pos, nrm, uv });
+				verts.push_back(MakeVertex(pos, nrm, tangent, uv));
 			}
 		}
 
@@ -270,6 +299,7 @@ namespace NE::Graphics {
 		SubMesh sub;
 		sub.vertices = std::move(verts);
 		sub.indices = std::move(inds);
+		sub.hasUv1 = true;
 
 		auto vb = std::make_shared<OpenGL::GLVertexBuffer>(sub.vertices.data(),
 			static_cast<uint32_t>(sub.vertices.size() * sizeof(Vertex)),
@@ -316,7 +346,8 @@ namespace NE::Graphics {
 				}
 
 				float v = (pos.y + (hh + radius)) / (2.f * (hh + radius));
-				verts.push_back({ pos, nrm, {u, 1.f - v} });
+				NE::Math::Vec3 tangent(-sx, 0.f, cx);
+				verts.push_back(MakeVertex(pos, nrm, tangent, { u, 1.f - v }));
 			}
 		};
 
@@ -366,6 +397,7 @@ namespace NE::Graphics {
 		SubMesh sub;
 		sub.vertices = std::move(verts);
 		sub.indices = std::move(inds);
+		sub.hasUv1 = true;
 
 		auto vb = std::make_shared<OpenGL::GLVertexBuffer>(sub.vertices.data(),
 			static_cast<uint32_t>(sub.vertices.size() * sizeof(Vertex)),
@@ -387,10 +419,10 @@ namespace NE::Graphics {
 		float hh = height * 0.5f;
 
 		Vertex verts[] = {
-			{{-hw, -hh, 0.f}, {0.f, 0.f, 1.f}, {0.f, 0.f}},
-			{{ hw, -hh, 0.f}, {0.f, 0.f, 1.f}, {1.f, 0.f}},
-			{{ hw,  hh, 0.f}, {0.f, 0.f, 1.f}, {1.f, 1.f}},
-			{{-hw,  hh, 0.f}, {0.f, 0.f, 1.f}, {0.f, 1.f}}
+			MakeVertex({-hw, -hh, 0.f}, {0.f, 0.f, 1.f}, {1.f, 0.f, 0.f}, {0.f, 0.f}),
+			MakeVertex({ hw, -hh, 0.f}, {0.f, 0.f, 1.f}, {1.f, 0.f, 0.f}, {1.f, 0.f}),
+			MakeVertex({ hw,  hh, 0.f}, {0.f, 0.f, 1.f}, {1.f, 0.f, 0.f}, {1.f, 1.f}),
+			MakeVertex({-hw,  hh, 0.f}, {0.f, 0.f, 1.f}, {1.f, 0.f, 0.f}, {0.f, 1.f})
 		};
 
 		uint32_t inds[] = {
@@ -402,6 +434,7 @@ namespace NE::Graphics {
 		SubMesh sub;
 		sub.vertices.assign(std::begin(verts), std::end(verts));
 		sub.indices.assign(std::begin(inds), std::end(inds));
+		sub.hasUv1 = true;
 
 		auto vb = std::make_shared<GLVertexBuffer>(sub.vertices.data(),
 			static_cast<uint32_t>(sub.vertices.size() * sizeof(Vertex)),

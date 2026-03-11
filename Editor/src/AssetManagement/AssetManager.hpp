@@ -12,9 +12,9 @@
 namespace Editor::Assets {
 	constexpr uint16_t CURRENT_META_SCHEMA_VERSION = 1;
 
-	// Helper: number of asset types (assumes Prefab is last)
+	// Helper: number of asset types (tracks the last enum entry)
 	inline constexpr size_t AssetTypeCount =
-		static_cast<size_t>(AssetType::AnimatorController) + 1;
+		static_cast<size_t>(AssetType::Lighting) + 1;
 
 	class AssetManager {
 	public:

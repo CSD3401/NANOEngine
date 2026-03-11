@@ -1,12 +1,13 @@
 #include "pch.h"
 #include "LightSystem.hpp"
-#include "../../Core/Profiler.hpp"
-#include "../../Graphics/Core/GraphicsManager.hpp"
-#include "../../Graphics/Core/LightGizmoCommand.hpp"
-#include "../../ECS/Components/Transform.hpp"
-#include "../../ECS/Components/EntityMeta.hpp"
+
+#include "ECS/Core/ComponentManager.hpp"
+#include "ECS/Core/EntityManager.hpp"
+#include "Core/Profiler.hpp"
+#include "Graphics/Core/GraphicsManager.hpp"
+#include "Graphics/Core/LightGizmoCommand.hpp"
+#include "ECS/Components/Transform.hpp"
 #include "../Components/Light.hpp"
-#include "Core/SpdLogger.hpp"
 
 namespace NE::ECS::Systems {
     namespace {
@@ -18,8 +19,8 @@ namespace NE::ECS::Systems {
         }
     }
 
-    LightSystem::LightSystem(NE::ECS::ComponentManager* cm)
-        : m_componentManager(cm) {}
+    LightSystem::LightSystem(ComponentManager* cm, EntityManager* em)
+        : m_componentManager(cm), m_entityManager(em) {}
 
     void LightSystem::OnEntityAdded(Entity /*entity*/) {
         //auto& t = m_componentManager->GetComponent<Component::Transform>(entity);
@@ -40,6 +41,9 @@ namespace NE::ECS::Systems {
         //);
     }
 
+    void LightSystem::OnEntityActive(Entity /*entity*/) {}
+    void LightSystem::OnEntityInactive(Entity /*entity*/) {}
+
     void LightSystem::Init() {
         Graphics::GraphicsManager::m_lights.reserve(12);
     }
@@ -52,13 +56,12 @@ namespace NE::ECS::Systems {
 
         const auto& entities = m_entities.GetDenseContainer();
         for (Entity entity : entities) {
-            auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(entity);
-            if (meta.isActive) {
+            if (m_entityManager->GetActive(entity)) {
                 auto& t = m_componentManager->GetComponent<Component::Transform>(entity);
                 auto& light = m_componentManager->GetComponent<Component::Light>(entity);
                 light.position = t.worldMatrix.GetTranslation();
                 light.direction = t.worldMatrix.Forward();
-                Graphics::GraphicsManager::m_lights.push_back(&light);
+                Graphics::GraphicsManager::m_lights.push_back({ entity, &light });
 
 #ifndef PRODUCTION_BUILD
                 Graphics::LightGizmoCommand gizmoCommand{};
@@ -73,5 +76,4 @@ namespace NE::ECS::Systems {
 
     void LightSystem::Exit() {
     }
-
 }

@@ -28,7 +28,7 @@ namespace NE::ECS::Component {
 
 		bool isDirty = false;  // Dirty flag for editor changes
 
-		uint64_t luid;
+		uint64_t luid = 0;
 
 		NE_REFLECT_BEGIN(Renderer)
 			NE_REFLECT_FIELD(modelUUID),

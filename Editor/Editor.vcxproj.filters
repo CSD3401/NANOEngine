@@ -111,6 +111,9 @@
     <ClCompile Include="vendor\include\imgui\widgets\imsearch\imsearch_demo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="vendor\include\xatlas\xatlas.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="vendor\include\imgui\widgets\imguizmo\ImGuizmo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -135,6 +138,21 @@
     <ClCompile Include="src\Panels\LightingPanel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Lighting\BakeGeometryCollector.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Lighting\DirectLightmapBaker.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Lighting\LightmapBakeOutput.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Lighting\LightmapUvRasterizer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Lighting\SceneBakeBVH.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="src\AssetManagement\Assets\ShaderAsset.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -142,6 +160,21 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\AssetManagement\Assets\ModelAsset.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AssetManagement\Assets\ModelAsset\ModelAssetAssimpUtil.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AssetManagement\Assets\ModelAsset\ModelAssetMaterialImport.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AssetManagement\Assets\ModelAsset\ModelAssetMeshCook.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AssetManagement\Assets\ModelAsset\ModelAssetMetaIO.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AssetManagement\Assets\ModelAsset\ModelAssetPrefabGen.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\AssetManagement\Assets\MaterialAsset.cpp">
@@ -193,6 +226,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\AssetManagement\Assets\FontAsset.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AssetManagement\Assets\LightingAsset.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -341,10 +380,37 @@
     <ClInclude Include="src\Panels\LightingPanel.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Lighting\BakeGeometryCollector.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Lighting\DirectLightmapBaker.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Lighting\LightmapBakeOutput.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Lighting\SceneBakeBVH.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="src\AssetManagement\Assets\MaterialAsset.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\AssetManagement\Assets\ModelAsset.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AssetManagement\Assets\ModelAsset\ModelAssetAssimpUtil.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AssetManagement\Assets\ModelAsset\ModelAssetMaterialImport.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AssetManagement\Assets\ModelAsset\ModelAssetMeshCook.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AssetManagement\Assets\ModelAsset\ModelAssetMetaIO.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AssetManagement\Assets\ModelAsset\ModelAssetPrefabGen.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\AssetManagement\Assets\PrefabAsset.hpp">
@@ -414,6 +480,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\AssetManagement\Assets\FontAsset.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\pch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AssetManagement\Assets\LightingAsset.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AssetManagement\Assets\ModelAsset\ModelAssetUvValidation.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

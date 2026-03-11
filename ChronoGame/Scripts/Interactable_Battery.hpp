@@ -32,12 +32,12 @@ public:
 
     void Update(double deltaTime) override {
         // Called every frame while the script is enabled
-        if (inPanel)
-        {
-            TF_SetPosition(pos, GetEntity());
-            TF_SetScale(scale, GetEntity());
-            TF_SetRotation(rot, GetEntity());
-        }
+        //if (inPanel)
+        //{
+        //    TF_SetPosition(pos, GetEntity());
+        //    TF_SetScale(scale, GetEntity());
+        //    TF_SetRotation(rot, GetEntity());
+        //}
     }
 
     void OnDestroy() override {

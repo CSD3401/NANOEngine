@@ -37,7 +37,13 @@ public:
     void OnDestroy() override {}
 
     // === Optional Callbacks ===
-    void OnEnable() override {}
+    void OnEnable() override {
+        Events::Listen("LetGo", [this](void* data) {
+
+            LetGo();
+
+            });
+    }
     void OnDisable() override {}
     void OnValidate() override {}
     const char* GetTypeName() const override { return "Misc_Grabber"; }
@@ -61,7 +67,7 @@ public:
         Vec3 targetPos = cameraPos + forward * distance;
 
         TransformRef selfTransform = GetTransformRef(currentlyGrabbing);
-        Vec3 currentPos = GetPosition(selfTransform);
+        Vec3 currentPos = TF_GetPosition(selfTransform.GetEntity());
 
         Vec3 toTarget = targetPos - currentPos;
         float dist = toTarget.Length();

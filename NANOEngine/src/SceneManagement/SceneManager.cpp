@@ -6,6 +6,7 @@
 #include "ECS/Components/NativeScript.hpp"
 #include "ECS/Core/Entity.hpp"
 #include "PrefabManagement/PrefabManager.hpp"
+#include "SceneLightmapRuntime.hpp"
 #include "Serialisation/Serializer.hpp"
 #include "Physics/PhysicsManager.hpp"
 #include "ResourceManagement/ResourcePaths.hpp"
@@ -27,11 +28,12 @@ namespace NE::SceneManagement {
 			Physics::PhysicsManager::GetInstance().
 				SetManagers(&m_runtime->GetECSCoordinator().GetComponentManager(),
 					&m_runtime->GetECSCoordinator().GetLUIDRegistry());
-			if (!NE::Deserialization::DeserializeScene(m_runtime->GetECSCoordinator(), m_loadedPath)) {
+			if (!NE::Deserialization::DeserializeScene(m_runtime->GetECSCoordinator(), m_loadedPath, m_runtime.get())) {
 				m_runtime.reset();
 				Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
 				return false;
 			}
+            ResolveSceneLightmapRuntimeState(*m_runtime);
 			m_runtime->InitRuntime();
 			Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
 			m_isPlaying = true;
@@ -46,11 +48,12 @@ namespace NE::SceneManagement {
 		Physics::PhysicsManager::GetInstance().
 			SetManagers(&m_editor->GetECSCoordinator().GetComponentManager(), 
 				&m_editor->GetECSCoordinator().GetLUIDRegistry());
-		if (!NE::Deserialization::DeserializeScene(m_editor->GetECSCoordinator(), m_loadedPath)) {
+		if (!NE::Deserialization::DeserializeScene(m_editor->GetECSCoordinator(), m_loadedPath, m_editor.get())) {
 			m_editor.reset();
 			Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
 			return false;
 		}
+        ResolveSceneLightmapRuntimeState(*m_editor);
 		m_editor->InitEdit();
 		Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
 		m_isPlaying = false;
@@ -101,7 +104,8 @@ namespace NE::SceneManagement {
 		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
 		Physics::PhysicsManager::GetInstance().SetManagers(&m_runtime->GetECSCoordinator().GetComponentManager(),
 			&m_runtime->GetECSCoordinator().GetLUIDRegistry());
-		NE::Deserialization::DeserializeScene(m_runtime->GetECSCoordinator(), m_loadedPath);
+		NE::Deserialization::DeserializeScene(m_runtime->GetECSCoordinator(), m_loadedPath, m_runtime.get());
+        ResolveSceneLightmapRuntimeState(*m_runtime);
 
 		// Transfer editor field values to runtime scene (before Init)
 		auto& runtimeComponentMgr = m_runtime->GetECSCoordinator().GetComponentManager();
@@ -125,6 +129,7 @@ namespace NE::SceneManagement {
 		if (!m_isPlaying) return;
 
 		if (m_runtime) {
+            ClearSceneLightmapRuntimeState(m_runtime.get());
 			m_runtime->ScriptStop();
 			m_runtime->ExitRuntime();
 		}
@@ -231,6 +236,7 @@ namespace NE::SceneManagement {
 			SPD_WARNING("Failed to load prefab, try reimporting");
 			return false;
 		}
+        ResolveSceneLightmapRuntimeState(*m_prefabScene);
 		m_prefabScene->InitEdit();
 
 		m_prefabPath = path;
@@ -240,6 +246,7 @@ namespace NE::SceneManagement {
 	void SceneManager::ClosePrefabScene() {
 		if (m_mode == SceneManagerMode::RuntimeOnly) return;
 		if (m_prefabScene) {
+            ClearSceneLightmapRuntimeState(m_prefabScene.get());
 			m_prefabScene->ExitEdit();
 			m_prefabScene.reset();
 		}
@@ -249,12 +256,21 @@ namespace NE::SceneManagement {
 
 	void SceneManager::ExitScene() {
 		if (m_mode == SceneManagerMode::RuntimeOnly) {
-			if (m_runtime) m_runtime->ExitRuntime();
+			if (m_runtime) {
+                ClearSceneLightmapRuntimeState(m_runtime.get());
+                m_runtime->ExitRuntime();
+            }
 			m_runtime.reset();
 			return;
 		}
-		if (m_isPlaying && m_runtime) m_runtime->ExitRuntime();
-		if (m_editor) m_editor->ExitEdit();
+		if (m_isPlaying && m_runtime) {
+            ClearSceneLightmapRuntimeState(m_runtime.get());
+            m_runtime->ExitRuntime();
+        }
+		if (m_editor) {
+            ClearSceneLightmapRuntimeState(m_editor.get());
+            m_editor->ExitEdit();
+        }
 	}
 
 }

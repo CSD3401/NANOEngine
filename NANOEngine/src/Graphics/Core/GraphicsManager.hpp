@@ -11,11 +11,14 @@
 #include "DecalCommand.hpp"
 #include "DecalGizmoCommand.hpp"
 #include "DrawQueue.hpp"
+#include "LightShadowRuntime.hpp"
 #include "RenderViewManager.hpp"
 #include "RenderSettings.hpp"
 #include "PostProcessingSettings.hpp"
+#include "SelectionHighlightSettings.hpp"
 #include <vector>
 #include <unordered_set>
+#include <cstdint>
 
 // Forward declarations
 namespace NE {
@@ -31,6 +34,7 @@ namespace NE {
         class RenderGraph;
         class TexturePool;
         class PostProcessPipeline;
+        struct Frustum;
         struct DrawCommand;
         struct LightGizmoCommand;
         struct RenderView;
@@ -59,6 +63,15 @@ namespace NE {
 namespace NE::Graphics {
     class GraphicsManager {
     public:
+        enum class ScenePreviewMode : uint8_t {
+            Shaded = 0,
+            Normals = 1,
+            UV0 = 2,
+            UV1 = 3,
+            LightmapUV = 4,
+            LightmapOnly = 5
+        };
+
         static void Init();
 
         static void BeginFrame();
@@ -77,6 +90,12 @@ namespace NE::Graphics {
 
         static uint32_t GetScreenWidth();
         static uint32_t GetScreenHeight();
+
+		// Game View (Editor/Game panel) resolution. Drives the main camera render target + post FX output.
+		static void SetGameViewResolution(uint32_t width, uint32_t height);
+		static uint32_t GetGameViewWidth();
+		static uint32_t GetGameViewHeight();
+		static float GetGameViewAspect();
         static IStateCache* GetStateCache();
         
 		static RenderViewHandle CreateRenderView(uint32_t width, uint32_t height, bool enablePicking = true);
@@ -92,7 +111,13 @@ namespace NE::Graphics {
 
 		// Used for ImGui texture display
 		static uint32_t GetSceneColorAttachment();
+        static uint32_t GetSceneDebugAttachment();
 		static uint32_t GetGameColorAttachment();
+
+        static void SetScenePreviewMode(uint8_t mode);
+        static uint8_t GetScenePreviewMode();
+        static void SetScenePreviewUvScale(float scale);
+        static float GetScenePreviewUvScale();
 
 		// Used to get final output for fullscreen display
 		static uint32_t GetFinalOutputColorAttachment();
@@ -122,7 +147,7 @@ namespace NE::Graphics {
         static void ClearSelectedEntities();
 
         // lights
-        static std::vector<ECS::Component::Light*> m_lights;
+        static std::vector<RenderLightRef> m_lights;
 
         // Draw Count Profiling
         static int drawCount;
@@ -136,9 +161,12 @@ namespace NE::Graphics {
         static RenderViewHandle s_FinalGameOutputHandle;
         static RenderViewHandle s_GameViewHandle;
 
-        static RenderSettings renderSettings;
+		static RenderSettings renderSettings;
         // Experimental here for now
         static PostProcessingSettings postProcessingSettings;
+#ifndef PRODUCTION_BUILD
+		static SelectionHighlightSettings selectionHighlightSettings;
+#endif
 
         // Render Graph
         static RenderGraph* GetRenderGraph();
@@ -147,6 +175,8 @@ namespace NE::Graphics {
     private:
         static uint32_t s_ScreenWidth;
         static uint32_t s_ScreenHeight;
+		static uint32_t s_GameViewWidth;
+		static uint32_t s_GameViewHeight;
 
         // Command Buffer
         static std::unique_ptr<ICommandBuffer> s_CommandBuffer;
@@ -174,18 +204,16 @@ namespace NE::Graphics {
         // Post-processing
         static std::unique_ptr<PostProcessPipeline> s_PostPipeline;
         static std::shared_ptr<OpenGL::GLShader> s_NormalPrepassShader;
-        static std::shared_ptr<OpenGL::GLShader> s_SelectionOutlineProgram;
+#ifndef PRODUCTION_BUILD
+        static std::shared_ptr<OpenGL::GLShader> s_EditorDebugViewShader;
+#endif
         static std::unordered_set<uint32_t> s_SelectedEntityIds;
+        static ScenePreviewMode s_ScenePreviewMode;
+        static float s_ScenePreviewUvScale;
         
         static std::unique_ptr<ShadowRenderer> s_shadowRenderer;
         static uint32_t DecodeEntityIdFromRGB(const Math::Vec3& idRGB);
         static bool IsSelectedDrawCommand(const DrawCommand& command);
-        static void RenderSelectionHighlightForView(
-            RenderViewHandle handle,
-            const RenderView& view,
-            const Math::Mat4& camProj,
-            const Math::Mat4& camView,
-            const std::vector<DrawCommand>& commands);
 
         // UI Rendering
         static void RenderUIOverlay();

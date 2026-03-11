@@ -58,12 +58,29 @@
 #include "../Command/EditorCommands.hpp"
 #include "../Layers/LayerDatabase.hpp"
 #include "../Layers/LayerModal.hpp"
+#include "../Lighting/LightmapAtlasAllocator.hpp"
 #include <Events/EventBus.hpp>
 #include "../EditorEvents.hpp"
+#include "Engine.hpp"
+#include <algorithm>
+#include <cmath>
 
 bool openLayerSettings = false;
 
 namespace {
+	float DegToRad(float deg) { return deg * 3.14159265358979323846f / 180.0f; }
+	float RadToDeg(float rad) { return rad * 180.0f / 3.14159265358979323846f; }
+
+	// Convert an FOV value between vertical/horizontal for a given aspect ratio while preserving the view.
+	float ConvertFovDegrees(float fovDeg, float aspect, bool fromVerticalToHorizontal) {
+		aspect = std::max(1e-6f, aspect);
+		fovDeg = std::clamp(fovDeg, 1.0f, 179.0f);
+
+		const float half = std::tan(DegToRad(fovDeg) * 0.5f);
+		const float halfOut = fromVerticalToHorizontal ? (half * aspect) : (half / aspect);
+		return RadToDeg(2.0f * std::atan(halfOut));
+	}
+
 	// the widget maker
 	// takes a field and draws the right UI widget for it
 	// bool -> checkbox
@@ -880,9 +897,9 @@ namespace Editor {
 
 		auto& metaRO = NE::ECS::Command::GetEntityMeta(entity);
 
-		bool isActiveValue = metaRO.isActive;
+		bool isActiveValue = NE::ECS::Query::GetActive(entity);
 		if (DrawCheckbox("##isActive", isActiveValue)) {
-			NE::ECS::Command::SetActive(entity, isActiveValue);
+			NE::ECS::Command::ToggleActive(entity, isActiveValue);
 		}
 
 		ImGui::SameLine();
@@ -1010,6 +1027,57 @@ namespace Editor {
 		if (openLayerSettings) {
 			ImGui::OpenPopup("LayerSettings");
 			openLayerSettings = false;
+		}
+
+		bool staticLightmap = metaRO.isStatic;
+		if (DrawCheckbox("Static Lightmap", staticLightmap)) {
+			using Cmd = Editor::SetFieldCommand<Owner, bool>;
+			auto cmd = std::make_unique<Cmd>(
+				entity,
+				std::string("Toggle Static Lightmap"),
+				&Owner::isStatic,
+				metaRO.isStatic,
+				staticLightmap,
+				&NE::ECS::Command::GetEntityMeta
+			);
+			Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(cmd));
+		}
+
+		std::string allocationStatus = "Not Run";
+		std::string allocationDetail;
+
+		if (!NE::ECS::Command::GetEntityMeta(entity).isStatic) {
+			allocationStatus = "Opted Out";
+			allocationDetail = "Enable Static Lightmap to include this renderer in atlas allocation.";
+		} else if (const auto* preview = Editor::Lightmapping::FindLightmapEntityPreviewStatus(entity)) {
+			allocationStatus = Editor::Lightmapping::ToString(preview->kind);
+			allocationDetail = preview->message;
+			if (preview->kind == Editor::Lightmapping::LightmapEntityStatusKind::Allocated &&
+				!preview->pageId.empty()) {
+				allocationDetail += " UV scale: (" +
+					std::to_string(preview->uvScale.x) + ", " +
+					std::to_string(preview->uvScale.y) + ")";
+			}
+		} else if (NE::ECS::Query::HasLightmapBinding(entity)) {
+			const auto& binding = NE::ECS::Query::GetLightmapBinding(entity);
+			if (binding.enabled && !binding.pageId.empty()) {
+				allocationStatus = "Allocated";
+				allocationDetail = "Current binding points to " + binding.pageId + ".";
+			} else {
+				allocationStatus = "Pending";
+				allocationDetail = "Entity is opted in but has no fresh allocation preview yet.";
+			}
+		} else {
+			allocationStatus = "Pending";
+			allocationDetail = "Entity is opted in but has not been allocated yet.";
+		}
+
+		ImGui::Spacing();
+		ImGui::Text("Lightmap Status");
+		ImGui::SameLine();
+		ImGui::TextDisabled("%s", allocationStatus.c_str());
+		if (!allocationDetail.empty()) {
+			ImGui::TextWrapped("%s", allocationDetail.c_str());
 		}
 
 		//if (metaRO.prefabID != "") {
@@ -1530,8 +1598,6 @@ namespace Editor {
 					comp.data.emplace<Light::AreaLightData>();
 					break;
 				}
-
-				comp.isDirty = true;
 			}
 		}
 
@@ -2700,7 +2766,7 @@ namespace Editor {
 	}
 
 	void InspectorPanel::DrawCameraComponent(uint32_t entity) {
-		auto& comp = NE::ECS::Query::GetEntityCamera(entity);
+		auto& comp = NE::ECS::Command::GetEntityCamera(entity);
 
 		bool copyComp = false;
 		bool deleteComp = false;
@@ -2722,7 +2788,52 @@ namespace Editor {
 		if (!open)
 			return;
 
-		ImGui::SeparatorText("Camera");
+		static const char* ProjectionTypeNames[] = { "Perspective", "Orthographic" };
+		int currProjectionType = static_cast<int>(comp.projectionType);
+
+		if (DrawEnumPillCombo("Projection", currProjectionType, ProjectionTypeNames, IM_ARRAYSIZE(ProjectionTypeNames), 100.0f)) {
+			comp.projectionType = static_cast<NE::ECS::Component::Camera::ProjectionType>(currProjectionType);
+			comp.isDirty = true;
+		}
+
+		static const char* fovAxis[] = { "Vertical", "Horizontal" };
+		const auto prevAxis = comp.fovAxis;
+		int currAxis = static_cast<int>(comp.fovAxis);
+
+		if (DrawEnumPillCombo("FOV Axis", currAxis, fovAxis, IM_ARRAYSIZE(fovAxis), 100.0f)) {
+			const auto newAxis = static_cast<NE::ECS::Component::Camera::FieldOfViewAxis>(currAxis);
+
+			if (newAxis != prevAxis) {
+				float aspect = comp.aspectRatio;
+				if (comp.isMain) {
+					const uint32_t w = NE::GetGameViewWidth();
+					const uint32_t h = NE::GetGameViewHeight();
+					aspect = (h > 0) ? (static_cast<float>(w) / static_cast<float>(h)) : (16.0f / 9.0f);
+				}
+
+				if (comp.projectionType == NE::ECS::Component::Camera::ProjectionType::Perspective) {
+					if (prevAxis == NE::ECS::Component::Camera::FieldOfViewAxis::Vertical &&
+						newAxis == NE::ECS::Component::Camera::FieldOfViewAxis::Horizontal) {
+						comp.fovY = ConvertFovDegrees(comp.fovY, aspect, true);
+					} else if (prevAxis == NE::ECS::Component::Camera::FieldOfViewAxis::Horizontal &&
+						newAxis == NE::ECS::Component::Camera::FieldOfViewAxis::Vertical) {
+						comp.fovY = ConvertFovDegrees(comp.fovY, aspect, false);
+					}
+				} else {
+					aspect = std::max(1e-6f, aspect);
+					if (prevAxis == NE::ECS::Component::Camera::FieldOfViewAxis::Vertical &&
+						newAxis == NE::ECS::Component::Camera::FieldOfViewAxis::Horizontal) {
+						comp.fovY *= aspect;
+					} else if (prevAxis == NE::ECS::Component::Camera::FieldOfViewAxis::Horizontal &&
+						newAxis == NE::ECS::Component::Camera::FieldOfViewAxis::Vertical) {
+						comp.fovY /= aspect;
+					}
+				}
+			}
+
+			comp.fovAxis = newAxis;
+			comp.isDirty = true;
+		}
 
 		NE::Core::ForEachFieldView<NE::ECS::Component::Camera>(comp,
 			[&](auto const& desc, auto const& currentValue) {
@@ -4845,7 +4956,7 @@ namespace Editor {
 				ImGui::SetNextItemWidth(-40.0f);
 				char id[64]; snprintf(id, sizeof(id), "##DropOpt%d", i);
 				char buf[256];
-				strncpy(buf, comp.options[i].c_str(), sizeof(buf) - 1);
+				strncpy_s(buf, comp.options[i].c_str(), sizeof(buf) - 1);
 				buf[sizeof(buf) - 1] = '\0';
 				if (ImGui::InputText(id, buf, sizeof(buf))) {
 					comp.options[i] = buf;
@@ -5009,7 +5120,7 @@ namespace Editor {
 			ImGui::SameLine(labelWidth);
 			ImGui::SetNextItemWidth(-1);
 			char buf[1024];
-			strncpy(buf, comp.text.c_str(), sizeof(buf) - 1);
+			strncpy_s(buf, comp.text.c_str(), sizeof(buf) - 1);
 			buf[sizeof(buf) - 1] = '\0';
 			if (ImGui::InputText("##InputFieldText", buf, sizeof(buf))) {
 				comp.text = buf;
@@ -5021,7 +5132,7 @@ namespace Editor {
 			ImGui::SameLine(labelWidth);
 			ImGui::SetNextItemWidth(-1);
 			char buf[512];
-			strncpy(buf, comp.placeholderText.c_str(), sizeof(buf) - 1);
+			strncpy_s(buf, comp.placeholderText.c_str(), sizeof(buf) - 1);
 			buf[sizeof(buf) - 1] = '\0';
 			if (ImGui::InputText("##Placeholder", buf, sizeof(buf))) {
 				comp.placeholderText = buf;

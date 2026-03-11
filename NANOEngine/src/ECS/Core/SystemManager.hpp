@@ -10,6 +10,9 @@ namespace NE::Core {
 }
 
 namespace NE::ECS {
+    class ComponentManager;
+	class EntityManager;
+	class ECSCoordinator;
 
     class SystemManager {
     public:
@@ -50,39 +53,24 @@ namespace NE::ECS {
         }
 
         template<typename T>
+        std::shared_ptr<T> RegisterSystem(ComponentManager* cm, ECSCoordinator* ec, Core::LUIDRegistry* lr) {
+            std::type_index typeIdx = typeid(T);
+            assert(m_systems.find(typeIdx) == m_systems.end() && "System already registered.");
+            auto system = std::make_shared<T>(cm, ec, lr);
+            m_systems[typeIdx] = system;
+            return system;
+        }
+
+        template<typename T>
         void SetSystemSignature(Signature signature) {
             std::type_index typeIdx = typeid(T);
             assert(m_systems.find(typeIdx) != m_systems.end() && "System not registered.");
             m_signatures[typeIdx] = signature;
         }
 
-        void EntityDestroyed(Entity entity) {
-            for (auto& [_, system] : m_systems) {
-                if (system->m_entities.Contains(entity)) {
-                    system->m_entities.Remove(entity);
-                    system->OnEntityRemoved(entity);
-                }
-            }
-        }
-
-        void EntitySignatureChanged(Entity entity, const Signature& entitySig) {
-            for (auto& [type, system] : m_systems) {
-                const Signature& sysSig = m_signatures[type];
-
-                bool shouldHave = (entitySig & sysSig) == sysSig;
-                bool has = system->m_entities.Contains(entity);
-
-                if (shouldHave != has) {
-                    if (shouldHave) {
-                        system->m_entities.Insert(entity);
-                        system->OnEntityAdded(entity);
-                    } else {
-                        system->OnEntityRemoved(entity);
-                        system->m_entities.Remove(entity);
-                    }
-                }
-            }
-        }
+        void EntityDestroyed(Entity entity);
+        void EntitySignatureChanged(Entity entity, const Signature& entitySig);
+		void EntityActiveStatusChanged(Entity entity, const Signature& entitySig, bool active);
 
     private:
         std::unordered_map<std::type_index, std::shared_ptr<System>> m_systems;

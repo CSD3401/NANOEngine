@@ -69,6 +69,10 @@ namespace NE::Renderer {
 			return Graphics::GraphicsManager::postProcessingSettings;
 		}
 
+		const Graphics::SelectionHighlightSettings& GetSelectionHighlightSettings() {
+			return Graphics::GraphicsManager::selectionHighlightSettings;
+		}
+
 		Graphics::RenderGraph* GetRenderGraph() {
 			return Graphics::GraphicsManager::GetRenderGraph();
 		}
@@ -131,6 +135,7 @@ namespace NE::Renderer {
 
 		Graphics::RenderSettings& GetRenderSettings() { return Graphics::GraphicsManager::renderSettings; }
 		Graphics::PostProcessingSettings& GetPostProcessingSettings() { return Graphics::GraphicsManager::postProcessingSettings; }
+		Graphics::SelectionHighlightSettings& GetSelectionHighlightSettings() { return Graphics::GraphicsManager::selectionHighlightSettings; }
 
 		void DrawSelectedLightGizmos(const NE::ECS::Component::Light& lightComponent) {
 			Graphics::GraphicsManager::DrawSelectedLightGizmos(lightComponent);
@@ -140,6 +145,10 @@ namespace NE::Renderer {
 			const NE::ECS::Component::Transform& transformComponent
 		) {
 			Graphics::GraphicsManager::DrawSelectedDecalGizmos(decalComponent, transformComponent);
+		}
+
+		void AddDebugLinesBatch(const std::vector<NE::Math::Vec3>& positions, const NE::Math::Vec3& color) {
+			Graphics::GraphicsManager::AddDebugLinesBatch(positions, color);
 		}
 
 		void SetSelectedEntities(const std::vector<uint32_t>& selectedIds) {
