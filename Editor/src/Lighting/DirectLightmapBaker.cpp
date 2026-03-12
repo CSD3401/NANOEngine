@@ -106,6 +106,52 @@ namespace Editor::Lightmapping {
 			return IsFiniteFloat(value.x) && IsFiniteFloat(value.y) && IsFiniteFloat(value.z);
 		}
 
+		NE::Math::Vec3 SafeNormalize(const NE::Math::Vec3& value, const NE::Math::Vec3& fallback) {
+			if (!IsFiniteVec3(value) || value.LengthSquared() <= kFiniteEpsilon) {
+				return fallback;
+			}
+			return value.Normalized();
+		}
+
+		NE::Math::Vec3 BuildStablePerpendicular(const NE::Math::Vec3& normal) {
+			NE::Math::Vec3 reference = (std::abs(normal.y) < 0.99f)
+				? NE::Math::Vec3{ 0.0f, 1.0f, 0.0f }
+				: NE::Math::Vec3{ 1.0f, 0.0f, 0.0f };
+			NE::Math::Vec3 tangent = reference - normal * reference.Dot(normal);
+			if (!IsFiniteVec3(tangent) || tangent.LengthSquared() <= kFiniteEpsilon) {
+				reference = { 0.0f, 0.0f, 1.0f };
+				tangent = reference - normal * reference.Dot(normal);
+			}
+			return SafeNormalize(tangent, { 1.0f, 0.0f, 0.0f });
+		}
+
+		void BuildOrthonormalAreaFrame(
+			const NE::Math::Vec3& rawRight,
+			const NE::Math::Vec3& rawUp,
+			const NE::Math::Vec3& fallbackDirection,
+			NE::Math::Vec3& outRight,
+			NE::Math::Vec3& outUp,
+			NE::Math::Vec3& outDirection) {
+			NE::Math::Vec3 direction = -rawRight.Cross(rawUp);
+			if (!IsFiniteVec3(direction) || direction.LengthSquared() <= kFiniteEpsilon) {
+				direction = fallbackDirection;
+			}
+			outDirection = SafeNormalize(direction, { 0.0f, 0.0f, -1.0f });
+
+			NE::Math::Vec3 tangentSeed = rawRight;
+			NE::Math::Vec3 tangent = tangentSeed - outDirection * tangentSeed.Dot(outDirection);
+			if (!IsFiniteVec3(tangent) || tangent.LengthSquared() <= kFiniteEpsilon) {
+				tangentSeed = rawUp;
+				tangent = tangentSeed - outDirection * tangentSeed.Dot(outDirection);
+			}
+			if (!IsFiniteVec3(tangent) || tangent.LengthSquared() <= kFiniteEpsilon) {
+				tangent = BuildStablePerpendicular(outDirection);
+			}
+
+			outRight = SafeNormalize(tangent, BuildStablePerpendicular(outDirection));
+			outUp = SafeNormalize(outRight.Cross(outDirection), { 0.0f, 1.0f, 0.0f });
+		}
+
 		bool IsFiniteBounds(const BakeAABB& bounds) {
 			return IsFiniteVec3(bounds.min) && IsFiniteVec3(bounds.max) &&
 				bounds.min.x <= bounds.max.x &&
@@ -283,21 +329,12 @@ namespace Editor::Lightmapping {
 					: static_cast<uint64_t>(entity);
 				snapshot.entityName = GetEntityNameOrFallback(entity);
 				snapshot.position = transform.worldMatrix.GetTranslation();
-				snapshot.right = transform.worldMatrix.Right().Normalized();
-				snapshot.up = transform.worldMatrix.Up().Normalized();
-				snapshot.direction = light.direction.Normalized();
-				if (!IsFiniteVec3(snapshot.direction) || snapshot.direction.LengthSquared() <= kFiniteEpsilon) {
-					snapshot.direction = transform.worldMatrix.Forward().Normalized();
-				}
-				if (!IsFiniteVec3(snapshot.direction) || snapshot.direction.LengthSquared() <= kFiniteEpsilon) {
-					snapshot.direction = { 0.0f, -1.0f, 0.0f };
-				}
-				if (!IsFiniteVec3(snapshot.right) || snapshot.right.LengthSquared() <= kFiniteEpsilon) {
-					snapshot.right = { 1.0f, 0.0f, 0.0f };
-				}
-				if (!IsFiniteVec3(snapshot.up) || snapshot.up.LengthSquared() <= kFiniteEpsilon) {
-					snapshot.up = { 0.0f, 1.0f, 0.0f };
-				}
+				const NE::Math::Vec3 rawRight = transform.worldMatrix.Right();
+				const NE::Math::Vec3 rawUp = transform.worldMatrix.Up();
+				const NE::Math::Vec3 rawForward = transform.worldMatrix.Forward();
+				snapshot.right = SafeNormalize(rawRight, { 1.0f, 0.0f, 0.0f });
+				snapshot.up = SafeNormalize(rawUp, { 0.0f, 1.0f, 0.0f });
+				snapshot.direction = SafeNormalize(light.direction, SafeNormalize(rawForward, { 0.0f, -1.0f, 0.0f }));
 				snapshot.color = light.color;
 				snapshot.castsBakedShadow =
 					light.shadowUpdateMode == NE::ECS::Component::Light::ShadowUpdateMode::StaticBake &&
@@ -340,6 +377,10 @@ namespace Editor::Lightmapping {
 
 				if (!supported) {
 					continue;
+				}
+
+				if (snapshot.kind == BakeLightKind::Area) {
+					BuildOrthonormalAreaFrame(rawRight, rawUp, snapshot.direction, snapshot.right, snapshot.up, snapshot.direction);
 				}
 
 				if (!IsFiniteVec3(snapshot.color) || snapshot.intensity <= 0.0f || !std::isfinite(snapshot.intensity)) {
@@ -436,13 +477,6 @@ namespace Editor::Lightmapping {
 			}
 
 			return DistanceAttenuation(std::max(distanceToCenter - rectExtent, 0.0f), range);
-		}
-
-		NE::Math::Vec3 SafeNormalize(const NE::Math::Vec3& value, const NE::Math::Vec3& fallback) {
-			if (!IsFiniteVec3(value) || value.LengthSquared() <= kFiniteEpsilon) {
-				return fallback;
-			}
-			return value.Normalized();
 		}
 
 		void PublishProgress(const std::string& stage, size_t processedInstances, size_t totalInstances, const DirectLightBakeStats& liveStats) {
@@ -626,7 +660,12 @@ namespace Editor::Lightmapping {
 
 			result.pages.reserve(input.pages.size());
 			std::unordered_map<int, size_t> pageSlotsByIndex;
+			std::unordered_map<int, const LightmapUvRasterPageBuffers*> rasterPagesByIndex;
 			pageSlotsByIndex.reserve(input.pages.size());
+			rasterPagesByIndex.reserve(rasterResult->pageBuffers.size());
+			for (const auto& rasterPage : rasterResult->pageBuffers) {
+				rasterPagesByIndex.emplace(rasterPage.pageIndex, &rasterPage);
+			}
 			for (size_t pageIndex = 0; pageIndex < input.pages.size(); ++pageIndex) {
 				const auto& page = input.pages[pageIndex];
 				DirectLightBakePageBuffers pageBuffers{};
@@ -636,9 +675,10 @@ namespace Editor::Lightmapping {
 				pageBuffers.height = static_cast<uint32_t>(std::max(page.height, 0));
 				const size_t texelCount = static_cast<size_t>(pageBuffers.width) * static_cast<size_t>(pageBuffers.height);
 				pageBuffers.lighting.assign(texelCount, { 0.0f, 0.0f, 0.0f });
-				if (pageIndex < rasterResult->pageBuffers.size()) {
-					pageBuffers.validMask = rasterResult->pageBuffers[pageIndex].validMask;
-					pageBuffers.validTexelCount = rasterResult->pageBuffers[pageIndex].validTexelCount;
+				const auto rasterPageIt = rasterPagesByIndex.find(page.pageIndex);
+				if (rasterPageIt != rasterPagesByIndex.end()) {
+					pageBuffers.validMask = rasterPageIt->second->validMask;
+					pageBuffers.validTexelCount = rasterPageIt->second->validTexelCount;
 				} else {
 					pageBuffers.validMask.assign(texelCount, 0u);
 				}
@@ -662,16 +702,17 @@ namespace Editor::Lightmapping {
 				: std::max(1u, std::thread::hardware_concurrency() > 1u ? std::thread::hardware_concurrency() - 1u : 1u);
 			const uint32_t workerCount = std::max(1u, std::min<uint32_t>(requestedWorkerCount, static_cast<uint32_t>(input.receivers.size())));
 
-			auto processReceiver = [&](size_t receiverIndex, DirectLightBakeStats& localStats) {
+			auto processReceiver = [&](size_t receiverIndex, DirectLightBakeStats& localStats) -> bool {
 				const auto& receiver = input.receivers[receiverIndex];
 				const auto pageSlotIt = pageSlotsByIndex.find(receiver.pageIndex);
-				if (pageSlotIt == pageSlotsByIndex.end()) {
+				const auto rasterPageIt = rasterPagesByIndex.find(receiver.pageIndex);
+				if (pageSlotIt == pageSlotsByIndex.end() || rasterPageIt == rasterPagesByIndex.end()) {
 					++localStats.skippedTexelCount;
-					return;
+					return true;
 				}
 
 				auto& page = result.pages[pageSlotIt->second];
-				const auto& rasterPage = rasterResult->pageBuffers[pageSlotIt->second];
+				const auto& rasterPage = *rasterPageIt->second;
 				const int minX = receiver.placement.innerX;
 				const int minY = receiver.placement.innerY;
 				const int maxX = receiver.placement.innerX + receiver.placement.innerWidth - 1;
@@ -680,7 +721,7 @@ namespace Editor::Lightmapping {
 				for (int y = minY; y <= maxY; ++y) {
 					for (int x = minX; x <= maxX; ++x) {
 						if (control.cancelRequested.load()) {
-							return;
+							return false;
 						}
 
 						const size_t linearIndex = static_cast<size_t>(y) * static_cast<size_t>(page.width) + static_cast<size_t>(x);
@@ -877,6 +918,7 @@ namespace Editor::Lightmapping {
 						}
 					}
 				}
+				return true;
 			};
 
 			auto workerFn = [&]() {
@@ -887,10 +929,10 @@ namespace Editor::Lightmapping {
 					}
 
 					DirectLightBakeStats localStats{};
-					processReceiver(receiverIndex, localStats);
+					const bool completedReceiver = processReceiver(receiverIndex, localStats);
 
 					DirectLightBakeStats mergedStats{};
-					size_t processed = 0u;
+					size_t processed = processedReceivers.load();
 					{
 						std::scoped_lock statsLock(statsMutex);
 						liveStats.skippedTexelCount += localStats.skippedTexelCount;
@@ -898,7 +940,11 @@ namespace Editor::Lightmapping {
 						liveStats.occludedRayCount += localStats.occludedRayCount;
 						liveStats.visibleRayCount += localStats.visibleRayCount;
 						mergedStats = liveStats;
-						processed = processedReceivers.fetch_add(1u) + 1u;
+						if (completedReceiver) {
+							processed = processedReceivers.fetch_add(1u) + 1u;
+						} else {
+							processed = processedReceivers.load();
+						}
 					}
 					PublishProgress("Evaluating direct lighting", processed, input.receivers.size(), mergedStats);
 				}
@@ -932,10 +978,15 @@ namespace Editor::Lightmapping {
 
 			{
 				std::scoped_lock lock(control.mutex);
+				const size_t completedReceivers = processedReceivers.load();
+				const size_t totalReceivers = input.receivers.size();
+				const float progress01 = totalReceivers > 0u
+					? std::clamp(static_cast<float>(completedReceivers) / static_cast<float>(totalReceivers), 0.0f, 1.0f)
+					: 1.0f;
 				control.state.liveStats = result.stats;
-				control.state.processedInstanceCount = input.receivers.size();
-				control.state.queuedInstanceCount = input.receivers.size();
-				control.state.progress01 = 1.0f;
+				control.state.processedInstanceCount = completedReceivers;
+				control.state.queuedInstanceCount = totalReceivers;
+				control.state.progress01 = progress01;
 				control.state.cancelRequested = control.cancelRequested.load();
 				control.pendingCpuResult.reset();
 
