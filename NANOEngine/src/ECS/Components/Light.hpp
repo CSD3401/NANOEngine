@@ -90,9 +90,9 @@ namespace NE::ECS::Component {
 
         // Exposed Shared
         Math::Vec3 color{ 1.f,1.f,1.f };
+        LightTypeData data;
         uint64_t luid = 0;
         Type type = Type::Directional;
-        LightTypeData data;
         ShadowType shadowType = ShadowType::None;
         ShadowUpdateMode shadowUpdateMode = ShadowUpdateMode::NoneUpdate;
 

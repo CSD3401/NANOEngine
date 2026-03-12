@@ -279,16 +279,19 @@ namespace NE::Graphics::OpenGL {
                 auto right = src->right.Normalized();
                 auto up = src->up.Normalized();
                 auto dir = src->direction.Normalized();
-                if (src->type == ECS::Component::Light::Type::Area) {
-                    dir = -right.Cross(up);
-                    if (dir.LengthSquared() < 1e-6f) {
+                if (dir.LengthSquared() < 1e-6f) {
+                    if (src->type == ECS::Component::Light::Type::Area) {
+                        dir = -right.Cross(up);
+                    } else {
                         dir = src->direction;
                     }
-                    if (dir.LengthSquared() < 1e-6f) {
-                        dir = { 0.0f, 0.0f, -1.0f };
-                    }
-                    dir.Normalize();
                 }
+                if (dir.LengthSquared() < 1e-6f) {
+                    dir = (src->type == ECS::Component::Light::Type::Area)
+                        ? NE::Math::Vec3{ 0.0f, 0.0f, -1.0f }
+                        : NE::Math::Vec3{ 0.0f, -1.0f, 0.0f };
+                }
+                dir.Normalize();
                 dst.direction[0] = dir.x;
                 dst.direction[1] = dir.y;
                 dst.direction[2] = dir.z;

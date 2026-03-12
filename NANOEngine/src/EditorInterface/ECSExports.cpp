@@ -716,8 +716,8 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent(
 				newEntity,
 				Component::Light{
-					.type = Component::Light::Type::Directional,
-					.data = Component::Light::DirectionalLightData{}
+					.data = Component::Light::DirectionalLightData{},
+					.type = Component::Light::Type::Directional
 				}
 			);
 
@@ -745,8 +745,8 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent(
 				newEntity,
 				Component::Light{
-					.type = Component::Light::Type::Point,
-					.data = Component::Light::PointLightData{}
+					.data = Component::Light::PointLightData{},
+					.type = Component::Light::Type::Point
 				}
 			);
 
@@ -774,8 +774,8 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent(
 				newEntity,
 				Component::Light{
-					.type = Component::Light::Type::Spot,
-					.data = Component::Light::SpotLightData{}
+					.data = Component::Light::SpotLightData{},
+					.type = Component::Light::Type::Spot
 				}
 			);
 
@@ -803,8 +803,8 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent(
 				newEntity,
 				Component::Light{
-					.type = Component::Light::Type::Area,
-					.data = Component::Light::AreaLightData{}
+					.data = Component::Light::AreaLightData{},
+					.type = Component::Light::Type::Area
 				}
 			);
 

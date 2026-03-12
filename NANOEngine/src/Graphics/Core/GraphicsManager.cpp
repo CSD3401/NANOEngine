@@ -2382,9 +2382,9 @@ namespace NE::Graphics {
             }
             lightUp.Normalize();
 
-            Vec3 emitNormal = -lightRight.Cross(lightUp);
+            Vec3 emitNormal = light.direction;
             if (emitNormal.LengthSquared() < 1e-6f) {
-                emitNormal = light.direction;
+                emitNormal = -lightRight.Cross(lightUp);
             }
             if (emitNormal.LengthSquared() < 1e-6f) {
                 emitNormal = { 0.0f, 0.0f, -1.0f };

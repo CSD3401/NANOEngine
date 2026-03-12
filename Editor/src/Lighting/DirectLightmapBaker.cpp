@@ -285,7 +285,10 @@ namespace Editor::Lightmapping {
 				snapshot.position = transform.worldMatrix.GetTranslation();
 				snapshot.right = transform.worldMatrix.Right().Normalized();
 				snapshot.up = transform.worldMatrix.Up().Normalized();
-				snapshot.direction = transform.worldMatrix.Forward().Normalized();
+				snapshot.direction = light.direction.Normalized();
+				if (!IsFiniteVec3(snapshot.direction) || snapshot.direction.LengthSquared() <= kFiniteEpsilon) {
+					snapshot.direction = transform.worldMatrix.Forward().Normalized();
+				}
 				if (!IsFiniteVec3(snapshot.direction) || snapshot.direction.LengthSquared() <= kFiniteEpsilon) {
 					snapshot.direction = { 0.0f, -1.0f, 0.0f };
 				}
@@ -296,7 +299,9 @@ namespace Editor::Lightmapping {
 					snapshot.up = { 0.0f, 1.0f, 0.0f };
 				}
 				snapshot.color = light.color;
-				snapshot.castsBakedShadow = (light.shadowType != NE::ECS::Component::Light::ShadowType::None);
+				snapshot.castsBakedShadow =
+					light.shadowUpdateMode == NE::ECS::Component::Light::ShadowUpdateMode::StaticBake &&
+					light.shadowType != NE::ECS::Component::Light::ShadowType::None;
 
 				bool supported = true;
 				std::visit([&](const auto& lightData) {
@@ -335,16 +340,6 @@ namespace Editor::Lightmapping {
 
 				if (!supported) {
 					continue;
-				}
-
-				if (snapshot.kind == BakeLightKind::Area) {
-					snapshot.direction = -snapshot.right.Cross(snapshot.up);
-					if (!IsFiniteVec3(snapshot.direction) || snapshot.direction.LengthSquared() <= kFiniteEpsilon) {
-						snapshot.direction = { 0.0f, 0.0f, -1.0f };
-					}
-					else {
-						snapshot.direction.Normalize();
-					}
 				}
 
 				if (!IsFiniteVec3(snapshot.color) || snapshot.intensity <= 0.0f || !std::isfinite(snapshot.intensity)) {
@@ -448,13 +443,6 @@ namespace Editor::Lightmapping {
 				return fallback;
 			}
 			return value.Normalized();
-		}
-
-		NE::Math::Vec3 BuildStablePerpendicular(const NE::Math::Vec3& normal) {
-			NE::Math::Vec3 reference = (std::abs(normal.y) < 0.99f)
-				? NE::Math::Vec3{ 0.0f, 1.0f, 0.0f }
-				: NE::Math::Vec3{ 1.0f, 0.0f, 0.0f };
-			return SafeNormalize(reference.Cross(normal), { 1.0f, 0.0f, 0.0f });
 		}
 
 		void PublishProgress(const std::string& stage, size_t processedInstances, size_t totalInstances, const DirectLightBakeStats& liveStats) {
@@ -769,9 +757,6 @@ namespace Editor::Lightmapping {
 
 								const NE::Math::Vec3 lightRight = SafeNormalize(light.right, { 1.0f, 0.0f, 0.0f });
 								const NE::Math::Vec3 lightUp = SafeNormalize(light.up, { 0.0f, 1.0f, 0.0f });
-								const NE::Math::Vec3 sampleRight = BuildStablePerpendicular(sample.shadingNormal);
-								const NE::Math::Vec3 sampleUp = SafeNormalize(sample.shadingNormal.Cross(sampleRight), { 0.0f, 1.0f, 0.0f });
-
 								NE::Math::Vec3 sampleAccumulated{ 0.0f, 0.0f, 0.0f };
 								const uint64_t sampleSeedBase =
 									(static_cast<uint64_t>(linearIndex) * 1315423911ull) ^
@@ -834,18 +819,7 @@ namespace Editor::Lightmapping {
 										continue;
 									}
 
-									const NE::Math::Vec3 localLightVector{
-										sampleRight.Dot(lightVector),
-										sampleUp.Dot(lightVector),
-										sample.shadingNormal.Dot(lightVector)
-									};
-									const NE::Math::Vec3 localLightDirection = SafeNormalize(localLightVector, { 0.0f, 0.0f, 1.0f });
-									const float polygonWeight = std::max(localLightDirection.z, 0.0f);
-									if (polygonWeight <= 0.0f) {
-										continue;
-									}
-
-									sampleAccumulated += light.color * (light.intensity * rectAttenuation * lightFacing * polygonWeight);
+									sampleAccumulated += light.color * (light.intensity * rectAttenuation * lightFacing * nDotL);
 								}
 
 								accumulated += sampleAccumulated / static_cast<float>(kAreaLightBakeSamples);
