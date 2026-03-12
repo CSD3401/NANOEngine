@@ -705,7 +705,11 @@ namespace Editor {
 					Events::CreateSpotLightEvent{ parentEntityId }
 				);
 			}
-			if (ImGui::MenuItem("Area Light", "", false, false)) {
+			if (ImGui::MenuItem("Area Light", "", false, true)) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateAreaLightEvent{ parentEntityId }
+				);
 			}
 			ImGui::EndMenu();
 		}

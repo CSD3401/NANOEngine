@@ -1601,15 +1601,29 @@ namespace Editor {
 			}
 		}
 
-		static const char* shadowUpdateModeNames[] = { "NoneUpdate", "Realtime", "StaticBake" };
-		int shadowUpdateMode = static_cast<int>(comp.shadowUpdateMode);
-
-		if (DrawEnumPillCombo("Shadow Update Mode", shadowUpdateMode, shadowUpdateModeNames, IM_ARRAYSIZE(shadowUpdateModeNames), 300.0f)) {
-			comp.shadowUpdateMode =
-				static_cast<Light::ShadowUpdateMode>(shadowUpdateMode);
+		if (comp.type == Light::Type::Area && comp.shadowUpdateMode == Light::ShadowUpdateMode::Realtime) {
+			comp.shadowUpdateMode = Light::ShadowUpdateMode::StaticBake;
 		}
 
-		if (shadowUpdateMode != 0) {
+		if (comp.type == Light::Type::Area) {
+			static const char* areaShadowUpdateModeNames[] = { "NoneUpdate", "StaticBake" };
+			int areaShadowUpdateMode = (comp.shadowUpdateMode == Light::ShadowUpdateMode::StaticBake) ? 1 : 0;
+			if (DrawEnumPillCombo("Shadow Update Mode", areaShadowUpdateMode, areaShadowUpdateModeNames, IM_ARRAYSIZE(areaShadowUpdateModeNames), 300.0f)) {
+				comp.shadowUpdateMode = (areaShadowUpdateMode == 1)
+					? Light::ShadowUpdateMode::StaticBake
+					: Light::ShadowUpdateMode::NoneUpdate;
+			}
+		} else {
+			static const char* shadowUpdateModeNames[] = { "NoneUpdate", "Realtime", "StaticBake" };
+			int shadowUpdateMode = static_cast<int>(comp.shadowUpdateMode);
+
+			if (DrawEnumPillCombo("Shadow Update Mode", shadowUpdateMode, shadowUpdateModeNames, IM_ARRAYSIZE(shadowUpdateModeNames), 300.0f)) {
+				comp.shadowUpdateMode =
+					static_cast<Light::ShadowUpdateMode>(shadowUpdateMode);
+			}
+		}
+
+		if (comp.shadowUpdateMode != Light::ShadowUpdateMode::NoneUpdate) {
 			static const char* shadowTypeNames[] = { "None", "Hard", "Soft" };
 			int shadowType = static_cast<int>(comp.shadowType);
 

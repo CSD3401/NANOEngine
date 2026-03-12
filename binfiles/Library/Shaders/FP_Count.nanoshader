@@ -7,8 +7,11 @@ layout (local_size_x = 64) in;
 struct GPULight {
     vec4 position;  // xyz + type
     vec4 color;     // rgb + intensity
-    vec4 params;    // inner, outer, radius, unused
-    vec4 direction; // xyz + padding
+    vec4 params;    // inner, outer, range, shadowIndex
+    vec4 direction; // xyz + shadowType
+    vec4 areaRight; // xyz + halfWidth
+    vec4 areaUp;    // xyz + halfHeight
+    vec4 boundsSphere; // xyz + cull radius
 };
 
 // Must match 4 * uint per cluster (offset, count, pad, pad)
@@ -171,9 +174,9 @@ void main()
             continue;
         }
 
-        vec3 lightWS = gL.position.xyz;
+        vec3 lightWS = gL.boundsSphere.xyz;
         vec3 lightVS = (i_View * vec4(lightWS, 1.0)).xyz;
-        float radius = max(gL.params.z, 0.0);
+        float radius = max(gL.boundsSphere.w, 0.0);
         if (radius <= 0.0) radius = 0.001;
 
         if (!SphereIntersectsAABB(lightVS, radius, clusterMinVS, clusterMaxVS)) {

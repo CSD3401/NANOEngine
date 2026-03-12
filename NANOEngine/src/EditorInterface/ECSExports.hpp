@@ -250,6 +250,7 @@ namespace NE::ECS {
 		NANOENGINE_API uint32_t CreateDirectionalLightEntity(uint32_t parentEntt);
 		NANOENGINE_API uint32_t CreatePointLightEntity(uint32_t parentEntt);
 		NANOENGINE_API uint32_t CreateSpotLightEntity(uint32_t parentEntt);
+		NANOENGINE_API uint32_t CreateAreaLightEntity(uint32_t parentEntt);
 		NANOENGINE_API uint32_t CreateUICanvasEntity();
 		NANOENGINE_API uint32_t CreateUIImageEntity(uint32_t parentCanvas);
 		NANOENGINE_API void DestroyEntity(uint32_t e);

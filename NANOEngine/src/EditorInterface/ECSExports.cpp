@@ -716,8 +716,8 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent(
 				newEntity,
 				Component::Light{
-					.type = Component::Light::Type::Directional,
-					.data = Component::Light::DirectionalLightData{}
+					.data = Component::Light::DirectionalLightData{},
+					.type = Component::Light::Type::Directional
 				}
 			);
 
@@ -745,8 +745,8 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent(
 				newEntity,
 				Component::Light{
-					.type = Component::Light::Type::Point,
-					.data = Component::Light::PointLightData{}
+					.data = Component::Light::PointLightData{},
+					.type = Component::Light::Type::Point
 				}
 			);
 
@@ -774,8 +774,37 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent(
 				newEntity,
 				Component::Light{
-					.type = Component::Light::Type::Spot,
-					.data = Component::Light::SpotLightData{}
+					.data = Component::Light::SpotLightData{},
+					.type = Component::Light::Type::Spot
+				}
+			);
+
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
+			return newEntity;
+		}
+
+		uint32_t CreateAreaLightEntity(uint32_t parentEntt) {
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::EntityMeta{ .name{"Area Light"}, .luid = Core::LUIDGenerator::Generate("em") }
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Transform{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Hierarchy{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Light{
+					.data = Component::Light::AreaLightData{},
+					.type = Component::Light::Type::Area
 				}
 			);
 
