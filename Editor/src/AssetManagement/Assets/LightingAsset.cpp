@@ -80,6 +80,65 @@ namespace Editor::Assets {
 			return std::isfinite(value);
 		}
 
+		uint16_t FloatToHalf(float value) {
+			uint32_t bits = 0u;
+			std::memcpy(&bits, &value, sizeof(bits));
+
+			const uint16_t sign = static_cast<uint16_t>((bits >> 16) & 0x8000u);
+			const uint32_t exponent = (bits >> 23) & 0xffu;
+			uint32_t mantissa = bits & 0x007fffffu;
+
+			if (exponent == 0xffu) {
+				if (mantissa != 0u) {
+					const uint16_t payload = static_cast<uint16_t>(mantissa >> 13);
+					return static_cast<uint16_t>(sign | 0x7c00u | (payload != 0u ? payload : 0x0200u));
+				}
+
+				return static_cast<uint16_t>(sign | 0x7c00u);
+			}
+
+			int32_t halfExponent = static_cast<int32_t>(exponent) - 127 + 15;
+			if (halfExponent >= 31) {
+				return static_cast<uint16_t>(sign | 0x7c00u);
+			}
+
+			if (halfExponent <= 0) {
+				if (halfExponent < -10) {
+					return sign;
+				}
+
+				mantissa |= 0x00800000u;
+				const uint32_t shift = static_cast<uint32_t>(14 - halfExponent);
+				uint32_t halfMantissa = mantissa >> shift;
+				const uint32_t roundBit = 1u << (shift - 1u);
+				const uint32_t roundMask = roundBit - 1u;
+				if ((mantissa & roundBit) != 0u &&
+					((mantissa & roundMask) != 0u || (halfMantissa & 1u) != 0u)) {
+					++halfMantissa;
+				}
+
+				if (halfMantissa >= 0x0400u) {
+					return static_cast<uint16_t>(sign | 0x0400u);
+				}
+
+				return static_cast<uint16_t>(sign | static_cast<uint16_t>(halfMantissa));
+			}
+
+			mantissa += 0x00000fffu + ((mantissa >> 13u) & 1u);
+			if ((mantissa & 0x00800000u) != 0u) {
+				mantissa = 0u;
+				++halfExponent;
+				if (halfExponent >= 31) {
+					return static_cast<uint16_t>(sign | 0x7c00u);
+				}
+			}
+
+			return static_cast<uint16_t>(
+				sign |
+				(static_cast<uint16_t>(halfExponent) << 10u) |
+				static_cast<uint16_t>(mantissa >> 13u));
+		}
+
 		void SanitizeLighting(
 			const std::vector<NE::Math::Vec3>& input,
 			std::vector<NE::Math::Vec3>& outLighting) {
@@ -218,22 +277,23 @@ namespace Editor::Assets {
 				return false;
 			}
 
-			std::vector<float> sourceFloats;
-			sourceFloats.reserve(static_cast<size_t>(width) * static_cast<size_t>(height) * 3u);
+			std::vector<uint16_t> sourceRgba16f;
+			sourceRgba16f.reserve(static_cast<size_t>(width) * static_cast<size_t>(height) * 4u);
 			for (const auto& texel : lighting) {
-				sourceFloats.push_back(texel.x);
-				sourceFloats.push_back(texel.y);
-				sourceFloats.push_back(texel.z);
+				sourceRgba16f.push_back(FloatToHalf(texel.x));
+				sourceRgba16f.push_back(FloatToHalf(texel.y));
+				sourceRgba16f.push_back(FloatToHalf(texel.z));
+				sourceRgba16f.push_back(FloatToHalf(0.0f));
 			}
 
 			CMP_Texture src{};
 			src.dwSize = sizeof(src);
 			src.dwWidth = width;
 			src.dwHeight = height;
-			src.dwPitch = width * sizeof(float) * 3u;
-			src.format = CMP_FORMAT_RGB_32F;
-			src.dwDataSize = static_cast<CMP_DWORD>(sourceFloats.size() * sizeof(float));
-			src.pData = reinterpret_cast<CMP_BYTE*>(sourceFloats.data());
+			src.dwPitch = width * sizeof(uint16_t) * 4u;
+			src.format = CMP_FORMAT_RGBA_16F;
+			src.dwDataSize = static_cast<CMP_DWORD>(sourceRgba16f.size() * sizeof(uint16_t));
+			src.pData = reinterpret_cast<CMP_BYTE*>(sourceRgba16f.data());
 
 			CMP_Texture dst{};
 			dst.dwSize = sizeof(dst);
