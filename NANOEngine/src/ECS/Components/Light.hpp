@@ -45,8 +45,8 @@ namespace NE::ECS::Component {
         struct AreaLightData {
             float intensity = 1.f;
             float range = 10.f;
-            float width = 20.f;
-            float height = 50.f;
+            float width = 1.f;
+            float height = 1.f;
 
             NE_REFLECT_BEGIN(AreaLightData)
                 NE_REFLECT_FIELD_NAMED(intensity, "Intensity"),
