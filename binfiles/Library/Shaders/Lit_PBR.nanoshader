@@ -810,7 +810,9 @@ void main() {
         lightmapPageSlot >= 0 &&
         lightmapPageSlot < min(u_LightmapPageCount, MAX_LIGHTMAP_PAGES)) {
         vec2 lightmapUv = v_TexCoord1 * v_LightmapUvScale + v_LightmapUvOffset;
-        bakedDiffuse = texture(u_LightmapPages[lightmapPageSlot], lightmapUv).rgb * diffuseColor;
+        // Stored lightmaps are irradiance-like lighting terms, so apply the
+        // same Lambert normalization the realtime diffuse BRDF uses.
+        bakedDiffuse = texture(u_LightmapPages[lightmapPageSlot], lightmapUv).rgb * (diffuseColor / PI);
         useLightmap = true;
     }
 
@@ -853,7 +855,8 @@ void main() {
                 contrib = EvalArea(L, N, V, v_FragPos, albedo, metal, rough);
             }
 
-            if (useLightmap && L.type == LIGHT_TYPE_AREA) {
+            // Lightmaps already store baked diffuse from all supported light types.
+            if (useLightmap) {
                 realtimeSpecular += contrib.specular * shadow;
             } else {
                 realtimeDiffuse += contrib.diffuse * shadow;
