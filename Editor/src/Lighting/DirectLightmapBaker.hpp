@@ -124,6 +124,8 @@ namespace Editor::Lightmapping {
 	bool StartSceneDirectLightBake(const DirectLightBakeSettings& settings);
 	void CancelSceneDirectLightBake();
 	void SetDirectLightBakePreviewExposure(float previewExposure);
+	std::string BuildSuggestedLightmapAssetPath();
+	bool CommitPublishedLightmapAsset(std::string& outAssetPath, std::string& outErrorMessage);
 	void ShutdownDirectLightBakeSession();
 
 }

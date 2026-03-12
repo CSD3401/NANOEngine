@@ -26,5 +26,7 @@ namespace Editor {
 		std::string m_rasterSelfCheckMessage;
 		bool m_outputSelfCheckPassed = false;
 		std::string m_outputSelfCheckMessage;
+		bool m_commitLightmapSucceeded = false;
+		std::string m_commitLightmapStatus;
 	};
 }
