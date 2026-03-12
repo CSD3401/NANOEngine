@@ -330,6 +330,8 @@ namespace Component {
             if (normalized < 0.0f) normalized = 0.0f;
             if (normalized > 1.0f) normalized = 1.0f;
             value = minValue + normalized * (maxValue - minValue);
+            if (wholeNumbers)
+                value = static_cast<float>(static_cast<int>(value + 0.5f));
             if (value < minValue) value = minValue;
             if (value > maxValue) value = maxValue;
         }
