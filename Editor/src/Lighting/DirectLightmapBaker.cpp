@@ -309,6 +309,9 @@ namespace Editor::Lightmapping {
 				}
 
 				const auto& light = NE::ECS::Query::GetEntityLight(entity);
+				if (light.shadowUpdateMode == NE::ECS::Component::Light::ShadowUpdateMode::Realtime) {
+					continue;
+				}
 				const auto& transform = NE::ECS::Query::GetEntityTransform(entity);
 				bool validMatrix = true;
 				for (float value : transform.worldMatrix.a) {

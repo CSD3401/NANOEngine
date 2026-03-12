@@ -58,6 +58,10 @@ void main() {
 #define SHADOW_HARD 1
 #define SHADOW_SOFT 2
 
+#define SHADOW_UPDATE_NONE 0
+#define SHADOW_UPDATE_REALTIME 1
+#define SHADOW_UPDATE_STATIC_BAKE 2
+
 const int MAX_LIGHTMAP_PAGES = 128;
 
 in vec3 v_Normal;
@@ -146,7 +150,7 @@ struct GPULight {
     vec4 position;  // xyz + type
     vec4 color;     // rgb + intensity
     vec4 params;    // inner, outer, range, shadowIndex
-    vec4 direction; // xyz + shadowType
+    vec4 direction; // xyz + packed shadow metadata
     vec4 areaRight; // xyz + halfWidth
     vec4 areaUp;    // xyz + halfHeight
     vec4 boundsSphere; // xyz + culling radius
@@ -201,6 +205,7 @@ struct Light {
 
     int shadowIndex;
     int shadowType;
+    int shadowUpdateMode;
 };
 
 struct BRDFContrib {
@@ -723,7 +728,9 @@ Light MakeLightFromGPULight(GPULight g) {
     L.halfWidth = g.areaRight.w;
     L.halfHeight = g.areaUp.w;
     L.shadowIndex = int(g.params.w + 0.5);
-    L.shadowType = int(g.direction.w + 0.5);
+    int packedShadowMetadata = int(g.direction.w + 0.5);
+    L.shadowType = packedShadowMetadata & 3;
+    L.shadowUpdateMode = packedShadowMetadata >> 2;
     return L;
 }
 
@@ -855,8 +862,8 @@ void main() {
                 contrib = EvalArea(L, N, V, v_FragPos, albedo, metal, rough);
             }
 
-            // Lightmaps already store baked diffuse from all supported light types.
-            if (useLightmap) {
+            bool bakedDiffuseLight = useLightmap && L.shadowUpdateMode != SHADOW_UPDATE_REALTIME;
+            if (bakedDiffuseLight) {
                 realtimeSpecular += contrib.specular * shadow;
             } else {
                 realtimeDiffuse += contrib.diffuse * shadow;

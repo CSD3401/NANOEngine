@@ -295,7 +295,10 @@ namespace NE::Graphics::OpenGL {
                 dst.direction[0] = dir.x;
                 dst.direction[1] = dir.y;
                 dst.direction[2] = dir.z;
-                dst.direction[3] = (float)src->shadowType;
+                const int packedShadowMetadata =
+                    static_cast<int>(src->shadowType) |
+                    (static_cast<int>(src->shadowUpdateMode) << 2);
+                dst.direction[3] = static_cast<float>(packedShadowMetadata);
 
                 dst.areaRight[0] = right.x;
                 dst.areaRight[1] = right.y;
