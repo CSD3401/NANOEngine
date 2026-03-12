@@ -207,12 +207,12 @@ namespace NE::Graphics {
 
 			switch (light->shadowUpdateMode) {
 			case ECS::Component::Light::ShadowUpdateMode::NoneUpdate:
+				ReleaseRuntimeResources(runtime);
 				continue;
 
 			case ECS::Component::Light::ShadowUpdateMode::StaticBake:
-				if (runtime.shadowBaked)
-					continue;
-				break;
+				ReleaseRuntimeResources(runtime);
+				continue;
 
 			case ECS::Component::Light::ShadowUpdateMode::Realtime:
 				runtime.shadowBaked = false;
@@ -231,9 +231,6 @@ namespace NE::Graphics {
 
 				runtime.shadowCascadeCount = ECS::Component::Light::DIR_CASCADES;
 
-				if (light->shadowUpdateMode == ECS::Component::Light::ShadowUpdateMode::StaticBake)
-					runtime.shadowBaked = true;
-
 				continue;
 			}
 
@@ -244,8 +241,6 @@ namespace NE::Graphics {
 			runtime.shadowCascadeCount = 1;
 			RenderDepth(runtime, lightVP, commands);
 
-			if (light->shadowUpdateMode == ECS::Component::Light::ShadowUpdateMode::StaticBake)
-				runtime.shadowBaked = true;
 		}
 	}
 

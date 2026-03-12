@@ -1324,6 +1324,7 @@ namespace NE::Graphics {
                 }
 
                 if (l->shadowType == NE::ECS::Component::Light::None ||
+                    l->shadowUpdateMode != NE::ECS::Component::Light::Realtime ||
                     l->type == NE::ECS::Component::Light::Area) continue;
                 if (!runtime) continue;
 
