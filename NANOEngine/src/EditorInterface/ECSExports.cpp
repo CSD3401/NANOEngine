@@ -988,7 +988,9 @@ namespace NE::ECS {
 		}
 
 		void AddUISliderComponent(uint32_t e, const Component::UISlider& c) {
-			GetScene().GetECSCoordinator().AddComponent<Component::UISlider>(e, c);
+			auto comp = c;
+			if (comp.luid == 0) comp.luid = Core::LUIDGenerator::Generate("sl");
+			GetScene().GetECSCoordinator().AddComponent<Component::UISlider>(e, comp);
 		}
 
 		void AddUIToggleComponent(uint32_t e, const Component::UIToggle& c) {
@@ -1621,11 +1623,9 @@ namespace NE::ECS {
 			auto& ecs = GetScene().GetECSCoordinator();
 			if (!ecs.HasComponent<Component::UISlider>(e)) return;
 			auto& comp = ecs.GetComponent<Component::UISlider>(e);
-			if (normalized < 0.0f) normalized = 0.0f;
-			if (normalized > 1.0f) normalized = 1.0f;
-			float newVal = comp.minValue + normalized * (comp.maxValue - comp.minValue);
-			if (comp.value != newVal) {
-				comp.value = newVal;
+			float oldValue = comp.value;
+			comp.SetNormalizedValue(normalized);  // handles wholeNumbers rounding + clamping
+			if (comp.value != oldValue) {
 				comp.valueChanged = true;
 			}
 		}

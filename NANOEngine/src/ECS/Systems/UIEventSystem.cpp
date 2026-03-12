@@ -506,8 +506,9 @@ namespace NE::ECS::Systems {
                             normalized = (mouseX - worldX) / worldWidth;
                         }
                     } else {
+                        // Y increases downward in screen space, so flip for natural bottom=0, top=1
                         if (worldHeight > 0.0f) {
-                            normalized = (mouseY - worldY) / worldHeight;
+                            normalized = 1.0f - (mouseY - worldY) / worldHeight;
                         }
                     }
 
@@ -543,32 +544,62 @@ namespace NE::ECS::Systems {
             float fillNormalized = slider.GetNormalizedValue();
             float handleNormalized = fillNormalized;
 
-            // Update fill rect: grows from left (horizontal) or bottom (vertical)
+            // Update fill rect based on direction.
+            // In the layout engine, child x=0 is at the parent's CENTER (anchor=0.5).
+            // To place a child's left edge at the parent's left edge: x = -parentWidth + childWidth*0.5
+            // To place a child's right edge at the parent's right edge: x = -childWidth*0.5
             if (slider.fillRect != UINT32_MAX && m_cm->HasComponent<UIRectTransform>(slider.fillRect)) {
                 auto& fillRect = m_cm->GetComponent<UIRectTransform>(slider.fillRect);
 
                 if (slider.IsHorizontal()) {
                     fillRect.width = rect.width * fillNormalized;
-                    // Keep left edge fixed: center x = left_edge + half_fill_width
-                    fillRect.x = -rect.width * 0.5f + fillRect.width * 0.5f;
+                    fillRect.y = -rect.height * 0.5f;  // Center fill vertically on parent
+                    if (!slider.IsReversed()) {
+                        // LEFT_TO_RIGHT: fill grows from left edge
+                        fillRect.x = -rect.width + fillRect.width * 0.5f;
+                    } else {
+                        // RIGHT_TO_LEFT: fill grows from right edge
+                        fillRect.x = -fillRect.width * 0.5f;
+                    }
                 } else {
                     fillRect.height = rect.height * fillNormalized;
-                    // Keep bottom edge fixed: center y = bottom_edge - half_fill_height
-                    // (y increases downward in UI space, so bottom = +height/2)
-                    fillRect.y = rect.height * 0.5f - fillRect.height * 0.5f;
+                    fillRect.x = -rect.width * 0.5f;  // Center fill horizontally on parent
+                    if (!slider.IsReversed()) {
+                        // BOTTOM_TO_TOP: fill grows from bottom edge (y increases downward, bottom = +height/2)
+                        fillRect.y = -fillRect.height * 0.5f;
+                    } else {
+                        // TOP_TO_BOTTOM: fill grows from top edge
+                        fillRect.y = -rect.height + fillRect.height * 0.5f;
+                    }
                 }
             }
 
-            // Update handle position along the track
+            // Update handle position along the track.
+            // At normalized=0 for non-reversed: handle at left/bottom edge.
+            // At normalized=1 for non-reversed: handle at right/top edge.
             if (slider.handleRect != UINT32_MAX && m_cm->HasComponent<UIRectTransform>(slider.handleRect)) {
                 auto& handleRect = m_cm->GetComponent<UIRectTransform>(slider.handleRect);
 
                 if (slider.IsHorizontal()) {
                     float trackWidth = rect.width - handleRect.width;
-                    handleRect.x = trackWidth * handleNormalized - trackWidth * 0.5f;
+                    handleRect.y = -rect.height * 0.5f;  // Center handle vertically on parent
+                    if (!slider.IsReversed()) {
+                        // LEFT_TO_RIGHT: handle moves left→right
+                        handleRect.x = -rect.width + handleRect.width * 0.5f + trackWidth * handleNormalized;
+                    } else {
+                        // RIGHT_TO_LEFT: handle moves right→left
+                        handleRect.x = -handleRect.width * 0.5f - trackWidth * handleNormalized;
+                    }
                 } else {
                     float trackHeight = rect.height - handleRect.height;
-                    handleRect.y = trackHeight * handleNormalized - trackHeight * 0.5f;
+                    handleRect.x = -rect.width * 0.5f;  // Center handle horizontally on parent
+                    if (!slider.IsReversed()) {
+                        // BOTTOM_TO_TOP: handle moves bottom→top (more negative y = higher)
+                        handleRect.y = -handleRect.height * 0.5f - trackHeight * handleNormalized;
+                    } else {
+                        // TOP_TO_BOTTOM: handle moves top→bottom
+                        handleRect.y = -rect.height + handleRect.height * 0.5f + trackHeight * handleNormalized;
+                    }
                 }
             }
         }
