@@ -35,7 +35,8 @@ namespace NE::Graphics {
 			NE_REFLECT_FIELD(softKnee),
 			NE_REFLECT_FIELD(bloomRadius),
 			NE_REFLECT_FIELD(bloomIntensity),
-			NE_REFLECT_FIELD(exposure)
+			NE_REFLECT_FIELD(exposure),
+			NE_REFLECT_FIELD_HIDDEN(toneMapType)
 		NE_REFLECT_END()
 	};
 

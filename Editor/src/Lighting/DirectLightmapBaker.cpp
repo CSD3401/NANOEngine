@@ -4,18 +4,26 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <filesystem>
 #include <limits>
 #include <mutex>
+#include <sstream>
 #include <thread>
 #include <variant>
 
 #include "SceneBakeBVH.hpp"
 
+#include "../AssetManagement/AssetManager.hpp"
+#include "../AssetManagement/UUID.hpp"
+#include "../AssetManagement/Assets/LightmapAsset.hpp"
+#include "../EditorScene.hpp"
 #include <ECS/Components/EntityMeta.hpp>
 #include <ECS/Components/Light.hpp>
 #include <ECS/Components/Transform.hpp>
 #include <EditorInterface/ECSExports.hpp>
 #include <Engine.hpp>
+#include <ResourceManagement/ResourceManager.hpp>
+#include <Serialisation/BinaryReflection.hpp>
 #include <SceneManagement/SceneLightmapRuntime.hpp>
 
 namespace Editor::Lightmapping {
@@ -75,6 +83,182 @@ namespace Editor::Lightmapping {
 		WorkerControl& Control() {
 			static WorkerControl control;
 			return control;
+		}
+
+		uint64_t HashBytes(const void* data, size_t size) {
+			const auto* bytes = static_cast<const uint8_t*>(data);
+			uint64_t hash = 1469598103934665603ull;
+			for (size_t i = 0; i < size; ++i) {
+				hash ^= bytes[i];
+				hash *= 1099511628211ull;
+			}
+			return hash;
+		}
+
+		std::string ToHexString(uint64_t value) {
+			std::ostringstream stream;
+			stream << std::hex << value;
+			return stream.str();
+		}
+
+		std::string BuildStableLightmapRevisionId(const Assets::LightmapAssetBlob& blob) {
+			Assets::LightmapAssetBlob signatureBlob = blob;
+			signatureBlob.lightingRevisionId.clear();
+			signatureBlob.dependencySignature.clear();
+
+			std::vector<uint8_t> bytes;
+			NE::Serialization::ToBinary(bytes, signatureBlob);
+			return ToHexString(HashBytes(bytes.data(), bytes.size()));
+		}
+
+		std::vector<uint8_t> BuildDilationWriteMaskForPage(
+			const DirectLightBakePageBuffers& page,
+			const LightmapUvRasterResult& rasterResult) {
+			const size_t texelCount = static_cast<size_t>(page.width) * static_cast<size_t>(page.height);
+			std::vector<uint8_t> writeMask(texelCount, 0u);
+
+			for (const auto& receiver : rasterResult.receivers) {
+				if (receiver.pageIndex != page.pageIndex) {
+					continue;
+				}
+
+				const int startX = std::max(receiver.placement.outerX, 0);
+				const int startY = std::max(receiver.placement.outerY, 0);
+				const int endX = std::min(
+					receiver.placement.outerX + receiver.placement.outerWidth,
+					static_cast<int>(page.width));
+				const int endY = std::min(
+					receiver.placement.outerY + receiver.placement.outerHeight,
+					static_cast<int>(page.height));
+
+				for (int y = startY; y < endY; ++y) {
+					for (int x = startX; x < endX; ++x) {
+						const size_t linearIndex = static_cast<size_t>(y) * static_cast<size_t>(page.width) + static_cast<size_t>(x);
+						if (linearIndex < writeMask.size()) {
+							writeMask[linearIndex] = 1u;
+						}
+					}
+				}
+			}
+
+			return writeMask;
+		}
+
+		bool BuildCanonicalLightmapAssetBlob(
+			const DirectLightBakeResult& result,
+			const Assets::UUID& assetUuid,
+			Assets::LightmapAssetBlob& outBlob,
+			std::string& outErrorMessage) {
+			outBlob = {};
+			outErrorMessage.clear();
+
+			if (assetUuid.empty()) {
+				outErrorMessage = "missing lightmap asset UUID";
+				return false;
+			}
+
+			if (!result.rasterResult) {
+				outErrorMessage = "published bake result is missing raster metadata";
+				return false;
+			}
+
+			const auto& allocationState = GetLightmapAllocationPreviewState();
+			if (!allocationState.hasRun) {
+				outErrorMessage = "lightmap allocation must be available before publishing";
+				return false;
+			}
+
+			outBlob.formatVersionMajor = 1;
+			outBlob.formatVersionMinor = 0;
+			outBlob.lightmapAssetId = assetUuid;
+			outBlob.bakeSettings.workerCount = result.settings.workerCount;
+			outBlob.bakeSettings.dilationRadiusTexels = result.settings.dilationRadiusTexels;
+			outBlob.bakeSettings.rebuildBvhBeforeBake = result.settings.rebuildBvhBeforeBake;
+			outBlob.bakeSettings.generateDebugBuffers = result.settings.generateDebugBuffers;
+			outBlob.bakeSettings.rayOriginBias = result.settings.rayOriginBias;
+			outBlob.bakeSettings.rayMinDistance = result.settings.rayMinDistance;
+			outBlob.bakeSettings.finiteLightDistanceEpsilon = result.settings.finiteLightDistanceEpsilon;
+			outBlob.bakeSettings.previewExposure = result.settings.previewExposure;
+			outBlob.bakeSettings.texelsPerUnit = allocationState.settings.texelsPerUnit;
+			outBlob.bakeSettings.pageSize = static_cast<uint32_t>(std::max(allocationState.settings.pageSize, 0));
+			outBlob.bakeSettings.padding = static_cast<uint32_t>(std::max(allocationState.settings.padding, 0));
+
+			outBlob.bindings.reserve(result.rasterResult->receivers.size());
+			for (const auto& receiver : result.rasterResult->receivers) {
+				NE::Lighting::LightmapBindingRecord binding{};
+				binding.entityLuid = receiver.stableId;
+				binding.subMeshIndex = receiver.subMeshIndex;
+				binding.pageId = receiver.placement.pageId;
+				binding.uvScale = receiver.placement.uvScale;
+				binding.uvOffset = receiver.placement.uvOffset;
+				outBlob.bindings.push_back(std::move(binding));
+			}
+
+			outBlob.pages.reserve(result.pages.size());
+			for (const auto& page : result.pages) {
+				const uint64_t texelCount = static_cast<uint64_t>(page.width) * static_cast<uint64_t>(page.height);
+				if (page.pageId.empty() ||
+					page.width == 0u ||
+					page.height == 0u ||
+					page.lighting.size() != static_cast<size_t>(texelCount) ||
+					page.validMask.size() != static_cast<size_t>(texelCount)) {
+					outErrorMessage = "published bake contains invalid page buffers";
+					return false;
+				}
+
+				Assets::LightmapAssetPage assetPage{};
+				assetPage.pageIndex = page.pageIndex;
+				assetPage.pageId = page.pageId;
+				assetPage.width = page.width;
+				assetPage.height = page.height;
+				assetPage.validTexelCount = static_cast<uint64_t>(page.validTexelCount);
+				assetPage.lighting = page.lighting;
+				assetPage.validMask = page.validMask;
+				assetPage.dilationWriteMask = BuildDilationWriteMaskForPage(page, *result.rasterResult);
+
+				for (const auto& rasterPage : result.rasterResult->pageBuffers) {
+					if (rasterPage.pageIndex == page.pageIndex) {
+						assetPage.allocatedInnerTexelCount = static_cast<uint64_t>(rasterPage.allocatedInnerTexelCount);
+						assetPage.coverage01 = rasterPage.coverage01;
+						break;
+					}
+				}
+
+				outBlob.pages.push_back(std::move(assetPage));
+			}
+
+			std::sort(outBlob.bindings.begin(), outBlob.bindings.end(),
+				[](const NE::Lighting::LightmapBindingRecord& lhs, const NE::Lighting::LightmapBindingRecord& rhs) {
+					if (lhs.entityLuid != rhs.entityLuid) {
+						return lhs.entityLuid < rhs.entityLuid;
+					}
+					return lhs.subMeshIndex < rhs.subMeshIndex;
+				});
+
+			std::sort(outBlob.pages.begin(), outBlob.pages.end(),
+				[](const Assets::LightmapAssetPage& lhs, const Assets::LightmapAssetPage& rhs) {
+					return lhs.pageIndex < rhs.pageIndex;
+				});
+
+			const std::string signature = BuildStableLightmapRevisionId(outBlob);
+			outBlob.lightingRevisionId = signature;
+			outBlob.dependencySignature = signature;
+			return true;
+		}
+
+		std::string BuildSuggestedLightmapAssetPathInternal() {
+			if (EditorScene::s_currentScenePath.empty()) {
+				return {};
+			}
+
+			std::filesystem::path scenePath(EditorScene::s_currentScenePath);
+			if (scenePath.empty()) {
+				return {};
+			}
+
+			const std::filesystem::path directory = scenePath.parent_path();
+			const std::string fileName = scenePath.stem().string() + "_Lightmap.nlight";
+			return (directory / fileName).string();
 		}
 
 		std::vector<NE::SceneManagement::LightmapRuntimePreviewPageInput> BuildRuntimePreviewPages(
@@ -1165,6 +1349,77 @@ namespace Editor::Lightmapping {
 		std::scoped_lock lock(control.mutex);
 		control.desiredPreviewExposure = std::clamp(previewExposure, 0.1f, 16.0f);
 		control.state.settings.previewExposure = control.desiredPreviewExposure;
+	}
+
+	std::string BuildSuggestedLightmapAssetPath() {
+		return BuildSuggestedLightmapAssetPathInternal();
+	}
+
+	bool CommitPublishedLightmapAsset(std::string& outAssetPath, std::string& outErrorMessage) {
+		outAssetPath.clear();
+		outErrorMessage.clear();
+
+		if (EditorScene::s_currentScenePath.empty()) {
+			outErrorMessage = "Save the scene before committing a baked lightmap asset.";
+			return false;
+		}
+
+		std::shared_ptr<DirectLightBakeResult> publishedResult;
+		{
+			auto& control = Control();
+			std::scoped_lock lock(control.mutex);
+			publishedResult = control.publishedResult;
+		}
+
+		if (!publishedResult) {
+			outErrorMessage = "Run and complete a direct bake before committing a lightmap asset.";
+			return false;
+		}
+
+		const std::string assetPath = BuildSuggestedLightmapAssetPathInternal();
+		if (assetPath.empty()) {
+			outErrorMessage = "Unable to determine a target path for the baked lightmap asset.";
+			return false;
+		}
+
+		auto& assetManager = Assets::AssetManager::GetInstance();
+		Assets::UUID assetUuid = assetManager.RetrieveUUID(assetPath);
+		if (assetUuid.empty()) {
+			assetUuid = Assets::GenerateUUID();
+		}
+
+		Assets::LightmapAssetBlob blob{};
+		if (!BuildCanonicalLightmapAssetBlob(*publishedResult, assetUuid, blob, outErrorMessage)) {
+			return false;
+		}
+
+		if (!Assets::LightmapAsset::SaveBlob(assetPath, blob, outErrorMessage)) {
+			return false;
+		}
+
+		const std::filesystem::path metaPath = std::filesystem::path(assetPath).concat(".meta");
+		if (std::filesystem::exists(metaPath)) {
+			assetManager.ReimportAsset(assetPath);
+		} else {
+			assetManager.GenerateMetadata(assetPath, assetUuid);
+		}
+
+		auto& scene = NE::GetScene();
+		auto& lightingContainer = scene.GetLightingContainer();
+		lightingContainer.enabled = true;
+		lightingContainer.lightingAssetRef = assetUuid;
+		lightingContainer.lightingRevisionId = blob.lightingRevisionId;
+		lightingContainer.dependencySignature = blob.dependencySignature;
+		lightingContainer.resolvedAsset.reset();
+		lightingContainer.pageIdToSlot.clear();
+		lightingContainer.statusMessage.clear();
+
+		NE::Resource::ResourceManager::GetInstance().UnloadResource(assetUuid);
+		NE::SceneManagement::ResolveSceneLightmapRuntimeState(scene);
+
+		EditorScene::isDirty = true;
+		outAssetPath = assetPath;
+		return true;
 	}
 
 	void ShutdownDirectLightBakeSession() {

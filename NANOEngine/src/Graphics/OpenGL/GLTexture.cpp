@@ -5,6 +5,13 @@
 #include "ResourceManagement/BinaryHeaders/NanoTexHeader.hpp"
 
 namespace {
+    enum class NanoTexFormat : uint8_t {
+        BC7_UNORM = 0,
+        BC7_UNORM_SRGB = 1,
+        BC5_UNORM = 2,
+        BC6H_UF16 = 3
+    };
+
     GLuint EnsureClampSampler() {
         static GLuint s_ClampSampler = 0;
         if (s_ClampSampler != 0) {
@@ -19,13 +26,12 @@ namespace {
         return s_ClampSampler;
     }
 
-    // --- Helpers for BC formats (BC7 here). Adjust if you add others ---
+    // BC5, BC6H, and BC7 all use 16-byte 4x4 blocks.
     static inline size_t BCBytesForLevel(uint32_t w, uint32_t h, uint8_t format /*enum*/) {
-        // BC7 = 16 bytes per 4x4 block
         const uint32_t blockW = (w + 3) / 4;
         const uint32_t blockH = (h + 3) / 4;
-        const size_t bytesPerBlock = 16; // BC7
-        (void)format; // map different formats later
+        const size_t bytesPerBlock = 16;
+        (void)format;
         return static_cast<size_t>(blockW) * static_cast<size_t>(blockH) * bytesPerBlock;
     }
 
@@ -50,23 +56,24 @@ namespace {
 
     static GLenum MapFormatToGL(uint8_t fmt, bool srgb)
     {
-        switch (fmt) {
-            // 0: BC7_UNORM
-        case 0:
+        switch (static_cast<NanoTexFormat>(fmt)) {
+        case NanoTexFormat::BC7_UNORM:
             return srgb ? GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM
                 : GL_COMPRESSED_RGBA_BPTC_UNORM;
 
-            // 1: BC7_UNORM_SRGB
-        case 1:
+        case NanoTexFormat::BC7_UNORM_SRGB:
             return GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM;
 
-            // 2: BC5_UNORM (two channels: RG)
-        case 2:
-            // BC5 = GL_RGTC2
+        case NanoTexFormat::BC5_UNORM:
             return GL_COMPRESSED_RG_RGTC2;
 
+        case NanoTexFormat::BC6H_UF16:
+            if (srgb) {
+                SPD_WARNING("NanoTex BC6H payload requested sRGB decode. Ignoring sRGB flag for HDR texture.");
+            }
+            return GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT;
+
         default:
-            // fall back or assert
             SPD_WARNING("Unknown NanoTex format {}, defaulting to BC7 UNORM", (int)fmt);
             return GL_COMPRESSED_RGBA_BPTC_UNORM;
         }
@@ -107,6 +114,9 @@ namespace NE::Graphics::OpenGL {
         m_stage.mips = hdr->mipCount ? hdr->mipCount : 1;
         m_stage.format = hdr->format;
         m_stage.srgb = (hdr->isSRGB != 0);
+        if (static_cast<NanoTexFormat>(m_stage.format) == NanoTexFormat::BC6H_UF16) {
+            m_stage.srgb = false;
+        }
 
         const size_t off = sizeof(NE::Resource::NanoTexHeader);
         const size_t pay = (blob.size > off) ? (blob.size - off) : 0;

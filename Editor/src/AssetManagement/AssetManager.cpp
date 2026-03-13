@@ -294,7 +294,11 @@ namespace Editor::Assets {
             const auto cookedPath = 
                 NE::Resource::ComputeArtifactPathFromUUID(uuid, GetResourceTypeFromAssetType(type));
             if (!fs::exists(cookedPath) && rec.asset) {
-                rec.asset->Cook(fsSourcePath.string(), cookedPath);
+                if (!rec.asset->Cook(fsSourcePath.string(), cookedPath)) {
+                    SPD_ERROR("Failed to cook asset '" << fsSourcePath.string() << "' to '" << cookedPath << "'");
+                    rec.isLoaded = false;
+                    return;
+                }
                 rec.isLoaded = true;
             }
 
@@ -345,7 +349,11 @@ namespace Editor::Assets {
 
                 const auto cookedPath =
                     NE::Resource::ComputeArtifactPathFromUUID(uuid, GetResourceTypeFromAssetType(type));
-                rec.asset->Cook(fsSourcePath.string(), cookedPath);
+                if (!rec.asset->Cook(fsSourcePath.string(), cookedPath)) {
+                    SPD_ERROR("Failed to cook asset '" << fsSourcePath.string() << "' to '" << cookedPath << "'");
+                    rec.isLoaded = false;
+                    return;
+                }
                 rec.isLoaded = true;
             }
         } else if (rec.type == AssetType::Prefab) {
@@ -407,8 +415,13 @@ namespace Editor::Assets {
         }
 
         rec.asset->LoadImportSettings(fsSourcePath.string());
-        rec.asset->Cook(fsSourcePath.string(), 
-            NE::Resource::ComputeArtifactPathFromUUID(uuid, GetResourceTypeFromAssetType(type)));
+        const auto cookedPath =
+            NE::Resource::ComputeArtifactPathFromUUID(uuid, GetResourceTypeFromAssetType(type));
+        if (!rec.asset->Cook(fsSourcePath.string(), cookedPath)) {
+            SPD_ERROR("Failed to reimport asset '" << fsSourcePath.string() << "' to '" << cookedPath << "'");
+            rec.isLoaded = false;
+            return;
+        }
         rec.isLoaded = true;
     }
 

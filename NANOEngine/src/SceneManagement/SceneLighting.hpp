@@ -5,7 +5,7 @@
 #include <unordered_map>
 
 #include "Core/Reflection.hpp"
-#include <Lighting/LightingAsset.hpp>
+#include <Lighting/LightmapResource.hpp>
 
 namespace NE::SceneManagement {
 
@@ -24,7 +24,7 @@ namespace NE::SceneManagement {
 			NE_REFLECT_FIELD(dependencySignature)
 		NE_REFLECT_END()
 
-		std::shared_ptr<NE::Lighting::LightingAsset> resolvedAsset;
+		std::shared_ptr<NE::Lighting::LightmapResource> resolvedAsset;
 		std::unordered_map<std::string, uint32_t> pageIdToSlot;
 		std::string statusMessage;
 	};

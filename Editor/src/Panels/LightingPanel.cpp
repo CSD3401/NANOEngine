@@ -586,6 +586,39 @@ namespace Editor {
 					ImGui::TextDisabled("%s", directBakeState.activeStage.c_str());
 				}
 
+				const std::string suggestedLightmapPath = Editor::Lightmapping::BuildSuggestedLightmapAssetPath();
+				ImGui::Spacing();
+				ImGui::Text("Commit Target");
+				ImGui::SameLine();
+				if (suggestedLightmapPath.empty()) {
+					ImGui::TextDisabled("save the scene first");
+				} else {
+					ImGui::TextWrapped("%s", suggestedLightmapPath.c_str());
+				}
+
+				ImGui::BeginDisabled(!directBakeState.hasResult || suggestedLightmapPath.empty());
+				if (ImGui::Button("Commit Lightmap Asset")) {
+					std::string committedPath;
+					std::string errorMessage;
+					m_commitLightmapSucceeded =
+						Editor::Lightmapping::CommitPublishedLightmapAsset(committedPath, errorMessage);
+					if (m_commitLightmapSucceeded) {
+						m_commitLightmapStatus = "Committed canonical .nlight and cooked BC6H runtime data to " + committedPath;
+					} else {
+						m_commitLightmapStatus = errorMessage.empty()
+							? "Failed to commit the baked lightmap asset."
+							: errorMessage;
+					}
+				}
+				ImGui::EndDisabled();
+
+				if (!m_commitLightmapStatus.empty()) {
+					const ImVec4 statusColor = m_commitLightmapSucceeded
+						? ImVec4(0.35f, 0.85f, 0.45f, 1.0f)
+						: ImVec4(0.95f, 0.45f, 0.35f, 1.0f);
+					ImGui::TextColored(statusColor, "%s", m_commitLightmapStatus.c_str());
+				}
+
 				if (directBakeState.hasResult) {
 					const auto& bakeResult = *directBakeState.result;
 					const auto& stats = bakeResult.stats;
@@ -703,9 +736,13 @@ namespace Editor {
 					const auto& outputDiagnostics = textureOutput.diagnostics;
 
 					ImGui::Spacing();
-					ImGui::Text("Output Format");
+					ImGui::Text("Preview Format");
 					ImGui::SameLine();
 					ImGui::TextDisabled("RGBA16F linear");
+
+					ImGui::Text("Committed Runtime Format");
+					ImGui::SameLine();
+					ImGui::TextDisabled("BC6H");
 
 					ImGui::Text("Preview Exposure");
 					ImGui::SameLine();

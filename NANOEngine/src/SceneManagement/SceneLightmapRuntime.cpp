@@ -38,27 +38,6 @@ namespace NE::SceneManagement {
 #endif
         }
 
-        bool IsPageRecordResolvable(const Lighting::LightmapPageRecord& page) {
-            if (page.pageId.empty()) {
-                return false;
-            }
-
-            if (page.width == 0 || page.height == 0) {
-                return false;
-            }
-
-            if (page.irradianceTextureUUID.empty()) {
-                return false;
-            }
-
-            if (page.pageType == Lighting::LightmapPageType::Directional &&
-                page.directionTextureUUID.empty()) {
-                return false;
-            }
-
-            return true;
-        }
-
         std::mutex g_lightmapStateMutex;
         std::unordered_map<const Scene*, LightmapRuntimeState> g_lightmapStates;
 
@@ -132,13 +111,13 @@ namespace NE::SceneManagement {
                 return state;
             }
 
-            auto lightingAsset = Resource::ResourceManager::GetInstance().LoadResource<Lighting::LightingAsset>(state.lightingAssetRef);
+            auto lightingAsset = Resource::ResourceManager::GetInstance().LoadResource<Lighting::LightmapResource>(state.lightingAssetRef);
             if (!lightingAsset) {
                 SetFailure(scene, state, "failed to load lighting asset sidecar");
                 return state;
             }
 
-            if (lightingAsset->GetFormatVersionMajor() != 1) {
+            if (lightingAsset->GetFormatVersionMajor() != 2) {
                 SetFailure(scene, state, "unsupported lighting asset major version");
                 return state;
             }
@@ -155,111 +134,58 @@ namespace NE::SceneManagement {
                 return state;
             }
 
-            const auto& pages = lightingAsset->GetPages();
-            state.pages.resize(pages.size());
-            state.irradianceHandles.assign(
-                std::min<std::size_t>(pages.size(), static_cast<std::size_t>(kMaxSceneLightmapPages)),
-                0ull);
+            state.pageSlots = lightingAsset->GetPageSlots();
+            state.manifestResolved = lightingAsset->IsManifestResolved();
+            state.lightingUsable = lightingAsset->IsUsable();
+            state.irradianceHandles = lightingAsset->GetIrradianceHandles();
+            state.pages.resize(lightingAsset->GetPages().size());
 
-            std::size_t skippedPageCount = 0;
-            for (std::uint32_t slot = 0; slot < pages.size(); ++slot) {
+            std::size_t skippedPageCount = 0u;
+            const auto& pages = lightingAsset->GetPages();
+            for (std::size_t slot = 0; slot < pages.size(); ++slot) {
                 const auto& page = pages[slot];
                 auto& runtimePage = state.pages[slot];
-                runtimePage.pageId = page.pageId;
-                runtimePage.pageType = page.pageType;
-                runtimePage.irradianceTextureUUID = page.irradianceTextureUUID;
-                runtimePage.width = page.width;
-                runtimePage.height = page.height;
+                runtimePage.pageId = page.manifest.pageId;
+                runtimePage.pageType = page.manifest.pageType;
+                runtimePage.irradianceTextureUUID = page.manifest.irradianceTextureUUID;
+                runtimePage.width = page.manifest.width;
+                runtimePage.height = page.manifest.height;
+                runtimePage.irradianceTexture = page.irradianceTexture;
+                runtimePage.irradianceHandle = page.irradianceHandle;
+                runtimePage.resolved = page.resolved;
+                runtimePage.failureReason = page.failureReason;
 
-                if (page.pageId.empty()) {
+                if (runtimePage.resolved) {
+                    NoteResolvedPage(state);
+                } else {
                     ++skippedPageCount;
                     NoteFailedPageResolve(state);
-                    runtimePage.failureReason = "missing page id";
-                    LogLightmapRuntimeWarning("Skipping lightmap page with missing page id while resolving scene lighting.");
-                    continue;
+                    if (!runtimePage.pageId.empty() && !runtimePage.failureReason.empty()) {
+                        LogLightmapRuntimeWarning(
+                            "Skipping lightmap page '" + runtimePage.pageId + "' while resolving scene lighting: " +
+                            runtimePage.failureReason);
+                    }
                 }
-
-                const auto [itPageSlot, inserted] = state.pageSlots.emplace(page.pageId, slot);
-                if (!inserted) {
-                    ++skippedPageCount;
-                    NoteFailedPageResolve(state);
-                    runtimePage.failureReason = "duplicate page id";
-                    LogLightmapRuntimeWarning("Skipping duplicate lightmap page id while resolving scene lighting: '" + page.pageId + "'");
-                    continue;
-                }
-
-                if (!IsPageRecordResolvable(page)) {
-                    ++skippedPageCount;
-                    NoteFailedPageResolve(state);
-                    runtimePage.failureReason = "invalid page manifest";
-                    LogLightmapRuntimeWarning("Skipping invalid lightmap page while resolving scene lighting: pageId='" + page.pageId + "'");
-                    continue;
-                }
-
-                if (slot >= kMaxSceneLightmapPages) {
-                    ++skippedPageCount;
-                    NoteFailedPageResolve(state);
-                    runtimePage.failureReason = "page exceeds runtime slot limit";
-                    LogLightmapRuntimeWarning("Skipping lightmap page beyond runtime limit (" +
-                        std::to_string(kMaxSceneLightmapPages) + "): '" + page.pageId + "'");
-                    continue;
-                }
-
-                if (page.pageType != Lighting::LightmapPageType::NonDirectional) {
-                    ++skippedPageCount;
-                    NoteFailedPageResolve(state);
-                    runtimePage.failureReason = "unsupported page type for runtime v1";
-                    LogLightmapRuntimeWarning("Skipping unsupported lightmap page type for runtime v1: pageId='" + page.pageId + "'");
-                    continue;
-                }
-
-                auto irradianceTexture =
-                    Resource::ResourceManager::GetInstance().LoadResource<Graphics::OpenGL::GLTexture>(page.irradianceTextureUUID);
-                if (!irradianceTexture) {
-                    ++skippedPageCount;
-                    NoteFailedPageResolve(state);
-                    runtimePage.failureReason = "failed to load irradiance texture";
-                    LogLightmapRuntimeWarning("Failed to resolve irradiance lightmap texture for page '" + page.pageId +
-                        "' (texture UUID '" + page.irradianceTextureUUID + "')");
-                    continue;
-                }
-
-                irradianceTexture->MakeResident();
-                runtimePage.irradianceTexture = std::move(irradianceTexture);
-                runtimePage.irradianceHandle = runtimePage.irradianceTexture->GetClampBindlessHandle();
-                runtimePage.resolved = (runtimePage.irradianceHandle != 0);
-                if (!runtimePage.resolved) {
-                    ++skippedPageCount;
-                    NoteFailedPageResolve(state);
-                    runtimePage.failureReason = "invalid irradiance bindless handle";
-                    LogLightmapRuntimeWarning("Resolved lightmap texture produced an invalid bindless handle for page '" + page.pageId + "'");
-                    continue;
-                }
-
-                state.irradianceHandles[slot] = runtimePage.irradianceHandle;
-                NoteResolvedPage(state);
             }
 
-            PopulateFallbackHandles(state);
-
-            state.manifestResolved = !state.pageSlots.empty();
             if (!state.manifestResolved) {
-                SetFailure(scene, state, "lighting asset has no resolvable pages");
+                SetFailure(scene, state,
+                    lightingAsset->GetFailureReason().empty()
+                    ? "lighting asset has no resolvable pages"
+                    : lightingAsset->GetFailureReason());
                 return state;
             }
 
             state.containerValid = true;
-            state.lightingUsable = std::any_of(
-                state.irradianceHandles.begin(),
-                state.irradianceHandles.end(),
-                [](std::uint64_t handle) { return handle != 0u; });
-
             container.valid = state.lightingUsable;
             container.resolvedAsset = std::move(lightingAsset);
             container.pageIdToSlot = state.pageSlots;
 
             if (!state.lightingUsable) {
-                SetFailure(scene, state, "lighting asset resolved no usable runtime pages");
+                SetFailure(scene, state,
+                    container.resolvedAsset && !container.resolvedAsset->GetFailureReason().empty()
+                    ? container.resolvedAsset->GetFailureReason()
+                    : "lighting asset resolved no usable runtime pages");
                 return state;
             }
 
