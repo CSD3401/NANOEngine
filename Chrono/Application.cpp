@@ -65,7 +65,7 @@ namespace Editor {
 			NE::InputManager::OnCharInput((uint32_t)c);
 			});
 
-		NE::LoadScene("e17cc794-74d9-40ee-9c9e-efaa829ab09a");
+		NE::LoadScene("7f6eb653-c6f7-426d-b9ac-9c0bada73cfc");
 	}
 
 	void Application::Run() {
