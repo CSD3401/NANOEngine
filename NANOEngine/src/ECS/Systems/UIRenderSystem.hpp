@@ -239,6 +239,7 @@ namespace NE::ECS::Systems {
         // Geometry buffer pool (avoids per-frame VAO/VBO/EBO allocation + fixes GL object leak)
         std::vector<std::shared_ptr<NE::Graphics::IGeometryBuffer>> m_geometryPool;
         size_t m_geometryIndex = 0;
+        bool m_geometryPoolCapped = false; // set to true when pool reaches MAX_UI_GEOMETRY_POOL_SIZE
 
         std::shared_ptr<NE::Graphics::IGeometryBuffer> AcquireGeometryBuffer(
             const std::vector<NE::Graphics::UIVertex2>& vertices,

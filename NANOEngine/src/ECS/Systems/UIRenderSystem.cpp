@@ -41,6 +41,9 @@ namespace NE::ECS::Systems {
     // Default world space canvas scale (so 100x100 UI = 10x10 world units)
     static constexpr float DEFAULT_WORLD_SPACE_SCALE = 0.1f;
 
+    // Maximum number of pooled geometry buffers; prevents unbounded GPU memory growth
+    static constexpr size_t MAX_UI_GEOMETRY_POOL_SIZE = 512;
+
     //=========================================================================
     // Lifecycle
     //=========================================================================
@@ -217,7 +220,18 @@ namespace NE::ECS::Systems {
     )
     {
         if (m_geometryIndex >= m_geometryPool.size()) {
-            m_geometryPool.push_back(std::make_shared<NE::Graphics::UIGeometryBuffer>());
+            if (m_geometryPool.size() < MAX_UI_GEOMETRY_POOL_SIZE) {
+                m_geometryPool.push_back(std::make_shared<NE::Graphics::UIGeometryBuffer>());
+            } else {
+                // Pool is at capacity — wrap around (ring buffer) to avoid unbounded growth
+                if (!m_geometryPoolCapped) {
+                    m_geometryPoolCapped = true;
+                    std::cout << "[UIRenderSystem] Geometry pool reached MAX_UI_GEOMETRY_POOL_SIZE ("
+                              << MAX_UI_GEOMETRY_POOL_SIZE
+                              << "). Wrapping to ring buffer. Consider increasing the cap if UI is complex.\n";
+                }
+                m_geometryIndex = 0;
+            }
         }
         auto buf = std::static_pointer_cast<NE::Graphics::UIGeometryBuffer>(m_geometryPool[m_geometryIndex++]);
         buf->Upload(vertices, indices);
