@@ -1509,8 +1509,6 @@ namespace NE::Graphics {
 
             RenderParticlesForView(view, camProj, camView, camPos, frustum, drawCount);
 
-            RenderSelectionHighlightForView(handle, view, camProj, camView, commands);
-
 #ifndef PRODUCTION_BUILD
             RenderEditorDebugViewPassForView(
                 handle,
@@ -2058,22 +2056,22 @@ namespace NE::Graphics {
         std::vector<Vertex> vertices(4);
 
         // Positions (centered quad)
-        vertices[0].Position = { -0.5f, -0.5f, 0.0f };
-        vertices[1].Position = { 0.5f, -0.5f, 0.0f };
-        vertices[2].Position = { 0.5f,  0.5f, 0.0f };
-        vertices[3].Position = { -0.5f,  0.5f, 0.0f };
+        vertices[0].position = { -0.5f, -0.5f, 0.0f };
+        vertices[1].position = { 0.5f, -0.5f, 0.0f };
+        vertices[2].position = { 0.5f,  0.5f, 0.0f };
+        vertices[3].position = { -0.5f,  0.5f, 0.0f };
 
         // Normals (not important for particles, but your VAO expects it)
-        vertices[0].Normal = { 0.0f, 0.0f, 1.0f };
-        vertices[1].Normal = { 0.0f, 0.0f, 1.0f };
-        vertices[2].Normal = { 0.0f, 0.0f, 1.0f };
-        vertices[3].Normal = { 0.0f, 0.0f, 1.0f };
+        vertices[0].normal = { 0.0f, 0.0f, 1.0f };
+        vertices[1].normal = { 0.0f, 0.0f, 1.0f };
+        vertices[2].normal = { 0.0f, 0.0f, 1.0f };
+        vertices[3].normal = { 0.0f, 0.0f, 1.0f };
 
         // UVs
-        vertices[0].TexCoord = { 0.0f, 0.0f };
-        vertices[1].TexCoord = { 1.0f, 0.0f };
-        vertices[2].TexCoord = { 1.0f, 1.0f };
-        vertices[3].TexCoord = { 0.0f, 1.0f };
+        vertices[0].texCoord0 = { 0.0f, 0.0f };
+        vertices[1].texCoord0 = { 1.0f, 0.0f };
+        vertices[2].texCoord0 = { 1.0f, 1.0f };
+        vertices[3].texCoord0 = { 0.0f, 1.0f };
 
         std::vector<uint32_t> indices = { 0, 1, 2, 0, 2, 3 };
 
@@ -2090,7 +2088,7 @@ namespace NE::Graphics {
 
         auto geo = std::make_shared<OpenGL::GLGeometryBuffer>(vb, ib);
 
-        geo->EnableParticleInstanceLayout(10, 11, 12); // posLS, size, color
+        geo->EnableParticleInstanceLayout(13, 14, 15); // posLS, size, color
 
         s_particleQuadMesh = geo;
         return s_particleQuadMesh;

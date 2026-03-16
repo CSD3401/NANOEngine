@@ -4,18 +4,13 @@
 layout(location = 0) in vec3 aPos;
 layout(location = 2) in vec2 a_TexCoord;
 
-// Particle instance data (your EnableParticleInstanceLayout(10,11,12))
-layout(location = 10) in vec3  i_PosLS;
-layout(location = 11) in float i_Size;
-layout(location = 12) in vec4  i_Color;
+layout(location = 13) in vec3  i_PosLS;
+layout(location = 14) in float i_Size;
+layout(location = 15) in vec4  i_Color;
 
 uniform mat4 u_View;
 uniform mat4 u_Projection;
-
-// Choice B: emitter transform
 uniform mat4 u_EmitterModel;
-
-// Billboard basis (world space)
 uniform vec3 u_CamRightWS;
 uniform vec3 u_CamUpWS;
 
@@ -24,10 +19,8 @@ out vec4 v_Color;
 
 void main()
 {
-    // particle center in world space
     vec3 centerWS = (u_EmitterModel * vec4(i_PosLS, 1.0)).xyz;
 
-    // quad corners from mesh positions (-0.5..0.5)
     vec2 corner = aPos.xy;
 
     vec3 offsetWS = (corner.x * u_CamRightWS + corner.y * u_CamUpWS) * i_Size;
@@ -66,6 +59,6 @@ void main()
     if (u_AlphaClip != 0 && alpha < u_AlphaCutoff)
         discard;
 
-    FragColor = vec4(tex.rgb, alpha);
+	FragColor = vec4(tex.rgb * v_Color.rgb, alpha);
     OutID = vec4(-1.0, -1.0, -1.0, 1.0);
 }
