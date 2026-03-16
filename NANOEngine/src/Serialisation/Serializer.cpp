@@ -4,6 +4,7 @@
 #include <fstream>
 
 #include "BinaryReflection.hpp"
+#include "Engine.hpp"
 #include "ECS/Core/ECSCoordinator.hpp"
 #include "Graphics/Core/GraphicsManager.hpp"
 #include "Core/LUIDGenerator.hpp"
@@ -12,6 +13,7 @@
 #include "ECS/Components/EntityMeta.hpp"
 #include "ECS/Components/Transform.hpp"
 #include "ECS/Components/Renderer.hpp"
+#include "ECS/Components/LightmapBinding.hpp"
 #include "ECS/Components/Light.hpp"
 #include "ECS/Components/Collider.hpp"
 #include "ECS/Components/Rigidbody.hpp"
@@ -38,16 +40,18 @@
 #include "ECS/Components/Animator.hpp"
 #include "ECS/Components/DecalProjector.hpp"
 #include "ECS/Components/ParticleEmitter.hpp"
+#include "SceneManagement/Scene.hpp"
 
 namespace NE {
 	namespace {
-		using ComponentTypes = std::tuple<
+		using SceneComponentTypes = std::tuple<
 			ECS::Component::EntityMeta,
 			ECS::Component::Hierarchy,
 			ECS::Component::PrefabInstance,
 			ECS::Component::PrefabLink,
 			ECS::Component::Transform,
 			ECS::Component::Renderer,
+			ECS::Component::LightmapBinding,
 			ECS::Component::Light,
 			ECS::Component::Collider,
 			ECS::Component::Rigidbody,
@@ -76,17 +80,55 @@ namespace NE {
 		using ComponentMask = std::uint64_t;
 
 		template <class F>
-		void ForEachComponentType(F&& f) {
+		void ForEachSceneComponentType(F&& f) {
 			std::apply([&](auto&&... t) {
 				(f.template operator() < std::decay_t<decltype(t)> > (), ...);
-				}, ComponentTypes{});
+				}, SceneComponentTypes{});
+		}
+
+		using PrefabComponentTypes = std::tuple<
+			ECS::Component::EntityMeta,
+			ECS::Component::Hierarchy,
+			ECS::Component::PrefabInstance,
+			ECS::Component::PrefabLink,
+			ECS::Component::Transform,
+			ECS::Component::Renderer,
+			ECS::Component::Light,
+			ECS::Component::Collider,
+			ECS::Component::Rigidbody,
+			ECS::Component::NativeScript,
+			ECS::Component::Camera,
+			ECS::Component::UIRectTransform,
+			ECS::Component::UICanvas,
+			ECS::Component::UIImage,
+			ECS::Component::UIText,
+			ECS::Component::UIButton,
+			ECS::Component::UISlider,
+			ECS::Component::UIToggle,
+			ECS::Component::UILayoutGroup,
+			ECS::Component::UIGridLayoutGroup,
+			ECS::Component::UILayoutElement,
+			ECS::Component::UIScrollRect,
+			ECS::Component::UIAutoSize,
+			ECS::Component::UIInputField,
+			ECS::Component::UIDropdown,
+			ECS::Component::CharacterController,
+			ECS::Component::Animator,
+			ECS::Component::DecalProjector
+		>;
+
+		template <class F>
+		void ForEachPrefabComponentType(F&& f) {
+			std::apply([&](auto&&... t) {
+				(f.template operator() < std::decay_t<decltype(t)> > (), ...);
+				}, PrefabComponentTypes{});
 		}
 
 		inline constexpr uint32_t NSCE_MAGIC = 0x4E534345;
-		inline constexpr int CURRENT_NANOSCENE_FORMAT_VERSION = 6;
+		inline constexpr int CURRENT_NANOSCENE_FORMAT_VERSION = 12;
 
 		inline constexpr uint32_t NFAB_MAGIC = 0x4E464142;
-		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 4;
+		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 9;
 
 		void AppendPreorder(ECS::ECSCoordinator& ecs, ECS::Entity e, std::vector<ECS::Entity>& out) {
 			out.push_back(e);
@@ -176,7 +218,7 @@ namespace NE {
 
 				ComponentMask mask = 0;
 				uint32_t idx = 0;
-				ForEachComponentType([&]<typename C>() {
+				ForEachSceneComponentType([&]<typename C>() {
 					if (ecs.HasComponent<C>(e))
 						mask |= (ComponentMask(1) << idx);
 					++idx;
@@ -185,7 +227,7 @@ namespace NE {
 				ToBinary(buf, (std::uint64_t)mask);
 
 				idx = 0;
-				ForEachComponentType([&]<typename C>() {
+				ForEachSceneComponentType([&]<typename C>() {
 					if (mask & (ComponentMask(1) << idx)) {
 						const auto& c = ecs.GetComponent<C>(e);
 						ToBinary(buf, c);
@@ -201,10 +243,12 @@ namespace NE {
 			{
 				const uint8_t layer = static_cast<uint8_t>(ecs.GetEntityManager().GetLayer(e));
 				ToBinary(buf, layer);
+				const bool active = ecs.GetEntityManager().GetActive(e);
+				ToBinary(buf, active);
 
 				ComponentMask mask = 0;
 				uint32_t idx = 0;
-				ForEachComponentType([&]<typename C>() {
+				ForEachPrefabComponentType([&]<typename C>() {
 					if (ecs.HasComponent<C>(e))
 						mask |= (ComponentMask(1) << idx);
 					++idx;
@@ -213,7 +257,7 @@ namespace NE {
 				ToBinary(buf, (std::uint64_t)mask);
 
 				idx = 0;
-				ForEachComponentType([&]<typename C>() {
+				ForEachPrefabComponentType([&]<typename C>() {
 					if (mask & (ComponentMask(1) << idx)) {
 						C copy = ecs.GetComponent<C>(e);                 // copy
 						PatchForCopy<C>(copy, e, entityToLocalId);       // patch
@@ -242,6 +286,8 @@ namespace NE {
 
 			auto& pp = Graphics::GraphicsManager::postProcessingSettings;
 			ToBinary(buf, pp);
+
+			ToBinary(buf, NE::GetScene().GetLightingContainer());
 
 			std::vector<NE::ECS::Entity> flat;
 			for (auto root : rootNodes)
@@ -388,7 +434,7 @@ namespace NE {
 			}
 		}
 
-		bool DeserializeScene(ECS::ECSCoordinator& ecs, const std::string& path) {
+		bool DeserializeScene(ECS::ECSCoordinator& ecs, const std::string& path, SceneManagement::Scene* owningScene) {
 			NE::ByteBuffer bytes;
 			if (!ReadAllBytes(path, bytes))
 				return false;
@@ -406,8 +452,11 @@ namespace NE {
 			if (version != CURRENT_NANOSCENE_FORMAT_VERSION)
 				return false;
 
+			SceneManagement::Scene* targetScene = owningScene ? owningScene : &NE::GetScene();
+
 			if (!ReadT(it, end, Graphics::GraphicsManager::renderSettings)) return false;
 			if (!ReadT(it, end, Graphics::GraphicsManager::postProcessingSettings)) return false;
+			if (!ReadT(it, end, targetScene->GetLightingContainer())) return false;
 
 			std::uint64_t entityCount = 0;
 			if (!ReadT(it, end, entityCount)) return false;
@@ -426,7 +475,7 @@ namespace NE {
 				const std::uint64_t mask = maskU64;
 
 				std::uint32_t idx = 0;
-				ForEachComponentType([&]<typename C>() {
+				ForEachSceneComponentType([&]<typename C>() {
 					if (mask & (std::uint64_t(1) << idx)) {
 						C c{};
 						if (!ReadT(it, end, c)) { ++idx; return; }
@@ -444,6 +493,24 @@ namespace NE {
 					ecs.GetComponent<ECS::Component::EntityMeta>(e).isActive = entityActive;
 				}
 			}
+			//// Resolve UISlider child entity refs from Hierarchy luids (registered by HierarchySystem)
+			//{
+			//	auto& luidReg = ecs.GetLUIDRegistry();
+			//	auto resolve = [&](uint64_t luid) -> uint32_t {
+			//		if (luid == 0) return UINT32_MAX;
+			//		const auto* rec = luidReg.Find(luid);
+			//		return rec ? static_cast<uint32_t>(rec->m_entityOwner) : UINT32_MAX;
+			//	};
+			//	for (ECS::Entity e : ecs.GetEntityManager().GetUsedEntities()) {
+			//		if (!ecs.HasComponent<ECS::Component::UISlider>(e)) continue;
+			//		auto& slider = ecs.GetComponent<ECS::Component::UISlider>(e);
+			//		slider.fillRect            = resolve(slider.fillRectLuid);
+			//		slider.handleRect          = resolve(slider.handleRectLuid);
+			//		slider.backgroundRect      = resolve(slider.backgroundRectLuid);
+			//		slider.fillAreaRect        = resolve(slider.fillAreaRectLuid);
+			//		slider.handleSlideAreaRect = resolve(slider.handleSlideAreaRectLuid);
+			//	}
+			//}
 			return true;
 		}
 
@@ -500,6 +567,10 @@ namespace NE {
 				ReadT(it, end, layer);
 				ecs.GetEntityManager().SetLayer(e, layer);
 
+				bool active;
+				ReadT(it, end, active);
+				ecs.GetEntityManager().ToggleActive(e, active);
+
 				std::uint64_t maskU64 = 0;
 				ok = ReadT(it, end, maskU64);
 				if (!ok) break;
@@ -507,7 +578,7 @@ namespace NE {
 				const std::uint64_t mask = maskU64;
 
 				std::uint32_t idx = 0;
-				ForEachComponentType([&]<typename C>() {
+				ForEachPrefabComponentType([&]<typename C>() {
 					if (!ok) { ++idx; return; }
 
 					if (mask & (std::uint64_t(1) << idx)) {
@@ -565,6 +636,25 @@ namespace NE {
 				childH.parentLuid = newParentLuidIt->second;
 				parentH.children.push_back(p.e);
 			}
+
+			//// Patch UISlider child entity refs using remapped Hierarchy luids
+			//for (ECS::Entity slEnt : created) {
+			//	if (!ecs.HasComponent<ECS::Component::UISlider>(slEnt)) continue;
+			//	auto& slider = ecs.GetComponent<ECS::Component::UISlider>(slEnt);
+			//	auto remap = [&](uint64_t& luidField, uint32_t& entityField) {
+			//		uint64_t oldLuid = luidField;
+			//		if (oldLuid == 0) { entityField = UINT32_MAX; return; }
+			//		auto eit = oldLuidToEntity.find(oldLuid);
+			//		auto lit = oldLuidToNewLuid.find(oldLuid);
+			//		entityField = (eit != oldLuidToEntity.end()) ? static_cast<uint32_t>(eit->second) : UINT32_MAX;
+			//		if (lit != oldLuidToNewLuid.end()) luidField = lit->second;
+			//	};
+			//	remap(slider.fillRectLuid,            slider.fillRect);
+			//	remap(slider.handleRectLuid,          slider.handleRect);
+			//	remap(slider.backgroundRectLuid,      slider.backgroundRect);
+			//	remap(slider.fillAreaRectLuid,        slider.fillAreaRect);
+			//	remap(slider.handleSlideAreaRectLuid, slider.handleSlideAreaRect);
+			//}
 
 			return outNewRoot;
 		}
@@ -640,7 +730,7 @@ namespace NE {
 				const std::uint64_t mask = maskU64;
 
 				std::uint32_t idx = 0;
-				ForEachComponentType([&]<typename C>() {
+				ForEachPrefabComponentType([&]<typename C>() {
 					if (!ok) { ++idx; return; }
 
 					if (mask & (std::uint64_t(1) << idx)) {
@@ -743,6 +833,10 @@ namespace NE {
 				ReadT(it, end, layer);
 				ecs.GetEntityManager().SetLayer(e, layer);
 
+				bool active;
+				ReadT(it, end, active);
+				ecs.GetEntityManager().ToggleActive(e, active);
+
 				uint64_t mask64 = 0;
 				ok = FromBinary(it, end, mask64);
 				if (!ok) break;
@@ -750,7 +844,7 @@ namespace NE {
 				ComponentMask mask = static_cast<ComponentMask>(mask64);
 
 				uint32_t idx = 0;
-				ForEachComponentType([&]<typename C>() {
+				ForEachPrefabComponentType([&]<typename C>() {
 					if (!ok) { ++idx; return; }
 
 					if (mask & (ComponentMask(1) << idx)) {

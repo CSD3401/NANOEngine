@@ -3,72 +3,87 @@
 #include <map>
 #include <vector>
 
-/**
- * Template - Auto-generated script template
- * Implement your game logic in the lifecycle methods below.
- */
-
 class Misc_Teleporter : public IScript {
 public:
-    Misc_Teleporter() { 
+    Misc_Teleporter() {
         SCRIPT_GAMEOBJECT_REF(player);
-		SCRIPT_COMPONENT_REF(targetTransformRef, TransformRef);
+        SCRIPT_COMPONENT_REF(targetTransformRef, TransformRef);
+        SCRIPT_FIELD(eventBased, Bool);
+        SCRIPT_FIELD(eventName, String);
     }
 
     ~Misc_Teleporter() override = default;
 
-    // === Lifecycle Methods ===
+    void Awake() override {}
 
-    void Awake() override {
-        // Called when the script component is first created
-    }
-
-    void Initialize(Entity entity) override {
-        // Called to initialize the script with its entity
-    }
+    void Initialize(Entity entity) override {}
 
     void Start() override {
+        playerInZone = false;
+        msgReceived = false;
 
+        if (eventBased && !eventName.empty()) {
+            Events::Listen(eventName.c_str(), [this](void*) {
+                msgReceived = true;
+                LOG_DEBUG("[Misc_Teleporter] Event received: " + eventName);
+                TryTeleport();
+                });
+        }
     }
 
-    void Update(double deltaTime) override {
+    void Update(double deltaTime) override {}
 
-    }
+    void OnDestroy() override {}
 
-    void OnDestroy() override {
-        // Called when the script is about to be destroyed
-    }
-
-    // === Optional Callbacks ===
-
-    void OnEnable() override {
-
-    }
-
-    void OnDisable() override {
-        // Called when the script is disabled
-    }
-
-    void OnValidate() override {
-        // Called when a field value is changed in the editor
-    }
+    void OnEnable() override {}
+    void OnDisable() override {}
+    void OnValidate() override {}
 
     const char* GetTypeName() const override {
         return "Misc_Teleporter";
     }
 
-    // === Collision Callbacks ===
-
     void OnCollisionEnter(Entity other) override { (void)other; }
     void OnCollisionExit(Entity other) override { (void)other; }
     void OnCollisionStay(Entity other) override { (void)other; }
-    void OnTriggerEnter(Entity other) override { 
-		CC_SetPosition(GetPosition(targetTransformRef), player.GetEntity());
+
+    void OnTriggerEnter(Entity other) override {
+        if (!eventBased) {
+            // Original behaviour - teleport immediately on trigger
+            CC_SetPosition(GetPosition(targetTransformRef), player.GetEntity());
+        }
+        else {
+            playerInZone = true;
+            LOG_DEBUG("[Misc_Teleporter] Player entered zone, waiting for event: " + eventName);
+            TryTeleport();
+        }
     }
-    void OnTriggerExit(Entity other) override { (void)other; }
+
+    void OnTriggerExit(Entity other) override {
+        if (eventBased) {
+            playerInZone = false;
+            LOG_DEBUG("[Misc_Teleporter] Player left zone.");
+        }
+    }
+
     void OnTriggerStay(Entity other) override { (void)other; }
 
 private:
     GameObjectRef player;
-	TransformRef targetTransformRef;
+    TransformRef targetTransformRef;
+    bool eventBased = false;
+    std::string eventName;
+
+    bool playerInZone = false;
+    bool msgReceived = false;
+
+    void TryTeleport() {
+        if (playerInZone && msgReceived) {
+            LOG_DEBUG("[Misc_Teleporter] Both conditions met - teleporting.");
+            CC_SetPosition(GetPosition(targetTransformRef), player.GetEntity());
+            // Reset so it can't fire again
+            playerInZone = false;
+            msgReceived = false;
+        }
+    }
 };

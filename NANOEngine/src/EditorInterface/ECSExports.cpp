@@ -4,6 +4,7 @@
 #include "../ECS/Components/EntityMeta.hpp"
 #include "../ECS/Components/Transform.hpp"
 #include "../ECS/Components/Renderer.hpp"
+#include "../ECS/Components/LightmapBinding.hpp"
 #include "../ECS/Components/Light.hpp"
 #include "../ECS/Components/Rigidbody.hpp"
 #include "../ECS/Components/Collider.hpp"
@@ -66,6 +67,10 @@ namespace NE::ECS {
 
 		const Component::Renderer& GetEntityRenderer(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
+		}
+
+		const Component::LightmapBinding& GetLightmapBinding(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::LightmapBinding>(e);
 		}
 
 		const Component::Light& GetEntityLight(uint32_t e) {
@@ -200,6 +205,10 @@ namespace NE::ECS {
 			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Renderer>(e);
 		}
 
+		bool HasLightmapBinding(uint32_t e) {
+			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::LightmapBinding>(e);
+		}
+
 		bool HasLight(uint32_t e) {
 			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Light>(e);
 		}
@@ -306,6 +315,10 @@ namespace NE::ECS {
 
 		ComponentType GetRendererComponentType() {
 			return GetScene().GetECSCoordinator().GetComponentType<Component::Renderer>();
+		}
+
+		ComponentType GetLightmapBindingComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::LightmapBinding>();
 		}
 
 		ComponentType GetLightComponentType() {
@@ -718,8 +731,8 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent(
 				newEntity,
 				Component::Light{
-					.type = Component::Light::Type::Directional,
-					.data = Component::Light::DirectionalLightData{}
+					.data = Component::Light::DirectionalLightData{},
+					.type = Component::Light::Type::Directional
 				}
 			);
 
@@ -747,8 +760,8 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent(
 				newEntity,
 				Component::Light{
-					.type = Component::Light::Type::Point,
-					.data = Component::Light::PointLightData{}
+					.data = Component::Light::PointLightData{},
+					.type = Component::Light::Type::Point
 				}
 			);
 
@@ -776,8 +789,37 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent(
 				newEntity,
 				Component::Light{
-					.type = Component::Light::Type::Spot,
-					.data = Component::Light::SpotLightData{}
+					.data = Component::Light::SpotLightData{},
+					.type = Component::Light::Type::Spot
+				}
+			);
+
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
+			return newEntity;
+		}
+
+		uint32_t CreateAreaLightEntity(uint32_t parentEntt) {
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::EntityMeta{ .name{"Area Light"}, .luid = Core::LUIDGenerator::Generate("em") }
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Transform{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Hierarchy{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Light{
+					.data = Component::Light::AreaLightData{},
+					.type = Component::Light::Type::Area
 				}
 			);
 
@@ -889,6 +931,10 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Renderer{});
 		}
 
+		void AddLightmapBindingComponent(uint32_t e) {
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::LightmapBinding{});
+		}
+
 		void AddRigidbodyComponent(uint32_t e) {
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Rigidbody{});
 		}
@@ -931,6 +977,10 @@ namespace NE::ECS {
 
 		void AddRendererComponent(uint32_t e, const Component::Renderer& c) {
 			GetScene().GetECSCoordinator().AddComponent<Component::Renderer>(e, c);
+		}
+
+		void AddLightmapBindingComponent(uint32_t e, const Component::LightmapBinding& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::LightmapBinding>(e, c);
 		}
 
 		void AddLightComponent(uint32_t e, const Component::Light& c) {
@@ -986,7 +1036,9 @@ namespace NE::ECS {
 		}
 
 		void AddUISliderComponent(uint32_t e, const Component::UISlider& c) {
-			GetScene().GetECSCoordinator().AddComponent<Component::UISlider>(e, c);
+			auto comp = c;
+			if (comp.luid == 0) comp.luid = Core::LUIDGenerator::Generate("sl");
+			GetScene().GetECSCoordinator().AddComponent<Component::UISlider>(e, comp);
 		}
 
 		void AddUIToggleComponent(uint32_t e, const Component::UIToggle& c) {
@@ -1091,6 +1143,10 @@ namespace NE::ECS {
 
 		Component::Renderer& GetEntityRenderer(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
+		}
+
+		Component::LightmapBinding& GetLightmapBinding(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::LightmapBinding>(e);
 		}
 
 		Component::Light& GetEntityLight(uint32_t e) {
@@ -1343,6 +1399,71 @@ namespace NE::ECS {
 		}
 
 		//=========================================================================
+		// UI RECT TRANSFORM HELPERS
+		//=========================================================================
+
+		void SetUIRectTransformPos(uint32_t e, float x, float y) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIRectTransform>(e)) return;
+			auto& rect = ecs.GetComponent<Component::UIRectTransform>(e);
+			rect.x = x;
+			rect.y = y;
+			rect.worldMatrixDirty = true;
+			rect.worldRectCached = false;
+		}
+
+		void SetUIRectTransformSize(uint32_t e, float width, float height) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIRectTransform>(e)) return;
+			auto& rect = ecs.GetComponent<Component::UIRectTransform>(e);
+			rect.width = width;
+			rect.height = height;
+			rect.worldMatrixDirty = true;
+			rect.worldRectCached = false;
+		}
+
+		void SetUIRectTransformAnchor(uint32_t e, float minX, float minY, float maxX, float maxY) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIRectTransform>(e)) return;
+			auto& rect = ecs.GetComponent<Component::UIRectTransform>(e);
+			rect.anchorMinX = minX;
+			rect.anchorMinY = minY;
+			rect.anchorMaxX = maxX;
+			rect.anchorMaxY = maxY;
+			rect.worldMatrixDirty = true;
+			rect.worldRectCached = false;
+		}
+
+		void SetUIRectTransformPivot(uint32_t e, float pivotX, float pivotY) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIRectTransform>(e)) return;
+			auto& rect = ecs.GetComponent<Component::UIRectTransform>(e);
+			rect.pivotX = pivotX;
+			rect.pivotY = pivotY;
+			rect.worldMatrixDirty = true;
+			rect.worldRectCached = false;
+		}
+
+		void SetUIRectTransformRotation(uint32_t e, float rotZ) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIRectTransform>(e)) return;
+			auto& rect = ecs.GetComponent<Component::UIRectTransform>(e);
+			rect.rotationZ = rotZ;
+			rect.worldMatrixDirty = true;
+			rect.worldRectCached = false;
+		}
+
+		void SetUIRectTransformScale(uint32_t e, float scaleX, float scaleY) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Component::UIRectTransform>(e)) return;
+			auto& rect = ecs.GetComponent<Component::UIRectTransform>(e);
+			rect.scaleX = scaleX;
+			rect.scaleY = scaleY;
+			rect.worldMatrixDirty = true;
+			rect.worldRectCached = false;
+		}
+
+		//=========================================================================
 		// UI CANVAS HELPERS
 		//=========================================================================
 
@@ -1562,11 +1683,9 @@ namespace NE::ECS {
 			auto& ecs = GetScene().GetECSCoordinator();
 			if (!ecs.HasComponent<Component::UISlider>(e)) return;
 			auto& comp = ecs.GetComponent<Component::UISlider>(e);
-			if (normalized < 0.0f) normalized = 0.0f;
-			if (normalized > 1.0f) normalized = 1.0f;
-			float newVal = comp.minValue + normalized * (comp.maxValue - comp.minValue);
-			if (comp.value != newVal) {
-				comp.value = newVal;
+			float oldValue = comp.value;
+			comp.SetNormalizedValue(normalized);  // handles wholeNumbers rounding + clamping
+			if (comp.value != oldValue) {
 				comp.valueChanged = true;
 			}
 		}

@@ -24,6 +24,7 @@ namespace NE::Graphics {
         std::vector<Vertex> vertices;
         std::vector<uint32_t> indices;
         std::shared_ptr<IGeometryBuffer> buffer;
+        bool hasUv1 = false;
         std::vector<uint8_t> colliderBlob;
         uint8_t colliderType = 0;
 

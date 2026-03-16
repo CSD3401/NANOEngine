@@ -912,6 +912,21 @@ namespace Editor {
 		NE::ECS::Command::DestroyEntity(m_entity);
 	}
 
+	CreateAreaLightCommand::CreateAreaLightCommand(uint32_t parentEntity)
+		: m_entity(0), m_parentEntity(parentEntity) {
+	}
+
+	void CreateAreaLightCommand::Execute() {
+		m_entity = NE::ECS::Command::CreateAreaLightEntity(m_parentEntity);
+		if (m_parentEntity == NE::ECS::NO_ENTITY)
+			EditorScene::s_rootOrder.push_back(m_entity);
+	}
+
+	void CreateAreaLightCommand::Undo() {
+		EditorScene::UnregisterRoot(m_entity);
+		NE::ECS::Command::DestroyEntity(m_entity);
+	}
+
 	CreateQuadEntityCommand::CreateQuadEntityCommand(uint32_t parentEntity)
 		: m_entity(0), m_parentEntity(parentEntity) {
 	}

@@ -6,6 +6,7 @@
 #include <ECS/Core/Entity.hpp>
 #include "../AssetManagement/AssetManager.hpp"
 #include <EditorInterface/RendererExports.hpp>
+#include <Graphics/Core/SelectionHighlightSettings.hpp>
 #include "../EditorUI.hpp"
 #include "../EditorScene.hpp"
 #include "Engine.hpp"
@@ -238,8 +239,15 @@ namespace Editor {
 			ImVec2 camMin = ImGui::GetItemRectMin();
 			ImVec2 camMax = ImGui::GetItemRectMax();
 
+			ImGui::SameLine();
+
+			bool openSelection = ImGui::Button("Selection Settings");
+			ImVec2 selectionMin = ImGui::GetItemRectMin();
+			ImVec2 selectionMax = ImGui::GetItemRectMax();
+
 			if (openGrid)   ImGui::OpenPopup("ToggleGridPopup");
 			if (openCamera) ImGui::OpenPopup("CameraSettingsPopup");
+			if (openSelection) ImGui::OpenPopup("SelectionSettingsPopup");
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
@@ -287,6 +295,83 @@ namespace Editor {
 
 				ImGui::EndPopup();
 			}
+
+			ImGui::SetNextWindowPos(ImVec2(selectionMin.x, selectionMax.y), ImGuiCond_Appearing);
+			ImGui::SetNextWindowSize(ImVec2(420.f, 320.f));
+			if (ImGui::BeginPopup("SelectionSettingsPopup")) {
+				auto& selectionSettings = NE::Renderer::Command::GetSelectionHighlightSettings();
+
+				ImGui::Text("Selection Highlight");
+				Editor::DrawCheckbox("Enabled", selectionSettings.enabled);
+				Editor::DrawCheckbox("Fill Tint", selectionSettings.fillEnabled);
+
+				ImGui::Spacing();
+				ImGui::Text("Outline");
+				ImGui::ColorEdit4("Outline Color", &selectionSettings.outlineColor.x);
+				Editor::DrawFloatSliderWithField("Thickness (px)", selectionSettings.outlineThicknessPx, 1.0f, 7.0f, 0.01f, true);
+				Editor::DrawFloatSliderWithField("Opacity", selectionSettings.outlineOpacity, 0.0f, 1.0f, 0.01f, true);
+				Editor::DrawFloatSliderWithField("Softness", selectionSettings.outlineSoftness, 0.0f, 3.0f, 0.01f, true);
+
+				ImGui::Spacing();
+				ImGui::Text("Fill");
+				ImGui::ColorEdit4("Fill Color", &selectionSettings.fillColor.x);
+				Editor::DrawFloatSliderWithField("Fill Intensity", selectionSettings.fillIntensity, 0.0f, 0.5f, 0.01f, true);
+
+				selectionSettings.outlineThicknessPx = std::clamp(selectionSettings.outlineThicknessPx, 1.0f, 4.0f);
+				selectionSettings.outlineOpacity = std::clamp(selectionSettings.outlineOpacity, 0.0f, 1.0f);
+				selectionSettings.outlineSoftness = std::clamp(selectionSettings.outlineSoftness, 0.0f, 3.0f);
+				selectionSettings.fillIntensity = std::clamp(selectionSettings.fillIntensity, 0.0f, 0.5f);
+
+				ImGui::EndPopup();
+			}
+
+						const char* previewModeNames[] = { "Shaded", "Normals", "UV0", "UV1", "Lightmap UV", "Lightmap" };
+			int previewMode = static_cast<int>(NE::GetScenePreviewMode());
+			previewMode = std::clamp(previewMode, 0, 5);
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(130.0f);
+			if (ImGui::BeginCombo("Preview", previewModeNames[previewMode])) {
+				for (int i = 0; i < 6; ++i) {
+					const bool selected = (previewMode == i);
+					if (ImGui::Selectable(previewModeNames[i], selected)) {
+						previewMode = i;
+						NE::SetScenePreviewMode(static_cast<uint8_t>(previewMode));
+					}
+					if (selected) ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
+
+			if (previewMode == 2 || previewMode == 3 || previewMode == 4) {
+				const float uvScaleValues[] = { 1.0f, 4.0f, 10.0f, 20.0f };
+				const char* uvScaleLabels[] = { "1", "4", "10", "20" };
+
+				float uvScale = NE::GetScenePreviewUvScale();
+				int uvScaleIndex = 0;
+				bool matchedScale = false;
+				for (int i = 0; i < 4; ++i) {
+					if (fabsf(uvScale - uvScaleValues[i]) <= 0.001f) {
+						uvScaleIndex = i;
+						matchedScale = true;
+						break;
+					}
+				}
+
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(100.0f);
+				if (ImGui::BeginCombo("UV Scale", matchedScale ? uvScaleLabels[uvScaleIndex] : "Custom")) {
+					for (int i = 0; i < 4; ++i) {
+						const bool selected = (uvScaleIndex == i);
+						if (ImGui::Selectable(uvScaleLabels[i], selected)) {
+							uvScaleIndex = i;
+							NE::SetScenePreviewUvScale(uvScaleValues[i]);
+						}
+						if (selected) ImGui::SetItemDefaultFocus();
+					}
+					ImGui::EndCombo();
+				}
+			}
+
 			ImGui::PopStyleVar(3);
 			ImGui::PopStyleColor(3);
 			ImGui::PopStyleVar(2);
@@ -294,8 +379,16 @@ namespace Editor {
 			ImGui::EndMenuBar();
 		}
 
+		uint32_t sceneTexture = NE::GetSceneColorAttachment();
+		if (NE::GetScenePreviewMode() != 0) {
+			const uint32_t debugTexture = NE::GetSceneDebugAttachment();
+			if (debugTexture != 0) {
+				sceneTexture = debugTexture;
+			}
+		}
+
 		ImGui::Image(
-			(ImTextureID)(uintptr_t)NE::GetSceneColorAttachment(),
+			(ImTextureID)(uintptr_t)sceneTexture,
 			panelSize,
 			ImVec2(0, 1),
 			ImVec2(1, 0)
@@ -328,6 +421,10 @@ namespace Editor {
 				std::string uuid = Assets::AssetManager::GetInstance().GetRecordBySource(dropped)->id;
 
 				auto newRootEntt = NE::LoadPrefab(uuid);
+				if (newRootEntt == NE::ECS::NO_ENTITY) {
+					ImGui::EndDragDropTarget();
+					return;
+				}
 				EditorScene::s_rootOrder.push_back(newRootEntt);
 				EditorScene::s_selection.SetSingle(newRootEntt);
 

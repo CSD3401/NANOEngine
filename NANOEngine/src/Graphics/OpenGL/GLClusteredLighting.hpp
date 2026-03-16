@@ -9,13 +9,9 @@
 
 // Forward declarations
 namespace NE {
-    namespace ECS {
-        namespace Component {
-            struct Light;
-		}
-    }
     namespace Graphics {
 		struct RenderView;
+        class ShadowRenderer;
         namespace OpenGL {
             class GLShader;
         }
@@ -33,18 +29,18 @@ namespace NE::Graphics::OpenGL {
 
     class GLClusteredLighting final : public IClusteredLighting {
     public:
-		GLClusteredLighting(
+        GLClusteredLighting(
             int cX = CLUSTERED_LIGHTING_SIZE_X, int cY = CLUSTERED_LIGHTING_SIZE_Y, int cZ = CLUSTERED_LIGHTING_SIZE_Z,
 			int maxLights = MAX_LIGHTS_PER_VIEW, int avgClustersPerLight = AVERAGE_CLUSTERS_PER_LIGHT
         );
 		~GLClusteredLighting();
 
-        void BuildForView(const Graphics::RenderView& view, const std::vector<ECS::Component::Light*>& lights) override;
+        void BuildForView(const Graphics::RenderView& view, const ShadowRenderer& shadowRenderer, const std::vector<RenderLightRef>& lights) override;
         void BindForDraw() override;
 
     private:
 
-        void UploadLights(const Graphics::RenderView& view, const std::vector<ECS::Component::Light*>& lights);
+        void UploadLights(const Graphics::RenderView& view, const ShadowRenderer& shadowRenderer, const std::vector<RenderLightRef>& lights);
 
 		bool EnsureBufferCapacity(uint32_t required);
 
@@ -74,8 +70,11 @@ namespace NE::Graphics::OpenGL {
         {
             float position[4];  // xyz + type
             float color[4];     // rgb + intensity
-            float params[4];    // inner, outer, radius, unused
-            float direction[4]; // xyz + (maybe) padding
+            float params[4];    // inner, outer, range, shadowIndex
+            float direction[4]; // xyz + packed shadow metadata
+            float areaRight[4]; // xyz + halfWidth
+            float areaUp[4];    // xyz + halfHeight
+            float boundsSphere[4]; // xyz + culling radius
         };
         struct ClusterParamsCPU
         {

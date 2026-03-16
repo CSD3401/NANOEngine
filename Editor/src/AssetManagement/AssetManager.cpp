@@ -20,6 +20,7 @@
 #include "Assets/PrefabAsset.hpp"
 #include "Assets/AnimationClipAsset.hpp"
 #include "Assets/FontAsset.hpp"
+#include "Assets/LightingAsset.hpp"
 #include <rapidjson/istreamwrapper.h>
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/prettywriter.h>
@@ -53,9 +54,10 @@ namespace Editor::Assets {
         }
 
         bool IsKnownArtifactExtension(std::string_view ext) {
-            static constexpr std::array<std::string_view, 10> exts{
+            static constexpr std::array<std::string_view, 11> exts{
                 ".ntexbin", ".nmodbin", ".nshdbin", ".nmatbin", ".naudbin",
-                ".nfabbin", ".nscebin", ".nancbin", ".nconbin", ".nfntbin"
+                ".nfabbin", ".nscebin", ".nancbin", ".nconbin", ".nfntbin",
+                ".nlgtbin"
             };
 
             for (auto e : exts) {
@@ -76,6 +78,7 @@ namespace Editor::Assets {
             case Editor::Assets::AssetType::AnimationClip:          return "AnimationClip";
             case Editor::Assets::AssetType::AnimatorController:     return "AnimationController";
             case Editor::Assets::AssetType::Font:                   return "Font";
+            case Editor::Assets::AssetType::Lighting:               return "Lighting";
             default:                                                return "Unknown";
             }
         }
@@ -91,6 +94,7 @@ namespace Editor::Assets {
             case Assets::AssetType::Prefab:                 return std::make_unique<Assets::PrefabAsset>();
             case Assets::AssetType::AnimationClip:          return std::make_unique<Assets::AnimationClipAsset>();
             case Assets::AssetType::Font:                   return std::make_unique<Assets::FontAsset>();
+            case Assets::AssetType::Lighting:               return std::make_unique<Assets::LightingAsset>();
             default:                                        return nullptr;
             }
         }
@@ -105,6 +109,7 @@ namespace Editor::Assets {
             case Assets::AssetType::Prefab:             return NE::Resource::ResourceType::Prefab;
             case Assets::AssetType::AnimationClip:      return NE::Resource::ResourceType::AnimationClip;
             case Assets::AssetType::Font:               return NE::Resource::ResourceType::Font;
+            case Assets::AssetType::Lighting:           return NE::Resource::ResourceType::Lighting;
             default:                                    return NE::Resource::ResourceType::Unknown;
             }
         }
@@ -289,7 +294,11 @@ namespace Editor::Assets {
             const auto cookedPath = 
                 NE::Resource::ComputeArtifactPathFromUUID(uuid, GetResourceTypeFromAssetType(type));
             if (!fs::exists(cookedPath) && rec.asset) {
-                rec.asset->Cook(fsSourcePath.string(), cookedPath);
+                if (!rec.asset->Cook(fsSourcePath.string(), cookedPath)) {
+                    SPD_ERROR("Failed to cook asset '" << fsSourcePath.string() << "' to '" << cookedPath << "'");
+                    rec.isLoaded = false;
+                    return;
+                }
                 rec.isLoaded = true;
             }
 
@@ -340,7 +349,11 @@ namespace Editor::Assets {
 
                 const auto cookedPath =
                     NE::Resource::ComputeArtifactPathFromUUID(uuid, GetResourceTypeFromAssetType(type));
-                rec.asset->Cook(fsSourcePath.string(), cookedPath);
+                if (!rec.asset->Cook(fsSourcePath.string(), cookedPath)) {
+                    SPD_ERROR("Failed to cook asset '" << fsSourcePath.string() << "' to '" << cookedPath << "'");
+                    rec.isLoaded = false;
+                    return;
+                }
                 rec.isLoaded = true;
             }
         } else if (rec.type == AssetType::Prefab) {
@@ -402,8 +415,13 @@ namespace Editor::Assets {
         }
 
         rec.asset->LoadImportSettings(fsSourcePath.string());
-        rec.asset->Cook(fsSourcePath.string(), 
-            NE::Resource::ComputeArtifactPathFromUUID(uuid, GetResourceTypeFromAssetType(type)));
+        const auto cookedPath =
+            NE::Resource::ComputeArtifactPathFromUUID(uuid, GetResourceTypeFromAssetType(type));
+        if (!rec.asset->Cook(fsSourcePath.string(), cookedPath)) {
+            SPD_ERROR("Failed to reimport asset '" << fsSourcePath.string() << "' to '" << cookedPath << "'");
+            rec.isLoaded = false;
+            return;
+        }
         rec.isLoaded = true;
     }
 
@@ -665,6 +683,7 @@ namespace Editor::Assets {
 		else if (e == "prefab")             return Assets::AssetType::Prefab;
         else if (e == "animationclip")      return Assets::AssetType::AnimationClip;
 		else if (e == "animatorcontroller") return Assets::AssetType::AnimatorController;
+        else if (e == "lighting")           return Assets::AssetType::Lighting;
         else if (e == "folder")             return Assets::AssetType::Folder;
         return Assets::AssetType::Unknown;
     }
@@ -681,6 +700,7 @@ namespace Editor::Assets {
         else if (e == ".nanim")                                         return Assets::AssetType::AnimationClip;
         else if (e == ".ncontroller")                                   return Assets::AssetType::AnimatorController;
         else if (e == ".ttf" || e == ".otf")                            return Assets::AssetType::Font;
+        else if (e == ".nlight")                                        return Assets::AssetType::Lighting;
 		else if (e == "")                                               return Assets::AssetType::Folder;
 		return Assets::AssetType::Unknown;
 	}

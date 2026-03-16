@@ -21,6 +21,7 @@ namespace NE::ECS {
 	namespace Component {
 		struct Transform;
 		struct Renderer;
+		struct LightmapBinding;
 		struct Light;
 		struct Rigidbody;
 		struct Collider;
@@ -60,6 +61,7 @@ namespace NE::ECS {
 		NANOENGINE_API const Component::EntityMeta& GetEntityMeta(uint32_t e);
 		NANOENGINE_API const Component::Transform& GetEntityTransform(uint32_t e);
 		NANOENGINE_API const Component::Renderer& GetEntityRenderer(uint32_t e);
+		NANOENGINE_API const Component::LightmapBinding& GetLightmapBinding(uint32_t e);
 		NANOENGINE_API const Component::Light& GetEntityLight(uint32_t e);
 		NANOENGINE_API const Component::Rigidbody& GetEntityRigidbody(uint32_t e);
 		NANOENGINE_API const Component::Collider& GetEntityCollider(uint32_t e);
@@ -96,6 +98,7 @@ namespace NE::ECS {
 		template<> inline const Component::EntityMeta& GetComponent<Component::EntityMeta>(uint32_t e) { return GetEntityMeta(e); }
 		template<> inline const Component::Transform& GetComponent<Component::Transform>(uint32_t e) { return GetEntityTransform(e); }
 		template<> inline const Component::Renderer& GetComponent<Component::Renderer>(uint32_t e) { return GetEntityRenderer(e); }
+		template<> inline const Component::LightmapBinding& GetComponent<Component::LightmapBinding>(uint32_t e) { return GetLightmapBinding(e); }
 		template<> inline const Component::Light& GetComponent<Component::Light>(uint32_t e) { return GetEntityLight(e); }
 		template<> inline const Component::Rigidbody& GetComponent<Component::Rigidbody>(uint32_t e) { return GetEntityRigidbody(e); }
 		template<> inline const Component::Collider& GetComponent<Component::Collider>(uint32_t e) { return GetEntityCollider(e); }
@@ -136,6 +139,7 @@ namespace NE::ECS {
 		NANOENGINE_API bool HasPrefabLink(uint32_t e);
 		NANOENGINE_API bool HasPrefabInstance(uint32_t e);
 		NANOENGINE_API bool HasRenderer(uint32_t e);
+		NANOENGINE_API bool HasLightmapBinding(uint32_t e);
 		NANOENGINE_API bool HasLight(uint32_t e);
 		NANOENGINE_API bool HasRigidbody(uint32_t e);
 		NANOENGINE_API bool HasCollider(uint32_t e);
@@ -167,6 +171,7 @@ namespace NE::ECS {
 		template<> inline bool HasComponent<Component::UIButton>(uint32_t e) { return HasUIButton(e); }
 		template<> inline bool HasComponent<Component::UISlider>(uint32_t e) { return HasUISlider(e); }
 		template<> inline bool HasComponent<Component::Renderer>(uint32_t e) { return HasRenderer(e); }
+		template<> inline bool HasComponent<Component::LightmapBinding>(uint32_t e) { return HasLightmapBinding(e); }
 		template<> inline bool HasComponent<Component::Light>(uint32_t e) { return HasLight(e); }
 		template<> inline bool HasComponent<Component::Rigidbody>(uint32_t e) { return HasRigidbody(e); }
 		template<> inline bool HasComponent<Component::Collider>(uint32_t e) { return HasCollider(e); }
@@ -196,6 +201,7 @@ namespace NE::ECS {
 		NANOENGINE_API ComponentType GetEntityMetaComponentType();
 		NANOENGINE_API ComponentType GetTransformComponentType();
 		NANOENGINE_API ComponentType GetRendererComponentType();
+		NANOENGINE_API ComponentType GetLightmapBindingComponentType();
 		NANOENGINE_API ComponentType GetLightComponentType();
 		NANOENGINE_API ComponentType GetRigidbodyComponentType();
 		NANOENGINE_API ComponentType GetColliderComponentType();
@@ -250,6 +256,7 @@ namespace NE::ECS {
 		NANOENGINE_API uint32_t CreateDirectionalLightEntity(uint32_t parentEntt);
 		NANOENGINE_API uint32_t CreatePointLightEntity(uint32_t parentEntt);
 		NANOENGINE_API uint32_t CreateSpotLightEntity(uint32_t parentEntt);
+		NANOENGINE_API uint32_t CreateAreaLightEntity(uint32_t parentEntt);
 		NANOENGINE_API uint32_t CreateUICanvasEntity();
 		NANOENGINE_API uint32_t CreateUIImageEntity(uint32_t parentCanvas);
 		NANOENGINE_API void DestroyEntity(uint32_t e);
@@ -261,6 +268,7 @@ namespace NE::ECS {
 		//NANOENGINE_API void AddEntityMetaComponent(uint32_t e);
 		NANOENGINE_API void AddLightComponent(uint32_t e);
 		NANOENGINE_API void AddRendererComponent(uint32_t e);
+		NANOENGINE_API void AddLightmapBindingComponent(uint32_t e);
 		NANOENGINE_API void AddRigidbodyComponent(uint32_t e);
 		NANOENGINE_API void AddColliderComponent(uint32_t e);
 		NANOENGINE_API void AddAudioSourceComponent(uint32_t e);
@@ -278,6 +286,7 @@ namespace NE::ECS {
 		NANOENGINE_API void AddTransformComponent(uint32_t e, const Component::Transform& c);
 		NANOENGINE_API void AddHierarchyComponent(uint32_t e, const Component::Hierarchy& c);
 		NANOENGINE_API void AddRendererComponent(uint32_t e, const Component::Renderer& c);
+		NANOENGINE_API void AddLightmapBindingComponent(uint32_t e, const Component::LightmapBinding& c);
 		NANOENGINE_API void AddLightComponent(uint32_t e, const Component::Light& c);
 		NANOENGINE_API void AddRigidbodyComponent(uint32_t e, const Component::Rigidbody& c);
 		NANOENGINE_API void AddColliderComponent(uint32_t e, const Component::Collider& c);
@@ -312,6 +321,7 @@ namespace NE::ECS {
 		template<> inline void AddComponent<Component::Transform>(uint32_t e, const Component::Transform& component) { AddTransformComponent(e, component); }
 		template<> inline void AddComponent<Component::Hierarchy>(uint32_t e, const Component::Hierarchy& component) { AddHierarchyComponent(e, component); }
 		template<> inline void AddComponent<Component::Renderer>(uint32_t e, const Component::Renderer& component) { AddRendererComponent(e, component); }
+		template<> inline void AddComponent<Component::LightmapBinding>(uint32_t e, const Component::LightmapBinding& component) { AddLightmapBindingComponent(e, component); }
 		template<> inline void AddComponent<Component::Light>(uint32_t e, const Component::Light& component) { AddLightComponent(e, component); }
 		template<> inline void AddComponent<Component::Rigidbody>(uint32_t e, const Component::Rigidbody& component) { AddRigidbodyComponent(e, component); }
 		template<> inline void AddComponent<Component::Collider>(uint32_t e, const Component::Collider& component) { AddColliderComponent(e, component); }
@@ -367,6 +377,7 @@ namespace NE::ECS {
 		NANOENGINE_API Component::EntityMeta& GetEntityMeta(uint32_t e);
 		NANOENGINE_API Component::Transform& GetEntityTransform(uint32_t e);
 		NANOENGINE_API Component::Renderer& GetEntityRenderer(uint32_t e);
+		NANOENGINE_API Component::LightmapBinding& GetLightmapBinding(uint32_t e);
 		NANOENGINE_API Component::Light& GetEntityLight(uint32_t e);
 		NANOENGINE_API Component::Rigidbody& GetEntityRigidbody(uint32_t e);
 		NANOENGINE_API Component::Collider& GetEntityCollider(uint32_t e);
@@ -401,6 +412,7 @@ namespace NE::ECS {
 		template<> inline Component::EntityMeta& GetComponent<Component::EntityMeta>(uint32_t e) { return GetEntityMeta(e); }
 		template<> inline Component::Transform& GetComponent<Component::Transform>(uint32_t e) { return GetEntityTransform(e); }
 		template<> inline Component::Renderer& GetComponent<Component::Renderer>(uint32_t e) { return GetEntityRenderer(e); }
+		template<> inline Component::LightmapBinding& GetComponent<Component::LightmapBinding>(uint32_t e) { return GetLightmapBinding(e); }
 		template<> inline Component::Light& GetComponent<Component::Light>(uint32_t e) { return GetEntityLight(e); }
 		template<> inline Component::Rigidbody& GetComponent<Component::Rigidbody>(uint32_t e) { return GetEntityRigidbody(e); }
 		template<> inline Component::Collider& GetComponent<Component::Collider>(uint32_t e) { return GetEntityCollider(e); }
@@ -439,6 +451,14 @@ namespace NE::ECS {
 
 		NANOENGINE_API std::shared_ptr<NE::Animation::AnimationClip> GetAnimationClip(const std::string& uuid);
 		NANOENGINE_API void AssignAnimClip(uint32_t e, const std::string& uuid);
+
+		// --- UIRectTransform Helpers ---
+		NANOENGINE_API void SetUIRectTransformPos(uint32_t e, float x, float y);
+		NANOENGINE_API void SetUIRectTransformSize(uint32_t e, float width, float height);
+		NANOENGINE_API void SetUIRectTransformAnchor(uint32_t e, float minX, float minY, float maxX, float maxY);
+		NANOENGINE_API void SetUIRectTransformPivot(uint32_t e, float pivotX, float pivotY);
+		NANOENGINE_API void SetUIRectTransformRotation(uint32_t e, float rotZ);
+		NANOENGINE_API void SetUIRectTransformScale(uint32_t e, float scaleX, float scaleY);
 
 		// --- UICanvas Helpers ---
 		NANOENGINE_API float GetUICanvasAlpha(uint32_t e);

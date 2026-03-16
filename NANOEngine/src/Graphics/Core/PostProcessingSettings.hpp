@@ -35,7 +35,8 @@ namespace NE::Graphics {
 			NE_REFLECT_FIELD(softKnee),
 			NE_REFLECT_FIELD(bloomRadius),
 			NE_REFLECT_FIELD(bloomIntensity),
-			NE_REFLECT_FIELD(exposure)
+			NE_REFLECT_FIELD(exposure),
+			NE_REFLECT_FIELD_HIDDEN(toneMapType)
 		NE_REFLECT_END()
 	};
 
@@ -124,19 +125,39 @@ namespace NE::Graphics {
 		NE_REFLECT_END()
 	};
 
+	struct VignetteSettings {
+		bool enabled = false;
+		float intensity = 0.25f;
+		float radius = 0.95f;
+		float softness = 0.35f;
+		Math::Vec3 tint{ 1.f, 1.f, 1.f };
+		float tintIntensity = 0.f;
+
+		NE_REFLECT_BEGIN(VignetteSettings)
+			NE_REFLECT_FIELD(enabled),
+			NE_REFLECT_FIELD(intensity),
+			NE_REFLECT_FIELD(radius),
+			NE_REFLECT_FIELD(softness),
+			NE_REFLECT_FIELD(tint),
+			NE_REFLECT_FIELD(tintIntensity)
+			NE_REFLECT_END()
+	};
+
 	struct PostProcessingSettings {
 		bool enabled = true;
 		BloomSettings bloomSettings;
 		SSAOSettings  ssaoSettings;
 		TAASettings taaSettings;
 		SSRSettings ssrSettings;
+		VignetteSettings vignetteSettings;
 
 		NE_REFLECT_BEGIN(PostProcessingSettings)
 			NE_REFLECT_FIELD(enabled),
 			NE_REFLECT_FIELD(bloomSettings),
 			NE_REFLECT_FIELD(ssaoSettings),
 			NE_REFLECT_FIELD(taaSettings),
-			NE_REFLECT_FIELD(ssrSettings)
+			NE_REFLECT_FIELD(ssrSettings),
+			NE_REFLECT_FIELD(vignetteSettings)
 		NE_REFLECT_END()
 	};
 

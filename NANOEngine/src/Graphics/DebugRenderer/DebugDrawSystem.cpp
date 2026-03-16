@@ -183,7 +183,7 @@ namespace NE::Graphics {
 
 		s_DebugVertexBuffer.clear();
 
-		size_t requiredSize = s_DebugTriangles.size() * 12;
+		size_t requiredSize = s_DebugTriangles.size() * 18;
 		if (s_DebugVertexBuffer.capacity() < requiredSize) {
 			s_DebugVertexBuffer.reserve(requiredSize * 2);
 		}
@@ -333,6 +333,12 @@ namespace NE::Graphics {
 				static_cast<GLsizei>(s_DebugTriangles.size() * 3));
 		}
 
+		s_DebugLines.clear();
+		s_DebugTriangles.clear();
+	}
+
+	void DebugDrawSystem::ClearFrameGeometry()
+	{
 		s_DebugLines.clear();
 		s_DebugTriangles.clear();
 	}

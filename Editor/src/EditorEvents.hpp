@@ -39,6 +39,10 @@ namespace Editor::Events {
 		uint32_t parentEntity;
 	};
 
+	struct CreateAreaLightEvent {
+		uint32_t parentEntity;
+	};
+
 	// UI Creation Events (Unity-like workflow)
 	struct CreateUICanvasEvent {};
 	struct CreateUITextEvent { uint32_t parentEntity; };

@@ -260,6 +260,7 @@
     <ClCompile Include="src\AssetManagement\Assets\AnimationClipAsset.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\AnimationControllerAsset.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\FontAsset.cpp" />
+    <ClCompile Include="src\AssetManagement\Assets\LightingAsset.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\PrefabAsset.cpp" />
     <ClCompile Include="src\Layers\LayerDatabase.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\SceneAsset.cpp" />
@@ -267,6 +268,11 @@
     <ClCompile Include="src\AssetManagement\Assets\IAsset.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\MaterialAsset.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\ModelAsset.cpp" />
+    <ClCompile Include="src\AssetManagement\Assets\ModelAsset\ModelAssetAssimpUtil.cpp" />
+    <ClCompile Include="src\AssetManagement\Assets\ModelAsset\ModelAssetMaterialImport.cpp" />
+    <ClCompile Include="src\AssetManagement\Assets\ModelAsset\ModelAssetMeshCook.cpp" />
+    <ClCompile Include="src\AssetManagement\Assets\ModelAsset\ModelAssetMetaIO.cpp" />
+    <ClCompile Include="src\AssetManagement\Assets\ModelAsset\ModelAssetPrefabGen.cpp" />
     <ClCompile Include="src\AssetManagement\Interfaces\MaterialEditor.cpp" />
     <ClCompile Include="src\EditorState.cpp" />
     <ClCompile Include="src\Layers\LayerModal.cpp" />
@@ -286,6 +292,11 @@
     <ClCompile Include="src\Panels\GamePanel.cpp" />
     <ClCompile Include="src\Panels\HierarchyPanel.cpp" />
     <ClCompile Include="src\Panels\InspectorPanel.cpp" />
+    <ClCompile Include="src\Lighting\BakeGeometryCollector.cpp" />
+    <ClCompile Include="src\Lighting\DirectLightmapBaker.cpp" />
+    <ClCompile Include="src\Lighting\LightmapBakeOutput.cpp" />
+    <ClCompile Include="src\Lighting\LightmapUvRasterizer.cpp" />
+    <ClCompile Include="src\Lighting\SceneBakeBVH.cpp" />
     <ClCompile Include="src\Panels\LightingPanel.cpp" />
     <ClCompile Include="src\Panels\LoggerPanel.cpp" />
     <ClCompile Include="src\Panels\ProfilerPanel.cpp" />
@@ -356,8 +367,14 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Production|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="vendor\include\xatlas\xatlas.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Production|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\AssetManagement\Assets\ModelAsset\ModelAssetUvValidation.hpp" />
     <ClInclude Include="src\pch.h" />
   </ItemGroup>
   <ItemGroup>
@@ -366,6 +383,7 @@
     <ClInclude Include="src\AssetManagement\Assets\AnimationClipAsset.hpp" />
     <ClInclude Include="src\AssetManagement\Assets\AnimationControllerAsset.hpp" />
     <ClInclude Include="src\AssetManagement\Assets\FontAsset.hpp" />
+    <ClInclude Include="src\AssetManagement\Assets\LightingAsset.hpp" />
     <ClInclude Include="src\Layers\LayerDatabase.hpp" />
     <ClInclude Include="src\AssetManagement\AssetRecord.hpp" />
     <ClInclude Include="src\AssetManagement\Interfaces\ModelSettingsEditor.hpp" />
@@ -383,6 +401,11 @@
     <ClInclude Include="src\AssetManagement\Assets\IAsset.hpp" />
     <ClInclude Include="src\AssetManagement\Assets\MaterialAsset.hpp" />
     <ClInclude Include="src\AssetManagement\Assets\ModelAsset.hpp" />
+    <ClInclude Include="src\AssetManagement\Assets\ModelAsset\ModelAssetAssimpUtil.hpp" />
+    <ClInclude Include="src\AssetManagement\Assets\ModelAsset\ModelAssetMaterialImport.hpp" />
+    <ClInclude Include="src\AssetManagement\Assets\ModelAsset\ModelAssetMeshCook.hpp" />
+    <ClInclude Include="src\AssetManagement\Assets\ModelAsset\ModelAssetMetaIO.hpp" />
+    <ClInclude Include="src\AssetManagement\Assets\ModelAsset\ModelAssetPrefabGen.hpp" />
     <ClInclude Include="src\AssetManagement\Assets\PrefabAsset.hpp" />
     <ClInclude Include="src\AssetManagement\Assets\SceneAsset.hpp" />
     <ClInclude Include="src\AssetManagement\Assets\ShaderAsset.hpp" />
@@ -402,6 +425,10 @@
     <ClInclude Include="src\Panels\GamePanel.hpp" />
     <ClInclude Include="src\Panels\HierarchyPanel.hpp" />
     <ClInclude Include="src\Panels\InspectorPanel.hpp" />
+    <ClInclude Include="src\Lighting\BakeGeometryCollector.hpp" />
+    <ClInclude Include="src\Lighting\DirectLightmapBaker.hpp" />
+    <ClInclude Include="src\Lighting\LightmapBakeOutput.hpp" />
+    <ClInclude Include="src\Lighting\SceneBakeBVH.hpp" />
     <ClInclude Include="src\Panels\LightingPanel.hpp" />
     <ClInclude Include="src\Panels\LoggerPanel.hpp" />
     <ClInclude Include="src\Panels\ProfilerPanel.hpp" />

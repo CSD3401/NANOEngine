@@ -28,6 +28,7 @@ namespace NE::Graphics::OpenGL {
         void SetPickingWrite(bool enable) override;
 
         uint32_t GetColorAttachment() const override { return m_ColorAttachment; }
+        uint32_t GetPickingAttachment() const override { return m_PickingAttachment; }
         uint32_t GetDepthAttachment() const override { return m_DepthAttachment; }
         uint32_t GetNormalAttachment() const override { return m_NormalAttachment; }
         uint32_t GetRoughnessAttachment() const override { return m_RoughnessAttachment; }

@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cfloat>
 #include <cmath>
+#include <unordered_set>
 
 #include <glad/glad.h>
 
@@ -156,6 +157,21 @@ namespace NE::Graphics {
 			return dirs;
 		}
 
+		inline void DeleteTexture(uint32_t& id) {
+			if (id != 0) {
+				GLuint glId = id;
+				glDeleteTextures(1, &glId);
+				id = 0;
+			}
+		}
+
+		inline void DeleteFramebuffer(uint32_t& id) {
+			if (id != 0) {
+				GLuint glId = id;
+				glDeleteFramebuffers(1, &glId);
+				id = 0;
+			}
+		}
 	}
 
 	void ShadowRenderer::Init() {
@@ -166,88 +182,145 @@ namespace NE::Graphics {
 	}
 
 	void ShadowRenderer::Update(const RenderView& view,
-		std::vector<ECS::Component::Light*>& lights,
+		const std::vector<RenderLightRef>& lights,
 		const std::vector<DrawCommand>& commands
 	) {
 #ifndef PRODUCTION_BUILD
 		NE_PROFILE_FUNCTION();
 #endif
+		PruneUnusedRuntimes(lights);
+
 		if (lights.empty() || commands.empty()) return;
 
-		for (auto& light : lights) {
+		for (const auto& lightRef : lights) {
+			ECS::Component::Light* light = lightRef.light;
+			if (!light) continue;
+
+			LightShadowRuntime& runtime = GetOrCreateRuntime(lightRef.entity);
+
 			if (light->shadowType == ECS::Component::Light::ShadowType::None ||
-				light->type == ECS::Component::Light::Type::Point)
+				light->type == ECS::Component::Light::Type::Point ||
+				light->type == ECS::Component::Light::Type::Area) {
+				ReleaseRuntimeResources(runtime);
 				continue;
+			}
 
 			switch (light->shadowUpdateMode) {
 			case ECS::Component::Light::ShadowUpdateMode::NoneUpdate:
+				ReleaseRuntimeResources(runtime);
 				continue;
 
 			case ECS::Component::Light::ShadowUpdateMode::StaticBake:
-				if (light->shadowBaked)
-					continue;
-				break;
+				ReleaseRuntimeResources(runtime);
+				continue;
 
 			case ECS::Component::Light::ShadowUpdateMode::Realtime:
+				runtime.shadowBaked = false;
 				break;
 			}
 
 			if (light->type == ECS::Component::Light::Directional) {
-				EnsureResources2D(*light);
+				EnsureResources2D(*light, runtime);
 
-				ComputeDirectionalSplits(view, *light);
+				ComputeDirectionalSplits(view, runtime);
 				for (int c = 0; c < ECS::Component::Light::DIR_CASCADES; ++c) {
-					Math::Mat4 vp = BuildDirectionalCascadeVP(view, *light, c);
-					light->dirLightVP[c] = vp;
-					RenderDepthDirectionalCascade(*light, c, vp, commands);
+					Math::Mat4 vp = BuildDirectionalCascadeVP(view, *light, runtime, c);
+					runtime.dirLightVP[c] = vp;
+					RenderDepthDirectionalCascade(runtime, c, vp, commands);
 				}
 
-				light->shadowCascadeCount = ECS::Component::Light::DIR_CASCADES;
-
-				if (light->shadowUpdateMode == ECS::Component::Light::ShadowUpdateMode::StaticBake)
-					light->shadowBaked = true;
+				runtime.shadowCascadeCount = ECS::Component::Light::DIR_CASCADES;
 
 				continue;
 			}
 
-			EnsureResources2D(*light);
+			EnsureResources2D(*light, runtime);
 
 			Math::Mat4 lightVP = BuildLightVP(*light);
-			light->lightViewProj = lightVP;
-			light->shadowCascadeCount = 1;
-			RenderDepth(*light, lightVP, commands);
+			runtime.lightViewProj = lightVP;
+			runtime.shadowCascadeCount = 1;
+			RenderDepth(runtime, lightVP, commands);
 
-			if (light->shadowUpdateMode == ECS::Component::Light::ShadowUpdateMode::StaticBake)
-				light->shadowBaked = true;
 		}
 	}
 
+	LightShadowRuntime* ShadowRenderer::FindRuntime(ECS::Entity entity) {
+		auto it = m_lightShadowRuntime.find(entity);
+		return it != m_lightShadowRuntime.end() ? &it->second : nullptr;
+	}
+
+	const LightShadowRuntime* ShadowRenderer::FindRuntime(ECS::Entity entity) const {
+		auto it = m_lightShadowRuntime.find(entity);
+		return it != m_lightShadowRuntime.end() ? &it->second : nullptr;
+	}
+
 	void  ShadowRenderer::Shutdown() {
+		for (auto& [_, runtime] : m_lightShadowRuntime) {
+			ReleaseRuntimeResources(runtime);
+		}
+		m_lightShadowRuntime.clear();
 		m_shadowShader.reset();
 	}
 
-	void ShadowRenderer::EnsureResources2D(ECS::Component::Light& light) {
+	LightShadowRuntime& ShadowRenderer::GetOrCreateRuntime(ECS::Entity entity) {
+		return m_lightShadowRuntime[entity];
+	}
+
+	void ShadowRenderer::PruneUnusedRuntimes(const std::vector<RenderLightRef>& lights) {
+		std::unordered_set<ECS::Entity> activeLights;
+		activeLights.reserve(lights.size());
+
+		for (const auto& lightRef : lights) {
+			if (lightRef.light) {
+				activeLights.insert(lightRef.entity);
+			}
+		}
+
+		for (auto it = m_lightShadowRuntime.begin(); it != m_lightShadowRuntime.end();) {
+			if (activeLights.find(it->first) != activeLights.end()) {
+				++it;
+				continue;
+			}
+
+			ReleaseRuntimeResources(it->second);
+			it = m_lightShadowRuntime.erase(it);
+		}
+	}
+
+	void ShadowRenderer::ReleaseRuntimeResources(LightShadowRuntime& runtime) {
+		DeleteTexture(runtime.shadowMapTex);
+		DeleteFramebuffer(runtime.shadowMapFBO);
+
+		for (int c = 0; c < LightShadowRuntime::DIR_CASCADES; ++c) {
+			DeleteTexture(runtime.dirShadowTex[c]);
+			DeleteFramebuffer(runtime.dirShadowFBO[c]);
+		}
+
+		runtime = LightShadowRuntime{};
+	}
+
+	void ShadowRenderer::EnsureResources2D(const ECS::Component::Light& light, LightShadowRuntime& runtime) {
 		if (light.type == ECS::Component::Light::Directional) {
 			for (int c = 0; c < ECS::Component::Light::DIR_CASCADES; ++c) {
-				if (light.dirShadowTex[c] == 0)
-					glGenTextures(1, &light.dirShadowTex[c]);
+				if (runtime.dirShadowTex[c] == 0)
+					glGenTextures(1, &runtime.dirShadowTex[c]);
 
-				if (light.dirShadowFBO[c] == 0)
-					glGenFramebuffers(1, &light.dirShadowFBO[c]);
+				if (runtime.dirShadowFBO[c] == 0)
+					glGenFramebuffers(1, &runtime.dirShadowFBO[c]);
 
-				bool needsAlloc = (light.dirShadowRes[c] != m_shadowRes);
+				bool needsAlloc = (runtime.dirShadowRes[c] != m_shadowRes);
 
-				glBindTexture(GL_TEXTURE_2D, light.dirShadowTex[c]);
+				glBindTexture(GL_TEXTURE_2D, runtime.dirShadowTex[c]);
 
 				if (needsAlloc) {
 					glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24,
 						m_shadowRes, m_shadowRes, 0,
 						GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
-					light.dirShadowRes[c] = m_shadowRes;
+					runtime.dirShadowRes[c] = m_shadowRes;
 
-					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
@@ -257,9 +330,9 @@ namespace NE::Graphics {
 
 				glBindTexture(GL_TEXTURE_2D, 0);
 
-				glBindFramebuffer(GL_FRAMEBUFFER, light.dirShadowFBO[c]);
+				glBindFramebuffer(GL_FRAMEBUFFER, runtime.dirShadowFBO[c]);
 				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-					GL_TEXTURE_2D, light.dirShadowTex[c], 0);
+					GL_TEXTURE_2D, runtime.dirShadowTex[c], 0);
 
 				glDrawBuffer(GL_NONE);
 				glReadBuffer(GL_NONE);
@@ -275,38 +348,37 @@ namespace NE::Graphics {
 			return;
 		}
 
-		if (light.shadowMapTex != 0 && light.shadowMapFBO != 0)
-			return;
+		if (runtime.shadowMapTex == 0)
+			glGenTextures(1, &runtime.shadowMapTex);
 
-		// Create depth texture
-		if (light.shadowMapTex == 0) {
-			glGenTextures(1, &light.shadowMapTex);
+		if (runtime.shadowMapFBO == 0)
+			glGenFramebuffers(1, &runtime.shadowMapFBO);
+
+		const bool needsAlloc = (runtime.shadowMapRes != m_shadowRes);
+
+		glBindTexture(GL_TEXTURE_2D, runtime.shadowMapTex);
+
+		if (needsAlloc) {
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24,
+				m_shadowRes, m_shadowRes, 0,
+				GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+
+			runtime.shadowMapRes = m_shadowRes;
+
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+			const float border[4] = { 1.f, 1.f, 1.f, 1.f };
+			glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border);
 		}
-		glBindTexture(GL_TEXTURE_2D, light.shadowMapTex);
-
-		// Allocate storage (Depth24 is fine)
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24,
-			m_shadowRes, m_shadowRes, 0,
-			GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-
-		// Recommended defaults for shadow maps
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-
-		float border[4] = { 1.f, 1.f, 1.f, 1.f };
-		glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border);
 
 		glBindTexture(GL_TEXTURE_2D, 0);
 
-		// Create FBO
-		if (light.shadowMapFBO == 0) {
-			glGenFramebuffers(1, &light.shadowMapFBO);
-		}
-		glBindFramebuffer(GL_FRAMEBUFFER, light.shadowMapFBO);
+		glBindFramebuffer(GL_FRAMEBUFFER, runtime.shadowMapFBO);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-			GL_TEXTURE_2D, light.shadowMapTex, 0);
+			GL_TEXTURE_2D, runtime.shadowMapTex, 0);
 		glDrawBuffer(GL_NONE);
 		glReadBuffer(GL_NONE);
 
@@ -354,10 +426,10 @@ namespace NE::Graphics {
 		}
 	}
 
-	void ShadowRenderer::RenderDepth(ECS::Component::Light& light, const Math::Mat4& lightVP,
+	void ShadowRenderer::RenderDepth(const LightShadowRuntime& runtime, const Math::Mat4& lightVP,
 		const std::vector<DrawCommand>& commands
 	) {
-		glBindFramebuffer(GL_FRAMEBUFFER, light.shadowMapFBO);
+		glBindFramebuffer(GL_FRAMEBUFFER, runtime.shadowMapFBO);
 
 		glViewport(0, 0, m_shadowRes, m_shadowRes);
 
@@ -371,7 +443,7 @@ namespace NE::Graphics {
 		glClear(GL_DEPTH_BUFFER_BIT);
 
 		glEnable(GL_POLYGON_OFFSET_FILL);
-		glPolygonOffset(1.0f, 1.0f);
+		glPolygonOffset(0.5f, 1.0f);
 
 		m_shadowShader->Bind();
 		m_shadowShader->SetUniformMat4("u_LightVP", lightVP);
@@ -394,12 +466,12 @@ namespace NE::Graphics {
 	}
 
 	void ShadowRenderer::RenderDepthDirectionalCascade(
-		ECS::Component::Light& light,
+		const LightShadowRuntime& runtime,
 		int cascadeIdx,
 		const NE::Math::Mat4& lightVP,
 		const std::vector<DrawCommand>& commands
 	) {
-		GLuint fbo = light.dirShadowFBO[cascadeIdx];
+		GLuint fbo = runtime.dirShadowFBO[cascadeIdx];
 		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
 		glViewport(0, 0, m_shadowRes, m_shadowRes);
@@ -414,7 +486,7 @@ namespace NE::Graphics {
 		glClear(GL_DEPTH_BUFFER_BIT);
 
 		glEnable(GL_POLYGON_OFFSET_FILL);
-		glPolygonOffset(1.0f, 1.0f);
+		glPolygonOffset(0.5f, 1.0f);
 
 		m_shadowShader->Bind();
 		m_shadowShader->SetUniformMat4("u_LightVP", lightVP);
@@ -437,11 +509,12 @@ namespace NE::Graphics {
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
-	void ShadowRenderer::ComputeDirectionalSplits(const RenderView& view, ECS::Component::Light& light) {
+	void ShadowRenderer::ComputeDirectionalSplits(const RenderView& view, LightShadowRuntime& runtime) {
 		constexpr int C = ECS::Component::Light::DIR_CASCADES;
 
 		const float n = std::max(0.01f, view.nearPlane);
-		const float f = std::max(n + 0.01f, view.farPlane);
+		const float shadowFar = std::min(view.farPlane, m_directionalShadowDistance);
+		const float f = std::max(n + 0.01f, shadowFar);
 
 		const float lambda = 0.65f;
 
@@ -453,23 +526,22 @@ namespace NE::Graphics {
 
 			float split = uniSplit * (1.0f - lambda) + logSplit * lambda;
 
-			light.dirCascadeSplitsVS[i] = split;
+			runtime.dirCascadeSplitsVS[i] = split;
 		}
 	}
 
 	NE::Math::Mat4 ShadowRenderer::BuildDirectionalCascadeVP(
 		const RenderView& view,
 		const ECS::Component::Light& light,
+		const LightShadowRuntime& runtime,
 		int cascadeIdx
 	) {
 		using NE::Math::Vec3;
 		using NE::Math::Mat4;
 
 		const float n = std::max(0.01f, view.nearPlane);
-		const float f = std::max(n + 0.01f, view.farPlane);
-
-		const float cascadeNear = (cascadeIdx == 0) ? n : light.dirCascadeSplitsVS[cascadeIdx - 1];
-		const float cascadeFar = light.dirCascadeSplitsVS[cascadeIdx];
+		const float cascadeNear = (cascadeIdx == 0) ? n : runtime.dirCascadeSplitsVS[cascadeIdx - 1];
+		const float cascadeFar = runtime.dirCascadeSplitsVS[cascadeIdx];
 
 		Mat4 invProj = view.projection.Inverse();
 		Mat4 invView = view.view.Inverse();
@@ -499,34 +571,45 @@ namespace NE::Graphics {
 		Vec3 right, up;
 		BuildStableBasisFromDir(dir, right, up);
 
-		// Use bounding sphere radius for stable size (rotation-invariant)
 		float radius = 0.0f;
 		for (auto& p : frustumWS) {
 			float dist = (p - center).Length();
 			radius = std::max(radius, dist);
 		}
 
-		// Build light view matrix with stable orientation
-		const float pullBack = 500.0f;
+		const float cascadeDepth = std::max(cascadeFar - cascadeNear, 1.0f);
+		const float pullBack = radius + cascadeDepth;
 		Vec3 eye = center - dir * pullBack;
 		Mat4 lightView = Mat4::BuildViewMtx(eye, center, up);
 
-		// Compute depth range from frustum corners in light space
-		float minZ = +FLT_MAX, maxZ = -FLT_MAX;
+		float minX = +FLT_MAX, minY = +FLT_MAX, minZ = +FLT_MAX;
+		float maxX = -FLT_MAX, maxY = -FLT_MAX, maxZ = -FLT_MAX;
 		for (auto& pWS : frustumWS) {
 			Vec3 pLS = TransformPoint(lightView, pWS, 1.0f);
+			minX = std::min(minX, pLS.x);
+			maxX = std::max(maxX, pLS.x);
+			minY = std::min(minY, pLS.y);
+			maxY = std::max(maxY, pLS.y);
 			minZ = std::min(minZ, pLS.z);
 			maxZ = std::max(maxZ, pLS.z);
 		}
 
-		// Symmetric ortho bounds (using radius for stability)
-		float minX = -radius;
-		float maxX = +radius;
-		float minY = -radius;
-		float maxY = +radius;
+		float extentX = std::max(maxX - minX, 1e-3f);
+		float extentY = std::max(maxY - minY, 1e-3f);
+		float unitsPerTexelX = extentX / float(m_shadowRes);
+		float unitsPerTexelY = extentY / float(m_shadowRes);
+		float centerX = 0.5f * (minX + maxX);
+		float centerY = 0.5f * (minY + maxY);
 
-		// Depth padding to catch shadow casters behind the frustum
-		const float padZ = 200.0f;
+		centerX = std::floor(centerX / unitsPerTexelX) * unitsPerTexelX;
+		centerY = std::floor(centerY / unitsPerTexelY) * unitsPerTexelY;
+
+		minX = centerX - 0.5f * extentX;
+		maxX = centerX + 0.5f * extentX;
+		minY = centerY - 0.5f * extentY;
+		maxY = centerY + 0.5f * extentY;
+
+		const float padZ = std::max(cascadeDepth * 0.5f, 10.0f);
 		float nearP = -maxZ - padZ;
 		float farP = -minZ + padZ;
 
@@ -534,30 +617,6 @@ namespace NE::Graphics {
 		if (farP <= nearP) farP = nearP + 1.0f;
 
 		Mat4 lightProj = Mat4::BuildOrtho(minX, maxX, minY, maxY, nearP, farP);
-		Mat4 lightVP = lightProj * lightView;
-
-		// === Texel Snapping ===
-		// Snap the shadow matrix to texel boundaries to eliminate sub-pixel jitter.
-		// Project world origin to shadow clip space and round to nearest texel.
-		float* vp = lightVP.Data();
-
-		// Transform world origin (0,0,0) through lightVP - just the translation column
-		float originClipX = vp[12];  // = vp * (0,0,0,1) -> x component
-		float originClipY = vp[13];  // = vp * (0,0,0,1) -> y component
-
-		// Convert clip space [-1,1] to texel space [0, shadowRes]
-		float halfRes = float(m_shadowRes) * 0.5f;
-		float texelX = originClipX * halfRes;
-		float texelY = originClipY * halfRes;
-
-		// Round to nearest texel and compute offset back to clip space
-		float offsetX = (std::round(texelX) - texelX) / halfRes;
-		float offsetY = (std::round(texelY) - texelY) / halfRes;
-
-		// Apply offset to the VP matrix translation
-		vp[12] += offsetX;
-		vp[13] += offsetY;
-
-		return lightVP;
+		return lightProj * lightView;
 	}
 }

@@ -3646,6 +3646,10 @@ namespace NE {
 			NE::SetCursorVisible(visible);
 		}
 
+		void RequestClose() {
+			NE::RequestClose();
+		}
+
 		//=========================================================================
 		// EVENT API IMPLEMENTATION (SDK → Engine bridge)
 		//=========================================================================

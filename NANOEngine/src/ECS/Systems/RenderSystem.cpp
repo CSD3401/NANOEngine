@@ -1,8 +1,12 @@
 #include "pch.h"
+#include <cmath>
+#include <limits>
+
 #include "RenderSystem.hpp"
 #include "Core/Profiler.hpp"
 #include "Core/LUIDGenerator.hpp"
 #include "Core/LUIDRegistry.hpp"
+#include "Engine.hpp"
 #include "ECS/Core/ComponentManager.hpp"
 #include "ECS/Core/EntityManager.hpp"
 #include "ECS/Components/Renderer.hpp"
@@ -10,8 +14,9 @@
 #include "Graphics/Core/GraphicsManager.hpp"
 #include "Graphics/Core/Material.hpp"
 #include "Graphics/Core/DrawCommand.hpp"
+#include "SceneManagement/SceneLightmapRuntime.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
-
+#include "ECS/Components/LightmapBinding.hpp"
 
 namespace NE::ECS::Systems {
     namespace {
@@ -61,6 +66,17 @@ namespace NE::ECS::Systems {
             NE::Math::Vec4 v = M * NE::Math::Vec4(p.x, p.y, p.z, 1.0f);
             return { v.x, v.y, v.z };
         }
+
+        inline bool IsFiniteMatrix(const NE::Math::Mat4& matrix) {
+            for (float value : matrix.a) {
+                if (!std::isfinite(value)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
     }
 
     RenderSystem::RenderSystem(ComponentManager* cm, EntityManager* em, Core::LUIDRegistry* lr)
@@ -102,6 +118,15 @@ namespace NE::ECS::Systems {
 		NE_PROFILE_FUNCTION();
 #endif
         const auto& entities = m_entities.GetDenseContainer();
+        auto& activeScene = NE::GetScene();
+        const auto* lightmapState = SceneManagement::GetSceneLightmapRuntimeState(&activeScene);
+#ifndef PRODUCTION_BUILD
+        SceneManagement::LightmapRuntimeDebugStats frameLightmapStats{};
+        if (lightmapState) {
+            frameLightmapStats.resolvedPageCount = lightmapState->debugStats.resolvedPageCount;
+            frameLightmapStats.failedPageResolveCount = lightmapState->debugStats.failedPageResolveCount;
+        }
+#endif
 
         for (Entity entity : entities) {
             if (!m_entityManager->GetActive(entity)) continue;
@@ -134,9 +159,98 @@ namespace NE::ECS::Systems {
 
             cmd.castsShadow = (renderer.shadowCastMode != Component::Renderer::ShadowCastMode::Off);
             cmd.receivesShadow = renderer.receiveShadows;
+            cmd.hasUv1 = renderer.model->meshes[renderer.subMeshIndex].hasUv1;
 
+            const bool hasLightmapBinding = m_componentManager->HasComponent<Component::LightmapBinding>(entity);
+            if (hasLightmapBinding) {
+                auto& binding = m_componentManager->GetComponent<Component::LightmapBinding>(entity);
+                binding.pageResolved = false;
+                binding.resolvedPageSlot = Component::INVALID_LIGHTMAP_PAGE_SLOT;
+            }
+
+            if (hasLightmapBinding) {
+                auto& binding = m_componentManager->GetComponent<Component::LightmapBinding>(entity);
+                if (binding.enabled) {
+                    const Math::Vec2 uvScale = binding.uvScale;
+                    const Math::Vec2 uvOffset = binding.uvOffset;
+                    const std::string& pageId = binding.pageId;
+
+                    if (!cmd.hasUv1) {
+#ifndef PRODUCTION_BUILD
+                        ++frameLightmapStats.skippedMissingUv1Count;
+                        SceneManagement::EmitSceneLightmapWarningOnce(
+                            activeScene,
+                            "missing-uv1:" + std::to_string(entity),
+                            "Skipping lightmap sampling for entity " + std::to_string(entity) +
+                            " because the bound mesh has no UV1 channel.");
+#endif
+                    } else if (!IsFiniteMatrix(transform.worldMatrix)) {
+#ifndef PRODUCTION_BUILD
+                        ++frameLightmapStats.skippedInvalidTransformCount;
+                        SceneManagement::EmitSceneLightmapWarningOnce(
+                            activeScene,
+                            "invalid-world-matrix:" + std::to_string(entity),
+                            "Skipping lightmap sampling for entity " + std::to_string(entity) +
+                            " because its world transform contains non-finite values.");
+#endif
+                    } else if (!lightmapState || !lightmapState->lightingUsable) {
+#ifndef PRODUCTION_BUILD
+                        ++frameLightmapStats.skippedMissingPageCount;
+#endif
+                    } else if (!SceneManagement::IsFiniteLightmapTransform(uvScale, uvOffset)) {
+#ifndef PRODUCTION_BUILD
+                        ++frameLightmapStats.skippedInvalidBindingCount;
+                        SceneManagement::EmitSceneLightmapWarningOnce(
+                            activeScene,
+                            "invalid-lightmap-transform:" + std::to_string(entity),
+                            "Skipping lightmap sampling for entity " + std::to_string(entity) +
+                            " because its LightmapBinding atlas transform is invalid.");
+#endif
+                    } else if (pageId.empty()) {
+#ifndef PRODUCTION_BUILD
+                        ++frameLightmapStats.skippedInvalidBindingCount;
+                        SceneManagement::EmitSceneLightmapWarningOnce(
+                            activeScene,
+                            "missing-lightmap-page-id:" + std::to_string(entity),
+                            "Skipping lightmap sampling for entity " + std::to_string(entity) +
+                            " because its LightmapBinding has no page id.");
+#endif
+                    } else {
+                        cmd.lightmapEnabled = true;
+                        cmd.lightmapUvScale = uvScale;
+                        cmd.lightmapUvOffset = uvOffset;
+
+                        std::uint32_t pageSlot = std::numeric_limits<std::uint32_t>::max();
+                        if (lightmapState &&
+                            lightmapState->lightingUsable &&
+                            SceneManagement::TryResolveSceneLightmapPageSlot(activeScene, pageId, pageSlot)) {
+                            binding.pageResolved = true;
+                            binding.resolvedPageSlot = pageSlot;
+                            cmd.lightmapPageSlot = pageSlot;
+#ifndef PRODUCTION_BUILD
+                            ++frameLightmapStats.lightmappedDrawCount;
+#endif
+                        } else {
+#ifndef PRODUCTION_BUILD
+                            ++frameLightmapStats.skippedMissingPageCount;
+                            if (lightmapState && lightmapState->manifestResolved) {
+                                SceneManagement::EmitSceneLightmapWarningOnce(
+                                    activeScene,
+                                    "missing-lightmap-page:" + pageId,
+                                    "Skipping lightmap sampling because lightmap page '" + pageId +
+                                    "' could not be resolved to a usable runtime texture.");
+                            }
+#endif
+                        }
+                    }
+                }
+            }
             Graphics::GraphicsManager::Submit(cmd);
         }
+
+#ifndef PRODUCTION_BUILD
+        SceneManagement::SetSceneLightmapDebugStats(activeScene, frameLightmapStats);
+#endif
     }
 
     void RenderSystem::Exit()

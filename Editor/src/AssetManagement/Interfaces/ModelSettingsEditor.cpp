@@ -115,6 +115,7 @@ namespace Editor {
 				settings.mesh.tangentMode = static_cast<Assets::MeshImportSettings::TangentMode>(tangentIndex);
 
 				Editor::DrawCheckbox("Swap UVs", settings.mesh.swapUVs);
+				Editor::DrawCheckbox("Generate Lightmap UVs (UV1)", settings.mesh.generateLightmapUVs);
 			}
 			break;
 		}

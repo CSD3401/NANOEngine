@@ -20,7 +20,8 @@ namespace NE::Graphics {
             if (n == "u_Model" || n == "u_View" || n == "u_Projection" ||
                 n == "u_NormalMatrix" || n == "u_CameraPos" ||
                 n == "u_numLights" || n.rfind("u_lights", 0) == 0 ||
-                n == "u_ShadingModel" || n.rfind("u_Has", 0) == 0)
+                n == "u_ShadingModel" || n.rfind("u_Has", 0) == 0 ||
+                n == "u_LtcMatTexture" || n == "u_LtcAmpTexture")
                 return true;
 
             if (n.rfind("i_", 0) == 0)
@@ -263,6 +264,10 @@ namespace NE::Graphics {
                 if (u.name.find("Color") != std::string::npos ||
                     u.name.find("color") != std::string::npos ||
                     u.name.find("albedo") != std::string::npos) {
+                    m_FloatUniforms.emplace(u.name, 1.0f);
+                } else if (u.name.find("AmbientOcclusion") != std::string::npos ||
+                    u.name.find("ambientOcclusion") != std::string::npos ||
+                    u.name.find("ambientocclusion") != std::string::npos) {
                     m_FloatUniforms.emplace(u.name, 1.0f);
                 } else if (u.name.find("AlphaCutoff") != std::string::npos ||
                     u.name.find("Alphacutoff") != std::string::npos ||

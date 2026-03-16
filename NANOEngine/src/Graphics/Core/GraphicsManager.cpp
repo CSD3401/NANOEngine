@@ -46,8 +46,10 @@
 #include "GizmosRenderer.hpp"
 #include "Graphics/DebugRenderer/DebugDrawSystem.hpp"
 #include "Core/Profiler.hpp"
+#include "Engine.hpp"
 #include "ECS/Components/Light.hpp"
 #include "SceneManagement/Scene.hpp"
+#include "SceneManagement/SceneLightmapRuntime.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
 #include "ECS/Core/Entity.hpp"
 
@@ -55,6 +57,7 @@
 #include <array>
 #include <cstdint>
 #include <cmath>
+#include <limits>
 #include <variant>
 #include <string>
 #include <unordered_map>
@@ -66,9 +69,6 @@
 
 namespace NE::Graphics {
     namespace {
-        constexpr float SELECTION_OUTLINE_SCALE = 1.05f;
-        constexpr Math::Vec4 SELECTION_OUTLINE_COLOR = { 0.89f, 0.61f, 0.06f, 1.0f };
-
         constexpr float ICON_GIZMO_PIXEL_SIZE = 128.f;
         constexpr uint32_t TAA_HALTON_PERIOD = 8;
 
@@ -85,10 +85,39 @@ namespace NE::Graphics {
         std::array<std::shared_ptr<Material>, 4> s_LightGizmoMaterials;
         std::shared_ptr<Material> s_DecalGizmoMaterial;
         std::shared_ptr<IGeometryBuffer> s_DecalCubeMesh;
+        GLuint s_LtcMatTexture = 0;
+        GLuint s_LtcAmpTexture = 0;
+        std::uint64_t s_LtcMatHandle = 0;
+        std::uint64_t s_LtcAmpHandle = 0;
 
         inline Math::Vec3 TransformPoint(const Math::Mat4& M, const Math::Vec3& p) {
             Math::Vec4 v = M * Math::Vec4(p.x, p.y, p.z, 1.0f);
             return { v.x, v.y, v.z };
+        }
+
+        inline InstanceData BuildInstanceData(const DrawCommand& command) {
+            InstanceData instance{};
+            instance.model = command.transform;
+            instance.idRGB = command.idRGB;
+            instance.lightmapEnabled = command.lightmapEnabled ? 1.0f : 0.0f;
+            instance.lightmapUvScale = command.lightmapUvScale;
+            instance.lightmapUvOffset = command.lightmapUvOffset;
+            instance.lightmapPageSlot = command.lightmapPageSlot;
+            return instance;
+        }
+
+        void BindSceneLightmapUniforms(IShader& shader) {
+            const auto* runtimeState = SceneManagement::GetSceneLightmapRuntimeState(&NE::GetScene());
+            if (!runtimeState || !runtimeState->lightingUsable || runtimeState->irradianceHandles.empty()) {
+                shader.SetUniformInt("u_LightmapPageCount", 0);
+                return;
+            }
+
+            const int pageCount = static_cast<int>(std::min<std::size_t>(
+                runtimeState->irradianceHandles.size(),
+                static_cast<std::size_t>(SceneManagement::kMaxSceneLightmapPages)));
+            shader.SetUniformInt("u_LightmapPageCount", pageCount);
+            shader.SetUniformHandlev("u_LightmapPages", runtimeState->irradianceHandles.data(), pageCount);
         }
 
         inline size_t ToLightTypeIndex(ECS::Component::Light::Type type) {
@@ -240,6 +269,31 @@ namespace NE::Graphics {
             }
         }
 
+        inline void AppendWireRectangle(
+            std::vector<Vec3>& vertices,
+            const Vec3& center,
+            const Vec3& axisX,
+            const Vec3& axisY,
+            float halfWidth,
+            float halfHeight)
+        {
+            if (halfWidth <= 0.0f || halfHeight <= 0.0f) return;
+
+            const Vec3 corner0 = center - axisX * halfWidth - axisY * halfHeight;
+            const Vec3 corner1 = center + axisX * halfWidth - axisY * halfHeight;
+            const Vec3 corner2 = center + axisX * halfWidth + axisY * halfHeight;
+            const Vec3 corner3 = center - axisX * halfWidth + axisY * halfHeight;
+
+            vertices.push_back(corner0);
+            vertices.push_back(corner1);
+            vertices.push_back(corner1);
+            vertices.push_back(corner2);
+            vertices.push_back(corner2);
+            vertices.push_back(corner3);
+            vertices.push_back(corner3);
+            vertices.push_back(corner0);
+        }
+
         //inline void QueueLightDebugGeometryForView(
         //    RenderViewHandle handle,
         //    RenderViewHandle sceneViewHandle,
@@ -375,6 +429,87 @@ namespace NE::Graphics {
             material->SetUniformInt("u_HasOpacityMap", 1);
 
             s_DecalGizmoMaterial = std::move(material);
+        }
+
+        void CreateRectLightLtcTextures() {
+            if (s_LtcMatTexture != 0 && s_LtcAmpTexture != 0) {
+                return;
+            }
+
+            constexpr int kLtcLutSize = 64;
+            std::vector<float> matPixels(static_cast<size_t>(kLtcLutSize) * static_cast<size_t>(kLtcLutSize) * 4u, 0.0f);
+            std::vector<float> ampPixels(static_cast<size_t>(kLtcLutSize) * static_cast<size_t>(kLtcLutSize) * 4u, 0.0f);
+
+            for (int y = 0; y < kLtcLutSize; ++y) {
+                const float roughness = static_cast<float>(y) / static_cast<float>(kLtcLutSize - 1);
+                const float alpha = std::max(roughness * roughness, 0.02f);
+
+                for (int x = 0; x < kLtcLutSize; ++x) {
+                    const float ndotv = static_cast<float>(x) / static_cast<float>(kLtcLutSize - 1);
+                    const float grazing = 1.0f - ndotv;
+                    const float sharpness = 1.0f - alpha;
+
+                    const float scaleX = std::max(0.14f, 1.0f - sharpness * (0.82f + 0.12f * grazing));
+                    const float scaleY = std::max(0.10f, 1.0f - sharpness * (0.90f - 0.20f * ndotv));
+                    const float skew = grazing * sharpness * 0.35f;
+                    const float amplitude = std::max(0.08f, (0.35f + 0.65f * ndotv) * (0.55f + 0.45f * (1.0f - 0.5f * roughness)));
+
+                    const size_t index = (static_cast<size_t>(y) * static_cast<size_t>(kLtcLutSize) + static_cast<size_t>(x)) * 4u;
+                    matPixels[index + 0u] = scaleX;
+                    matPixels[index + 1u] = skew;
+                    matPixels[index + 2u] = scaleY;
+                    matPixels[index + 3u] = 1.0f;
+
+                    ampPixels[index + 0u] = amplitude;
+                    ampPixels[index + 1u] = 1.0f;
+                    ampPixels[index + 2u] = 0.0f;
+                    ampPixels[index + 3u] = 1.0f;
+                }
+            }
+
+            auto createTexture = [](GLuint& texture, const std::vector<float>& pixels) {
+                glCreateTextures(GL_TEXTURE_2D, 1, &texture);
+                glTextureStorage2D(texture, 1, GL_RGBA16F, kLtcLutSize, kLtcLutSize);
+                glTextureSubImage2D(
+                    texture,
+                    0,
+                    0,
+                    0,
+                    kLtcLutSize,
+                    kLtcLutSize,
+                    GL_RGBA,
+                    GL_FLOAT,
+                    pixels.data());
+                glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                glTextureParameteri(texture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                glTextureParameteri(texture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            };
+
+            createTexture(s_LtcMatTexture, matPixels);
+            createTexture(s_LtcAmpTexture, ampPixels);
+
+            s_LtcMatHandle = OpenGL::GetClampBindlessHandleForTexture(s_LtcMatTexture);
+            s_LtcAmpHandle = OpenGL::GetClampBindlessHandleForTexture(s_LtcAmpTexture);
+        }
+
+        void DestroyRectLightLtcTextures() {
+            if (s_LtcMatHandle != 0u) {
+                glMakeTextureHandleNonResidentARB(s_LtcMatHandle);
+                s_LtcMatHandle = 0u;
+            }
+            if (s_LtcAmpHandle != 0u) {
+                glMakeTextureHandleNonResidentARB(s_LtcAmpHandle);
+                s_LtcAmpHandle = 0u;
+            }
+            if (s_LtcMatTexture != 0u) {
+                glDeleteTextures(1, &s_LtcMatTexture);
+                s_LtcMatTexture = 0u;
+            }
+            if (s_LtcAmpTexture != 0u) {
+                glDeleteTextures(1, &s_LtcAmpTexture);
+                s_LtcAmpTexture = 0u;
+            }
         }
 
         void RenderLightGizmosForView(
@@ -640,8 +775,7 @@ namespace NE::Graphics {
                     currentMaterial = command.material;
                 }
 
-                InstanceData instance{};
-                instance.model = command.transform;
+                InstanceData instance = BuildInstanceData(command);
                 instance.idRGB = { 0.0f, 0.0f, 0.0f };
                 instanceData.push_back(instance);
             }
@@ -735,13 +869,250 @@ namespace NE::Graphics {
 
             view.framebuffer->SetPickingWrite(view.framebuffer->HasPickingAttachment());
         }
+
+#ifndef PRODUCTION_BUILD
+        std::shared_ptr<OpenGL::GLShader> CreateEditorDebugViewShader()
+        {
+            constexpr const char* kVertexSource = R"(
+            #version 460 core
+            layout(location = 0) in vec3 aPos;
+            layout(location = 1) in vec3 aNormal;
+            layout(location = 2) in vec2 aUV0;
+            layout(location = 4) in vec2 aUV1;
+
+            uniform mat4 u_Model;
+            uniform mat4 u_View;
+            uniform mat4 u_Projection;
+
+            out vec3 vNormalWS;
+            out vec2 vUV0;
+            out vec2 vUV1;
+
+            void main() {
+                vec4 worldPos = u_Model * vec4(aPos, 1.0);
+                mat3 normalMtx = transpose(inverse(mat3(u_Model)));
+                vNormalWS = normalize(normalMtx * aNormal);
+                vUV0 = aUV0;
+                vUV1 = aUV1;
+                gl_Position = u_Projection * u_View * worldPos;
+            }
+            )";
+
+                        constexpr const char* kFragmentSource = R"(
+            #version 460 core
+            #extension GL_ARB_bindless_texture : require
+
+            in vec3 vNormalWS;
+            in vec2 vUV0;
+            in vec2 vUV1;
+
+            layout(location = 0) out vec4 FragColor;
+
+            const int MAX_LIGHTMAP_PAGES = 128;
+
+            uniform int u_PreviewMode;
+            uniform float u_UvScale;
+            uniform sampler2D u_LightmapPages[MAX_LIGHTMAP_PAGES];
+            uniform int u_LightmapPageCount;
+            uniform int u_LightmapEnabled;
+            uniform vec2 u_LightmapUvScale;
+            uniform vec2 u_LightmapUvOffset;
+            uniform int u_LightmapPageSlot;
+
+            void main() {
+                vec3 outColor = vec3(0.0);
+                if (u_PreviewMode == 1) {
+                    outColor = normalize(vNormalWS) * 0.5 + 0.5;
+                } else if (u_PreviewMode == 2) {
+                    vec2 uv = fract(vUV0 * max(u_UvScale, 0.0001));
+                    outColor = vec3(uv, 0.0);
+                } else if (u_PreviewMode == 3) {
+                    vec2 uv = fract(vUV1 * max(u_UvScale, 0.0001));
+                    outColor = vec3(uv, 0.0);
+                } else if (u_PreviewMode == 4) {
+                    if (u_LightmapEnabled != 0) {
+                        vec2 atlasUv = vUV1 * u_LightmapUvScale + u_LightmapUvOffset;
+                        vec2 debugUv = fract(atlasUv * max(u_UvScale, 0.0001));
+                        outColor = vec3(debugUv, 0.0);
+                    } else {
+                        outColor = vec3(0.2, 0.0, 0.2);
+                    }
+                } else if (u_PreviewMode == 5) {
+                    if (u_LightmapEnabled != 0 && u_LightmapPageSlot >= 0 && u_LightmapPageSlot < u_LightmapPageCount) {
+                        vec2 atlasUv = vUV1 * u_LightmapUvScale + u_LightmapUvOffset;
+                        vec3 baked = texture(u_LightmapPages[u_LightmapPageSlot], atlasUv).rgb;
+                        outColor = baked / (vec3(1.0) + max(baked, vec3(0.0)));
+                    } else {
+                        outColor = vec3(0.0);
+                    }
+                }
+                FragColor = vec4(outColor, 1.0);
+            }
+            )";
+
+            auto compileStage = [](GLenum stage, const char* source) -> GLuint {
+                GLuint shader = glCreateShader(stage);
+                if (!shader) return 0;
+                glShaderSource(shader, 1, &source, nullptr);
+                glCompileShader(shader);
+
+                GLint ok = GL_FALSE;
+                glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
+                if (ok == GL_TRUE) {
+                    return shader;
+                }
+
+                GLint len = 0;
+                glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &len);
+                std::string log;
+                if (len > 1) {
+                    log.resize(static_cast<size_t>(len));
+                    glGetShaderInfoLog(shader, len, nullptr, log.data());
+                }
+                SPD_WARNING("EditorDebugView shader compile failed: " << log);
+                glDeleteShader(shader);
+                return 0;
+            };
+
+            GLuint vs = compileStage(GL_VERTEX_SHADER, kVertexSource);
+            GLuint fs = compileStage(GL_FRAGMENT_SHADER, kFragmentSource);
+            if (!vs || !fs) {
+                if (vs) glDeleteShader(vs);
+                if (fs) glDeleteShader(fs);
+                return nullptr;
+            }
+
+            GLuint program = glCreateProgram();
+            glAttachShader(program, vs);
+            glAttachShader(program, fs);
+            glLinkProgram(program);
+
+            glDetachShader(program, vs);
+            glDetachShader(program, fs);
+            glDeleteShader(vs);
+            glDeleteShader(fs);
+
+            GLint linked = GL_FALSE;
+            glGetProgramiv(program, GL_LINK_STATUS, &linked);
+            if (linked != GL_TRUE) {
+                GLint len = 0;
+                glGetProgramiv(program, GL_INFO_LOG_LENGTH, &len);
+                std::string log;
+                if (len > 1) {
+                    log.resize(static_cast<size_t>(len));
+                    glGetProgramInfoLog(program, len, nullptr, log.data());
+                }
+                SPD_WARNING("EditorDebugView shader link failed: " << log);
+                glDeleteProgram(program);
+                return nullptr;
+            }
+
+            return std::make_shared<OpenGL::GLShader>(program);
+        }
+
+        bool RenderEditorDebugViewPassForView(
+            RenderViewHandle handle,
+            RenderViewHandle sceneViewHandle,
+            const RenderView& view,
+            const std::vector<DrawCommand>& commands,
+            const Frustum& frustum,
+            const Mat4& camProj,
+            const Mat4& camView,
+            const std::shared_ptr<OpenGL::GLShader>& debugShader,
+            GraphicsManager::ScenePreviewMode previewMode,
+            float uvScale,
+            IStateCache* stateCache)
+        {
+            if (handle != sceneViewHandle || !view.framebuffer || !debugShader) {
+                return false;
+            }
+
+            if (previewMode == GraphicsManager::ScenePreviewMode::Shaded) {
+                return false;
+            }
+
+            const GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
+            const GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+            const GLboolean cullWasEnabled = glIsEnabled(GL_CULL_FACE);
+            GLboolean depthMaskWasEnabled = GL_TRUE;
+            glGetBooleanv(GL_DEPTH_WRITEMASK, &depthMaskWasEnabled);
+            GLint previousDepthFunc = GL_LESS;
+            glGetIntegerv(GL_DEPTH_FUNC, &previousDepthFunc);
+
+            view.framebuffer->SetPickingWrite(false);
+
+            const GLenum colorAttachment = GL_COLOR_ATTACHMENT0;
+            glDrawBuffers(1, &colorAttachment);
+
+            glDisable(GL_BLEND);
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LEQUAL);
+            glDepthMask(GL_FALSE);
+            glEnable(GL_CULL_FACE);
+            glCullFace(GL_BACK);
+
+            const float clearColor[4] = { 0.05f, 0.05f, 0.05f, 1.0f };
+            glClearBufferfv(GL_COLOR, 0, clearColor);
+
+            debugShader->Bind();
+            debugShader->SetUniformMat4("u_View", camView);
+            debugShader->SetUniformMat4("u_Projection", camProj);
+            debugShader->SetUniformInt("u_PreviewMode", static_cast<int>(previewMode));
+            debugShader->SetUniformFloat("u_UvScale", std::max(0.0001f, uvScale));
+            BindSceneLightmapUniforms(*debugShader);
+
+            for (const auto& command : commands) {
+                if (!command.mesh) continue;
+                if (command.material && command.material->GetQueueBase() == RenderQueue::OVERLAY) continue;
+                if (!frustum.IntersectsSphere(command.boundsCenterWS, command.boundsRadiusWs)) continue;
+
+                debugShader->SetUniformMat4("u_Model", command.transform);
+                debugShader->SetUniformInt("u_LightmapEnabled", command.lightmapEnabled ? 1 : 0);
+                debugShader->SetUniformVec2("u_LightmapUvScale", command.lightmapUvScale);
+                debugShader->SetUniformVec2("u_LightmapUvOffset", command.lightmapUvOffset);
+                debugShader->SetUniformInt(
+                    "u_LightmapPageSlot",
+                    command.lightmapPageSlot == std::numeric_limits<std::uint32_t>::max()
+                    ? -1
+                    : static_cast<int>(command.lightmapPageSlot));
+
+                command.mesh->Bind();
+                if (command.hasUv1) {
+                    glEnableVertexAttribArray(4);
+                } else {
+                    glDisableVertexAttribArray(4);
+                    glVertexAttrib2f(4, 0.0f, 0.0f);
+                }
+
+                command.mesh->Draw();
+
+                if (!command.hasUv1) {
+                    glEnableVertexAttribArray(4);
+                }
+                command.mesh->Unbind();
+            }
+
+            if (stateCache) {
+                stateCache->InvalidateAll();
+            }
+
+            if (blendWasEnabled) glEnable(GL_BLEND); else glDisable(GL_BLEND);
+            if (depthWasEnabled) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
+            if (cullWasEnabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
+            glDepthFunc(previousDepthFunc);
+            glDepthMask(depthMaskWasEnabled);
+
+            view.framebuffer->SetPickingWrite(view.framebuffer->HasPickingAttachment());
+            return true;
+        }
+#endif
     }
 
     uint32_t GraphicsManager::s_ScreenWidth = 1920;
     uint32_t GraphicsManager::s_ScreenHeight = 1080;
 	uint32_t GraphicsManager::s_GameViewWidth = 1920;
 	uint32_t GraphicsManager::s_GameViewHeight = 1080;
-    std::vector<ECS::Component::Light*> GraphicsManager::m_lights;
+    std::vector<RenderLightRef> GraphicsManager::m_lights;
     int GraphicsManager::drawCount = 0;
     bool GraphicsManager::enableSorting = true;
 
@@ -759,8 +1130,12 @@ namespace NE::Graphics {
     std::shared_ptr<IClusteredLighting> GraphicsManager::s_clusteredLighting;
     std::unique_ptr<PostProcessPipeline> GraphicsManager::s_PostPipeline;
     std::shared_ptr<OpenGL::GLShader> GraphicsManager::s_NormalPrepassShader;
-    std::shared_ptr<OpenGL::GLShader> GraphicsManager::s_SelectionOutlineProgram;
+#ifndef PRODUCTION_BUILD
+    std::shared_ptr<OpenGL::GLShader> GraphicsManager::s_EditorDebugViewShader;
+#endif
     std::unordered_set<uint32_t> GraphicsManager::s_SelectedEntityIds;
+    GraphicsManager::ScenePreviewMode GraphicsManager::s_ScenePreviewMode = GraphicsManager::ScenePreviewMode::Shaded;
+    float GraphicsManager::s_ScenePreviewUvScale = 1.0f;
 
 	std::shared_ptr<IGeometryBuffer> GraphicsManager::s_particleQuadMesh;
 
@@ -769,6 +1144,7 @@ namespace NE::Graphics {
     RenderSettings GraphicsManager::renderSettings;
 
     PostProcessingSettings GraphicsManager::postProcessingSettings;
+    SelectionHighlightSettings GraphicsManager::selectionHighlightSettings;
 
     void GraphicsManager::Init() {
         s_CommandBuffer = std::make_unique<OpenGL::GLCommandBuffer>();
@@ -788,7 +1164,7 @@ namespace NE::Graphics {
             desc.enablePicking = true;
             desc.enableMiniGBuffer = true;
             desc.enableDepth = true;
-            desc.enableStencil = true;
+            desc.enableStencil = false;
             desc.format = RenderViewFormat::HDR;
             s_SceneViewHandle = s_RenderViewManager->Create(desc);
         }
@@ -807,6 +1183,7 @@ namespace NE::Graphics {
         }
 
         s_clusteredLighting = std::make_shared<OpenGL::GLClusteredLighting>();
+        CreateRectLightLtcTextures();
 
         InitDebugPrimitives();
         DebugDrawSystem::SetStateCache(s_StateCache.get());
@@ -814,7 +1191,12 @@ namespace NE::Graphics {
         InitializeLightGizmoResources();
         InitializeDecalGizmoResources();
         s_NormalPrepassShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("nenormalprepass");
-        s_SelectionOutlineProgram = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("neselectionoutline");
+#ifndef PRODUCTION_BUILD
+        s_EditorDebugViewShader = CreateEditorDebugViewShader();
+        if (!s_EditorDebugViewShader) {
+            SPD_WARNING("Editor debug view shader failed to load.");
+        }
+#endif
 
         auto decalCubeModel = Resource::ResourceManager::GetInstance().LoadResource<Model>("builtin:model/cube");
         if (decalCubeModel && !decalCubeModel->meshes.empty()) {
@@ -822,13 +1204,6 @@ namespace NE::Graphics {
         } else {
             SPD_WARNING("Decal cube mesh initialization failed: builtin cube model not available.");
         }
-
-
-        //// Load Primitives
-        //auto skinned = std::make_shared<OpenGL::GLShader>();
-        //skinned->LoadFromFile("Library/Shaders/Skinned.nanoshader");
-        //skinned->LoadFromFile("Library/Shaders/Skinned.nanoshader");
-        //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(skinned, "Skinned");
 
         s_ScreenWidth = static_cast<uint32_t>(1920);
         s_ScreenHeight = static_cast<uint32_t>(1080);
@@ -838,6 +1213,10 @@ namespace NE::Graphics {
         s_PostPipeline = std::make_unique<PostProcessPipeline>();
         s_PostPipeline->Init(s_RenderViewManager.get(), s_GameViewWidth, s_GameViewHeight);
         s_PostPipeline->SetSettings(&postProcessingSettings);
+        s_PostPipeline->SetSelectionSettings(&selectionHighlightSettings);
+#ifndef PRODUCTION_BUILD
+		s_PostPipeline->SetSelectedEntityIds(&s_SelectedEntityIds);
+#endif
     }
 
     void GraphicsManager::BeginFrame() {
@@ -881,6 +1260,7 @@ namespace NE::Graphics {
             const auto& view = it->second;
 
             const auto& commands = s_DrawQueue->GetCommands();
+            // Shadow fitting must use the unjittered camera matrices from RenderView.
             s_shadowRenderer->Update(view, m_lights, commands);
 
             s_RenderViewManager->Bind(handle);
@@ -888,6 +1268,14 @@ namespace NE::Graphics {
 
 			// Invalidate cached state per view
 			s_StateCache->InvalidateAll();
+			if (view.framebuffer) {
+				view.framebuffer->SetPickingWrite(view.framebuffer->HasPickingAttachment());
+				if (view.framebuffer->HasPickingAttachment()) {
+					// Prevent stale IDs when generating selection masks from the picking buffer.
+					const float clearId[4] = { 0, 0, 0, 0 };
+					glClearBufferfv(GL_COLOR, 1, clearId);
+				}
+			}
 
             Mat4 camProj = view.projection;
             const Mat4& camView = view.view;
@@ -927,45 +1315,53 @@ namespace NE::Graphics {
             std::vector<GLuint>     shadowTextures;
             shadowVPs.reserve(MAX_SHADOWS);
             shadowTextures.reserve(MAX_SHADOWS);
-            ECS::Component::Light* dirForSplits = nullptr;
+            RenderLightRef* dirForSplits = nullptr;
 
             int shadowCount = 0;
-            for (auto* l : m_lights) {
+            for (auto& lightRef : m_lights) {
+                auto* l = lightRef.light;
                 if (!l) continue;
-                l->shadowIndex = -1;
 
-                if (l->shadowType == NE::ECS::Component::Light::None) continue;
+                LightShadowRuntime* runtime = s_shadowRenderer ? s_shadowRenderer->FindRuntime(lightRef.entity) : nullptr;
+                if (runtime) {
+                    runtime->shadowIndex = -1;
+                }
+
+                if (l->shadowType == NE::ECS::Component::Light::None ||
+                    l->shadowUpdateMode != NE::ECS::Component::Light::Realtime ||
+                    l->type == NE::ECS::Component::Light::Area) continue;
+                if (!runtime) continue;
 
                 // Directional CSM
                 if (l->type == NE::ECS::Component::Light::Directional && 
-                    l->shadowCascadeCount == NE::ECS::Component::Light::DIR_CASCADES) 
+                    runtime->shadowCascadeCount == NE::ECS::Component::Light::DIR_CASCADES) 
                 {
                     if (shadowCount + NE::ECS::Component::Light::DIR_CASCADES > MAX_SHADOWS) continue;
 
-                    if (!dirForSplits) dirForSplits = l;
+                    if (!dirForSplits) dirForSplits = &lightRef;
 
-                    l->shadowIndex = shadowCount;
+                    runtime->shadowIndex = shadowCount;
                     for (int c = 0; c < NE::ECS::Component::Light::DIR_CASCADES; ++c) {
-                        shadowVPs.push_back(l->dirLightVP[c]);
-                        shadowTextures.push_back(l->dirShadowTex[c]);
+                        shadowVPs.push_back(runtime->dirLightVP[c]);
+                        shadowTextures.push_back(runtime->dirShadowTex[c]);
                         ++shadowCount;
                     }
                     continue;
                 }
 
                 // Single-map (Spot)
-                if (l->shadowMapTex != 0 && l->shadowCascadeCount == 1) {
+                if (runtime->shadowMapTex != 0 && runtime->shadowCascadeCount == 1) {
                     if (shadowCount >= MAX_SHADOWS) continue;
-                    l->shadowIndex = shadowCount;
-                    shadowVPs.push_back(l->lightViewProj);
-                    shadowTextures.push_back(l->shadowMapTex);
+                    runtime->shadowIndex = shadowCount;
+                    shadowVPs.push_back(runtime->lightViewProj);
+                    shadowTextures.push_back(runtime->shadowMapTex);
                     ++shadowCount;
                 }
             }
 
             RenderView viewForLighting = view;
             viewForLighting.projection = camProj;
-            s_clusteredLighting->BuildForView(viewForLighting, m_lights);
+            s_clusteredLighting->BuildForView(viewForLighting, *s_shadowRenderer, m_lights);
 
             // Prepare instance data buffer and batching variables
             std::vector<InstanceData> instanceData;
@@ -994,6 +1390,9 @@ namespace NE::Graphics {
                 shader->SetUniformMat4("u_View", camView);
                 shader->SetUniformMat4("u_Projection", camProj);
                 shader->SetUniformVec3("u_CameraPos", camPos);
+                BindSceneLightmapUniforms(*shader);
+                shader->SetUniformHandle("u_LtcMatTexture", s_LtcMatHandle);
+                shader->SetUniformHandle("u_LtcAmpTexture", s_LtcAmpHandle);
 
                 shader->SetUniformVec3("i_GlobalAmbientColor", renderSettings.ambientColour);
                 shader->SetUniformFloat("i_GlobalAmbientIntensity", renderSettings.ambientIntensity);
@@ -1016,12 +1415,17 @@ namespace NE::Graphics {
                 float dirSplits[NE::ECS::Component::Light::DIR_CASCADES] = {};
 
                 if (dirForSplits) {
-                    dirCascadeCount = dirForSplits->shadowCascadeCount;
-                    for (int c = 0; c < NE::ECS::Component::Light::DIR_CASCADES; ++c)
-                        dirSplits[c] = dirForSplits->dirCascadeSplitsVS[c];
+                    const LightShadowRuntime* dirRuntime = s_shadowRenderer ? s_shadowRenderer->FindRuntime(dirForSplits->entity) : nullptr;
+                    // Directional cascade splits are derived from the active view, so one upload
+                    // is shared across directional lights in the current renderer design.
+                    if (dirRuntime) {
+                        dirCascadeCount = dirRuntime->shadowCascadeCount;
+                        for (int c = 0; c < NE::ECS::Component::Light::DIR_CASCADES; ++c)
+                            dirSplits[c] = dirRuntime->dirCascadeSplitsVS[c];
+                    }
                 }
 
-                shader->SetUniformInt("i_DirCascadeCount", ECS::Component::Light::DIR_CASCADES);
+                shader->SetUniformInt("i_DirCascadeCount", dirCascadeCount);
 
                 for (int c = 0; c < NE::ECS::Component::Light::DIR_CASCADES; ++c) {
                     std::string splitName = "i_DirCascadeSplitsVS[" + std::to_string(c) + "]";
@@ -1085,11 +1489,7 @@ namespace NE::Graphics {
                     currentReceiveShadows = receives;
                 }
 
-                NE::Graphics::InstanceData instance{};
-                instance.model = command.transform;
-                instance.idRGB = command.idRGB;
-
-                instanceData.push_back(instance);
+                instanceData.push_back(BuildInstanceData(command));
             }
 
             if (!instanceData.empty()) {
@@ -1111,11 +1511,31 @@ namespace NE::Graphics {
 
             RenderSelectionHighlightForView(handle, view, camProj, camView, commands);
 
+#ifndef PRODUCTION_BUILD
+            RenderEditorDebugViewPassForView(
+                handle,
+                s_SceneViewHandle,
+                view,
+                commands,
+                frustum,
+                camProj,
+                camView,
+                s_EditorDebugViewShader,
+                s_ScenePreviewMode,
+                s_ScenePreviewUvScale,
+                s_StateCache.get()
+            );
             RenderLightGizmosForView(handle, view, camProj, camView, camPos, s_StateCache.get(), s_SceneViewHandle);
             RenderDecalGizmosForView(handle, view, camProj, camView, camPos, s_StateCache.get(), s_SceneViewHandle);
+#endif
 
-            if (handle == s_SceneViewHandle)
-                DrawAllDebugGeometry();
+            if (handle == s_SceneViewHandle) {
+				if (view.framebuffer) {
+					// Debug rendering doesn't write an entity ID output; prevent it from corrupting the picking buffer.
+					view.framebuffer->SetPickingWrite(false);
+				}
+				DrawAllDebugGeometry();
+			}
 
             s_RenderViewManager->Unbind();
             if (ranPrepass) {
@@ -1126,6 +1546,7 @@ namespace NE::Graphics {
         s_StateCache->Reset();
 
         if (s_PostPipeline) {
+#ifndef PRODUCTION_BUILD
             // Scene View
             const auto sceneSourceFramebuffer = s_RenderViewManager->GetFramebuffer(s_SceneViewHandle);
             const auto sceneDestFramebuffer = s_RenderViewManager->GetFramebuffer(s_FinalOutputViewHandle);
@@ -1151,8 +1572,16 @@ namespace NE::Graphics {
                 }
 
                 Math::Mat4 invProj = sceneProj.Inverse();
-                s_PostPipeline->Execute(s_SceneViewHandle, s_FinalOutputViewHandle, invProj, sceneView, sceneProj, true);
+                s_PostPipeline->Execute(
+                    s_SceneViewHandle,
+                    s_FinalOutputViewHandle,
+                    invProj,
+                    sceneView,
+                    sceneProj,
+                    true
+                );
             }
+#endif
 
             // Game View
             auto it = allViews.find(s_GameViewHandle);
@@ -1204,134 +1633,242 @@ namespace NE::Graphics {
         return s_SelectedEntityIds.find(entityId) != s_SelectedEntityIds.end();
     }
 
-    void GraphicsManager::RenderSelectionHighlightForView(
+#if 0 // Legacy geometry-based selection mask (removed). Selection highlight now derives from picking.
+    void GraphicsManager::EnsureSelectionMaskResources(const RenderView& view)
+    {
+        if (!view.framebuffer) return;
+
+        const uint32_t width = view.framebuffer->GetWidth();
+        const uint32_t height = view.framebuffer->GetHeight();
+        if (width == 0 || height == 0) return;
+        if (s_SelectionMaskTexture != 0 && s_SelectionMaskFBO != 0 &&
+            s_SelectionMaskWidth == width && s_SelectionMaskHeight == height) {
+            return;
+        }
+
+        ReleaseSelectionMaskResources();
+
+        glGenTextures(1, &s_SelectionMaskTexture);
+        glBindTexture(GL_TEXTURE_2D, s_SelectionMaskTexture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8UI, static_cast<GLsizei>(width), static_cast<GLsizei>(height), 0, GL_RED_INTEGER, GL_UNSIGNED_BYTE, nullptr);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        glGenFramebuffers(1, &s_SelectionMaskFBO);
+        glBindFramebuffer(GL_FRAMEBUFFER, s_SelectionMaskFBO);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, s_SelectionMaskTexture, 0);
+        const GLenum attachment = GL_COLOR_ATTACHMENT0;
+        glDrawBuffers(1, &attachment);
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+            SPD_ERROR("Selection mask framebuffer is incomplete.");
+            ReleaseSelectionMaskResources();
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        s_SelectionMaskWidth = width;
+        s_SelectionMaskHeight = height;
+    }
+
+    void GraphicsManager::ReleaseSelectionMaskResources()
+    {
+        if (s_SelectionMaskFBO != 0) {
+            glDeleteFramebuffers(1, &s_SelectionMaskFBO);
+            s_SelectionMaskFBO = 0;
+        }
+        if (s_SelectionMaskTexture != 0) {
+            glDeleteTextures(1, &s_SelectionMaskTexture);
+            s_SelectionMaskTexture = 0;
+        }
+        s_SelectionMaskWidth = 0;
+        s_SelectionMaskHeight = 0;
+    }
+
+    void GraphicsManager::RenderSelectionMaskForView(
         RenderViewHandle handle,
         const RenderView& view,
+        const Frustum& frustum,
         const Math::Mat4& camProj,
         const Math::Mat4& camView,
         const std::vector<DrawCommand>& commands)
     {
         if (handle != s_SceneViewHandle) return;
+        if (!selectionHighlightSettings.enabled) return;
         if (s_SelectedEntityIds.empty()) return;
-        if (s_SelectionOutlineProgram == 0) return;
-        if (!view.framebuffer || !view.framebuffer->HasStencil()) return;
+        if (!view.framebuffer || !view.framebuffer->HasDepth()) return;
+        if (view.framebuffer->GetDepthAttachment() == 0) return;
+        if (!s_SelectionMaskShader) return;
 
-        std::vector<const DrawCommand*> selectedCommands;
-        selectedCommands.reserve(s_SelectedEntityIds.size());
-        for (const auto& command : commands) {
-            if (IsSelectedDrawCommand(command)) {
-                selectedCommands.push_back(&command);
-            }
-        }
-        if (selectedCommands.empty()) return;
+        EnsureSelectionMaskResources(view);
+        if (s_SelectionMaskTexture == 0 || s_SelectionMaskFBO == 0) return;
 
-        const GLboolean stencilWasEnabled = glIsEnabled(GL_STENCIL_TEST);
         const GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
         const GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
         const GLboolean cullWasEnabled = glIsEnabled(GL_CULL_FACE);
-        GLboolean colorMask[4] = { GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE };
-        glGetBooleanv(GL_COLOR_WRITEMASK, colorMask);
         GLboolean depthWriteWasEnabled = GL_TRUE;
         glGetBooleanv(GL_DEPTH_WRITEMASK, &depthWriteWasEnabled);
-
         GLint depthFunc = GL_LESS;
-        GLint previousProgram = 0;
-        GLint stencilFunc = GL_ALWAYS;
-        GLint stencilRef = 0;
-        GLint stencilValueMask = 0xFF;
-        GLint stencilWriteMask = 0xFF;
-        GLint stencilFail = GL_KEEP;
-        GLint stencilPassDepthFail = GL_KEEP;
-        GLint stencilPassDepthPass = GL_KEEP;
         GLint cullFaceMode = GL_BACK;
         glGetIntegerv(GL_DEPTH_FUNC, &depthFunc);
-        glGetIntegerv(GL_CURRENT_PROGRAM, &previousProgram);
-        glGetIntegerv(GL_STENCIL_FUNC, &stencilFunc);
-        glGetIntegerv(GL_STENCIL_REF, &stencilRef);
-        glGetIntegerv(GL_STENCIL_VALUE_MASK, &stencilValueMask);
-        glGetIntegerv(GL_STENCIL_WRITEMASK, &stencilWriteMask);
-        glGetIntegerv(GL_STENCIL_FAIL, &stencilFail);
-        glGetIntegerv(GL_STENCIL_PASS_DEPTH_FAIL, &stencilPassDepthFail);
-        glGetIntegerv(GL_STENCIL_PASS_DEPTH_PASS, &stencilPassDepthPass);
         if (cullWasEnabled) {
             glGetIntegerv(GL_CULL_FACE_MODE, &cullFaceMode);
         }
 
-        glEnable(GL_STENCIL_TEST);
-        glClearStencil(0);
-        glClear(GL_STENCIL_BUFFER_BIT);
-        glStencilMask(0xFF);
-        glStencilFunc(GL_ALWAYS, 1, 0xFF);
-        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        const GLenum attachment = GL_COLOR_ATTACHMENT0;
+        glBindFramebuffer(GL_FRAMEBUFFER, s_SelectionMaskFBO);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, s_SelectionMaskTexture, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, view.framebuffer->GetDepthAttachment(), 0);
+        glDrawBuffers(1, &attachment);
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+            SPD_ERROR("Selection mask pass framebuffer is incomplete.");
+            glBindFramebuffer(GL_FRAMEBUFFER, view.framebuffer->GetFramebuffer());
+            return;
+        }
 
-        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-        //glEnable(GL_DEPTH_TEST);
-        //glDepthMask(GL_FALSE);
-        glDisable(GL_DEPTH_TEST);
+        glViewport(0, 0, static_cast<GLsizei>(view.framebuffer->GetWidth()), static_cast<GLsizei>(view.framebuffer->GetHeight()));
+        const GLuint clearMask[4] = { 0u, 0u, 0u, 0u };
+        glClearBufferuiv(GL_COLOR, 0, clearMask);
+        glDisable(GL_BLEND);
+        glEnable(GL_DEPTH_TEST);
+        // This pass re-renders visible selected geometry against the populated scene depth buffer,
+        // so equal-depth fragments must pass to reproduce the visible footprint reliably.
+        glDepthFunc(GL_LEQUAL);
         glDepthMask(GL_FALSE);
-        glDisable(GL_BLEND);
-        glDisable(GL_CULL_FACE);
-        glUseProgram(s_SelectionOutlineProgram->GetProgramID());
 
-        const GLint viewLocation = glGetUniformLocation(s_SelectionOutlineProgram->GetProgramID(), "u_View");
-        const GLint projLocation = glGetUniformLocation(s_SelectionOutlineProgram->GetProgramID(), "u_Projection");
-        const GLint modelLocation = glGetUniformLocation(s_SelectionOutlineProgram->GetProgramID(), "u_Model");
-        const GLint colorLocation = glGetUniformLocation(s_SelectionOutlineProgram->GetProgramID(), "u_Color");
-        glUniformMatrix4fv(viewLocation, 1, GL_FALSE, camView.Data());
-        glUniformMatrix4fv(projLocation, 1, GL_FALSE, camProj.Data());
-        glUniform4f(colorLocation, SELECTION_OUTLINE_COLOR.x, SELECTION_OUTLINE_COLOR.y, SELECTION_OUTLINE_COLOR.z, SELECTION_OUTLINE_COLOR.w);
+        s_SelectionMaskShader->Bind();
+        s_SelectionMaskShader->SetUniformMat4("u_View", camView);
+        s_SelectionMaskShader->SetUniformMat4("u_Projection", camProj);
 
-        for (const DrawCommand* command : selectedCommands) {
-            glUniformMatrix4fv(modelLocation, 1, GL_FALSE, command->transform.Data());
-            command->mesh->Bind();
-            command->mesh->Draw();
-            command->mesh->Unbind();
-        }
+        std::vector<InstanceData> instanceData;
+        instanceData.reserve(64);
+        std::shared_ptr<IGeometryBuffer> currentMesh;
+        std::shared_ptr<Material> currentMaterial;
 
-        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-        glStencilMask(0x00);
-        glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-        glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-        //glDisable(GL_DEPTH_TEST);
-        //glDisable(GL_BLEND);
-        glDisable(GL_DEPTH_TEST);
-        glDisable(GL_BLEND);
+        auto flushBatch = [&]() {
+            if (instanceData.empty() || !currentMesh) return;
 
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_FRONT);
+            float opacity = 1.0f;
+            int hasOpacityMap = 0;
+            int alphaClip = 0;
+            float alphaCutoff = 0.5f;
+            Math::Vec3 tiling{ 1.0f, 1.0f, 1.0f };
+            Math::Vec3 offset{ 0.0f, 0.0f, 0.0f };
+            GLenum cullMode = GL_BACK;
+            bool enableCull = true;
 
+            if (currentMaterial) {
+                const auto& floatUniforms = currentMaterial->GetFloatUniforms();
+                auto getFloat = [&floatUniforms](const char* key, float defaultValue) {
+                    auto it = floatUniforms.find(key);
+                    return it != floatUniforms.end() ? it->second : defaultValue;
+                };
 
-        for (const DrawCommand* command : selectedCommands) {
-            const Math::Mat4 scaledTransform = command->transform * Math::Mat4::BuildScaling(
-                SELECTION_OUTLINE_SCALE,
-                SELECTION_OUTLINE_SCALE,
-                SELECTION_OUTLINE_SCALE
+                opacity = getFloat("u_Opacity", opacity);
+                alphaCutoff = getFloat("u_AlphaCutoff", alphaCutoff);
+
+                const auto& intUniforms = currentMaterial->m_IntUniforms;
+                auto getInt = [&intUniforms](const char* key, int defaultValue) {
+                    auto it = intUniforms.find(key);
+                    return it != intUniforms.end() ? it->second : defaultValue;
+                };
+
+                hasOpacityMap = getInt("h_HasOpacityMap", 0);
+                alphaClip = getInt("u_AlphaClip", 0);
+
+                const auto& vec3Uniforms = currentMaterial->GetVec3Uniforms();
+                auto getVec3 = [&vec3Uniforms](const char* key, const Math::Vec3& defaultValue) {
+                    auto it = vec3Uniforms.find(key);
+                    return it != vec3Uniforms.end() ? it->second : defaultValue;
+                };
+
+                tiling = getVec3("u_Tiling", tiling);
+                offset = getVec3("u_Offset", offset);
+
+                if (auto pipeline = currentMaterial->GetPipeline()) {
+                    cullMode = pipeline->GetSpecification().CullMode;
+                    enableCull = (cullMode != GL_NONE);
+                }
+
+                const auto& textures = currentMaterial->GetTextures();
+                auto opacityTexIt = textures.find("u_OpacityMap");
+                if (opacityTexIt != textures.end() && opacityTexIt->second) {
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, opacityTexIt->second->GLName());
+                } else {
+                    hasOpacityMap = 0;
+                }
+            }
+
+            if (enableCull) {
+                glEnable(GL_CULL_FACE);
+                glCullFace(cullMode);
+            } else {
+                glDisable(GL_CULL_FACE);
+            }
+
+            s_SelectionMaskShader->SetUniformFloat("u_Opacity", opacity);
+            s_SelectionMaskShader->SetUniformInt("u_OpacityMap", 0);
+            s_SelectionMaskShader->SetUniformInt("h_HasOpacityMap", hasOpacityMap);
+            s_SelectionMaskShader->SetUniformInt("u_AlphaClip", alphaClip);
+            s_SelectionMaskShader->SetUniformFloat("u_AlphaCutoff", alphaCutoff);
+            s_SelectionMaskShader->SetUniformVec3("u_Tiling", tiling);
+            s_SelectionMaskShader->SetUniformVec3("u_Offset", offset);
+
+            OpenGL::GLGeometryBuffer::UpdateInstanceBuffer(
+                instanceData.data(),
+                instanceData.size() * sizeof(InstanceData)
             );
-            glUniformMatrix4fv(modelLocation, 1, GL_FALSE, scaledTransform.Data());
-            command->mesh->Bind();
-            command->mesh->Draw();
-            command->mesh->Unbind();
+
+            currentMesh->Bind();
+            currentMesh->DrawInstanced(instanceData.size());
+            currentMesh->Unbind();
+            instanceData.clear();
+        };
+
+        for (const auto& command : commands) {
+            if (!IsSelectedDrawCommand(command)) continue;
+            if (!command.material) continue;
+            const RenderQueue queue = command.material->GetQueueBase();
+            if (queue != RenderQueue::GEOMETRY && queue != RenderQueue::ALPHATEST) continue;
+            if (!frustum.IntersectsSphere(command.boundsCenterWS, command.boundsRadiusWs)) continue;
+            if (!command.mesh) continue;
+
+            if ((command.mesh != currentMesh || command.material != currentMaterial) && !instanceData.empty()) {
+                flushBatch();
+            }
+
+            if (command.mesh != currentMesh || command.material != currentMaterial) {
+                currentMesh = command.mesh;
+                currentMaterial = command.material;
+            }
+
+            InstanceData instance{};
+            instance.model = command.transform;
+            instance.idRGB = { 0.0f, 0.0f, 0.0f };
+            instanceData.push_back(instance);
         }
 
-        if (stencilWasEnabled) glEnable(GL_STENCIL_TEST); else glDisable(GL_STENCIL_TEST);
-        if (depthWasEnabled) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
+        flushBatch();
+
+        glBindFramebuffer(GL_FRAMEBUFFER, view.framebuffer->GetFramebuffer());
+        view.framebuffer->SetPickingWrite(view.framebuffer->HasPickingAttachment());
+        if (s_StateCache) {
+            s_StateCache->InvalidateAll();
+        }
+        glDepthMask(depthWriteWasEnabled);
+        glDepthFunc(depthFunc);
         if (blendWasEnabled) glEnable(GL_BLEND); else glDisable(GL_BLEND);
+        if (depthWasEnabled) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
         if (cullWasEnabled) {
             glEnable(GL_CULL_FACE);
             glCullFace(cullFaceMode);
-        }
-        else {
+        } else {
             glDisable(GL_CULL_FACE);
         }
-
-        glColorMask(colorMask[0], colorMask[1], colorMask[2], colorMask[3]);
-        glDepthMask(depthWriteWasEnabled);
-        glDepthFunc(depthFunc);
-        glStencilMask(stencilWriteMask);
-        glStencilFunc(stencilFunc, stencilRef, stencilValueMask);
-        glStencilOp(stencilFail, stencilPassDepthFail, stencilPassDepthPass);
-        glUseProgram(previousProgram);
     }
+#endif // 0
 
     void GraphicsManager::Submit(const DrawCommand& command) {
 		s_DrawQueue->Submit(command);
@@ -1466,11 +2003,7 @@ namespace NE::Graphics {
                     currentDepthTest = command.enableDepthTest;
                 }
 
-                NE::Graphics::InstanceData instance{};
-                instance.model = command.transform;
-                instance.idRGB = command.idRGB;
-
-                instanceData.push_back(instance);
+                instanceData.push_back(BuildInstanceData(command));
             }
 
             if (!instanceData.empty()) {
@@ -1492,6 +2025,7 @@ namespace NE::Graphics {
         s_DecalQueue.clear();
         s_DecalGizmoQueue.clear();
         s_LightGizmoQueue.clear();
+        DebugDrawSystem::ClearFrameGeometry();
 	}
 
     void GraphicsManager::SetSelectedEntities(const std::vector<uint32_t>& selectedIds) {
@@ -1568,6 +2102,11 @@ namespace NE::Graphics {
             s_PostPipeline->Shutdown();
             s_PostPipeline.reset();
         }
+        if (s_shadowRenderer) {
+            s_shadowRenderer->Shutdown();
+            s_shadowRenderer.reset();
+        }
+        DestroyRectLightLtcTextures();
 		s_RenderViewManager->Shutdown();
         s_skybox.reset();
         s_CommandBuffer.reset();
@@ -1583,7 +2122,11 @@ namespace NE::Graphics {
         s_DecalGizmoMaterial.reset();
         s_DecalCubeMesh.reset();
         s_DecalQueue.clear();
+        m_lights.clear();
         s_NormalPrepassShader.reset();
+#ifndef PRODUCTION_BUILD
+        s_EditorDebugViewShader.reset();
+#endif
         //if (s_SelectionOutlineProgram != 0) {
         //    glDeleteProgram(s_SelectionOutlineProgram);
         //    s_SelectionOutlineProgram = 0;
@@ -1673,6 +2216,14 @@ namespace NE::Graphics {
         return 0;
 	}
 
+    uint32_t GraphicsManager::GetSceneDebugAttachment() {
+        auto framebuffer = s_RenderViewManager->GetFramebuffer(s_SceneViewHandle);
+        if (framebuffer) {
+            return framebuffer->GetColorAttachment();
+        }
+        return 0;
+    }
+
     uint32_t GraphicsManager::GetGameColorAttachment() {
 		auto framebuffer = s_RenderViewManager->GetFramebuffer(s_FinalGameOutputHandle);
         if (framebuffer) {
@@ -1755,6 +2306,46 @@ namespace NE::Graphics {
 		return static_cast<float>(s_GameViewWidth) / static_cast<float>(s_GameViewHeight);
 	}
 
+    void GraphicsManager::SetScenePreviewMode(uint8_t mode) {
+#ifndef PRODUCTION_BUILD
+        if (mode > static_cast<uint8_t>(ScenePreviewMode::LightmapOnly)) {
+            mode = static_cast<uint8_t>(ScenePreviewMode::Shaded);
+        }
+        s_ScenePreviewMode = static_cast<ScenePreviewMode>(mode);
+#else
+        (void)mode;
+        s_ScenePreviewMode = ScenePreviewMode::Shaded;
+#endif
+    }
+
+    uint8_t GraphicsManager::GetScenePreviewMode() {
+#ifndef PRODUCTION_BUILD
+        return static_cast<uint8_t>(s_ScenePreviewMode);
+#else
+        return static_cast<uint8_t>(ScenePreviewMode::Shaded);
+#endif
+    }
+
+    void GraphicsManager::SetScenePreviewUvScale(float scale) {
+#ifndef PRODUCTION_BUILD
+        if (!std::isfinite(scale) || scale <= 0.0f) {
+            scale = 1.0f;
+        }
+        s_ScenePreviewUvScale = scale;
+#else
+        (void)scale;
+        s_ScenePreviewUvScale = 1.0f;
+#endif
+    }
+
+    float GraphicsManager::GetScenePreviewUvScale() {
+#ifndef PRODUCTION_BUILD
+        return s_ScenePreviewUvScale;
+#else
+        return 1.0f;
+#endif
+    }
+
     void GraphicsManager::InitDebugPrimitives() {
         DebugDrawSystem::Init();
     }
@@ -1832,6 +2423,55 @@ namespace NE::Graphics {
                 );
                 GraphicsManager::AddDebugLinesBatch(vertices, baseColor * 0.6f);
             }
+            break;
+        }
+        case ECS::Component::Light::Type::Area: {
+            const auto* areaData = std::get_if<ECS::Component::Light::AreaLightData>(&light.data);
+            if (!areaData) break;
+
+            const float halfWidth = std::max(areaData->width * 0.5f, LIGHT_DEBUG_MIN_RANGE * 0.5f);
+            const float halfHeight = std::max(areaData->height * 0.5f, LIGHT_DEBUG_MIN_RANGE * 0.5f);
+
+            Vec3 lightRight = light.right;
+            if (lightRight.LengthSquared() < 1e-6f) {
+                lightRight = { 1.0f, 0.0f, 0.0f };
+            }
+            lightRight.Normalize();
+
+            Vec3 lightUp = light.up;
+            if (lightUp.LengthSquared() < 1e-6f) {
+                lightUp = { 0.0f, 1.0f, 0.0f };
+            }
+            lightUp.Normalize();
+
+            Vec3 emitNormal = light.direction;
+            if (emitNormal.LengthSquared() < 1e-6f) {
+                emitNormal = -lightRight.Cross(lightUp);
+            }
+            if (emitNormal.LengthSquared() < 1e-6f) {
+                emitNormal = { 0.0f, 0.0f, -1.0f };
+            }
+            emitNormal.Normalize();
+
+            vertices.clear();
+            AppendWireRectangle(vertices, light.position, lightRight, lightUp, halfWidth, halfHeight);
+
+            const float markerLength = std::max(std::min(std::max(areaData->width, areaData->height) * 0.35f, areaData->range * 0.35f), LIGHT_DEBUG_MIN_RANGE);
+            const float markerWing = std::max(markerLength * 0.2f, LIGHT_DEBUG_MIN_RANGE * 0.5f);
+            const Vec3 arrowTip = light.position + emitNormal * markerLength;
+            const Vec3 arrowBase = arrowTip - emitNormal * markerWing * 1.5f;
+            vertices.push_back(light.position);
+            vertices.push_back(arrowTip);
+            vertices.push_back(arrowTip);
+            vertices.push_back(arrowBase + lightRight * markerWing);
+            vertices.push_back(arrowTip);
+            vertices.push_back(arrowBase - lightRight * markerWing);
+            vertices.push_back(arrowTip);
+            vertices.push_back(arrowBase + lightUp * markerWing);
+            vertices.push_back(arrowTip);
+            vertices.push_back(arrowBase - lightUp * markerWing);
+
+            GraphicsManager::AddDebugLinesBatch(vertices, baseColor);
             break;
         }
         default:
