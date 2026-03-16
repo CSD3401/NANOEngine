@@ -219,12 +219,7 @@ namespace NE::ECS::Systems {
 
 			NE::Graphics::ParticleDrawCommand cmd{};
 			cmd.emitterModel = tr.worldMatrix;
-
-			// Use emitter model if assigned, otherwise fallback to global quad
-			if (e.model && !e.model->meshes.empty())
-				cmd.mesh = e.model->meshes[0].buffer;
-			else
-				cmd.mesh = NE::Graphics::GraphicsManager::GetGlobalParticleQuadMesh();
+			cmd.mesh = NE::Graphics::GraphicsManager::GetGlobalParticleQuadMesh();
 
 			cmd.material = e.material;
 			cmd.instances = e.renderInstances.data();

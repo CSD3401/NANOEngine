@@ -5321,8 +5321,8 @@ namespace Editor {
 			return;
 
 		// =====================================================
-// Material field
-// =====================================================
+		// Material field
+		// =====================================================
 		bool openMaterialPopup = false;
 		DrawAssetField(
 			"Material",
@@ -5366,56 +5366,6 @@ namespace Editor {
 						}
 						});
 				}
-				ImSearch::EndSearch();
-			}
-			ImGui::EndPopup();
-		}
-
-		// =====================================================
-		// Optional model field
-		// =====================================================
-		bool openModelPopup = false;
-		DrawAssetField(
-			"Model",
-			Assets::AssetManager::GetInstance().RetrieveFilename(comp.modelUUID),
-			true,
-			&openModelPopup,
-			ImVec2(0, 0),
-			28.0f,
-			"MODEL_PATH",
-			[&](const ImGuiPayload* p) {
-				std::string dropped((const char*)p->Data, p->DataSize ? p->DataSize - 1 : 0);
-				auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
-				comp.modelUUID = uuid;
-				comp.isDirty = true;
-			}
-		);
-
-		if (openModelPopup)
-			ImGui::OpenPopup("AssetPicker_ParticleModel");
-
-		ImGui::SetNextWindowSizeConstraints(
-			ImVec2(0.f, 0.f),
-			ImVec2(350.f, 500.f)
-		);
-
-		if (ImGui::BeginPopup("AssetPicker_ParticleModel")) {
-			ImGui::Text("Select a Model");
-			ImGui::Separator();
-			auto& modelList = Assets::AssetManager::GetInstance().GetAssetsOfType(Assets::AssetType::Model);
-
-			if (ImSearch::BeginSearch()) {
-				ImSearch::SearchBar();
-				for (const auto& [modelName, uuid] : modelList) {
-					ImSearch::SearchableItem(modelName.c_str(), [&, modelName](const char*) {
-						if (ImGui::Selectable(modelName.c_str())) {
-							comp.modelUUID = uuid;
-							comp.isDirty = true;
-							ImGui::CloseCurrentPopup();
-						}
-						});
-				}
-
 				ImSearch::EndSearch();
 			}
 			ImGui::EndPopup();

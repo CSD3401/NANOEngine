@@ -93,6 +93,10 @@ namespace NE::Renderer {
 			return Resource::ResourceManager::GetInstance().LoadResource<NE::Graphics::Material>(uuid);
 		}
 
+		std::shared_ptr<NE::Graphics::Model> GetModel(const std::string& uuid) {
+			return Resource::ResourceManager::GetInstance().LoadResource<NE::Graphics::Model>(uuid);
+		}
+
 		void AssignModel(uint32_t e, const std::string& uuid) {
 			auto& r = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
 			r.modelUUID = uuid;
