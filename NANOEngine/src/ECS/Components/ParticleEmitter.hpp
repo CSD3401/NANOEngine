@@ -94,14 +94,11 @@ namespace NE::ECS::Component {
 		//bool stretchWithVelocity = false;
 		//float stretchFactor = 0.0f;
 		std::string materialUUID;      // particle material (uses texture(s) inside)
-		std::string modelUUID;         // OPTIONAL: if you want a custom quad model; can be empty and use engine quad
 
 		// =====================================================
 		// Runtime State (not serialized)
 		// =====================================================
-
 		std::shared_ptr<Graphics::Material> material;
-		std::shared_ptr<Graphics::Model> model; // if null, use engine’s built-in quad
 
 		bool playing = false;
 		uint32_t rngState = 0;
@@ -191,11 +188,9 @@ namespace NE::ECS::Component {
 			NE_REFLECT_FIELD(boxExtents),
 
 			NE_REFLECT_FIELD(materialUUID),
-			NE_REFLECT_FIELD(modelUUID),
 			//NE_REFLECT_FIELD(billboard),
 			//NE_REFLECT_FIELD(stretchWithVelocity),
 			//NE_REFLECT_FIELD(stretchFactor),
-
 
 			NE_REFLECT_FIELD_HIDDEN(isDirty)
 		NE_REFLECT_END()
