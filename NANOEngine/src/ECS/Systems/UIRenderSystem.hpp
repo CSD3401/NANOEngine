@@ -18,6 +18,7 @@
 #include <memory>
 #include <cstdint>
 #include <unordered_map>
+#include <optional>
 #include <cstring>
 
 // Forward declarations
@@ -39,7 +40,7 @@ namespace NE::ECS::Systems {
         bool isWorldSpace;
         bool enableDepthTest;
         std::optional<NE::Graphics::ScissorRect> scissorRect;
-        int sortingOrder;
+        float sortingOrder;
 
         bool operator<(const UIBatchKey& other) const {
             if (sortingOrder != other.sortingOrder) return sortingOrder < other.sortingOrder;
@@ -173,6 +174,9 @@ namespace NE::ECS::Systems {
         struct CanvasChildren {
             std::vector<Entity> images;
             std::vector<Entity> texts;
+            // Pre-computed mask ancestors per entity (closest to farthest, for scissor intersection).
+            // Populated top-down during CollectChildrenInOrder.
+            std::unordered_map<Entity, std::vector<Entity>> maskAncestors;
         };
 
         // Built once per frame in Update(), keyed by canvas entity
@@ -180,7 +184,8 @@ namespace NE::ECS::Systems {
 
         // Build canvas children map by walking each canvas's hierarchy in sibling order
         void BuildCanvasChildrenMap();
-        void CollectChildrenInOrder(Entity canvasEntity, Entity node, CanvasChildren& out);
+        void CollectChildrenInOrder(Entity canvasEntity, Entity node, CanvasChildren& out,
+                                     std::vector<Entity> inheritedMasks = {});
 
         //=================================================================
         // Camera Utilities
@@ -216,6 +221,7 @@ namespace NE::ECS::Systems {
         ComponentManager* m_cm;
         EntityManager* m_em;
         UILayoutEngine* m_layoutEngine = nullptr;
+        bool m_canvasMapDirty = true;
 
         // Text render cache keyed by entity (moved off the UIText component)
         std::unordered_map<Entity, UITextCache> m_textCache;
@@ -258,7 +264,8 @@ namespace NE::ECS::Systems {
         std::optional<NE::Graphics::ScissorRect> ComputeScissorRect(
             Entity entity,
             Entity canvasEntity,
-            const Component::UICanvas& canvas
+            const Component::UICanvas& canvas,
+            const CanvasChildren& canvasChildren
         );
     };
 

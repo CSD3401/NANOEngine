@@ -197,6 +197,72 @@ namespace NE {
 			//h.parent = NE::ECS::Component::INVALID_PARENT;
 			//h.children.clear();
 		}
+
+		template <>
+		inline void PatchForCopy<NE::ECS::Component::UISlider>(
+			NE::ECS::Component::UISlider& sl,
+			NE::ECS::Entity /*e*/,
+			const std::unordered_map<NE::ECS::Entity, uint64_t>& entityToLocalId)
+		{
+			sl.luid = 0;
+			auto patch = [&](uint32_t& ref) {
+				if (ref == UINT32_MAX) return;
+				auto it = entityToLocalId.find(static_cast<NE::ECS::Entity>(ref));
+				ref = (it != entityToLocalId.end()) ? static_cast<uint32_t>(it->second) : UINT32_MAX;
+			};
+			patch(sl.fillRect);
+			patch(sl.handleRect);
+			patch(sl.backgroundRect);
+		}
+
+		template <>
+		inline void PatchForCopy<NE::ECS::Component::UIScrollRect>(
+			NE::ECS::Component::UIScrollRect& sr,
+			NE::ECS::Entity /*e*/,
+			const std::unordered_map<NE::ECS::Entity, uint64_t>& entityToLocalId)
+		{
+			auto patch = [&](uint32_t& ref) {
+				if (ref == UINT32_MAX) return;
+				auto it = entityToLocalId.find(static_cast<NE::ECS::Entity>(ref));
+				ref = (it != entityToLocalId.end()) ? static_cast<uint32_t>(it->second) : UINT32_MAX;
+			};
+			patch(sr.contentEntity);
+			patch(sr.viewportEntity);
+			patch(sr.horizontalScrollbar);
+			patch(sr.verticalScrollbar);
+		}
+
+		template <>
+		inline void PatchForCopy<NE::ECS::Component::UIToggle>(
+			NE::ECS::Component::UIToggle& t,
+			NE::ECS::Entity /*e*/,
+			const std::unordered_map<NE::ECS::Entity, uint64_t>& entityToLocalId)
+		{
+			t.luid = 0;
+			auto patch = [&](uint32_t& ref) {
+				if (ref == UINT32_MAX) return;
+				auto it = entityToLocalId.find(static_cast<NE::ECS::Entity>(ref));
+				ref = (it != entityToLocalId.end()) ? static_cast<uint32_t>(it->second) : UINT32_MAX;
+			};
+			patch(t.graphic);
+			patch(t.background);
+		}
+
+		template <>
+		inline void PatchForCopy<NE::ECS::Component::UIDropdown>(
+			NE::ECS::Component::UIDropdown& dd,
+			NE::ECS::Entity /*e*/,
+			const std::unordered_map<NE::ECS::Entity, uint64_t>& entityToLocalId)
+		{
+			dd.luid = 0;
+			auto patch = [&](uint32_t& ref) {
+				if (ref == UINT32_MAX) return;
+				auto it = entityToLocalId.find(static_cast<NE::ECS::Entity>(ref));
+				ref = (it != entityToLocalId.end()) ? static_cast<uint32_t>(it->second) : UINT32_MAX;
+			};
+			patch(dd.captionTextEntity);
+			patch(dd.optionsPanelEntity);
+		}
 	}
 
 	namespace Serialization {
@@ -491,24 +557,33 @@ namespace NE {
 					ecs.GetComponent<ECS::Component::EntityMeta>(e).isActive = entityActive;
 				}
 			}
-			//// Resolve UISlider child entity refs from Hierarchy luids (registered by HierarchySystem)
-			//{
-			//	auto& luidReg = ecs.GetLUIDRegistry();
-			//	auto resolve = [&](uint64_t luid) -> uint32_t {
-			//		if (luid == 0) return UINT32_MAX;
-			//		const auto* rec = luidReg.Find(luid);
-			//		return rec ? static_cast<uint32_t>(rec->m_entityOwner) : UINT32_MAX;
-			//	};
-			//	for (ECS::Entity e : ecs.GetEntityManager().GetUsedEntities()) {
-			//		if (!ecs.HasComponent<ECS::Component::UISlider>(e)) continue;
-			//		auto& slider = ecs.GetComponent<ECS::Component::UISlider>(e);
-			//		slider.fillRect            = resolve(slider.fillRectLuid);
-			//		slider.handleRect          = resolve(slider.handleRectLuid);
-			//		slider.backgroundRect      = resolve(slider.backgroundRectLuid);
-			//		slider.fillAreaRect        = resolve(slider.fillAreaRectLuid);
-			//		slider.handleSlideAreaRect = resolve(slider.handleSlideAreaRectLuid);
-			//	}
-			//}
+			// Remap UI entity cross-refs from prefab-local IDs to newly created entity IDs
+			{
+				auto remap = [&](uint32_t& ref) {
+					if (ref == UINT32_MAX) return;
+					auto it = oldLuidToEntity.find(static_cast<uint64_t>(ref));
+					ref = (it != oldLuidToEntity.end()) ? static_cast<uint32_t>(it->second) : UINT32_MAX;
+				};
+				for (ECS::Entity e : created) {
+					if (ecs.HasComponent<ECS::Component::UISlider>(e)) {
+						auto& sl = ecs.GetComponent<ECS::Component::UISlider>(e);
+						remap(sl.fillRect); remap(sl.handleRect); remap(sl.backgroundRect);
+					}
+					if (ecs.HasComponent<ECS::Component::UIScrollRect>(e)) {
+						auto& sr = ecs.GetComponent<ECS::Component::UIScrollRect>(e);
+						remap(sr.contentEntity); remap(sr.viewportEntity);
+						remap(sr.horizontalScrollbar); remap(sr.verticalScrollbar);
+					}
+					if (ecs.HasComponent<ECS::Component::UIToggle>(e)) {
+						auto& t = ecs.GetComponent<ECS::Component::UIToggle>(e);
+						remap(t.graphic); remap(t.background);
+					}
+					if (ecs.HasComponent<ECS::Component::UIDropdown>(e)) {
+						auto& dd = ecs.GetComponent<ECS::Component::UIDropdown>(e);
+						remap(dd.captionTextEntity); remap(dd.optionsPanelEntity);
+					}
+				}
+			}
 			return true;
 		}
 
@@ -635,24 +710,33 @@ namespace NE {
 				parentH.children.push_back(p.e);
 			}
 
-			//// Patch UISlider child entity refs using remapped Hierarchy luids
-			//for (ECS::Entity slEnt : created) {
-			//	if (!ecs.HasComponent<ECS::Component::UISlider>(slEnt)) continue;
-			//	auto& slider = ecs.GetComponent<ECS::Component::UISlider>(slEnt);
-			//	auto remap = [&](uint64_t& luidField, uint32_t& entityField) {
-			//		uint64_t oldLuid = luidField;
-			//		if (oldLuid == 0) { entityField = UINT32_MAX; return; }
-			//		auto eit = oldLuidToEntity.find(oldLuid);
-			//		auto lit = oldLuidToNewLuid.find(oldLuid);
-			//		entityField = (eit != oldLuidToEntity.end()) ? static_cast<uint32_t>(eit->second) : UINT32_MAX;
-			//		if (lit != oldLuidToNewLuid.end()) luidField = lit->second;
-			//	};
-			//	remap(slider.fillRectLuid,            slider.fillRect);
-			//	remap(slider.handleRectLuid,          slider.handleRect);
-			//	remap(slider.backgroundRectLuid,      slider.backgroundRect);
-			//	remap(slider.fillAreaRectLuid,        slider.fillAreaRect);
-			//	remap(slider.handleSlideAreaRectLuid, slider.handleSlideAreaRect);
-			//}
+			// Remap UI entity cross-refs from prefab-local IDs to newly created entity IDs
+			{
+				auto remap = [&](uint32_t& ref) {
+					if (ref == UINT32_MAX) return;
+					auto it = oldLuidToEntity.find(static_cast<uint64_t>(ref));
+					ref = (it != oldLuidToEntity.end()) ? static_cast<uint32_t>(it->second) : UINT32_MAX;
+				};
+				for (ECS::Entity e : created) {
+					if (ecs.HasComponent<ECS::Component::UISlider>(e)) {
+						auto& sl = ecs.GetComponent<ECS::Component::UISlider>(e);
+						remap(sl.fillRect); remap(sl.handleRect); remap(sl.backgroundRect);
+					}
+					if (ecs.HasComponent<ECS::Component::UIScrollRect>(e)) {
+						auto& sr = ecs.GetComponent<ECS::Component::UIScrollRect>(e);
+						remap(sr.contentEntity); remap(sr.viewportEntity);
+						remap(sr.horizontalScrollbar); remap(sr.verticalScrollbar);
+					}
+					if (ecs.HasComponent<ECS::Component::UIToggle>(e)) {
+						auto& t = ecs.GetComponent<ECS::Component::UIToggle>(e);
+						remap(t.graphic); remap(t.background);
+					}
+					if (ecs.HasComponent<ECS::Component::UIDropdown>(e)) {
+						auto& dd = ecs.GetComponent<ECS::Component::UIDropdown>(e);
+						remap(dd.captionTextEntity); remap(dd.optionsPanelEntity);
+					}
+				}
+			}
 
 			return outNewRoot;
 		}
@@ -787,6 +871,34 @@ namespace NE {
 				childH.parent = parentE;
 				childH.parentLuid = newParentLuidIt->second;
 				parentH.children.push_back(p.e);
+			}
+
+			// Remap UI entity cross-refs from prefab-local IDs to newly created entity IDs
+			{
+				auto remap = [&](uint32_t& ref) {
+					if (ref == UINT32_MAX) return;
+					auto it = oldLuidToEntity.find(static_cast<uint64_t>(ref));
+					ref = (it != oldLuidToEntity.end()) ? static_cast<uint32_t>(it->second) : UINT32_MAX;
+				};
+				for (ECS::Entity e : created) {
+					if (ecs.HasComponent<ECS::Component::UISlider>(e)) {
+						auto& sl = ecs.GetComponent<ECS::Component::UISlider>(e);
+						remap(sl.fillRect); remap(sl.handleRect); remap(sl.backgroundRect);
+					}
+					if (ecs.HasComponent<ECS::Component::UIScrollRect>(e)) {
+						auto& sr = ecs.GetComponent<ECS::Component::UIScrollRect>(e);
+						remap(sr.contentEntity); remap(sr.viewportEntity);
+						remap(sr.horizontalScrollbar); remap(sr.verticalScrollbar);
+					}
+					if (ecs.HasComponent<ECS::Component::UIToggle>(e)) {
+						auto& t = ecs.GetComponent<ECS::Component::UIToggle>(e);
+						remap(t.graphic); remap(t.background);
+					}
+					if (ecs.HasComponent<ECS::Component::UIDropdown>(e)) {
+						auto& dd = ecs.GetComponent<ECS::Component::UIDropdown>(e);
+						remap(dd.captionTextEntity); remap(dd.optionsPanelEntity);
+					}
+				}
 			}
 
 			return true;

@@ -36,19 +36,39 @@ namespace NE::ECS::Systems {
         }
     }
 
+    static int GetHierarchyDepth(NE::ECS::ComponentManager* cm, NE::ECS::Entity e) {
+        int depth = 0;
+        Entity cur = e;
+        while (cm->HasComponent<Hierarchy>(cur)) {
+            Entity parent = cm->GetComponent<Hierarchy>(cur).parent;
+            if (parent == NO_ENTITY) break;
+            cur = parent;
+            ++depth;
+        }
+        return depth;
+    }
+
     void UILayoutSystem::Update(double)
     {
         // Phase 1: Auto-size containers before layout groups process them
         ProcessAutoSize();
 
-        // Phase 2: Layout groups position their children
-        const auto& entities = GetEntities();
-        for (Entity e : entities) {
+        // Phase 2: Layout groups — sort by hierarchy depth so parents run before children
+        // This ensures a parent layout group sets its children's sizes before nested
+        // child layout groups use those sizes to position their own children.
+        std::vector<Entity> layoutEntities;
+        for (Entity e : GetEntities()) {
+            if (m_cm->HasComponent<UILayoutGroup>(e) || m_cm->HasComponent<UIGridLayoutGroup>(e))
+                layoutEntities.push_back(e);
+        }
+        std::sort(layoutEntities.begin(), layoutEntities.end(), [this](Entity a, Entity b) {
+            return GetHierarchyDepth(m_cm, a) < GetHierarchyDepth(m_cm, b);
+        });
+        for (Entity e : layoutEntities) {
             if (m_cm->HasComponent<UILayoutGroup>(e)) {
                 auto& layout = m_cm->GetComponent<UILayoutGroup>(e);
                 ProcessLinearLayout(e, layout.isHorizontal);
-            }
-            else if (m_cm->HasComponent<UIGridLayoutGroup>(e)) {
+            } else {
                 ProcessGridLayout(e);
             }
         }
@@ -155,32 +175,49 @@ namespace NE::ECS::Systems {
         float availableSpace = (isHorizontal ? containerWidth : containerHeight) - spacing * (N - 1);
         float extraSpace = availableSpace - totalPreferred;
 
-        // Pass 2: Position and size each child
-        float layoutPos = 0.f; // Position along main axis in layout-local coords (from top-left)
-
+        // Pass 2a: Compute initial final sizes for each child
+        std::vector<float> finalSizes(N);
         for (int i = 0; i < N; ++i) {
-            auto& childRect = m_cm->GetComponent<UIRectTransform>(children[i]);
-
-            // Calculate size along main axis
             float mainSize = childInfos[i].preferred;
             if (extraSpace > 0.f && totalFlexible > 0.f) {
-                // Distribute surplus space proportionally by flexible weight
                 mainSize += extraSpace * (childInfos[i].flexible / totalFlexible);
             } else if (extraSpace < 0.f) {
-                // Distribute deficit: shrink flexible children first, then all children uniformly
                 if (totalFlexible > 0.f && childInfos[i].flexible > 0.f) {
                     float shrink = (-extraSpace) * (childInfos[i].flexible / totalFlexible);
                     mainSize -= shrink;
                 } else if (totalFlexible <= 0.f) {
-                    // No flexible children — shrink everyone uniformly
                     float shrinkPer = (-extraSpace) / static_cast<float>(N);
                     mainSize -= shrinkPer;
                 }
-                // Clamp to minimum size
-                mainSize = std::max(mainSize, childInfos[i].minSize);
             }
-            // Always enforce minimum size regardless of direction
-            mainSize = std::max(mainSize, childInfos[i].minSize);
+            finalSizes[i] = std::max(mainSize, childInfos[i].minSize);
+        }
+
+        // Pass 2b: Check for remaining overflow after min-size clamping and redistribute
+        float actualTotal = spacing * (N - 1);
+        for (int i = 0; i < N; ++i) actualTotal += finalSizes[i];
+        float remaining = (isHorizontal ? containerWidth : containerHeight) - actualTotal;
+        if (remaining < -0.01f) {
+            // Still overflowing: distribute remaining deficit uniformly among children above minSize
+            int shrinkable = 0;
+            for (int i = 0; i < N; ++i)
+                if (finalSizes[i] > childInfos[i].minSize + 0.01f) ++shrinkable;
+            if (shrinkable > 0) {
+                float shrinkPer = (-remaining) / static_cast<float>(shrinkable);
+                for (int i = 0; i < N; ++i) {
+                    if (finalSizes[i] > childInfos[i].minSize + 0.01f) {
+                        finalSizes[i] = std::max(finalSizes[i] - shrinkPer, childInfos[i].minSize);
+                    }
+                }
+            }
+        }
+
+        // Pass 3: Position and size each child
+        float layoutPos = 0.f;
+
+        for (int i = 0; i < N; ++i) {
+            auto& childRect = m_cm->GetComponent<UIRectTransform>(children[i]);
+            float mainSize = finalSizes[i];
 
             // Calculate size along cross axis
             float crossSize = childInfos[i].crossPreferred;
@@ -205,42 +242,34 @@ namespace NE::ECS::Systems {
             if (controlChildHeight) childRect.height = childHeight;
 
             // Calculate cross-axis offset based on childAlignment
-            // Alignment rows: 0-2 = Upper, 3-5 = Middle, 6-8 = Lower
-            // Alignment cols: 0,3,6 = Left, 1,4,7 = Center, 2,5,8 = Right
             float crossOffset = 0.f;
-            int alignRow = childAlignment / 3; // 0=Upper, 1=Middle, 2=Lower
-            int alignCol = childAlignment % 3; // 0=Left, 1=Center, 2=Right
+            int alignRow = childAlignment / 3;
+            int alignCol = childAlignment % 3;
 
             if (isHorizontal) {
-                // Cross axis is vertical
                 float actualCrossSize = childHeight;
-                if (alignRow == 0) crossOffset = 0.f; // Upper
-                else if (alignRow == 1) crossOffset = (crossContainer - actualCrossSize) * 0.5f; // Middle
-                else crossOffset = crossContainer - actualCrossSize; // Lower
+                if (alignRow == 0) crossOffset = 0.f;
+                else if (alignRow == 1) crossOffset = (crossContainer - actualCrossSize) * 0.5f;
+                else crossOffset = crossContainer - actualCrossSize;
             } else {
-                // Cross axis is horizontal
                 float actualCrossSize = childWidth;
-                if (alignCol == 0) crossOffset = 0.f; // Left
-                else if (alignCol == 1) crossOffset = (crossContainer - actualCrossSize) * 0.5f; // Center
-                else crossOffset = crossContainer - actualCrossSize; // Right
+                if (alignCol == 0) crossOffset = 0.f;
+                else if (alignCol == 1) crossOffset = (crossContainer - actualCrossSize) * 0.5f;
+                else crossOffset = crossContainer - actualCrossSize;
             }
 
             // Convert from top-left layout coords to center-anchor coords
-            // The engine uses center-anchor (0,0 = center of parent)
             float halfParentW = parentRect.width * 0.5f;
             float halfParentH = parentRect.height * 0.5f;
 
             if (isHorizontal) {
                 float layoutX = padLeft + layoutPos;
                 float layoutY = padTop + crossOffset;
-
-                // Convert: x = layoutX - halfParentW + childWidth * pivotX
                 childRect.x = layoutX - halfParentW + childWidth * childRect.pivotX;
                 childRect.y = layoutY - halfParentH + childHeight * childRect.pivotY;
             } else {
                 float layoutX = padLeft + crossOffset;
                 float layoutY = padTop + layoutPos;
-
                 childRect.x = layoutX - halfParentW + childWidth * childRect.pivotX;
                 childRect.y = layoutY - halfParentH + childHeight * childRect.pivotY;
             }
@@ -248,7 +277,6 @@ namespace NE::ECS::Systems {
             float actualMainSize = isHorizontal ? childWidth : childHeight;
             layoutPos += actualMainSize + spacing;
 
-            // Mark world matrix as dirty since we changed the rect
             childRect.worldMatrixDirty = true;
             childRect.worldRectCached = false;
         }

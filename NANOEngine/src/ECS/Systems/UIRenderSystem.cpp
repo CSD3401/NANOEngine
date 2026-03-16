@@ -82,15 +82,17 @@ namespace NE::ECS::Systems {
         }
 
         img.isDirty = true;
+        m_canvasMapDirty = true;
     }
 
     void UIRenderSystem::OnEntityRemoved(Entity e)
     {
         m_textCache.erase(e);
+        m_canvasMapDirty = true;
     }
 
-    void UIRenderSystem::OnEntityActive(Entity /*entity*/) {}
-    void UIRenderSystem::OnEntityInactive(Entity /*entity*/) {}
+    void UIRenderSystem::OnEntityActive(Entity /*entity*/) { m_canvasMapDirty = true; }
+    void UIRenderSystem::OnEntityInactive(Entity /*entity*/) { m_canvasMapDirty = true; }
 
     void UIRenderSystem::Init()
     {
@@ -306,6 +308,11 @@ namespace NE::ECS::Systems {
 
         // Single O(N) pass: bucket all UI entities by their owning canvas
         BuildCanvasChildrenMap();
+
+        // Count UI elements from (possibly cached) map for diagnostics
+        for (auto& [canvasEnt, cc] : m_canvasChildrenMap) {
+            m_frameUIElements += static_cast<int>(cc.images.size()) + static_cast<int>(cc.texts.size());
+        }
 
         std::vector<std::pair<int, Entity>> canvases;
 
@@ -678,6 +685,8 @@ namespace NE::ECS::Systems {
 
     void UIRenderSystem::BuildCanvasChildrenMap()
     {
+        if (!m_canvasMapDirty) return;
+        m_canvasMapDirty = false;
         m_canvasChildrenMap.clear();
 
         const auto& entities = GetEntities();
@@ -688,7 +697,8 @@ namespace NE::ECS::Systems {
         }
     }
 
-    void UIRenderSystem::CollectChildrenInOrder(Entity canvasEntity, Entity node, CanvasChildren& out)
+    void UIRenderSystem::CollectChildrenInOrder(Entity canvasEntity, Entity node, CanvasChildren& out,
+                                                 std::vector<Entity> inheritedMasks)
     {
         if (!m_cm->HasComponent<Hierarchy>(node)) return;
 
@@ -698,11 +708,19 @@ namespace NE::ECS::Systems {
 
             // Not a UI rect — skip this node but still recurse into its children
             if (!m_cm->HasComponent<UIRectTransform>(child)) {
-                CollectChildrenInOrder(canvasEntity, child, out);
+                CollectChildrenInOrder(canvasEntity, child, out, inheritedMasks);
                 continue;
             }
 
             if (!IsActiveForUI(child, canvasEntity)) continue;
+
+            // Build this child's mask ancestor list
+            std::vector<Entity> childMasks = inheritedMasks;
+            auto& childRect = m_cm->GetComponent<UIRectTransform>(child);
+            if (childRect.enableMask) {
+                childMasks.push_back(child);
+            }
+            out.maskAncestors[child] = childMasks;
 
             bool hasImage = m_cm->HasComponent<UIImage>(child);
             bool hasText  = m_cm->HasComponent<UIText>(child);
@@ -710,7 +728,7 @@ namespace NE::ECS::Systems {
             if (hasImage) { out.images.push_back(child); m_frameUIElements++; }
             if (hasText)  { out.texts.push_back(child);  m_frameUIElements++; }
 
-            CollectChildrenInOrder(canvasEntity, child, out);
+            CollectChildrenInOrder(canvasEntity, child, out, childMasks);
         }
     }
 
@@ -869,7 +887,8 @@ namespace NE::ECS::Systems {
                 );
 
             if (!verticesV2.empty()) {
-                std::optional<NE::Graphics::ScissorRect> scissor = ComputeScissorRect(e, canvasEntity, canvas);
+                const CanvasChildren& cc = m_canvasChildrenMap.at(canvasEntity);
+                std::optional<NE::Graphics::ScissorRect> scissor = ComputeScissorRect(e, canvasEntity, canvas, cc);
 
                 UIBatchKey key;
                 key.isText = false;
@@ -1132,7 +1151,8 @@ namespace NE::ECS::Systems {
             std::vector<NE::Graphics::UIVertex2> verticesV2 = GenerateTextVertices(entity);
             if (verticesV2.empty()) continue;
 
-            std::optional<NE::Graphics::ScissorRect> scissor = ComputeScissorRect(entity, canvasEntity, canvas);
+            const CanvasChildren& cc = m_canvasChildrenMap.at(canvasEntity);
+            std::optional<NE::Graphics::ScissorRect> scissor = ComputeScissorRect(entity, canvasEntity, canvas, cc);
 
             UIBatchKey key;
             key.isText = true;
@@ -1393,7 +1413,10 @@ namespace NE::ECS::Systems {
         // Skip scissor for WorldSpace (screen-space operation)
         std::optional<NE::Graphics::ScissorRect> scissor;
         if (!isWorldSpace) {
-            scissor = ComputeScissorRect(entity, canvasEntity, canvas);
+            auto ccIt = m_canvasChildrenMap.find(canvasEntity);
+            if (ccIt != m_canvasChildrenMap.end()) {
+                scissor = ComputeScissorRect(entity, canvasEntity, canvas, ccIt->second);
+            }
         }
         if (canvas.alpha < 1.0f) {
             std::vector<NE::Graphics::UIVertex2> alphaVerts = cache.cachedVertices;
@@ -1411,59 +1434,48 @@ namespace NE::ECS::Systems {
     std::optional<NE::Graphics::ScissorRect> UIRenderSystem::ComputeScissorRect(
         Entity entity,
         Entity canvasEntity,
-        const UICanvas& canvas
+        const UICanvas& canvas,
+        const CanvasChildren& canvasChildren
     )
     {
-        // Walk parent chain looking for UIRectTransform with enableMask
-        Entity current = m_cm->HasComponent<Hierarchy>(entity)
-            ? m_cm->GetComponent<Hierarchy>(entity).parent
-            : NO_ENTITY;
+        auto it = canvasChildren.maskAncestors.find(entity);
+        if (it == canvasChildren.maskAncestors.end() || it->second.empty())
+            return std::nullopt;
 
         std::optional<NE::Graphics::ScissorRect> result;
+        int screenHeight = static_cast<int>(NE::Graphics::GraphicsManager::GetScreenHeight());
 
-        while (current != NO_ENTITY && current != canvasEntity) {
-            if (m_cm->HasComponent<UIRectTransform>(current)) {
-                auto& maskRect = m_cm->GetComponent<UIRectTransform>(current);
-                if (maskRect.enableMask) {
-                    auto wr = m_layoutEngine->GetWorldRect(current, canvasEntity, canvas);
+        for (Entity maskEnt : it->second) {
+            if (!m_cm->HasComponent<UIRectTransform>(maskEnt)) continue;
+            auto& maskRect = m_cm->GetComponent<UIRectTransform>(maskEnt);
 
-                    // Apply mask padding (shrinks inward)
-                    float maskX = wr.x + maskRect.maskPaddingLeft;
-                    float maskY = wr.y + maskRect.maskPaddingTop;
-                    float maskW = wr.width - maskRect.maskPaddingLeft - maskRect.maskPaddingRight;
-                    float maskH = wr.height - maskRect.maskPaddingTop - maskRect.maskPaddingBottom;
+            auto wr = m_layoutEngine->GetWorldRect(maskEnt, canvasEntity, canvas);
 
-                    if (maskW < 0.f) maskW = 0.f;
-                    if (maskH < 0.f) maskH = 0.f;
+            float maskX = wr.x + maskRect.maskPaddingLeft;
+            float maskY = wr.y + maskRect.maskPaddingTop;
+            float maskW = wr.width  - maskRect.maskPaddingLeft - maskRect.maskPaddingRight;
+            float maskH = wr.height - maskRect.maskPaddingTop  - maskRect.maskPaddingBottom;
+            if (maskW < 0.f) maskW = 0.f;
+            if (maskH < 0.f) maskH = 0.f;
 
-                    // Convert from UI coords (top-left origin) to GL scissor coords (bottom-left origin)
-                    int screenHeight = static_cast<int>(NE::Graphics::GraphicsManager::GetScreenHeight());
-                    NE::Graphics::ScissorRect sr;
-                    sr.x = static_cast<int>(maskX);
-                    sr.y = screenHeight - static_cast<int>(maskY + maskH);
-                    sr.width = static_cast<int>(maskW);
-                    sr.height = static_cast<int>(maskH);
+            NE::Graphics::ScissorRect sr;
+            sr.x      = static_cast<int>(maskX);
+            sr.y      = screenHeight - static_cast<int>(maskY + maskH);
+            sr.width  = static_cast<int>(maskW);
+            sr.height = static_cast<int>(maskH);
 
-                    // Intersect with existing result (nested masks)
-                    if (result.has_value()) {
-                        int x1 = std::max(result->x, sr.x);
-                        int y1 = std::max(result->y, sr.y);
-                        int x2 = std::min(result->x + result->width, sr.x + sr.width);
-                        int y2 = std::min(result->y + result->height, sr.y + sr.height);
-                        result->x = x1;
-                        result->y = y1;
-                        result->width = std::max(0, x2 - x1);
-                        result->height = std::max(0, y2 - y1);
-                    } else {
-                        result = sr;
-                    }
-                }
+            if (result.has_value()) {
+                int x1 = std::max(result->x, sr.x);
+                int y1 = std::max(result->y, sr.y);
+                int x2 = std::min(result->x + result->width,  sr.x + sr.width);
+                int y2 = std::min(result->y + result->height, sr.y + sr.height);
+                result->x = x1; result->y = y1;
+                result->width  = std::max(0, x2 - x1);
+                result->height = std::max(0, y2 - y1);
+            } else {
+                result = sr;
             }
-
-            if (!m_cm->HasComponent<Hierarchy>(current)) break;
-            current = m_cm->GetComponent<Hierarchy>(current).parent;
         }
-
         return result;
     }
 

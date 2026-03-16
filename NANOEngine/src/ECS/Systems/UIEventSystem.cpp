@@ -316,18 +316,7 @@ namespace NE::ECS::Systems {
                 auto& rect = m_cm->GetComponent<UIRectTransform>(e);
 
                 // Check if this entity belongs to this canvas
-                Entity root = e;
-                Entity current = m_cm->HasComponent<Hierarchy>(e) ? m_cm->GetComponent<Hierarchy>(e).parent : NO_ENTITY;
-                while (current != NO_ENTITY) {
-                    root = current;
-                    if (!m_cm->HasComponent<UIRectTransform>(current)) break;
-                    current = m_cm->HasComponent<Hierarchy>(current) ? m_cm->GetComponent<Hierarchy>(current).parent : NO_ENTITY;
-                }
-
-                Entity parentEnt = m_cm->HasComponent<Hierarchy>(e) ? m_cm->GetComponent<Hierarchy>(e).parent : NO_ENTITY;
-                if (root != canvasEntity && parentEnt != canvasEntity) {
-                    continue;
-                }
+                if (FindOwningCanvas(e) != canvasEntity) continue;
 
                 // Calculate world rect
                 float worldX, worldY, worldWidth, worldHeight;
@@ -995,21 +984,9 @@ namespace NE::ECS::Systems {
 
                 if (!isInteractable) continue;
 
+                if (FindOwningCanvas(e) != canvasEntity) continue;
+
                 auto& rect = m_cm->GetComponent<UIRectTransform>(e);
-
-                // Check if this entity belongs to this canvas
-                Entity root = e;
-                Entity current = m_cm->HasComponent<Hierarchy>(e) ? m_cm->GetComponent<Hierarchy>(e).parent : NO_ENTITY;
-                while (current != NO_ENTITY) {
-                    root = current;
-                    if (!m_cm->HasComponent<UIRectTransform>(current)) break;
-                    current = m_cm->HasComponent<Hierarchy>(current) ? m_cm->GetComponent<Hierarchy>(current).parent : NO_ENTITY;
-                }
-
-                Entity parentEnt = m_cm->HasComponent<Hierarchy>(e) ? m_cm->GetComponent<Hierarchy>(e).parent : NO_ENTITY;
-                if (root != canvasEntity && parentEnt != canvasEntity) {
-                    continue;
-                }
 
                 // Build model matrix for this element
                 Math::Mat4 modelMatrix = BuildWorldSpaceModelMatrix(e, canvasEntity, rect);
