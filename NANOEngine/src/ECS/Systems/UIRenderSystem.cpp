@@ -751,9 +751,12 @@ namespace NE::ECS::Systems {
 
         bool isWorldSpace = (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE);
 
-        // WorldSpace: batch sprites by identical world matrix to reduce draw calls
+        // WorldSpace: batch all sprites in the canvas into one draw call.
+        // Vertices are pre-transformed into world space so a single identity
+        // model matrix can be shared, avoiding per-element draw calls and
+        // float matrix comparison (memcmp) precision issues.
         if (isWorldSpace) {
-            std::map<WorldSpriteBatchKey, UIBatch> worldBatchMap;
+            UIBatch worldBatch;
 
             for (Entity e : canvasChildren) {
                 auto& img = m_cm->GetComponent<UIImage>(e);
@@ -781,60 +784,56 @@ namespace NE::ECS::Systems {
 
                 if (verts.empty()) continue;
 
-                // Group sprites by identical world matrix
-                WorldSpriteBatchKey key;
-                std::memcpy(key.matBytes, rect.worldMatrix.a, sizeof(key.matBytes));
-
-                UIBatch& batch = worldBatchMap[key];
-                uint32_t base = static_cast<uint32_t>(batch.vertices.size());
+                // Pre-transform vertices into world space using the element's world matrix,
+                // so all sprites in the canvas can share a single draw call with identity model.
+                uint32_t base = static_cast<uint32_t>(worldBatch.vertices.size());
                 for (auto v : verts) {
+                    Math::Vec4 worldPos = rect.worldMatrix * Math::Vec4(v.Position.x, v.Position.y, v.Position.z, 1.0f);
+                    v.Position = Math::Vec3(worldPos.x, worldPos.y, worldPos.z);
                     v.Color.w *= canvas.alpha;
-                    batch.vertices.push_back(v);
+                    worldBatch.vertices.push_back(v);
                 }
 
-                // verts.size() is always 4 (simple quad)
                 uint32_t quadCount = static_cast<uint32_t>(verts.size()) / 4;
                 for (uint32_t q = 0; q < quadCount; ++q) {
                     uint32_t b = base + q * 4;
-                    batch.indices.push_back(b + 0);
-                    batch.indices.push_back(b + 1);
-                    batch.indices.push_back(b + 2);
-                    batch.indices.push_back(b + 2);
-                    batch.indices.push_back(b + 3);
-                    batch.indices.push_back(b + 0);
+                    worldBatch.indices.push_back(b + 0);
+                    worldBatch.indices.push_back(b + 1);
+                    worldBatch.indices.push_back(b + 2);
+                    worldBatch.indices.push_back(b + 2);
+                    worldBatch.indices.push_back(b + 3);
+                    worldBatch.indices.push_back(b + 0);
                 }
             }
 
-            // Submit one draw call per unique world matrix
-            for (auto& [key, batch] : worldBatchMap) {
-                if (batch.vertices.empty()) continue;
+            // Submit one draw call for the entire world-space canvas
+            if (!worldBatch.vertices.empty() && m_sharedWorldSpriteMaterial) {
                 m_frameDrawCalls++;
 
-                Math::Mat4 worldMat;
-                std::memcpy(worldMat.a, key.matBytes, sizeof(worldMat.a));
+                Math::Mat4 identityMat;
+                identityMat.SetToIdentity();
 
-                auto geomBuffer = AcquireGeometryBuffer(batch.vertices, batch.indices);
-                if (!geomBuffer) continue;
-                if (!m_sharedWorldSpriteMaterial) continue;
+                auto geomBuffer = AcquireGeometryBuffer(worldBatch.vertices, worldBatch.indices);
+                if (geomBuffer) {
+                    m_sharedWorldSpriteMaterial->SetUniformMat4("uView", m_currentView);
+                    m_sharedWorldSpriteMaterial->SetUniformMat4("uProj", m_currentProj);
+                    m_sharedWorldSpriteMaterial->SetUniformMat4("uModel", identityMat);
+                    m_sharedWorldSpriteMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
+                    m_sharedWorldSpriteMaterial->SetQueueOffset(canvas.sortingOrder);
 
-                m_sharedWorldSpriteMaterial->SetUniformMat4("uView", m_currentView);
-                m_sharedWorldSpriteMaterial->SetUniformMat4("uProj", m_currentProj);
-                m_sharedWorldSpriteMaterial->SetUniformMat4("uModel", worldMat);
-                m_sharedWorldSpriteMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
-                m_sharedWorldSpriteMaterial->SetQueueOffset(canvas.sortingOrder);
+                    NE::Graphics::DrawCommand cmd;
+                    cmd.transform = identityMat;
+                    cmd.mesh = geomBuffer;
+                    cmd.material = m_sharedWorldSpriteMaterial;
+                    cmd.castsShadow = false;
+                    cmd.receivesShadow = false;
+                    cmd.boundsCenterWS = Math::Vec3(0.0f, 0.0f, 0.0f);
+                    cmd.boundsRadiusWs = 999999.0f;
+                    cmd.scissorRect = std::nullopt;
+                    cmd.enableDepthTest = true;
 
-                NE::Graphics::DrawCommand cmd;
-                cmd.transform = worldMat;
-                cmd.mesh = geomBuffer;
-                cmd.material = m_sharedWorldSpriteMaterial;
-                cmd.castsShadow = false;
-                cmd.receivesShadow = false;
-                cmd.boundsCenterWS = Math::Vec3(0.0f, 0.0f, 0.0f);
-                cmd.boundsRadiusWs = 999999.0f;
-                cmd.scissorRect = std::nullopt;
-                cmd.enableDepthTest = true;
-
-                NE::Graphics::GraphicsManager::Submit(cmd);
+                    NE::Graphics::GraphicsManager::Submit(cmd);
+                }
             }
             return;
         }

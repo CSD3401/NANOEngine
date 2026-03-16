@@ -1985,6 +1985,12 @@ namespace NE::ECS::Systems {
 
         // Sync option text to panel children
         SyncDropdownOptionsToPanel(dropdownEntity);
+
+        // Force an immediate layout pass on the panel so its children are positioned
+        // correctly on the same frame it opens, avoiding a one-frame flicker.
+        if (m_layoutSystem) {
+            m_layoutSystem->ForceLayout(panelEntity);
+        }
     }
 
     void UIEventSystem::CollapseDropdown() {

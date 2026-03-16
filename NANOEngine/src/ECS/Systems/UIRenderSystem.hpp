@@ -65,15 +65,15 @@ namespace NE::ECS::Systems {
         }
     };
 
-    // Batch key for WorldSpace sprites: groups by identical world matrix
-    // All WorldSpace sprites use unit quad [0,1]x[0,1] in local space, so elements
-    // sharing a worldMatrix can be merged into one draw call with that transform
+    // Batch key for WorldSpace sprites: groups by owning canvas entity.
+    // All sprites in the same world-space canvas share the same coordinate space,
+    // so they can be merged into one draw call per canvas. This avoids float
+    // matrix comparisons (memcmp) which broke batching on precision differences.
     struct WorldSpriteBatchKey {
-        float matBytes[16];  // world matrix as 64 bytes (float a[16])
+        Entity canvasEntity = NO_ENTITY;
 
         bool operator<(const WorldSpriteBatchKey& other) const {
-            int cmp = std::memcmp(matBytes, other.matBytes, sizeof(matBytes));
-            return cmp < 0;
+            return canvasEntity < other.canvasEntity;
         }
     };
 

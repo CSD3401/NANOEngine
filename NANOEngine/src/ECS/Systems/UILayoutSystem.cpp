@@ -23,6 +23,19 @@ namespace NE::ECS::Systems {
     void UILayoutSystem::OnEntityActive(Entity /*entity*/) {}
     void UILayoutSystem::OnEntityInactive(Entity /*entity*/) {}
 
+    void UILayoutSystem::ForceLayout(Entity entity)
+    {
+        if (!m_cm->HasComponent<UILayoutGroup>(entity) &&
+            !m_cm->HasComponent<UIGridLayoutGroup>(entity)) return;
+
+        if (m_cm->HasComponent<UILayoutGroup>(entity)) {
+            auto& layout = m_cm->GetComponent<UILayoutGroup>(entity);
+            ProcessLinearLayout(entity, layout.isHorizontal);
+        } else {
+            ProcessGridLayout(entity);
+        }
+    }
+
     void UILayoutSystem::Update(double)
     {
         // Phase 1: Auto-size containers before layout groups process them
@@ -97,6 +110,7 @@ namespace NE::ECS::Systems {
 
         struct ChildInfo {
             float preferred;
+            float minSize;
             float flexible;
             float crossPreferred;
         };
@@ -106,6 +120,8 @@ namespace NE::ECS::Systems {
             auto& childRect = m_cm->GetComponent<UIRectTransform>(children[i]);
             float prefW = childRect.width;
             float prefH = childRect.height;
+            float minW = 0.f;
+            float minH = 0.f;
             float flexW = 0.f;
             float flexH = 0.f;
 
@@ -113,18 +129,22 @@ namespace NE::ECS::Systems {
                 auto& le = m_cm->GetComponent<UILayoutElement>(children[i]);
                 if (le.preferredWidth >= 0.f) prefW = le.preferredWidth;
                 if (le.preferredHeight >= 0.f) prefH = le.preferredHeight;
+                if (le.minWidth >= 0.f) minW = le.minWidth;
+                if (le.minHeight >= 0.f) minH = le.minHeight;
                 if (le.flexibleWidth >= 0.f) flexW = le.flexibleWidth;
                 if (le.flexibleHeight >= 0.f) flexH = le.flexibleHeight;
             }
 
             if (isHorizontal) {
                 childInfos[i].preferred = prefW;
+                childInfos[i].minSize = minW;
                 childInfos[i].flexible = forceExpandWidth ? std::max(1.f, flexW) : flexW;
                 childInfos[i].crossPreferred = prefH;
                 totalPreferred += prefW;
                 totalFlexible += childInfos[i].flexible;
             } else {
                 childInfos[i].preferred = prefH;
+                childInfos[i].minSize = minH;
                 childInfos[i].flexible = forceExpandHeight ? std::max(1.f, flexH) : flexH;
                 childInfos[i].crossPreferred = prefW;
                 totalPreferred += prefH;
@@ -134,7 +154,6 @@ namespace NE::ECS::Systems {
 
         float availableSpace = (isHorizontal ? containerWidth : containerHeight) - spacing * (N - 1);
         float extraSpace = availableSpace - totalPreferred;
-        if (extraSpace < 0.f) extraSpace = 0.f;
 
         // Pass 2: Position and size each child
         float layoutPos = 0.f; // Position along main axis in layout-local coords (from top-left)
@@ -144,9 +163,24 @@ namespace NE::ECS::Systems {
 
             // Calculate size along main axis
             float mainSize = childInfos[i].preferred;
-            if (totalFlexible > 0.f && extraSpace > 0.f) {
+            if (extraSpace > 0.f && totalFlexible > 0.f) {
+                // Distribute surplus space proportionally by flexible weight
                 mainSize += extraSpace * (childInfos[i].flexible / totalFlexible);
+            } else if (extraSpace < 0.f) {
+                // Distribute deficit: shrink flexible children first, then all children uniformly
+                if (totalFlexible > 0.f && childInfos[i].flexible > 0.f) {
+                    float shrink = (-extraSpace) * (childInfos[i].flexible / totalFlexible);
+                    mainSize -= shrink;
+                } else if (totalFlexible <= 0.f) {
+                    // No flexible children — shrink everyone uniformly
+                    float shrinkPer = (-extraSpace) / static_cast<float>(N);
+                    mainSize -= shrinkPer;
+                }
+                // Clamp to minimum size
+                mainSize = std::max(mainSize, childInfos[i].minSize);
             }
+            // Always enforce minimum size regardless of direction
+            mainSize = std::max(mainSize, childInfos[i].minSize);
 
             // Calculate size along cross axis
             float crossSize = childInfos[i].crossPreferred;
@@ -271,6 +305,16 @@ namespace NE::ECS::Systems {
             }
         }
 
+        // Compute effective cell dimensions (stretch mode fills available space evenly)
+        float effectiveCellW = grid.cellWidth;
+        float effectiveCellH = grid.cellHeight;
+        if (grid.stretchCells && columns > 0 && rows > 0) {
+            effectiveCellW = (containerWidth  - grid.spacingX * (columns - 1)) / static_cast<float>(columns);
+            effectiveCellH = (containerHeight - grid.spacingY * (rows    - 1)) / static_cast<float>(rows);
+            effectiveCellW = std::max(0.f, effectiveCellW);
+            effectiveCellH = std::max(0.f, effectiveCellH);
+        }
+
         float halfParentW = parentRect.width * 0.5f;
         float halfParentH = parentRect.height * 0.5f;
 
@@ -296,15 +340,15 @@ namespace NE::ECS::Systems {
                 row = (rows - 1) - row;
             }
 
-            float cellX = grid.paddingLeft + col * (grid.cellWidth + grid.spacingX);
-            float cellY = grid.paddingTop + row * (grid.cellHeight + grid.spacingY);
+            float cellX = grid.paddingLeft + col * (effectiveCellW + grid.spacingX);
+            float cellY = grid.paddingTop  + row * (effectiveCellH + grid.spacingY);
 
-            childRect.width = grid.cellWidth;
-            childRect.height = grid.cellHeight;
+            childRect.width  = effectiveCellW;
+            childRect.height = effectiveCellH;
 
             // Convert from top-left layout coords to center-anchor coords
-            childRect.x = cellX - halfParentW + grid.cellWidth * childRect.pivotX;
-            childRect.y = cellY - halfParentH + grid.cellHeight * childRect.pivotY;
+            childRect.x = cellX - halfParentW + effectiveCellW * childRect.pivotX;
+            childRect.y = cellY - halfParentH + effectiveCellH * childRect.pivotY;
 
             childRect.worldMatrixDirty = true;
             childRect.worldRectCached = false;
