@@ -245,10 +245,6 @@ namespace NE::ECS::Systems {
 			e.material = resourceManager.LoadResource<NE::Graphics::Material>(e.materialUUID);
 		}
 
-		if (!e.modelUUID.empty() && !e.model) {
-			e.model = resourceManager.LoadResource<NE::Graphics::Model>(e.modelUUID);
-		}
-
 		// Seed RNG only once (0 means "uninitialized" in this design)
 		if (e.rngState == 0u)
 		{
