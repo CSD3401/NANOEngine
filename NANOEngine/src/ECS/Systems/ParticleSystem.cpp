@@ -6,6 +6,7 @@
 #include "../../Math/Mat4.hpp"
 #include "Graphics/Core/GraphicsManager.hpp"
 #include "Graphics/Core/InstanceData.hpp"
+#include "ResourceManagement/ResourceManager.hpp"
 
 namespace NE::ECS::Systems {
 	ParticleSystem::ParticleSystem(ComponentManager* cm) : m_componentManager(cm)
@@ -243,6 +244,15 @@ namespace NE::ECS::Systems {
 	void ParticleSystem::InitEmitterRuntime(ParticleEmitter& e, Entity entity)
 	{
 		e.EnsureCapacity();
+
+		auto& resourceManager = NE::Resource::ResourceManager::GetInstance();
+		if (!e.materialUUID.empty() && !e.material) {
+			e.material = resourceManager.LoadResource<NE::Graphics::Material>(e.materialUUID);
+		}
+
+		if (!e.modelUUID.empty() && !e.model) {
+			e.model = resourceManager.LoadResource<NE::Graphics::Model>(e.modelUUID);
+		}
 
 		// Seed RNG only once (0 means "uninitialized" in this design)
 		if (e.rngState == 0u)
