@@ -30,7 +30,7 @@ namespace Editor::Lightmapping {
 	namespace {
 		constexpr float kFiniteEpsilon = 1e-6f;
 		constexpr size_t kMaxWarningExamples = 64;
-		constexpr int kAreaLightBakeSamples = 16;
+		constexpr int kAreaLightBakeSamples = 64;
 
 		enum class BakeLightKind : uint8_t {
 			Directional,
