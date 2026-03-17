@@ -88,22 +88,22 @@ namespace Editor::Lightmapping {
 		void ReleaseDetachedBakeResults(
 			std::shared_ptr<DirectLightBakeResult>& pendingCpuResult,
 			std::shared_ptr<DirectLightBakeResult>& publishedResult,
-			std::shared_ptr<const DirectLightBakeResult>& stateResult) {
-			DirectLightBakeResult* detachedResults[3] = {
-				pendingCpuResult.get(),
-				publishedResult.get(),
-				const_cast<DirectLightBakeResult*>(stateResult.get())
+			std::shared_ptr<DirectLightBakeResult>& stateResult) {
+			std::shared_ptr<DirectLightBakeResult> detachedResults[3] = {
+				pendingCpuResult,
+				publishedResult,
+				stateResult
 			};
 
 			for (size_t i = 0; i < 3u; ++i) {
-				DirectLightBakeResult* result = detachedResults[i];
-				if (result == nullptr) {
+				const std::shared_ptr<DirectLightBakeResult>& result = detachedResults[i];
+				if (!result) {
 					continue;
 				}
 
 				bool alreadyReleased = false;
 				for (size_t previousIndex = 0; previousIndex < i; ++previousIndex) {
-					if (detachedResults[previousIndex] == result) {
+					if (detachedResults[previousIndex].get() == result.get()) {
 						alreadyReleased = true;
 						break;
 					}
@@ -1279,7 +1279,7 @@ namespace Editor::Lightmapping {
 				BuildRuntimePreviewPages(pendingCpuResult->textureOutput));
 
 			std::shared_ptr<DirectLightBakeResult> retiredPublishedResult;
-			std::shared_ptr<const DirectLightBakeResult> retiredStateResult;
+			std::shared_ptr<DirectLightBakeResult> retiredStateResult;
 			{
 				std::scoped_lock lock(control.mutex);
 				// Publication is atomic from the editor's point of view. The previous
@@ -1288,7 +1288,8 @@ namespace Editor::Lightmapping {
 				// happen while session state is locked.
 				control.pendingCpuResult.reset();
 				retiredPublishedResult = std::move(control.publishedResult);
-				retiredStateResult = std::move(control.state.result);
+				std::shared_ptr<const DirectLightBakeResult> movedStateResult = std::move(control.state.result);
+				retiredStateResult = std::const_pointer_cast<DirectLightBakeResult>(movedStateResult);
 				control.publishedResult = pendingCpuResult;
 				control.state.result = pendingCpuResult;
 				control.state.hasResult = true;
@@ -1478,12 +1479,13 @@ namespace Editor::Lightmapping {
 
 		std::shared_ptr<DirectLightBakeResult> detachedPendingResult;
 		std::shared_ptr<DirectLightBakeResult> detachedPublishedResult;
-		std::shared_ptr<const DirectLightBakeResult> detachedStateResult;
+		std::shared_ptr<DirectLightBakeResult> detachedStateResult;
 		{
 			std::scoped_lock lock(control.mutex);
 			detachedPendingResult = std::move(control.pendingCpuResult);
 			detachedPublishedResult = std::move(control.publishedResult);
-			detachedStateResult = std::move(control.state.result);
+			std::shared_ptr<const DirectLightBakeResult> movedStateResult = std::move(control.state.result);
+			detachedStateResult = std::const_pointer_cast<DirectLightBakeResult>(movedStateResult);
 			control.state.hasResult = false;
 			control.state.isRunning = false;
 			control.state.cancelRequested = false;

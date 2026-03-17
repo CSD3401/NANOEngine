@@ -79,6 +79,7 @@ namespace Editor::Lightmapping {
 		int uvIslandChartCount = 0;
 		int rasterizedUvIslandChartCount = 0;
 		size_t uvIslandOverlapTexelCount = 0;
+		bool uvIslandSourceGapIsZero = false;
 		bool expandedForUvIslandGap = false;
 		bool uvIslandGapLimitedByPageSize = false;
 		bool hadBinding = false;
@@ -213,6 +214,8 @@ namespace Editor::Lightmapping {
 			int rasterizedChartCount = 0;
 			int minGapTexels = std::numeric_limits<int>::max();
 			size_t overlapTexelCount = 0u;
+			float sourceMinGapUv = std::numeric_limits<float>::infinity();
+			bool sourceChartsTouch = false;
 		};
 
 		class DisjointSet {
@@ -345,6 +348,16 @@ namespace Editor::Lightmapping {
 			return true;
 		}
 
+		inline float IntervalGap(float minA, float maxA, float minB, float maxB) {
+			if (maxA < minB) {
+				return minB - maxA;
+			}
+			if (maxB < minA) {
+				return minA - maxB;
+			}
+			return 0.0f;
+		}
+
 		inline UvIslandSpacingAnalysis AnalyzeUvIslandSpacing(
 			const NE::Graphics::SubMesh& submesh,
 			int width,
@@ -363,6 +376,80 @@ namespace Editor::Lightmapping {
 			if (analysis.chartCount <= 1) {
 				return analysis;
 			}
+
+			struct UvBounds {
+				NE::Math::Vec2 min{
+					std::numeric_limits<float>::max(),
+					std::numeric_limits<float>::max()
+				};
+				NE::Math::Vec2 max{
+					-std::numeric_limits<float>::max(),
+					-std::numeric_limits<float>::max()
+				};
+				bool valid = false;
+			};
+
+			std::vector<UvBounds> chartBounds(static_cast<size_t>(analysis.chartCount) + 1u);
+			for (size_t triangleIndex = 0; triangleIndex < chartLabels.size(); ++triangleIndex) {
+				const size_t baseIndex = triangleIndex * 3u;
+				if (baseIndex + 2u >= submesh.indices.size()) {
+					break;
+				}
+
+				const uint32_t ia = submesh.indices[baseIndex + 0u];
+				const uint32_t ib = submesh.indices[baseIndex + 1u];
+				const uint32_t ic = submesh.indices[baseIndex + 2u];
+				if (ia >= submesh.vertices.size() || ib >= submesh.vertices.size() || ic >= submesh.vertices.size()) {
+					continue;
+				}
+
+				const auto& va = submesh.vertices[ia];
+				const auto& vb = submesh.vertices[ib];
+				const auto& vc = submesh.vertices[ic];
+				if (!IsFiniteVec2(va.texCoord1) || !IsFiniteVec2(vb.texCoord1) || !IsFiniteVec2(vc.texCoord1)) {
+					continue;
+				}
+
+				auto& bounds = chartBounds[chartLabels[triangleIndex]];
+				const NE::Math::Vec2 uvs[] = { va.texCoord1, vb.texCoord1, vc.texCoord1 };
+				for (const auto& uv : uvs) {
+					if (!bounds.valid) {
+						bounds.min = uv;
+						bounds.max = uv;
+						bounds.valid = true;
+						continue;
+					}
+
+					bounds.min.x = std::min(bounds.min.x, uv.x);
+					bounds.min.y = std::min(bounds.min.y, uv.y);
+					bounds.max.x = std::max(bounds.max.x, uv.x);
+					bounds.max.y = std::max(bounds.max.y, uv.y);
+				}
+			}
+
+			for (int lhsChart = 1; lhsChart <= analysis.chartCount; ++lhsChart) {
+				const auto& lhsBounds = chartBounds[static_cast<size_t>(lhsChart)];
+				if (!lhsBounds.valid) {
+					continue;
+				}
+
+				for (int rhsChart = lhsChart + 1; rhsChart <= analysis.chartCount; ++rhsChart) {
+					const auto& rhsBounds = chartBounds[static_cast<size_t>(rhsChart)];
+					if (!rhsBounds.valid) {
+						continue;
+					}
+
+					const float gapX = IntervalGap(lhsBounds.min.x, lhsBounds.max.x, rhsBounds.min.x, rhsBounds.max.x);
+					const float gapY = IntervalGap(lhsBounds.min.y, lhsBounds.max.y, rhsBounds.min.y, rhsBounds.max.y);
+					const float sourceGap = std::max(gapX, gapY);
+					analysis.sourceMinGapUv = std::min(analysis.sourceMinGapUv, sourceGap);
+				}
+			}
+
+			if (!std::isfinite(analysis.sourceMinGapUv)) {
+				analysis.sourceMinGapUv = 0.0f;
+			}
+			analysis.sourceChartsTouch = analysis.sourceMinGapUv <= 1e-6f;
 
 			const float edgeEpsilon = 1e-6f;
 			const size_t texelCount = static_cast<size_t>(width) * static_cast<size_t>(height);
@@ -534,6 +621,8 @@ namespace Editor::Lightmapping {
 				return;
 			}
 
+			const bool sourceGapCanImproveWithScaling = !outAnalysis.sourceChartsTouch;
+
 			const int maxInnerWidth = std::max(1, settings.pageSize - (settings.padding * 2));
 			const int maxInnerHeight = std::max(1, settings.pageSize - (settings.padding * 2));
 			for (int iteration = 0; iteration < 8; ++iteration) {
@@ -542,6 +631,10 @@ namespace Editor::Lightmapping {
 					outAnalysis.rasterizedChartCount == outAnalysis.chartCount &&
 					outAnalysis.minGapTexels >= settings.minUvIslandGap;
 				if (meetsGapTarget) {
+					return;
+				}
+
+				if (!sourceGapCanImproveWithScaling) {
 					return;
 				}
 
@@ -1084,6 +1177,7 @@ namespace Editor::Lightmapping {
 				uvIslandSpacing.chartCount,
 				uvIslandSpacing.rasterizedChartCount,
 				uvIslandSpacing.overlapTexelCount,
+				uvIslandSpacing.sourceChartsTouch,
 				innerWidth != baseInnerWidth || innerHeight != baseInnerHeight,
 				uvIslandGapLimitedByPageSize,
 				hadBinding
@@ -1179,7 +1273,9 @@ namespace Editor::Lightmapping {
 			preview.uvOffset = placement.uvOffset;
 			preview.message = "Allocated to " + placement.pageId + ".";
 			if (request.uvIslandChartCount > 1) {
-				if (request.uvIslandGapLimitedByPageSize) {
+				if (request.uvIslandSourceGapIsZero) {
+					preview.message += " Source UV1 islands touch in the authored layout, so allocation kept the base size instead of scaling up to manufacture padding.";
+				} else if (request.uvIslandGapLimitedByPageSize) {
 					preview.message += " Final UV1 island gap reached " +
 						std::to_string(std::max(request.effectiveUvIslandGap, 0)) +
 						" px but could not meet the " +
