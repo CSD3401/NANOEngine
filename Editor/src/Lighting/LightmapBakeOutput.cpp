@@ -14,10 +14,15 @@ namespace Editor::Lightmapping {
 		constexpr float kTonemapGamma = 1.0f / 2.2f;
 		constexpr float kPreviewExposureEpsilon = 1e-4f;
 		constexpr uint8_t kMaskOn = 255u;
-		static constexpr std::array<std::pair<int, int>, 8u> kNeighborOffsets{ {
+		static constexpr std::array<std::pair<int, int>, 8u> kDilationNeighborOffsets{ {
 			{ -1, -1 }, { 0, -1 }, { 1, -1 },
 			{ -1,  0 },             { 1,  0 },
 			{ -1,  1 }, { 0,  1 }, { 1,  1 }
+		} };
+		static constexpr std::array<std::pair<int, int>, 4u> kComponentNeighborOffsets{ {
+			{ 0, -1 },
+			{ -1, 0 }, { 1, 0 },
+			{ 0, 1 }
 		} };
 
 		uint16_t FloatToHalf(float value) {
@@ -147,7 +152,7 @@ namespace Editor::Lightmapping {
 
 					const int x = static_cast<int>(currentIndex % static_cast<size_t>(width));
 					const int y = static_cast<int>(currentIndex / static_cast<size_t>(width));
-					for (const auto& [offsetX, offsetY] : kNeighborOffsets) {
+					for (const auto& [offsetX, offsetY] : kComponentNeighborOffsets) {
 						const int neighborX = x + offsetX;
 						const int neighborY = y + offsetY;
 						if (neighborX < 0 ||
@@ -539,7 +544,7 @@ namespace Editor::Lightmapping {
 					uint32_t validNeighborCount = 0u;
 					uint32_t selectedComponent = 0u;
 					bool ambiguousComponents = false;
-					for (const auto& [offsetX, offsetY] : kNeighborOffsets) {
+					for (const auto& [offsetX, offsetY] : kDilationNeighborOffsets) {
 						const int neighborX = static_cast<int>(x) + offsetX;
 						const int neighborY = static_cast<int>(y) + offsetY;
 						if (neighborX < 0 ||
