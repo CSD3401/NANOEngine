@@ -39,7 +39,6 @@ in vec2 v_UV;
 in vec4 v_Color;
 
 layout(location = 0) out vec4 FragColor;
-layout(location = 1) out vec4 OutID;
 
 uniform sampler2D u_AlbedoMap;
 uniform int       h_HasAlbedoMap;
@@ -60,5 +59,4 @@ void main()
         discard;
 
 	FragColor = vec4(tex.rgb * v_Color.rgb, alpha);
-    OutID = vec4(1.0, 1.0, 1.0, 1.0); // null value
 }

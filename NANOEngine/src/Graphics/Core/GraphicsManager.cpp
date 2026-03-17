@@ -2531,6 +2531,9 @@ namespace NE::Graphics {
         const Frustum& frustum,
         int& drawCount)
     {
+        glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        glColorMaski(1, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
         const auto& particleCommands = s_DrawQueue->GetParticleCommands();
 
         for (const auto& pcmd : particleCommands)
@@ -2586,5 +2589,7 @@ namespace NE::Graphics {
             if (view.isMain && view.order == 0)
                 ++drawCount;
         }
+
+        glColorMaski(1, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     }
 }
