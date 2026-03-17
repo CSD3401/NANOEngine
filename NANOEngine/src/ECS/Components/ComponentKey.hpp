@@ -30,6 +30,7 @@ namespace NE::ECS::Component {
 	struct UIGridLayoutGroup;
 	struct UILayoutElement;
 	struct UIScrollRect;
+	struct ParticleEmitter;
 }
 
 template <typename T> struct ComponentKey;
@@ -66,3 +67,4 @@ NE_COMPONENT_KEY(NE::ECS::Component::UILayoutGroup, "UILayoutGroup")
 NE_COMPONENT_KEY(NE::ECS::Component::UIGridLayoutGroup, "UIGridLayoutGroup")
 NE_COMPONENT_KEY(NE::ECS::Component::UILayoutElement, "UILayoutElement")
 NE_COMPONENT_KEY(NE::ECS::Component::UIScrollRect, "UIScrollRect")
+NE_COMPONENT_KEY(NE::ECS::Component::ParticleEmitter, "ParticleEmitter")

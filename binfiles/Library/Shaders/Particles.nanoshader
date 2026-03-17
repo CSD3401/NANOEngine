@@ -1,0 +1,62 @@
+#type vertex
+#version 460 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 2) in vec2 a_TexCoord;
+
+layout(location = 13) in vec3  i_PosLS;
+layout(location = 14) in float i_Size;
+layout(location = 15) in vec4  i_Color;
+
+uniform mat4 u_View;
+uniform mat4 u_Projection;
+uniform mat4 u_EmitterModel;
+uniform vec3 u_CamRightWS;
+uniform vec3 u_CamUpWS;
+
+out vec2 v_UV;
+out vec4 v_Color;
+
+void main()
+{
+    vec3 centerWS = (u_EmitterModel * vec4(i_PosLS, 1.0)).xyz;
+
+    vec2 corner = aPos.xy;
+
+    vec3 offsetWS = (corner.x * u_CamRightWS + corner.y * u_CamUpWS) * i_Size;
+    vec3 posWS = centerWS + offsetWS;
+
+    gl_Position = u_Projection * u_View * vec4(posWS, 1.0);
+
+    v_UV = a_TexCoord;
+    v_Color = i_Color;
+}
+
+#type fragment
+#version 460 core
+
+in vec2 v_UV;
+in vec4 v_Color;
+
+layout(location = 0) out vec4 FragColor;
+
+uniform sampler2D u_AlbedoMap;
+uniform int       h_HasAlbedoMap;
+
+uniform int       u_AlphaClip;
+uniform float     u_AlphaCutoff;
+
+void main()
+{
+    vec4 tex = vec4(1.0);
+    if (h_HasAlbedoMap != 0) {
+        tex = texture(u_AlbedoMap, v_UV);
+    }
+
+    float alpha = tex.a * v_Color.a;
+
+    if (u_AlphaClip != 0 && alpha < u_AlphaCutoff)
+        discard;
+
+	FragColor = vec4(tex.rgb * v_Color.rgb, alpha);
+}

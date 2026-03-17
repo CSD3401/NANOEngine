@@ -36,6 +36,7 @@
 #include <ECS/Components/Camera.hpp>
 #include <ECS/Components/PrefabInstance.hpp>
 #include <ECS/Components/CharacterController.hpp>
+#include <ECS/Components/ParticleEmitter.hpp>
 #include <Core/Reflection.hpp>
 #include <Math/Vec3.hpp>
 #include "Math/Vec4.hpp"
@@ -95,21 +96,26 @@ namespace {
 
 		if constexpr (std::is_same_v<T, bool>) {
 			return ImGui::Checkbox(desc.name.data(), &value);
-		} else if constexpr (std::is_same_v<T, int>) {
+		} 
+		else if constexpr (std::is_same_v<T, int>) {
 			return ImGui::DragInt(desc.name.data(), &value);
-		} else if constexpr (std::is_same_v<T, float>) {
+		} 
+		else if constexpr (std::is_same_v<T, float>) {
 			return ImGui::DragFloat(desc.name.data(), &value, 0.1f);
-		} else if constexpr (std::is_same_v<T, NE::Math::Vec3>) {
+		} 
+		else if constexpr (std::is_same_v<T, NE::Math::Vec3>) {
 			ImGui::BeginGroup();
 			bool changed = Editor::DrawVec3Control(desc.name.data(), value, 75.0f, 0.01f);
 			ImGui::EndGroup();
 			return changed;
-		} else if constexpr (std::is_same_v<T, NE::Math::Vec2>) {
+		} 
+		else if constexpr (std::is_same_v<T, NE::Math::Vec2>) {
 			ImGui::BeginGroup();
 			bool changed = Editor::DrawVec2Control(desc.name.data(), value, 75.0f, 0.01f);
 			ImGui::EndGroup();
 			return changed;
-		} else if constexpr (std::is_same_v<T, std::string>) {
+		} 
+		else if constexpr (std::is_same_v<T, std::string>) {
 			// String support added here -> check w irwen
 			char buffer[256];
 			strncpy_s(buffer, sizeof(buffer), value.c_str(), sizeof(buffer));
@@ -120,7 +126,14 @@ namespace {
 				return true;
 			}
 			return false;
-		} else {
+		}
+		else if constexpr (std::is_same_v <T, NE::Math::Vec4>) {
+			ImGui::BeginGroup();
+			bool changed = Editor::DrawVec4Control(desc.name.data(), value, 75.0f, 0.01f);
+			ImGui::EndGroup();
+			return changed;
+		}
+		else {
 			ImGui::Text("%s (unsupported)", desc.name.data());
 			return false;
 		}
@@ -162,9 +175,14 @@ namespace {
 				return NE::ECS::Command::GetCharacterController(e);
 			} else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Animator>) {
 				return NE::ECS::Command::GetEntityAnimator(e);
-			} else if constexpr (std::is_same_v<Owner, NE::ECS::Component::DecalProjector>) {
+			}
+			else if constexpr (std::is_same_v<Owner, NE::ECS::Component::DecalProjector>) {
 				return NE::ECS::Command::GetDecalProjector(e);
-			} else {
+			}
+			else if constexpr (std::is_same_v<Owner, NE::ECS::Component::ParticleEmitter>) {
+				return NE::ECS::Command::GetParticleEmitter(e);
+			}
+			else {
 				static_assert(sizeof(Owner) == 0, "No getter defined for this component type.");
 			}
 		};
@@ -475,7 +493,8 @@ namespace Editor {
 			{ NE::ECS::Query::GetUIAutoSizeComponentType(),			"Auto Size",			&InspectorPanel::DrawAutoSizeComponent              },
 			{ NE::ECS::Query::GetUIInputFieldComponentType(),		"Input Field",			&InspectorPanel::DrawInputFieldComponent			},
 			{ NE::ECS::Query::GetUIDropdownComponentType(),			"Dropdown",				&InspectorPanel::DrawDropdownComponent				},
-			{ NE::ECS::Query::GetScriptComponentType(),				"Script",				&InspectorPanel::DrawScriptComponent				}
+			{ NE::ECS::Query::GetScriptComponentType(),				"Script",				&InspectorPanel::DrawScriptComponent				},
+			{ NE::ECS::Query::GetParticleEmitterComponentType(),	"Particle Emitter",		&InspectorPanel::DrawParticleEmitterComponent		},
 		};
 	}
 
@@ -534,6 +553,9 @@ namespace Editor {
 				}
 				if (ImGui::MenuItem("Decal Projector")) {
 					NE::ECS::Command::AddDecalProjectorComponent(EditorScene::s_selection.GetLastClicked());
+				}
+				if (ImGui::MenuItem("Particle Emitter")) {
+					NE::ECS::Command::AddParticleEmitterComponent(EditorScene::s_selection.GetLastClicked());
 				}
 
 				ImGui::Separator();
@@ -5276,6 +5298,174 @@ namespace Editor {
 		}
 
 		ImGui::Unindent();
+		ImGui::TreePop();
+	}
+
+	void InspectorPanel::DrawParticleEmitterComponent(uint32_t entity)
+	{
+		using ParticleEmitter = NE::ECS::Component::ParticleEmitter;
+
+		auto& comp = NE::ECS::Command::GetParticleEmitter(entity);
+
+		bool copyComp = false;
+		bool deleteComp = false;
+
+		const bool open = DrawComponentHeaderWithMenu(
+			"Particle Emitter",
+			true,
+			&copyComp,
+			&deleteComp
+		);
+
+		if (!open)
+			return;
+
+		// =====================================================
+		// Material field
+		// =====================================================
+		bool openMaterialPopup = false;
+		DrawAssetField(
+			"Material",
+			Assets::AssetManager::GetInstance().RetrieveFilename(comp.materialUUID),
+			true,
+			&openMaterialPopup,
+			ImVec2(0, 0),
+			28.0f,
+			"MATERIAL_PATH",
+			[&](const ImGuiPayload* p) {
+				std::string dropped((const char*)p->Data, p->DataSize ? p->DataSize - 1 : 0);
+				auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
+				comp.materialUUID = uuid;
+				comp.material = NE::Renderer::Command::GetMaterial(uuid);
+				comp.isDirty = true;
+			}
+		);
+
+		if (openMaterialPopup)
+			ImGui::OpenPopup("AssetPicker_ParticleMaterial");
+
+		ImGui::SetNextWindowSizeConstraints(
+			ImVec2(0.f, 0.f),
+			ImVec2(350.f, 500.f)
+		);
+
+		if (ImGui::BeginPopup("AssetPicker_ParticleMaterial")) {
+			ImGui::Text("Select a Material");
+			ImGui::Separator();
+			auto& materialList = Assets::AssetManager::GetInstance().GetAssetsOfType(Assets::AssetType::Material);
+
+			if (ImSearch::BeginSearch()) {
+				ImSearch::SearchBar();
+				for (const auto& [materialName, uuid] : materialList) {
+					ImSearch::SearchableItem(materialName.c_str(), [&, materialName](const char*) {
+						if (ImGui::Selectable(materialName.c_str())) {
+							comp.materialUUID = uuid;
+							comp.material = NE::Renderer::Command::GetMaterial(uuid);
+							comp.isDirty = true;
+							ImGui::CloseCurrentPopup();
+						}
+						});
+				}
+				ImSearch::EndSearch();
+			}
+			ImGui::EndPopup();
+		}
+
+		// =====================================================
+		// Shape enum
+		// =====================================================
+		static const char* ShapeTypeNames[] = { "Point", "Sphere", "Cone", "Box" };
+		int currShape = static_cast<int>(comp.shape);
+
+		if (DrawEnumPillCombo("Shape", currShape, ShapeTypeNames, IM_ARRAYSIZE(ShapeTypeNames), 100.0f)) {
+			auto newShape = static_cast<ParticleEmitter::ShapeType>(currShape);
+			if (newShape != comp.shape) {
+				comp.shape = newShape;
+				comp.isDirty = true;
+			}
+		}
+
+		// =====================================================
+		// Draw reflected fields, skipping fields handled manually
+		// =====================================================
+		NE::Core::ForEachFieldView<ParticleEmitter>(comp,
+			[&](auto const& desc, auto const& currentValue) {
+				using FieldT = std::decay_t<decltype(currentValue)>;
+
+				const std::string_view name = desc.name;
+
+				if (name == "shape" ||
+					name == "sphereRadius" ||
+					name == "coneAngle" ||
+					name == "boxExtents" ||
+					name == "materialUUID" ||
+					name == "modelUUID")
+				{
+					return;
+				}
+
+				FieldT edited = currentValue;
+
+				if (DrawField(desc, edited)) {
+					SubmitSetFieldCommand<ParticleEmitter, FieldT>(
+						entity, desc, currentValue, edited
+					);
+
+					auto& emitter = NE::ECS::Command::GetParticleEmitter(entity);
+					emitter.isDirty = true;
+
+					if constexpr (std::is_same_v<FieldT, uint32_t>) {
+						if (name == "maxParticles") {
+							emitter.EnsureCapacity();
+						}
+					}
+				}
+			}
+		);
+
+		// =====================================================
+		// Shape-specific settings
+		// =====================================================
+		switch (comp.shape)
+		{
+		case ParticleEmitter::ShapeType::Sphere:
+		{
+			float edited = comp.sphereRadius;
+			if (DrawFloatControl("Sphere Radius", edited, 1)) {
+				comp.sphereRadius = edited;
+				comp.isDirty = true;
+			}
+			break;
+		}
+		case ParticleEmitter::ShapeType::Cone:
+		{
+			float edited = comp.coneAngle;
+			if (DrawFloatControl("Cone Angle", edited, 1)) {
+				comp.coneAngle = edited;
+				comp.isDirty = true;
+			}
+			break;
+		}
+		case ParticleEmitter::ShapeType::Box:
+		{
+			NE::Math::Vec3 edited = comp.boxExtents;
+			if (DrawVec3Control("Box Extents", edited, 100.0f, 0.01f, 0.0f, 2)) {
+				comp.boxExtents = edited;
+				comp.isDirty = true;
+			}
+			break;
+		}
+		case ParticleEmitter::ShapeType::Point:
+		default:
+			break;
+		}
+
+		if (copyComp) {
+		}
+		if (deleteComp) {
+			NE::ECS::Command::RemoveParticleEmitterComponent(entity);
+		}
+
 		ImGui::TreePop();
 	}
 }

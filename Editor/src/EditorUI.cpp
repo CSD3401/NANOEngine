@@ -3,6 +3,7 @@
 
 #include <Math/Vec2.hpp>
 #include <Math/Vec3.hpp>
+#include <Math/Vec4.hpp>
 #include "AssetManagement/AssetManager.hpp"
 #include <imgui/widgets/imsearch/imsearch.h>
 #include <Events/EventBus.hpp>
@@ -1033,6 +1034,41 @@ namespace Editor {
         changed |= DrawAxisPill("X", "X", &v.x, IM_COL32(220, 60, 60, 255), w, drag_speed_per_pixel, reset_value, precision);
         ImGui::SameLine(0.0f, spacing);
         changed |= DrawAxisPill("Y", "Y", &v.y, IM_COL32(60, 180, 75, 255), w, drag_speed_per_pixel, reset_value, precision);
+
+        ImGui::PopID();
+        return changed;
+    }
+
+    bool DrawVec4Control(const char* label,
+        NE::Math::Vec4& v,
+        float label_width,
+        float drag_speed_per_pixel,
+        float reset_value,
+        int precision)
+    {
+        ImGui::PushID(label);
+
+        const float line_start_x = ImGui::GetCursorPosX();
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(label);
+
+        ImGui::SameLine();
+        const float target_x = line_start_x + label_width;
+        ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), target_x));
+
+        const float avail = ImGui::GetContentRegionAvail().x;
+        const float spacing = ImGui::GetStyle().ItemSpacing.x;
+        const float w = std::max(1.0f, (avail - spacing * 3.0f) / 4.0f);
+
+        bool changed = false;
+
+        changed |= DrawAxisPill("X", "X", &v.x, IM_COL32(220, 60, 60, 255), w, drag_speed_per_pixel, reset_value, precision);
+        ImGui::SameLine(0.0f, spacing);
+        changed |= DrawAxisPill("Y", "Y", &v.y, IM_COL32(60, 180, 75, 255), w, drag_speed_per_pixel, reset_value, precision);
+        ImGui::SameLine(0.0f, spacing);
+        changed |= DrawAxisPill("Z", "Z", &v.z, IM_COL32(70, 120, 230, 255), w, drag_speed_per_pixel, reset_value, precision);
+        ImGui::SameLine(0.0f, spacing);
+        changed |= DrawAxisPill("W", "W", &v.w, IM_COL32(200, 200, 200, 255), w, drag_speed_per_pixel, reset_value, precision);
 
         ImGui::PopID();
         return changed;
