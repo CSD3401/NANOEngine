@@ -14,6 +14,11 @@ namespace Editor::Lightmapping {
 		constexpr float kTonemapGamma = 1.0f / 2.2f;
 		constexpr float kPreviewExposureEpsilon = 1e-4f;
 		constexpr uint8_t kMaskOn = 255u;
+		static constexpr std::array<std::pair<int, int>, 8u> kNeighborOffsets{ {
+			{ -1, -1 }, { 0, -1 }, { 1, -1 },
+			{ -1,  0 },             { 1,  0 },
+			{ -1,  1 }, { 0,  1 }, { 1,  1 }
+		} };
 
 		uint16_t FloatToHalf(float value) {
 			uint32_t bits = 0u;
@@ -112,6 +117,60 @@ namespace Editor::Lightmapping {
 		size_t CountNonZeroMaskTexels(const std::vector<uint8_t>& mask) {
 			return static_cast<size_t>(std::count_if(mask.begin(), mask.end(),
 				[](uint8_t value) { return value != 0u; }));
+		}
+
+		size_t BuildConnectedComponentLabels(
+			uint32_t width,
+			uint32_t height,
+			const std::vector<uint8_t>& mask,
+			std::vector<uint32_t>& outLabels) {
+			const size_t texelCount = static_cast<size_t>(width) * static_cast<size_t>(height);
+			outLabels.assign(texelCount, 0u);
+			if (width == 0u || height == 0u || mask.size() != texelCount) {
+				return 0u;
+			}
+
+			uint32_t nextLabel = 0u;
+			std::vector<size_t> stack;
+			stack.reserve(texelCount);
+			for (size_t texelIndex = 0; texelIndex < texelCount; ++texelIndex) {
+				if (mask[texelIndex] == 0u || outLabels[texelIndex] != 0u) {
+					continue;
+				}
+
+				++nextLabel;
+				outLabels[texelIndex] = nextLabel;
+				stack.push_back(texelIndex);
+				while (!stack.empty()) {
+					const size_t currentIndex = stack.back();
+					stack.pop_back();
+
+					const int x = static_cast<int>(currentIndex % static_cast<size_t>(width));
+					const int y = static_cast<int>(currentIndex / static_cast<size_t>(width));
+					for (const auto& [offsetX, offsetY] : kNeighborOffsets) {
+						const int neighborX = x + offsetX;
+						const int neighborY = y + offsetY;
+						if (neighborX < 0 ||
+							neighborY < 0 ||
+							neighborX >= static_cast<int>(width) ||
+							neighborY >= static_cast<int>(height)) {
+							continue;
+						}
+
+						const size_t neighborIndex =
+							static_cast<size_t>(neighborY) * static_cast<size_t>(width) +
+							static_cast<size_t>(neighborX);
+						if (mask[neighborIndex] == 0u || outLabels[neighborIndex] != 0u) {
+							continue;
+						}
+
+						outLabels[neighborIndex] = nextLabel;
+						stack.push_back(neighborIndex);
+					}
+				}
+			}
+
+			return static_cast<size_t>(nextLabel);
 		}
 
 		struct PreparedDilationPage {
@@ -269,6 +328,12 @@ namespace Editor::Lightmapping {
 				ioWarnings.push_back(
 					descriptor.pageId + ": dilation found no writable invalid texels adjacent to valid texels.");
 			}
+
+			if (diagnostics.ambiguousTexelCount > 0u) {
+				ioWarnings.push_back(
+					descriptor.pageId + ": dilation skipped " + std::to_string(diagnostics.ambiguousTexelCount) +
+					" texels that touched multiple disconnected UV regions.");
+			}
 		}
 
 		bool SanitizePageLighting(
@@ -324,99 +389,16 @@ namespace Editor::Lightmapping {
 				return false;
 			}
 
-			ioPreparedPage.dilatedValidMask = ioPreparedPage.originalValidMask;
-			ioPreparedPage.filledValidMask.assign(static_cast<size_t>(texelCount), 0u);
-			ioPreparedPage.diagnostics.finalValidTexelCount = ioPreparedPage.diagnostics.originalValidTexelCount;
-			if (ioPreparedPage.diagnostics.originalValidTexelCount == 0u) {
-				ioPreparedPage.diagnostics.hadNoValidTexels = true;
-				return true;
-			}
-
-			if (resolvedDilationRadiusTexels == 0u) {
-				return true;
-			}
-
-			static constexpr std::array<std::pair<int, int>, 8u> kNeighborOffsets{ {
-				{ -1, -1 }, { 0, -1 }, { 1, -1 },
-				{ -1,  0 },             { 1,  0 },
-				{ -1,  1 }, { 0,  1 }, { 1,  1 }
-			} };
-
-			std::vector<NE::Math::Vec3> currentLighting = ioPreparedPage.sanitizedLighting;
-			std::vector<NE::Math::Vec3> nextLighting = currentLighting;
-			std::vector<uint8_t> currentMask = ioPreparedPage.originalValidMask;
-			std::vector<uint8_t> nextMask = currentMask;
-
-			for (uint32_t passIndex = 0; passIndex < resolvedDilationRadiusTexels; ++passIndex) {
-				++ioPreparedPage.diagnostics.passesExecuted;
-				nextLighting = currentLighting;
-				nextMask = currentMask;
-				size_t passFillCount = 0u;
-
-				for (uint32_t y = 0; y < inputPage.height; ++y) {
-					for (uint32_t x = 0; x < inputPage.width; ++x) {
-						const size_t linearIndex = static_cast<size_t>(y) * static_cast<size_t>(inputPage.width) + static_cast<size_t>(x);
-						if ((*inputPage.dilationWriteMask)[linearIndex] == 0u || currentMask[linearIndex] != 0u) {
-							continue;
-						}
-
-						float accumR = 0.0f;
-						float accumG = 0.0f;
-						float accumB = 0.0f;
-						uint32_t validNeighborCount = 0u;
-						for (const auto& [offsetX, offsetY] : kNeighborOffsets) {
-							const int neighborX = static_cast<int>(x) + offsetX;
-							const int neighborY = static_cast<int>(y) + offsetY;
-							if (neighborX < 0 ||
-								neighborY < 0 ||
-								neighborX >= static_cast<int>(inputPage.width) ||
-								neighborY >= static_cast<int>(inputPage.height)) {
-								continue;
-							}
-
-							const size_t neighborIndex =
-								static_cast<size_t>(neighborY) * static_cast<size_t>(inputPage.width) +
-								static_cast<size_t>(neighborX);
-							if (currentMask[neighborIndex] == 0u) {
-								continue;
-							}
-
-							const auto& neighbor = currentLighting[neighborIndex];
-							accumR += neighbor.x;
-							accumG += neighbor.y;
-							accumB += neighbor.z;
-							++validNeighborCount;
-						}
-
-						if (validNeighborCount == 0u) {
-							continue;
-						}
-
-						const float invNeighborCount = 1.0f / static_cast<float>(validNeighborCount);
-						auto& filled = nextLighting[linearIndex];
-						filled.x = accumR * invNeighborCount;
-						filled.y = accumG * invNeighborCount;
-						filled.z = accumB * invNeighborCount;
-						nextMask[linearIndex] = 1u;
-						ioPreparedPage.filledValidMask[linearIndex] = 1u;
-						++passFillCount;
-					}
-				}
-
-				if (passFillCount == 0u) {
-					ioPreparedPage.diagnostics.convergedEarly = true;
-					break;
-				}
-
-				currentLighting.swap(nextLighting);
-				currentMask.swap(nextMask);
-			}
-
-			ioPreparedPage.sanitizedLighting.swap(currentLighting);
-			ioPreparedPage.dilatedValidMask.swap(currentMask);
-			ioPreparedPage.diagnostics.filledTexelCount = CountNonZeroMaskTexels(ioPreparedPage.filledValidMask);
-			ioPreparedPage.diagnostics.finalValidTexelCount = CountNonZeroMaskTexels(ioPreparedPage.dilatedValidMask);
-			return true;
+			return RunMaskedLightmapDilation(
+				inputPage.width,
+				inputPage.height,
+				resolvedDilationRadiusTexels,
+				*inputPage.dilationWriteMask,
+				ioPreparedPage.originalValidMask,
+				ioPreparedPage.sanitizedLighting,
+				ioPreparedPage.dilatedValidMask,
+				ioPreparedPage.filledValidMask,
+				&ioPreparedPage.diagnostics);
 		}
 
 		void PackCanonicalPage(const std::vector<NE::Math::Vec3>& lighting, std::vector<uint16_t>& outPackedRgba16f) {
@@ -485,6 +467,155 @@ namespace Editor::Lightmapping {
 			++mipCount;
 		}
 		return mipCount;
+	}
+
+	bool RunMaskedLightmapDilation(
+		uint32_t width,
+		uint32_t height,
+		uint32_t resolvedDilationRadiusTexels,
+		const std::vector<uint8_t>& dilationWriteMask,
+		const std::vector<uint8_t>& originalValidMask,
+		std::vector<NE::Math::Vec3>& ioLighting,
+		std::vector<uint8_t>& outDilatedValidMask,
+		std::vector<uint8_t>& outFilledValidMask,
+		LightmapBakeDilationPageDiagnostics* outDiagnostics) {
+		const size_t texelCount = static_cast<size_t>(width) * static_cast<size_t>(height);
+		if (width == 0u ||
+			height == 0u ||
+			dilationWriteMask.size() != texelCount ||
+			originalValidMask.size() != texelCount ||
+			ioLighting.size() != texelCount) {
+			return false;
+		}
+
+		LightmapBakeDilationPageDiagnostics diagnostics{};
+		diagnostics.originalValidTexelCount = CountNonZeroMaskTexels(originalValidMask);
+		outDilatedValidMask = originalValidMask;
+		outFilledValidMask.assign(texelCount, 0u);
+		diagnostics.finalValidTexelCount = diagnostics.originalValidTexelCount;
+		if (diagnostics.originalValidTexelCount == 0u) {
+			diagnostics.hadNoValidTexels = true;
+			if (outDiagnostics != nullptr) {
+				*outDiagnostics = diagnostics;
+			}
+			return true;
+		}
+
+		std::vector<uint32_t> originalComponentLabels;
+		diagnostics.originalComponentCount =
+			BuildConnectedComponentLabels(width, height, originalValidMask, originalComponentLabels);
+		if (resolvedDilationRadiusTexels == 0u) {
+			if (outDiagnostics != nullptr) {
+				*outDiagnostics = diagnostics;
+			}
+			return true;
+		}
+
+		std::vector<NE::Math::Vec3> currentLighting = ioLighting;
+		std::vector<NE::Math::Vec3> nextLighting = currentLighting;
+		std::vector<uint8_t> currentMask = originalValidMask;
+		std::vector<uint8_t> nextMask = currentMask;
+		std::vector<uint32_t> currentComponentLabels = originalComponentLabels;
+		std::vector<uint32_t> nextComponentLabels = currentComponentLabels;
+		std::vector<uint8_t> ambiguousMask(texelCount, 0u);
+
+		for (uint32_t passIndex = 0; passIndex < resolvedDilationRadiusTexels; ++passIndex) {
+			++diagnostics.passesExecuted;
+			nextLighting = currentLighting;
+			nextMask = currentMask;
+			nextComponentLabels = currentComponentLabels;
+			size_t passFillCount = 0u;
+
+			for (uint32_t y = 0; y < height; ++y) {
+				for (uint32_t x = 0; x < width; ++x) {
+					const size_t linearIndex = static_cast<size_t>(y) * static_cast<size_t>(width) + static_cast<size_t>(x);
+					if (dilationWriteMask[linearIndex] == 0u || currentMask[linearIndex] != 0u) {
+						continue;
+					}
+
+					float accumR = 0.0f;
+					float accumG = 0.0f;
+					float accumB = 0.0f;
+					uint32_t validNeighborCount = 0u;
+					uint32_t selectedComponent = 0u;
+					bool ambiguousComponents = false;
+					for (const auto& [offsetX, offsetY] : kNeighborOffsets) {
+						const int neighborX = static_cast<int>(x) + offsetX;
+						const int neighborY = static_cast<int>(y) + offsetY;
+						if (neighborX < 0 ||
+							neighborY < 0 ||
+							neighborX >= static_cast<int>(width) ||
+							neighborY >= static_cast<int>(height)) {
+							continue;
+						}
+
+						const size_t neighborIndex =
+							static_cast<size_t>(neighborY) * static_cast<size_t>(width) +
+							static_cast<size_t>(neighborX);
+						if (currentMask[neighborIndex] == 0u) {
+							continue;
+						}
+
+						const uint32_t neighborComponent = currentComponentLabels[neighborIndex];
+						if (neighborComponent == 0u) {
+							continue;
+						}
+
+						if (selectedComponent != 0u && neighborComponent != selectedComponent) {
+							ambiguousComponents = true;
+							break;
+						}
+
+						selectedComponent = neighborComponent;
+						const auto& neighbor = currentLighting[neighborIndex];
+						accumR += neighbor.x;
+						accumG += neighbor.y;
+						accumB += neighbor.z;
+						++validNeighborCount;
+					}
+
+					if (ambiguousComponents) {
+						if (ambiguousMask[linearIndex] == 0u) {
+							ambiguousMask[linearIndex] = 1u;
+							++diagnostics.ambiguousTexelCount;
+						}
+						continue;
+					}
+
+					if (validNeighborCount == 0u || selectedComponent == 0u) {
+						continue;
+					}
+
+					const float invNeighborCount = 1.0f / static_cast<float>(validNeighborCount);
+					auto& filled = nextLighting[linearIndex];
+					filled.x = accumR * invNeighborCount;
+					filled.y = accumG * invNeighborCount;
+					filled.z = accumB * invNeighborCount;
+					nextMask[linearIndex] = 1u;
+					nextComponentLabels[linearIndex] = selectedComponent;
+					outFilledValidMask[linearIndex] = 1u;
+					++passFillCount;
+				}
+			}
+
+			if (passFillCount == 0u) {
+				diagnostics.convergedEarly = true;
+				break;
+			}
+
+			currentLighting.swap(nextLighting);
+			currentMask.swap(nextMask);
+			currentComponentLabels.swap(nextComponentLabels);
+		}
+
+		ioLighting.swap(currentLighting);
+		outDilatedValidMask.swap(currentMask);
+		diagnostics.filledTexelCount = CountNonZeroMaskTexels(outFilledValidMask);
+		diagnostics.finalValidTexelCount = CountNonZeroMaskTexels(outDilatedValidMask);
+		if (outDiagnostics != nullptr) {
+			*outDiagnostics = diagnostics;
+		}
+		return true;
 	}
 
 	void LightmapBakeTextureOutput::ReleasePreviewTextures() {
@@ -854,6 +985,8 @@ namespace Editor::Lightmapping {
 				return false;
 			}
 			if (preparedPage.diagnostics.originalValidTexelCount != 1u ||
+				preparedPage.diagnostics.originalComponentCount != 1u ||
+				preparedPage.diagnostics.ambiguousTexelCount != 0u ||
 				preparedPage.diagnostics.filledTexelCount != 1u ||
 				preparedPage.diagnostics.finalValidTexelCount != 2u ||
 				!preparedPage.diagnostics.convergedEarly ||
@@ -891,7 +1024,10 @@ namespace Editor::Lightmapping {
 				outMessage = "Bake output self-check failed: ping-pong dilation fixture did not run.";
 				return false;
 			}
-			if (preparedPage.dilatedValidMask[1] != 1u || preparedPage.dilatedValidMask[2] != 0u) {
+			if (preparedPage.diagnostics.originalComponentCount != 1u ||
+				preparedPage.diagnostics.ambiguousTexelCount != 0u ||
+				preparedPage.dilatedValidMask[1] != 1u ||
+				preparedPage.dilatedValidMask[2] != 0u) {
 				outMessage = "Bake output self-check failed: ping-pong pass semantics allowed same-pass chaining.";
 				return false;
 			}
@@ -917,8 +1053,83 @@ namespace Editor::Lightmapping {
 			if (!SanitizePageLighting(inputPage, preparedPage) ||
 				!RunMaskDrivenDilation(inputPage, 3u, preparedPage) ||
 				!preparedPage.diagnostics.hadNoValidTexels ||
+				preparedPage.diagnostics.originalComponentCount != 0u ||
+				preparedPage.diagnostics.ambiguousTexelCount != 0u ||
 				preparedPage.diagnostics.finalValidTexelCount != 0u) {
 				outMessage = "Bake output self-check failed: no-valid-page dilation handling is invalid.";
+				return false;
+			}
+		}
+
+		{
+			std::vector<NE::Math::Vec3> lighting{
+				{ 0.0f, 0.0f, 0.0f },
+				{ 1.0f, 0.0f, 0.0f },
+				{ 0.0f, 0.0f, 0.0f },
+				{ 4.0f, 0.0f, 0.0f },
+				{ 0.0f, 0.0f, 0.0f }
+			};
+			std::vector<uint8_t> validMask{ 0u, 255u, 0u, 255u, 0u };
+			std::vector<uint8_t> writeMask{ 1u, 1u, 1u, 1u, 1u };
+			LightmapBakeOutputInputPage inputPage{};
+			inputPage.pageIndex = 3;
+			inputPage.pageId = "selfcheck_multicomponent";
+			inputPage.width = 5u;
+			inputPage.height = 1u;
+			inputPage.validTexelCount = 2u;
+			inputPage.lighting = &lighting;
+			inputPage.validMask = &validMask;
+			inputPage.dilationWriteMask = &writeMask;
+
+			PreparedDilationPage preparedPage{};
+			if (!SanitizePageLighting(inputPage, preparedPage) ||
+				!RunMaskDrivenDilation(inputPage, 2u, preparedPage)) {
+				outMessage = "Bake output self-check failed: multi-component dilation fixture did not run.";
+				return false;
+			}
+			if (preparedPage.diagnostics.originalComponentCount != 2u ||
+				preparedPage.diagnostics.ambiguousTexelCount != 1u ||
+				preparedPage.diagnostics.filledTexelCount != 2u ||
+				preparedPage.diagnostics.finalValidTexelCount != 4u ||
+				preparedPage.dilatedValidMask[2] != 0u) {
+				outMessage = "Bake output self-check failed: disconnected UV regions were allowed to bleed together.";
+				return false;
+			}
+		}
+
+		{
+			std::vector<NE::Math::Vec3> lighting{
+				{ 1.0f, 0.0f, 0.0f },
+				{ 0.0f, 0.0f, 0.0f },
+				{ 0.0f, 0.0f, 0.0f },
+				{ 4.0f, 0.0f, 0.0f }
+			};
+			std::vector<uint8_t> validMask{ 255u, 0u, 0u, 255u };
+			std::vector<uint8_t> writeMask{ 1u, 1u, 1u, 1u };
+			LightmapBakeOutputInputPage inputPage{};
+			inputPage.pageIndex = 4;
+			inputPage.pageId = "selfcheck_diagonal";
+			inputPage.width = 2u;
+			inputPage.height = 2u;
+			inputPage.validTexelCount = 2u;
+			inputPage.lighting = &lighting;
+			inputPage.validMask = &validMask;
+			inputPage.dilationWriteMask = &writeMask;
+
+			PreparedDilationPage preparedPage{};
+			if (!SanitizePageLighting(inputPage, preparedPage) ||
+				!RunMaskDrivenDilation(inputPage, 1u, preparedPage)) {
+				outMessage = "Bake output self-check failed: diagonal seam fixture did not run.";
+				return false;
+			}
+			if (preparedPage.diagnostics.originalComponentCount != 2u ||
+				preparedPage.diagnostics.ambiguousTexelCount != 2u ||
+				!preparedPage.diagnostics.convergedEarly ||
+				preparedPage.diagnostics.filledTexelCount != 0u ||
+				preparedPage.diagnostics.finalValidTexelCount != 2u ||
+				preparedPage.dilatedValidMask[1] != 0u ||
+				preparedPage.dilatedValidMask[2] != 0u) {
+				outMessage = "Bake output self-check failed: diagonal UV corners were allowed to merge.";
 				return false;
 			}
 		}
@@ -944,7 +1155,7 @@ namespace Editor::Lightmapping {
 			return false;
 		}
 
-		outMessage = "Bake output self-check passed: mip counts, sanitize+dilate behavior, half-float packing edge cases, and preview derivation are valid.";
+		outMessage = "Bake output self-check passed: mip counts, component-aware dilation, half-float packing edge cases, and preview derivation are valid.";
 		return true;
 	}
 }

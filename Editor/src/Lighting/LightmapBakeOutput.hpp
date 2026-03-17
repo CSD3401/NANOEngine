@@ -64,7 +64,9 @@ namespace Editor::Lightmapping {
 
 	struct LightmapBakeDilationPageDiagnostics {
 		size_t originalValidTexelCount = 0;
+		size_t originalComponentCount = 0;
 		size_t filledTexelCount = 0;
+		size_t ambiguousTexelCount = 0;
 		size_t finalValidTexelCount = 0;
 		uint32_t passesExecuted = 0;
 		bool convergedEarly = false;
@@ -130,6 +132,17 @@ namespace Editor::Lightmapping {
 	};
 
 	uint32_t CalculateLightmapBakeMipCount(uint32_t width, uint32_t height);
+
+	bool RunMaskedLightmapDilation(
+		uint32_t width,
+		uint32_t height,
+		uint32_t resolvedDilationRadiusTexels,
+		const std::vector<uint8_t>& dilationWriteMask,
+		const std::vector<uint8_t>& originalValidMask,
+		std::vector<NE::Math::Vec3>& ioLighting,
+		std::vector<uint8_t>& outDilatedValidMask,
+		std::vector<uint8_t>& outFilledValidMask,
+		LightmapBakeDilationPageDiagnostics* outDiagnostics = nullptr);
 
 	bool BuildLightmapBakeTextureOutput(
 		const LightmapBakeOutputBuildRequest& request,

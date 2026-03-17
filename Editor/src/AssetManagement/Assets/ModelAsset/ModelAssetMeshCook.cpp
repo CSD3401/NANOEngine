@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "ModelAssetMeshCook.hpp"
 
+#include <algorithm>
 #include <cfloat>
 #include <cmath>
 #include <cstdio>
@@ -266,8 +267,7 @@ namespace Editor::Assets::ModelAssetInternal {
 				std::vector<CookVertexUv1> verticesUv1;
 				std::vector<uint32_t> indicesUv1;
 
-				// Fixed defaults for now; validation layer can recommend changing these if needed.
-				const uint32_t paddingTexels = 4;
+				const uint32_t paddingTexels = std::clamp(importSettings.mesh.lightmapUvPaddingTexels, 4u, 64u);
 				const bool useInputUvHint = mesh->HasTextureCoords(0);
 				if (GenerateLightmapUVsXAtlas(vertices, idx, verticesUv1, indicesUv1, paddingTexels, useInputUvHint)) {
 					// Validate UV1 before writing it out.
