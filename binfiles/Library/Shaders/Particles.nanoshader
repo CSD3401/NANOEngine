@@ -60,5 +60,5 @@ void main()
         discard;
 
 	FragColor = vec4(tex.rgb * v_Color.rgb, alpha);
-    OutID = vec4(-1.0, -1.0, -1.0, 1.0);
+    OutID = vec4(1.0, 1.0, 1.0, 1.0); // null value
 }
