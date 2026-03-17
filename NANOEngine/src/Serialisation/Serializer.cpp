@@ -114,7 +114,8 @@ namespace NE {
 			ECS::Component::UIDropdown,
 			ECS::Component::CharacterController,
 			ECS::Component::Animator,
-			ECS::Component::DecalProjector
+			ECS::Component::DecalProjector,
+			ECS::Component::ParticleEmitter
 		>;
 
 		template <class F>
