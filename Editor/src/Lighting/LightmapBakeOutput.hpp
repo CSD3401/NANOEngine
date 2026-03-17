@@ -58,6 +58,7 @@ namespace Editor::Lightmapping {
 		LightmapBakePreviewTextureSet& operator=(LightmapBakePreviewTextureSet&& other) noexcept;
 		~LightmapBakePreviewTextureSet();
 
+		void Release();
 		void Reset();
 	};
 
@@ -124,6 +125,8 @@ namespace Editor::Lightmapping {
 		LightmapBakeTextureOutput& operator=(const LightmapBakeTextureOutput&) = delete;
 		LightmapBakeTextureOutput(LightmapBakeTextureOutput&&) noexcept = default;
 		LightmapBakeTextureOutput& operator=(LightmapBakeTextureOutput&&) noexcept = default;
+
+		void ReleasePreviewTextures();
 	};
 
 	uint32_t CalculateLightmapBakeMipCount(uint32_t width, uint32_t height);

@@ -457,16 +457,20 @@ namespace Editor::Lightmapping {
 	}
 
 	LightmapBakePreviewTextureSet::~LightmapBakePreviewTextureSet() {
-		Reset();
+		Release();
 	}
 
-	void LightmapBakePreviewTextureSet::Reset() {
+	void LightmapBakePreviewTextureSet::Release() {
 		ReleaseTexture(hdrTexture);
 		ReleaseTexture(displayTexture);
 		ReleaseTexture(originalValidityTexture);
 		ReleaseTexture(dilatedValidityTexture);
 		ReleaseTexture(filledValidityTexture);
 		ReleaseTexture(ownerTexture);
+	}
+
+	void LightmapBakePreviewTextureSet::Reset() {
+		Release();
 	}
 
 	uint32_t CalculateLightmapBakeMipCount(uint32_t width, uint32_t height) {
@@ -481,6 +485,12 @@ namespace Editor::Lightmapping {
 			++mipCount;
 		}
 		return mipCount;
+	}
+
+	void LightmapBakeTextureOutput::ReleasePreviewTextures() {
+		for (auto& page : pages) {
+			page.preview.Release();
+		}
 	}
 
 	bool BuildLightmapBakeTextureOutput(
