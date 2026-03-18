@@ -215,54 +215,54 @@ namespace NE {
 			patch(sl.backgroundRect);
 		}
 
-		template <>
-		inline void PatchForCopy<NE::ECS::Component::UIScrollRect>(
-			NE::ECS::Component::UIScrollRect& sr,
-			NE::ECS::Entity /*e*/,
-			const std::unordered_map<NE::ECS::Entity, uint64_t>& entityToLocalId)
-		{
-			auto patch = [&](uint32_t& ref) {
-				if (ref == UINT32_MAX) return;
-				auto it = entityToLocalId.find(static_cast<NE::ECS::Entity>(ref));
-				ref = (it != entityToLocalId.end()) ? static_cast<uint32_t>(it->second) : UINT32_MAX;
-			};
-			patch(sr.contentEntity);
-			patch(sr.viewportEntity);
-			patch(sr.horizontalScrollbar);
-			patch(sr.verticalScrollbar);
-		}
+	//	template <>
+	//	inline void PatchForCopy<NE::ECS::Component::UIScrollRect>(
+	//		NE::ECS::Component::UIScrollRect& sr,
+	//		NE::ECS::Entity /*e*/,
+	//		const std::unordered_map<NE::ECS::Entity, uint64_t>& entityToLocalId)
+	//	{
+	//		auto patch = [&](uint32_t& ref) {
+	//			if (ref == UINT32_MAX) return;
+	//			auto it = entityToLocalId.find(static_cast<NE::ECS::Entity>(ref));
+	//			ref = (it != entityToLocalId.end()) ? static_cast<uint32_t>(it->second) : UINT32_MAX;
+	//		};
+	//		patch(sr.contentEntity);
+	//		patch(sr.viewportEntity);
+	//		patch(sr.horizontalScrollbar);
+	//		patch(sr.verticalScrollbar);
+	//	}
 
-		template <>
-		inline void PatchForCopy<NE::ECS::Component::UIToggle>(
-			NE::ECS::Component::UIToggle& t,
-			NE::ECS::Entity /*e*/,
-			const std::unordered_map<NE::ECS::Entity, uint64_t>& entityToLocalId)
-		{
-			t.luid = 0;
-			auto patch = [&](uint32_t& ref) {
-				if (ref == UINT32_MAX) return;
-				auto it = entityToLocalId.find(static_cast<NE::ECS::Entity>(ref));
-				ref = (it != entityToLocalId.end()) ? static_cast<uint32_t>(it->second) : UINT32_MAX;
-			};
-			patch(t.graphic);
-			patch(t.background);
-		}
+	//	template <>
+	//	inline void PatchForCopy<NE::ECS::Component::UIToggle>(
+	//		NE::ECS::Component::UIToggle& t,
+	//		NE::ECS::Entity /*e*/,
+	//		const std::unordered_map<NE::ECS::Entity, uint64_t>& entityToLocalId)
+	//	{
+	//		t.luid = 0;
+	//		auto patch = [&](uint32_t& ref) {
+	//			if (ref == UINT32_MAX) return;
+	//			auto it = entityToLocalId.find(static_cast<NE::ECS::Entity>(ref));
+	//			ref = (it != entityToLocalId.end()) ? static_cast<uint32_t>(it->second) : UINT32_MAX;
+	//		};
+	//		patch(t.graphic);
+	//		patch(t.background);
+	//	}
 
-		template <>
-		inline void PatchForCopy<NE::ECS::Component::UIDropdown>(
-			NE::ECS::Component::UIDropdown& dd,
-			NE::ECS::Entity /*e*/,
-			const std::unordered_map<NE::ECS::Entity, uint64_t>& entityToLocalId)
-		{
-			dd.luid = 0;
-			auto patch = [&](uint32_t& ref) {
-				if (ref == UINT32_MAX) return;
-				auto it = entityToLocalId.find(static_cast<NE::ECS::Entity>(ref));
-				ref = (it != entityToLocalId.end()) ? static_cast<uint32_t>(it->second) : UINT32_MAX;
-			};
-			patch(dd.captionTextEntity);
-			patch(dd.optionsPanelEntity);
-		}
+	//	template <>
+	//	inline void PatchForCopy<NE::ECS::Component::UIDropdown>(
+	//		NE::ECS::Component::UIDropdown& dd,
+	//		NE::ECS::Entity /*e*/,
+	//		const std::unordered_map<NE::ECS::Entity, uint64_t>& entityToLocalId)
+	//	{
+	//		dd.luid = 0;
+	//		auto patch = [&](uint32_t& ref) {
+	//			if (ref == UINT32_MAX) return;
+	//			auto it = entityToLocalId.find(static_cast<NE::ECS::Entity>(ref));
+	//			ref = (it != entityToLocalId.end()) ? static_cast<uint32_t>(it->second) : UINT32_MAX;
+	//		};
+	//		patch(dd.captionTextEntity);
+	//		patch(dd.optionsPanelEntity);
+	//	}
 	}
 
 	namespace Serialization {
@@ -525,8 +525,12 @@ namespace NE {
 			std::uint64_t entityCount = 0;
 			if (!ReadT(it, end, entityCount)) return false;
 
+			std::vector<ECS::Entity> loadedEntities;
+			loadedEntities.reserve(static_cast<size_t>(entityCount));
+
 			for (std::uint64_t i = 0; i < entityCount; ++i) {
 				ECS::Entity e = ecs.CreateEntity();
+				loadedEntities.push_back(e);
 
 				uint8_t layer = 0;
 				ReadT(it, end, layer);
@@ -548,39 +552,42 @@ namespace NE {
 					++idx;
 				});
 
-				//if (!hasEntityActiveBit && ecs.HasComponent<ECS::Component::EntityMeta>(e)) {
-				//	entityActive = ecs.GetComponent<ECS::Component::EntityMeta>(e).isActive;
-				//}
 
 				ecs.GetEntityManager().ToggleActive(e, entityActive);
 				if (ecs.HasComponent<ECS::Component::EntityMeta>(e)) {
 					ecs.GetComponent<ECS::Component::EntityMeta>(e).isActive = entityActive;
 				}
 			}
-			// Remap UI entity cross-refs from prefab-local IDs to newly created entity IDs
+		
+			// Post-load: repair UISlider child entity references that may be stale after scene reload.
+			// When entity IDs have gaps (from prior deletions), stored fillRect/handleRect/backgroundRect
+			// may point to wrong entities. Repair by matching children via Hierarchy.parentLuid and name.
 			{
-				auto remap = [&](uint32_t& ref) {
-					if (ref == UINT32_MAX) return;
-					auto it = oldLuidToEntity.find(static_cast<uint64_t>(ref));
-					ref = (it != oldLuidToEntity.end()) ? static_cast<uint32_t>(it->second) : UINT32_MAX;
-				};
-				for (ECS::Entity e : created) {
-					if (ecs.HasComponent<ECS::Component::UISlider>(e)) {
-						auto& sl = ecs.GetComponent<ECS::Component::UISlider>(e);
-						remap(sl.fillRect); remap(sl.handleRect); remap(sl.backgroundRect);
-					}
-					if (ecs.HasComponent<ECS::Component::UIScrollRect>(e)) {
-						auto& sr = ecs.GetComponent<ECS::Component::UIScrollRect>(e);
-						remap(sr.contentEntity); remap(sr.viewportEntity);
-						remap(sr.horizontalScrollbar); remap(sr.verticalScrollbar);
-					}
-					if (ecs.HasComponent<ECS::Component::UIToggle>(e)) {
-						auto& t = ecs.GetComponent<ECS::Component::UIToggle>(e);
-						remap(t.graphic); remap(t.background);
-					}
-					if (ecs.HasComponent<ECS::Component::UIDropdown>(e)) {
-						auto& dd = ecs.GetComponent<ECS::Component::UIDropdown>(e);
-						remap(dd.captionTextEntity); remap(dd.optionsPanelEntity);
+				// Build a map of Hierarchy.luid -> [child entities] from parentLuid
+				std::unordered_map<uint64_t, std::vector<ECS::Entity>> parentLuidToChildren;
+				parentLuidToChildren.reserve(loadedEntities.size());
+				for (ECS::Entity ce : loadedEntities) {
+					if (!ecs.HasComponent<ECS::Component::Hierarchy>(ce)) continue;
+					const auto& ch = ecs.GetComponent<ECS::Component::Hierarchy>(ce);
+					if (ch.parentLuid != 0)
+						parentLuidToChildren[ch.parentLuid].push_back(ce);
+				}
+				for (ECS::Entity se : loadedEntities) {
+					if (!ecs.HasComponent<ECS::Component::UISlider>(se)) continue;
+					if (!ecs.HasComponent<ECS::Component::Hierarchy>(se)) continue;
+					auto& slider = ecs.GetComponent<ECS::Component::UISlider>(se);
+					const uint64_t sliderHierLuid = ecs.GetComponent<ECS::Component::Hierarchy>(se).luid;
+					if (sliderHierLuid == 0) continue;
+					auto childIt = parentLuidToChildren.find(sliderHierLuid);
+					if (childIt == parentLuidToChildren.end()) continue;
+					// Always re-link by name: stored entity IDs may be stale if IDs shifted on reload.
+					// Only overwrite when the named child is actually found among direct children.
+					for (ECS::Entity child : childIt->second) {
+						if (!ecs.HasComponent<ECS::Component::EntityMeta>(child)) continue;
+						const auto& meta = ecs.GetComponent<ECS::Component::EntityMeta>(child);
+						if (meta.name == "Fill")                                    slider.fillRect       = child;
+						else if (meta.name == "Handle")                              slider.handleRect     = child;
+						else if (meta.name == "Background" || meta.name == "Bg")     slider.backgroundRect = child;
 					}
 				}
 			}
@@ -970,6 +977,7 @@ namespace NE {
 
 							c.parent = ECS::Component::INVALID_PARENT;
 							c.parentLuid = 0;
+							c.children.clear(); // rebuilt by pending loop; blob children are stale live IDs
 
 							ecs.AddComponent<ECS::Component::Hierarchy>(e, c);
 

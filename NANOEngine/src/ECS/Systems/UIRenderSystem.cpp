@@ -64,6 +64,8 @@ namespace NE::ECS::Systems {
         if (m_cm->HasComponent<UIText>(e))
             m_textCache.emplace(e, UITextCache{});
 
+        m_canvasMapDirty = true;
+
         if (!m_cm->HasComponent<UIImage>(e)) return;
 
         auto& img = m_cm->GetComponent<UIImage>(e);
@@ -82,7 +84,6 @@ namespace NE::ECS::Systems {
         }
 
         img.isDirty = true;
-        m_canvasMapDirty = true;
     }
 
     void UIRenderSystem::OnEntityRemoved(Entity e)

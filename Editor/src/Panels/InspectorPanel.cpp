@@ -610,11 +610,14 @@ namespace Editor {
 						hr.luid = NE::Core::LUIDGenerator::Generate("hr");
 						NE::ECS::Command::AddHierarchyComponent(fillEnt, hr);
 						NE::ECS::Component::UIRectTransform fillRect{};
-						fillRect.width = 0.0f;   // Starts empty
+						fillRect.width = 0.0f;   // Starts empty (value = 0)
 						fillRect.height = 20.0f;
+						fillRect.x = -200.0f;    // UIEventSystem formula: -sliderWidth + width*0.5 = -200
+						fillRect.y = -10.0f;     // UIEventSystem formula: -sliderHeight * 0.5
 						NE::ECS::Command::AddUIRectTransformComponent(fillEnt, fillRect);
 						NE::ECS::Component::UIImage fillImg{};
 						fillImg.color = NE::Math::Vec4{ 0.2f, 0.6f, 1.0f, 1.0f }; // Blue fill
+						fillImg.raycastTarget = false;
 						NE::ECS::Command::AddUIImageComponent(fillEnt, fillImg);
 						NE::ECS::Command::SetParent(fillEnt, entity, -1, false);
 					}
@@ -633,9 +636,12 @@ namespace Editor {
 						NE::ECS::Component::UIRectTransform handleRect{};
 						handleRect.width = 20.0f;
 						handleRect.height = 20.0f;
+						handleRect.x = -190.0f;  // UIEventSystem formula at value=0: -sliderWidth + handleWidth*0.5
+						handleRect.y = -10.0f;   // UIEventSystem formula: -sliderHeight * 0.5
 						NE::ECS::Command::AddUIRectTransformComponent(handleEnt, handleRect);
 						NE::ECS::Component::UIImage handleImg{};
 						handleImg.color = NE::Math::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f }; // White handle
+						handleImg.raycastTarget = false;
 						NE::ECS::Command::AddUIImageComponent(handleEnt, handleImg);
 						NE::ECS::Command::SetParent(handleEnt, entity, -1, false);
 					}
