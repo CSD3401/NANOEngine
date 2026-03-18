@@ -37,6 +37,7 @@
 #include <ECS/Components/CharacterController.hpp>
 #include <ECS/Components/Animator.hpp>
 #include <ECS/Components/DecalProjector.hpp>
+#include <ECS/Components/ParticleEmitter.hpp>
 
 #include <EditorInterface/ECSExports.hpp>
 #include <EditorInterface/RendererExports.hpp>
@@ -86,7 +87,8 @@ namespace Editor {
 			NE::ECS::Component::UIDropdown,
 			NE::ECS::Component::CharacterController,
 			NE::ECS::Component::Animator,
-			NE::ECS::Component::DecalProjector
+			NE::ECS::Component::DecalProjector,
+			NE::ECS::Component::ParticleEmitter
 		>;
 
 		template <class F>
@@ -124,7 +126,8 @@ namespace Editor {
 			NE::ECS::Component::UIDropdown,
 			NE::ECS::Component::CharacterController,
 			NE::ECS::Component::Animator,
-			NE::ECS::Component::DecalProjector
+			NE::ECS::Component::DecalProjector,
+			NE::ECS::Component::ParticleEmitter
 		>;
 
 		template <class F>

@@ -8,8 +8,10 @@
 #include "Math/Vec2.hpp"
 
 namespace NE::Graphics {
+	struct ParticleInstanceData; // forward declaration
 
-    struct ScissorRect {
+    struct ScissorRect 
+    {
         int x = 0;
         int y = 0;
         int width = 0;
@@ -21,7 +23,8 @@ namespace NE::Graphics {
         bool operator!=(const ScissorRect& other) const { return !(*this == other); }
     };
 
-    struct DrawCommand {
+    struct DrawCommand 
+    {
         Math::Mat4 transform;
 		Math::Vec3 idRGB = Math::Vec3{ -1.0f, -1.0f, -1.0f };
 		Math::Vec3 boundsCenterWS = Math::Vec3{ 0.0f, 0.0f, 0.0f };
@@ -43,5 +46,27 @@ namespace NE::Graphics {
 
         // Enable depth testing for this command (WorldSpace UI)
         bool enableDepthTest = false;
+    };
+
+    struct ParticleDrawCommand 
+    {
+        // Emitter transform 
+		NE::Math::Mat4 emitterModel;
+
+        // Bounds for frustum culling (in WORLD space)
+        NE::Math::Vec3 boundsCenterWS{ 0,0,0 };
+        float boundsRadiusWS = 0.0f;
+
+        // Draw state
+        std::shared_ptr<IGeometryBuffer> mesh;
+        std::shared_ptr<Material> material;
+
+        // Instance payload
+        const ParticleInstanceData* instances = nullptr;
+        uint32_t instanceCount = 0;
+
+        // Optional
+        bool enableDepthTest = true;
+        std::optional<ScissorRect> scissorRect;
     };
 }

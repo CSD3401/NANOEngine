@@ -16,6 +16,7 @@
 #include "ECS/Components/UIImage.hpp"
 #include "ECS/Components/UICanvas.hpp"
 #include "ECS/Components/UIRectTransform.hpp"
+#include "ECS/Components/ParticleEmitter.hpp"
 
 namespace NE {
 	SceneManagement::Scene& GetScene();
@@ -92,6 +93,10 @@ namespace NE::Renderer {
 			return Resource::ResourceManager::GetInstance().LoadResource<NE::Graphics::Material>(uuid);
 		}
 
+		std::shared_ptr<NE::Graphics::Model> GetModel(const std::string& uuid) {
+			return Resource::ResourceManager::GetInstance().LoadResource<NE::Graphics::Model>(uuid);
+		}
+
 		void AssignModel(uint32_t e, const std::string& uuid) {
 			auto& r = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
 			r.modelUUID = uuid;
@@ -120,7 +125,8 @@ namespace NE::Renderer {
 				auto& r = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
 				r.materialUUID = uuid;
 				r.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>(uuid);
-			} else if (GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::DecalProjector>(e)) {
+			} 
+			else if (GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::DecalProjector>(e)) {
 				auto& d = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::DecalProjector>(e);
 				d.materialUUID = uuid;
 				std::shared_ptr<Graphics::Material> sourceMaterial; 
@@ -130,6 +136,11 @@ namespace NE::Renderer {
 					d.material = std::make_shared<Graphics::Material>(*sourceMaterial);
 					ConfigureDecalMaterial(d.material);
 				}
+			}
+			else if (GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::ParticleEmitter>(e)) {
+				auto& r = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::ParticleEmitter>(e);
+				r.materialUUID = uuid;
+				r.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>(uuid);
 			}
 		}
 

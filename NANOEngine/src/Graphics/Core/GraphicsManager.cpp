@@ -40,6 +40,8 @@
 #include "../OpenGL/GLGeometryBuffer.hpp"
 #include "../OpenGL/GLFrameBuffer.hpp"
 #include "../OpenGL/GLClusteredLighting.hpp"
+#include "../OpenGL/GLVertexBuffer.hpp"
+#include "../OpenGL/GLIndexBuffer.hpp"
 
 #include "GizmosRenderer.hpp"
 #include "Graphics/DebugRenderer/DebugDrawSystem.hpp"
@@ -1135,6 +1137,8 @@ namespace NE::Graphics {
     GraphicsManager::ScenePreviewMode GraphicsManager::s_ScenePreviewMode = GraphicsManager::ScenePreviewMode::Shaded;
     float GraphicsManager::s_ScenePreviewUvScale = 1.0f;
 
+	std::shared_ptr<IGeometryBuffer> GraphicsManager::s_particleQuadMesh;
+
 	std::unique_ptr<ShadowRenderer> GraphicsManager::s_shadowRenderer;
 
     RenderSettings GraphicsManager::renderSettings;
@@ -1492,6 +1496,8 @@ namespace NE::Graphics {
                 flushBatch();
             }
 
+            
+
             RenderDecalsForView(view, camProj, camView, camPos, s_DecalQueue, s_StateCache.get());
 
             if (s_skybox) {
@@ -1500,6 +1506,8 @@ namespace NE::Graphics {
                 skyboxView.projection = camProj;
                 s_skybox->Draw(skyboxView);
             }
+
+            RenderParticlesForView(view, camProj, camView, camPos, frustum, drawCount);
 
 #ifndef PRODUCTION_BUILD
             RenderEditorDebugViewPassForView(
@@ -1864,6 +1872,10 @@ namespace NE::Graphics {
 		s_DrawQueue->Submit(command);
     }
 
+    void GraphicsManager::Submit(const ParticleDrawCommand& command) {
+		s_DrawQueue->Submit(command);
+	}
+
     void GraphicsManager::SubmitDecal(const DecalCommand& command) {
         s_DecalQueue.push_back(command);
     }
@@ -2036,6 +2048,52 @@ namespace NE::Graphics {
         return s_PostPipeline ? s_PostPipeline->GetTexturePool() : nullptr;
     }
 
+    std::shared_ptr<IGeometryBuffer> GraphicsManager::GetGlobalParticleQuadMesh()
+    {
+        if (s_particleQuadMesh)
+            return s_particleQuadMesh;
+
+        std::vector<Vertex> vertices(4);
+
+        // Positions (centered quad)
+        vertices[0].position = { -0.5f, -0.5f, 0.0f };
+        vertices[1].position = { 0.5f, -0.5f, 0.0f };
+        vertices[2].position = { 0.5f,  0.5f, 0.0f };
+        vertices[3].position = { -0.5f,  0.5f, 0.0f };
+
+        // Normals (not important for particles, but your VAO expects it)
+        vertices[0].normal = { 0.0f, 0.0f, 1.0f };
+        vertices[1].normal = { 0.0f, 0.0f, 1.0f };
+        vertices[2].normal = { 0.0f, 0.0f, 1.0f };
+        vertices[3].normal = { 0.0f, 0.0f, 1.0f };
+
+        // UVs
+        vertices[0].texCoord0 = { 0.0f, 0.0f };
+        vertices[1].texCoord0 = { 1.0f, 0.0f };
+        vertices[2].texCoord0 = { 1.0f, 1.0f };
+        vertices[3].texCoord0 = { 0.0f, 1.0f };
+
+        std::vector<uint32_t> indices = { 0, 1, 2, 0, 2, 3 };
+
+        auto vb = std::make_shared<OpenGL::GLVertexBuffer>(
+            vertices.data(),
+            static_cast<uint32_t>(vertices.size() * sizeof(Vertex)),
+            sizeof(Vertex)
+        );
+
+        auto ib = std::make_shared<OpenGL::GLIndexBuffer>(
+            indices.data(),
+            indices.size()
+        );
+
+        auto geo = std::make_shared<OpenGL::GLGeometryBuffer>(vb, ib);
+
+        geo->EnableParticleInstanceLayout(13, 14, 15); // posLS, size, color
+
+        s_particleQuadMesh = geo;
+        return s_particleQuadMesh;
+    }
+
     void GraphicsManager::Shutdown()
     {
         if (s_PostPipeline) {
@@ -2054,6 +2112,7 @@ namespace NE::Graphics {
 
         NE::Graphics::GizmosRenderer::Cleanup();
         NE::Graphics::OpenGL::GLGeometryBuffer::ShutdownInstanceBuffer();
+		NE::Graphics::OpenGL::GLGeometryBuffer::ShutdownParticleInstanceBuffer();
 
         s_LightGizmoQueue.clear();
         s_DecalGizmoQueue.clear();
@@ -2464,4 +2523,73 @@ namespace NE::Graphics {
         DebugDrawSystem::DrawAll();
     }
 
+    void GraphicsManager::RenderParticlesForView(
+        const RenderView& view,
+        const Math::Mat4& camProj,
+        const Math::Mat4& camView,
+        const Math::Vec3& camPos,
+        const Frustum& frustum,
+        int& drawCount)
+    {
+        glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        glColorMaski(1, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
+        const auto& particleCommands = s_DrawQueue->GetParticleCommands();
+
+        for (const auto& pcmd : particleCommands)
+        {
+            if (!pcmd.material || !pcmd.mesh) continue;
+            if (!pcmd.instances || pcmd.instanceCount == 0) continue;
+
+            if (!frustum.IntersectsSphere(pcmd.boundsCenterWS, pcmd.boundsRadiusWS))
+                continue;
+
+            auto pipeline = pcmd.material->GetPipeline();
+            if (!pipeline || !pipeline->GetSpecification().shader)
+                continue;
+
+            s_StateCache->Bind(pipeline);
+
+            if (pcmd.enableDepthTest) glEnable(GL_DEPTH_TEST);
+            else glDisable(GL_DEPTH_TEST);
+
+            // Safe transparent-particle state
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glDepthMask(GL_FALSE);
+
+            pcmd.material->Bind();
+            pcmd.mesh->Bind();
+
+            NE::Graphics::OpenGL::GLGeometryBuffer::UpdateParticleInstanceBuffer(
+                pcmd.instances,
+                static_cast<size_t>(pcmd.instanceCount) * sizeof(NE::Graphics::ParticleInstanceData)
+            );
+
+            auto shader = pipeline->GetSpecification().shader;
+
+            shader->SetUniformMat4("u_View", camView);
+            shader->SetUniformMat4("u_Projection", camProj);
+            shader->SetUniformVec3("u_CameraPos", camPos);
+            shader->SetUniformMat4("u_EmitterModel", pcmd.emitterModel);
+
+            const NE::Math::Mat4 invView = camView.Inverse();
+            NE::Math::Vec3 camRightWS = invView.Right(); camRightWS.Normalize();
+            NE::Math::Vec3 camUpWS = invView.Up();    camUpWS.Normalize();
+
+            shader->SetUniformVec3("u_CamRightWS", camRightWS);
+            shader->SetUniformVec3("u_CamUpWS", camUpWS);
+
+            pcmd.mesh->DrawInstanced(pcmd.instanceCount);
+            pcmd.mesh->Unbind();
+
+            // Restore
+            glDepthMask(GL_TRUE);
+
+            if (view.isMain && view.order == 0)
+                ++drawCount;
+        }
+
+        glColorMaski(1, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    }
 }

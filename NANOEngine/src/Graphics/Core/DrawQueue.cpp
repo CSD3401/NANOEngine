@@ -65,10 +65,15 @@ namespace NE::Graphics {
 
 	void DrawQueue::Clear() {
 		m_Commands.clear();
+		m_ParticleCommands.clear();
 	}
 
 	void DrawQueue::Submit(const DrawCommand& cmd) {
 		m_Commands.push_back(cmd);
+	}
+
+	void DrawQueue::Submit(const ParticleDrawCommand& cmd) {
+		m_ParticleCommands.push_back(cmd);
 	}
 
 	void DrawQueue::Sort(const Vec3& camPos) {

@@ -34,6 +34,9 @@
 #include "../ECS/Systems/UIEventSystem.hpp"
 #include "../SceneManagement/Scene.hpp"
 #include "../ECS/Components/Animator.hpp"
+#include "../ECS/Systems/ParticleSystem.hpp"
+#include "../ECS/Components/ParticleEmitter.hpp"
+
 #include "Scripting/ScriptingEngine.hpp"
 #include "Core/LUIDGenerator.hpp"
 #include "ECS/Systems/TransformSystem.hpp"
@@ -144,6 +147,10 @@ namespace NE::ECS {
 
 		const Component::UIDropdown& GetUIDropdown(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIDropdown>(e);
+		}
+
+		const Component::ParticleEmitter& GetParticleEmitter(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::ParticleEmitter>(e);
 		}
 
 		bool HasEntityMeta(uint32_t e) {
@@ -264,6 +271,10 @@ namespace NE::ECS {
 
 		bool HasUIDropdown(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIDropdown>(e);
+		}
+
+		bool HasParticleEmitter(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::ParticleEmitter>(e);
 		}
 
 		const Component::Animator& GetEntityAnimator(uint32_t e) {
@@ -404,6 +415,10 @@ namespace NE::ECS {
 
 		ComponentType GetUIDropdownComponentType() {
 			return GetScene().GetECSCoordinator().GetComponentType<Component::UIDropdown>();
+		}
+
+		ComponentType GetParticleEmitterComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::ParticleEmitter>();
 		}
 
 		uint32_t GetParent(uint32_t child) {
@@ -944,6 +959,10 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::DecalProjector{});
 		}
 
+		void AddParticleEmitterComponent(uint32_t e) {
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::ParticleEmitter{});
+		}
+
 		void AddEntityMetaComponent(uint32_t e, const Component::EntityMeta& c) {
 			GetScene().GetECSCoordinator().AddComponent<Component::EntityMeta>(e, c);
 		}
@@ -1073,6 +1092,14 @@ namespace NE::ECS {
         void AddDecalProjectorComponent(uint32_t e, const Component::DecalProjector& c) {
             GetScene().GetECSCoordinator().AddComponent<Component::DecalProjector>(e, c);
         }
+
+		void AddParticleEmitterComponent(uint32_t e, const Component::ParticleEmitter& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::ParticleEmitter>(e, c);
+		}
+
+		void RemoveParticleEmitterComponent(uint32_t e) {
+			GetScene().GetECSCoordinator().RemoveComponent<Component::ParticleEmitter>(e);
+		}
 
 		void RemoveLightComponent(uint32_t e) {
 			GetScene().GetECSCoordinator().RemoveComponent<Component::Light>(e);
@@ -1224,6 +1251,10 @@ namespace NE::ECS {
 
 		Component::UIDropdown& GetUIDropdown(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIDropdown>(e);
+		}
+
+		Component::ParticleEmitter& GetParticleEmitter(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::ParticleEmitter>(e);
 		}
 
 		//void SetParent(uint32_t child, uint32_t parent, bool worldPositionStays) {

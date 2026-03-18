@@ -30,7 +30,7 @@
 #include "../Components/UIAutoSize.hpp"
 #include "../Components/UIInputField.hpp"
 #include "../Components/UIDropdown.hpp"
-
+#include "../Components/ParticleEmitter.hpp"
 #include "../Systems/TransformSystem.hpp"
 #include "../Systems/RenderSystem.hpp"
 #include "../Systems/LightSystem.hpp"
@@ -47,6 +47,7 @@
 #include "../Systems/UIEventSystem.hpp"
 #include "../Systems/UILayoutEngine.hpp"
 #include "../Systems/UILayoutSystem.hpp"
+#include "../Systems/ParticleSystem.hpp"
 
 #include "../Components/Animator.hpp"
 #include "../Systems/AnimatorSystem.hpp"  
@@ -93,6 +94,7 @@ namespace NE::ECS {
         RegisterComponent<Component::UIAutoSize>();
         RegisterComponent<Component::UIInputField>();
         RegisterComponent<Component::UIDropdown>();
+		RegisterComponent<Component::ParticleEmitter>();
 
         m_transformSystem = m_systemManager->RegisterSystem<Systems::TransformSystem>(m_componentManager.get(), m_luidRegistry.get());
         SetSystemSignature<Systems::TransformSystem>(
@@ -221,6 +223,14 @@ namespace NE::ECS {
             sig.set(GetComponentType<Component::DecalProjector>());
             SetSystemSignature<Systems::DecalProjectorSystem>(sig);
         }
+
+        m_particleSystem = m_systemManager->RegisterSystem<Systems::ParticleSystem>(m_componentManager.get());
+        {
+            Signature sig;
+            sig.set(GetComponentType<Component::Transform>());
+            sig.set(GetComponentType<Component::ParticleEmitter>());
+            SetSystemSignature<Systems::ParticleSystem>(sig);
+		}
     }
 
     ECSCoordinator::~ECSCoordinator() = default;

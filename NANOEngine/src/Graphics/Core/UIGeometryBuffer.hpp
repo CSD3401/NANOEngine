@@ -21,6 +21,7 @@ namespace NE::Graphics {
         void Draw() const override;
         void Unbind() const override;
         void EnableInstanceLayout(int, int) override {} // UI shader has no per-instance attributes
+		void EnableParticleInstanceLayout(int, int, int) override {} // Not used for UI
         void DrawInstanced(size_t instanceCount) const override;
 
     private:

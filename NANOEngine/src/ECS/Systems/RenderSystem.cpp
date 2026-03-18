@@ -80,9 +80,12 @@ namespace NE::ECS::Systems {
     }
 
     RenderSystem::RenderSystem(ComponentManager* cm, EntityManager* em, Core::LUIDRegistry* lr)
-        : m_componentManager(cm), m_entityManager(em), m_luidRegistry(lr) {}
+        : m_componentManager(cm), m_entityManager(em), m_luidRegistry(lr) 
+    {
+    }
 
-    void RenderSystem::OnEntityAdded(Entity entity) {
+    void RenderSystem::OnEntityAdded(Entity entity) 
+    {
         auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
         ResolveRendererResources(renderer);
 
@@ -92,15 +95,22 @@ namespace NE::ECS::Systems {
         m_luidRegistry->Register(renderer.luid, &renderer, entity);
     }
 
-    void RenderSystem::OnEntityRemoved(Entity e) {
+    void RenderSystem::OnEntityRemoved(Entity e) 
+    {
         auto& renderer = m_componentManager->GetComponent<Component::Renderer>(e);
         m_luidRegistry->Unregister(renderer.luid);
     }
 
-    void RenderSystem::OnEntityActive(Entity /*entity*/) {}
-    void RenderSystem::OnEntityInactive(Entity /*entity*/) {}
+    void RenderSystem::OnEntityActive(Entity) 
+    {
+    }
 
-    void RenderSystem::Init() {
+    void RenderSystem::OnEntityInactive(Entity) 
+    {
+    }
+
+    void RenderSystem::Init() 
+    {
     }
 
     void RenderSystem::Update(double /*deltaTime*/) {
