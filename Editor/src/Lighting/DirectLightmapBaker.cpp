@@ -1012,7 +1012,11 @@ namespace Editor::Lightmapping {
 
 								const float rectExtent = std::sqrt(light.halfWidth * light.halfWidth + light.halfHeight * light.halfHeight);
 								const float rectAttenuation = RectDistanceAttenuation(centerDistance, light.range, rectExtent);
-								if (rectAttenuation <= 0.0f) {
+								//if (rectAttenuation <= 0.0f) {
+								//	handledByAreaLight = true;
+								//	break;
+								//}
+								if (centerDistance > light.range + rectExtent) {
 									handledByAreaLight = true;
 									break;
 								}
@@ -1081,7 +1085,13 @@ namespace Editor::Lightmapping {
 										continue;
 									}
 
-									sampleAccumulated += light.color * (light.intensity * rectAttenuation * lightFacing * nDotL);
+									//sampleAccumulated += light.color * (light.intensity * rectAttenuation * lightFacing * nDotL);
+									const float sampleAttenuation = DistanceAttenuation(sampleDistance, light.range);
+									if (sampleAttenuation <= 0.0f) {
+										continue;
+									}
+
+									sampleAccumulated += light.color * (light.intensity * sampleAttenuation * lightFacing * nDotL);
 								}
 
 								accumulated += sampleAccumulated / static_cast<float>(kAreaLightBakeSamples);
