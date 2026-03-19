@@ -26,7 +26,8 @@
 namespace Editor::Lightmapping {
 
 	inline constexpr int kDefaultLightmapPageSize = 2048;
-	inline constexpr int kDefaultLightmapPadding = 4;
+	inline constexpr int kDefaultLightmapPadding = 8;
+	inline constexpr int kDefaultLightmapMinUvIslandGap = 8;
 	inline constexpr float kDefaultLightmapTexelsPerUnit = 16.0f;
 	inline constexpr float kDefaultMinUvCoverage = 0.05f;
 	inline constexpr float kDefaultMaxAspectRatio = 4.0f;
@@ -56,6 +57,7 @@ namespace Editor::Lightmapping {
 		float texelsPerUnit = kDefaultLightmapTexelsPerUnit;
 		int pageSize = kDefaultLightmapPageSize;
 		int padding = kDefaultLightmapPadding;
+		int minUvIslandGap = kDefaultLightmapMinUvIslandGap;
 		float minCoverage = kDefaultMinUvCoverage;
 		float maxAspectRatio = kDefaultMaxAspectRatio;
 	};
@@ -67,10 +69,19 @@ namespace Editor::Lightmapping {
 		float worldSurfaceArea = 0.0f;
 		float uvCoverage = 0.0f;
 		float uvAspectRatio = 1.0f;
+		int baseInnerWidth = 0;
+		int baseInnerHeight = 0;
 		int innerWidth = 0;
 		int innerHeight = 0;
 		int totalWidth = 0;
 		int totalHeight = 0;
+		int effectiveUvIslandGap = std::numeric_limits<int>::max();
+		int uvIslandChartCount = 0;
+		int rasterizedUvIslandChartCount = 0;
+		size_t uvIslandOverlapTexelCount = 0;
+		bool uvIslandSourceGapIsZero = false;
+		bool expandedForUvIslandGap = false;
+		bool uvIslandGapLimitedByPageSize = false;
 		bool hadBinding = false;
 	};
 
@@ -197,6 +208,57 @@ namespace Editor::Lightmapping {
 			bool hasAnyUvArea = false;
 		};
 
+		struct UvIslandSpacingAnalysis {
+			bool valid = false;
+			int chartCount = 0;
+			int rasterizedChartCount = 0;
+			int minGapTexels = std::numeric_limits<int>::max();
+			size_t overlapTexelCount = 0u;
+			float sourceMinGapUv = std::numeric_limits<float>::infinity();
+			bool sourceChartsTouch = false;
+		};
+
+		class DisjointSet {
+		public:
+			explicit DisjointSet(size_t count)
+				: m_parent(count),
+				m_rank(count, 0u) {
+				for (size_t i = 0; i < count; ++i) {
+					m_parent[i] = static_cast<uint32_t>(i);
+				}
+			}
+
+			uint32_t Find(uint32_t value) {
+				uint32_t parent = m_parent[value];
+				if (parent != value) {
+					parent = Find(parent);
+					m_parent[value] = parent;
+				}
+				return parent;
+			}
+
+			void Unite(uint32_t lhs, uint32_t rhs) {
+				uint32_t rootLhs = Find(lhs);
+				uint32_t rootRhs = Find(rhs);
+				if (rootLhs == rootRhs) {
+					return;
+				}
+
+				if (m_rank[rootLhs] < m_rank[rootRhs]) {
+					std::swap(rootLhs, rootRhs);
+				}
+
+				m_parent[rootRhs] = rootLhs;
+				if (m_rank[rootLhs] == m_rank[rootRhs]) {
+					++m_rank[rootLhs];
+				}
+			}
+
+		private:
+			std::vector<uint32_t> m_parent;
+			std::vector<uint8_t> m_rank;
+		};
+
 		inline bool IsFiniteMatrix(const NE::Math::Mat4& matrix) {
 			for (int i = 0; i < 16; ++i) {
 				if (!std::isfinite(matrix.a[i])) {
@@ -208,6 +270,412 @@ namespace Editor::Lightmapping {
 
 		inline NE::Math::Vec3 TransformPoint(const NE::Math::Mat4& matrix, const NE::Math::Vec3& point) {
 			return matrix * point;
+		}
+
+		inline bool IsFiniteVec2(const NE::Math::Vec2& value) {
+			return std::isfinite(value.x) && std::isfinite(value.y);
+		}
+
+		inline float EdgeFunction(const NE::Math::Vec2& a, const NE::Math::Vec2& b, const NE::Math::Vec2& p) {
+			return (p.x - a.x) * (b.y - a.y) - (p.y - a.y) * (b.x - a.x);
+		}
+
+		inline bool IsTopLeftEdge(const NE::Math::Vec2& a, const NE::Math::Vec2& b, float edgeEpsilon) {
+			const NE::Math::Vec2 edge = b - a;
+			return (edge.y > edgeEpsilon) || (std::fabs(edge.y) <= edgeEpsilon && edge.x < 0.0f);
+		}
+
+		inline bool PassesFillRule(float edgeValue, bool topLeft, bool positiveArea, float edgeEpsilon) {
+			if (positiveArea) {
+				return edgeValue > edgeEpsilon || (std::fabs(edgeValue) <= edgeEpsilon && topLeft);
+			}
+			return edgeValue < -edgeEpsilon || (std::fabs(edgeValue) <= edgeEpsilon && topLeft);
+		}
+
+		inline bool BuildTriangleChartLabels(
+			const NE::Graphics::SubMesh& submesh,
+			std::vector<uint32_t>& outChartLabels,
+			int& outChartCount) {
+			outChartLabels.clear();
+			outChartCount = 0;
+
+			const size_t triangleCount = submesh.indices.size() / 3u;
+			if (triangleCount == 0u) {
+				return false;
+			}
+
+			DisjointSet sets(triangleCount);
+			std::vector<std::vector<uint32_t>> trianglesByVertex(submesh.vertices.size());
+			for (size_t triangleIndex = 0; triangleIndex < triangleCount; ++triangleIndex) {
+				for (size_t corner = 0; corner < 3u; ++corner) {
+					const size_t indexOffset = triangleIndex * 3u + corner;
+					if (indexOffset >= submesh.indices.size()) {
+						return false;
+					}
+
+					const uint32_t vertexIndex = submesh.indices[indexOffset];
+					if (vertexIndex >= submesh.vertices.size()) {
+						return false;
+					}
+
+					trianglesByVertex[vertexIndex].push_back(static_cast<uint32_t>(triangleIndex));
+				}
+			}
+
+			for (const auto& triangleList : trianglesByVertex) {
+				if (triangleList.size() < 2u) {
+					continue;
+				}
+
+				const uint32_t baseTriangle = triangleList.front();
+				for (size_t i = 1; i < triangleList.size(); ++i) {
+					sets.Unite(baseTriangle, triangleList[i]);
+				}
+			}
+
+			std::unordered_map<uint32_t, uint32_t> denseLabelsByRoot;
+			denseLabelsByRoot.reserve(triangleCount);
+			outChartLabels.resize(triangleCount, 0u);
+			for (size_t triangleIndex = 0; triangleIndex < triangleCount; ++triangleIndex) {
+				const uint32_t root = sets.Find(static_cast<uint32_t>(triangleIndex));
+				auto [it, inserted] = denseLabelsByRoot.emplace(root, static_cast<uint32_t>(denseLabelsByRoot.size() + 1u));
+				if (inserted) {
+					++outChartCount;
+				}
+				outChartLabels[triangleIndex] = it->second;
+			}
+
+			return true;
+		}
+
+		inline float IntervalGap(float minA, float maxA, float minB, float maxB) {
+			if (maxA < minB) {
+				return minB - maxA;
+			}
+			if (maxB < minA) {
+				return minA - maxB;
+			}
+			return 0.0f;
+		}
+
+		inline UvIslandSpacingAnalysis AnalyzeUvIslandSpacing(
+			const NE::Graphics::SubMesh& submesh,
+			int width,
+			int height) {
+			UvIslandSpacingAnalysis analysis{};
+			if (width <= 0 || height <= 0 || !submesh.hasUv1 || submesh.vertices.empty() || submesh.indices.size() < 3u) {
+				return analysis;
+			}
+
+			std::vector<uint32_t> chartLabels;
+			if (!BuildTriangleChartLabels(submesh, chartLabels, analysis.chartCount) || analysis.chartCount <= 0) {
+				return analysis;
+			}
+
+			analysis.valid = true;
+			if (analysis.chartCount <= 1) {
+				return analysis;
+			}
+
+			struct UvBounds {
+				NE::Math::Vec2 min{
+					std::numeric_limits<float>::max(),
+					std::numeric_limits<float>::max()
+				};
+				NE::Math::Vec2 max{
+					-std::numeric_limits<float>::max(),
+					-std::numeric_limits<float>::max()
+				};
+				bool valid = false;
+			};
+
+			std::vector<UvBounds> chartBounds(static_cast<size_t>(analysis.chartCount) + 1u);
+			for (size_t triangleIndex = 0; triangleIndex < chartLabels.size(); ++triangleIndex) {
+				const size_t baseIndex = triangleIndex * 3u;
+				if (baseIndex + 2u >= submesh.indices.size()) {
+					break;
+				}
+
+				const uint32_t ia = submesh.indices[baseIndex + 0u];
+				const uint32_t ib = submesh.indices[baseIndex + 1u];
+				const uint32_t ic = submesh.indices[baseIndex + 2u];
+				if (ia >= submesh.vertices.size() || ib >= submesh.vertices.size() || ic >= submesh.vertices.size()) {
+					continue;
+				}
+
+				const auto& va = submesh.vertices[ia];
+				const auto& vb = submesh.vertices[ib];
+				const auto& vc = submesh.vertices[ic];
+				if (!IsFiniteVec2(va.texCoord1) || !IsFiniteVec2(vb.texCoord1) || !IsFiniteVec2(vc.texCoord1)) {
+					continue;
+				}
+
+				auto& bounds = chartBounds[chartLabels[triangleIndex]];
+				const NE::Math::Vec2 uvs[] = { va.texCoord1, vb.texCoord1, vc.texCoord1 };
+				for (const auto& uv : uvs) {
+					if (!bounds.valid) {
+						bounds.min = uv;
+						bounds.max = uv;
+						bounds.valid = true;
+						continue;
+					}
+
+					bounds.min.x = std::min(bounds.min.x, uv.x);
+					bounds.min.y = std::min(bounds.min.y, uv.y);
+					bounds.max.x = std::max(bounds.max.x, uv.x);
+					bounds.max.y = std::max(bounds.max.y, uv.y);
+				}
+			}
+
+			for (int lhsChart = 1; lhsChart <= analysis.chartCount; ++lhsChart) {
+				const auto& lhsBounds = chartBounds[static_cast<size_t>(lhsChart)];
+				if (!lhsBounds.valid) {
+					continue;
+				}
+
+				for (int rhsChart = lhsChart + 1; rhsChart <= analysis.chartCount; ++rhsChart) {
+					const auto& rhsBounds = chartBounds[static_cast<size_t>(rhsChart)];
+					if (!rhsBounds.valid) {
+						continue;
+					}
+
+					const float gapX = IntervalGap(lhsBounds.min.x, lhsBounds.max.x, rhsBounds.min.x, rhsBounds.max.x);
+					const float gapY = IntervalGap(lhsBounds.min.y, lhsBounds.max.y, rhsBounds.min.y, rhsBounds.max.y);
+					const float sourceGap = std::max(gapX, gapY);
+					analysis.sourceMinGapUv = std::min(analysis.sourceMinGapUv, sourceGap);
+				}
+			}
+
+			if (!std::isfinite(analysis.sourceMinGapUv)) {
+				analysis.sourceMinGapUv = 0.0f;
+			}
+			analysis.sourceChartsTouch = analysis.sourceMinGapUv <= 1e-6f;
+
+			const float edgeEpsilon = 1e-6f;
+			const size_t texelCount = static_cast<size_t>(width) * static_cast<size_t>(height);
+			std::vector<uint32_t> ownerLabels(texelCount, 0u);
+			std::vector<uint8_t> chartHasTexels(static_cast<size_t>(analysis.chartCount) + 1u, 0u);
+
+			for (size_t triangleIndex = 0; triangleIndex < chartLabels.size(); ++triangleIndex) {
+				const size_t baseIndex = triangleIndex * 3u;
+				if (baseIndex + 2u >= submesh.indices.size()) {
+					break;
+				}
+
+				const uint32_t ia = submesh.indices[baseIndex + 0u];
+				const uint32_t ib = submesh.indices[baseIndex + 1u];
+				const uint32_t ic = submesh.indices[baseIndex + 2u];
+				if (ia >= submesh.vertices.size() || ib >= submesh.vertices.size() || ic >= submesh.vertices.size()) {
+					continue;
+				}
+
+				const auto& va = submesh.vertices[ia];
+				const auto& vb = submesh.vertices[ib];
+				const auto& vc = submesh.vertices[ic];
+				if (!IsFiniteVec2(va.texCoord1) || !IsFiniteVec2(vb.texCoord1) || !IsFiniteVec2(vc.texCoord1)) {
+					continue;
+				}
+
+				const NE::Math::Vec2 page0{
+					va.texCoord1.x * static_cast<float>(width),
+					va.texCoord1.y * static_cast<float>(height)
+				};
+				const NE::Math::Vec2 page1{
+					vb.texCoord1.x * static_cast<float>(width),
+					vb.texCoord1.y * static_cast<float>(height)
+				};
+				const NE::Math::Vec2 page2{
+					vc.texCoord1.x * static_cast<float>(width),
+					vc.texCoord1.y * static_cast<float>(height)
+				};
+
+				const float signedArea = EdgeFunction(page0, page1, page2);
+				if (!std::isfinite(signedArea) || std::fabs(signedArea) <= edgeEpsilon) {
+					continue;
+				}
+
+				const bool positiveArea = signedArea > 0.0f;
+				const bool topLeft0 = IsTopLeftEdge(page1, page2, edgeEpsilon);
+				const bool topLeft1 = IsTopLeftEdge(page2, page0, edgeEpsilon);
+				const bool topLeft2 = IsTopLeftEdge(page0, page1, edgeEpsilon);
+
+				const float boundsMinX = std::min(page0.x, std::min(page1.x, page2.x));
+				const float boundsMinY = std::min(page0.y, std::min(page1.y, page2.y));
+				const float boundsMaxX = std::max(page0.x, std::max(page1.x, page2.x));
+				const float boundsMaxY = std::max(page0.y, std::max(page1.y, page2.y));
+
+				const int startX = std::max(0, static_cast<int>(std::ceil(boundsMinX - 0.5f)));
+				const int startY = std::max(0, static_cast<int>(std::ceil(boundsMinY - 0.5f)));
+				const int endX = std::min(width - 1, static_cast<int>(std::floor(boundsMaxX - 0.5f)));
+				const int endY = std::min(height - 1, static_cast<int>(std::floor(boundsMaxY - 0.5f)));
+				if (startX > endX || startY > endY) {
+					continue;
+				}
+
+				const uint32_t chartLabel = chartLabels[triangleIndex];
+				for (int y = startY; y <= endY; ++y) {
+					for (int x = startX; x <= endX; ++x) {
+						const NE::Math::Vec2 texelCenter{
+							static_cast<float>(x) + 0.5f,
+							static_cast<float>(y) + 0.5f
+						};
+
+						const float edge0 = EdgeFunction(page1, page2, texelCenter);
+						const float edge1 = EdgeFunction(page2, page0, texelCenter);
+						const float edge2 = EdgeFunction(page0, page1, texelCenter);
+						if (!PassesFillRule(edge0, topLeft0, positiveArea, edgeEpsilon) ||
+							!PassesFillRule(edge1, topLeft1, positiveArea, edgeEpsilon) ||
+							!PassesFillRule(edge2, topLeft2, positiveArea, edgeEpsilon)) {
+							continue;
+						}
+
+						const size_t linearIndex = static_cast<size_t>(y) * static_cast<size_t>(width) + static_cast<size_t>(x);
+						if (ownerLabels[linearIndex] == 0u) {
+							ownerLabels[linearIndex] = chartLabel;
+							chartHasTexels[chartLabel] = 1u;
+						} else if (ownerLabels[linearIndex] != chartLabel) {
+							++analysis.overlapTexelCount;
+						}
+					}
+				}
+			}
+
+			analysis.rasterizedChartCount = static_cast<int>(std::count_if(
+				chartHasTexels.begin() + 1,
+				chartHasTexels.end(),
+				[](uint8_t value) { return value != 0u; }));
+
+			if (analysis.overlapTexelCount > 0u || analysis.rasterizedChartCount < analysis.chartCount) {
+				analysis.minGapTexels = 0;
+				return analysis;
+			}
+
+			std::vector<int> distances(texelCount, -1);
+			std::vector<uint32_t> propagatedOwner = ownerLabels;
+			std::vector<size_t> queue;
+			queue.reserve(texelCount);
+			for (size_t texelIndex = 0; texelIndex < texelCount; ++texelIndex) {
+				if (ownerLabels[texelIndex] != 0u) {
+					distances[texelIndex] = 0;
+					queue.push_back(texelIndex);
+				}
+			}
+
+			size_t queueHead = 0u;
+			int minGapTexels = std::numeric_limits<int>::max();
+			while (queueHead < queue.size()) {
+				const size_t currentIndex = queue[queueHead++];
+				const int x = static_cast<int>(currentIndex % static_cast<size_t>(width));
+				const int y = static_cast<int>(currentIndex / static_cast<size_t>(width));
+
+				for (int offsetY = -1; offsetY <= 1; ++offsetY) {
+					for (int offsetX = -1; offsetX <= 1; ++offsetX) {
+						if (offsetX == 0 && offsetY == 0) {
+							continue;
+						}
+
+						const int neighborX = x + offsetX;
+						const int neighborY = y + offsetY;
+						if (neighborX < 0 || neighborY < 0 || neighborX >= width || neighborY >= height) {
+							continue;
+						}
+
+						const size_t neighborIndex =
+							static_cast<size_t>(neighborY) * static_cast<size_t>(width) +
+							static_cast<size_t>(neighborX);
+						if (propagatedOwner[neighborIndex] == 0u) {
+							propagatedOwner[neighborIndex] = propagatedOwner[currentIndex];
+							distances[neighborIndex] = distances[currentIndex] + 1;
+							queue.push_back(neighborIndex);
+							continue;
+						}
+
+						if (propagatedOwner[neighborIndex] == propagatedOwner[currentIndex]) {
+							continue;
+						}
+
+						const int candidateGap = distances[currentIndex] + distances[neighborIndex] - 1;
+						minGapTexels = std::min(minGapTexels, candidateGap);
+					}
+				}
+			}
+
+			if (minGapTexels == std::numeric_limits<int>::max()) {
+				minGapTexels = 0;
+			}
+
+			analysis.minGapTexels = std::max(minGapTexels, 0);
+			return analysis;
+		}
+
+		inline void EnforceMinUvIslandGap(
+			const NE::Graphics::SubMesh& submesh,
+			const LightmapAllocationSettings& settings,
+			int& ioInnerWidth,
+			int& ioInnerHeight,
+			UvIslandSpacingAnalysis& outAnalysis,
+			bool& outLimitedByPageSize) {
+			outLimitedByPageSize = false;
+			outAnalysis = AnalyzeUvIslandSpacing(submesh, ioInnerWidth, ioInnerHeight);
+			if (settings.minUvIslandGap <= 0 || !outAnalysis.valid || outAnalysis.chartCount <= 1) {
+				return;
+			}
+
+			const bool sourceGapCanImproveWithScaling = !outAnalysis.sourceChartsTouch;
+
+			const int maxInnerWidth = std::max(1, settings.pageSize - (settings.padding * 2));
+			const int maxInnerHeight = std::max(1, settings.pageSize - (settings.padding * 2));
+			for (int iteration = 0; iteration < 8; ++iteration) {
+				const bool meetsGapTarget =
+					outAnalysis.overlapTexelCount == 0u &&
+					outAnalysis.rasterizedChartCount == outAnalysis.chartCount &&
+					outAnalysis.minGapTexels >= settings.minUvIslandGap;
+				if (meetsGapTarget) {
+					return;
+				}
+
+				if (!sourceGapCanImproveWithScaling) {
+					return;
+				}
+
+				if (ioInnerWidth >= maxInnerWidth && ioInnerHeight >= maxInnerHeight) {
+					outLimitedByPageSize = true;
+					return;
+				}
+
+				double scale = 1.0;
+				if (outAnalysis.overlapTexelCount > 0u ||
+					outAnalysis.rasterizedChartCount < outAnalysis.chartCount ||
+					outAnalysis.minGapTexels <= 0) {
+					scale = 2.0;
+				} else {
+					scale = static_cast<double>(settings.minUvIslandGap + 1) /
+						static_cast<double>(outAnalysis.minGapTexels + 1);
+					scale = std::max(scale, 1.10);
+				}
+
+				const int nextInnerWidth = std::clamp(
+					std::max(ioInnerWidth + 1, static_cast<int>(std::ceil(static_cast<double>(ioInnerWidth) * scale))),
+					1,
+					maxInnerWidth);
+				const int nextInnerHeight = std::clamp(
+					std::max(ioInnerHeight + 1, static_cast<int>(std::ceil(static_cast<double>(ioInnerHeight) * scale))),
+					1,
+					maxInnerHeight);
+				if (nextInnerWidth == ioInnerWidth && nextInnerHeight == ioInnerHeight) {
+					outLimitedByPageSize = true;
+					return;
+				}
+
+				ioInnerWidth = nextInnerWidth;
+				ioInnerHeight = nextInnerHeight;
+				outAnalysis = AnalyzeUvIslandSpacing(submesh, ioInnerWidth, ioInnerHeight);
+			}
+
+			outLimitedByPageSize =
+				outAnalysis.overlapTexelCount > 0u ||
+				outAnalysis.rasterizedChartCount < outAnalysis.chartCount ||
+				outAnalysis.minGapTexels < settings.minUvIslandGap;
 		}
 
 		inline float TriangleWorldArea(
@@ -666,8 +1134,13 @@ namespace Editor::Lightmapping {
 			const float rectHeight = std::sqrt(std::max(texelArea / aspect, 1.0f));
 			const float rectWidth = rectHeight * aspect;
 
-			const int innerWidth = std::max(1, Detail::CeilToInt(rectWidth));
-			const int innerHeight = std::max(1, Detail::CeilToInt(rectHeight));
+			const int baseInnerWidth = std::max(1, Detail::CeilToInt(rectWidth));
+			const int baseInnerHeight = std::max(1, Detail::CeilToInt(rectHeight));
+			int innerWidth = baseInnerWidth;
+			int innerHeight = baseInnerHeight;
+			Detail::UvIslandSpacingAnalysis uvIslandSpacing{};
+			bool uvIslandGapLimitedByPageSize = false;
+			Detail::EnforceMinUvIslandGap(submesh, settings, innerWidth, innerHeight, uvIslandSpacing, uvIslandGapLimitedByPageSize);
 			const int totalWidth = innerWidth + (settings.padding * 2);
 			const int totalHeight = innerHeight + (settings.padding * 2);
 
@@ -694,10 +1167,19 @@ namespace Editor::Lightmapping {
 				metrics.worldSurfaceArea,
 				clampedCoverage,
 				aspect,
+				baseInnerWidth,
+				baseInnerHeight,
 				innerWidth,
 				innerHeight,
 				totalWidth,
 				totalHeight,
+				uvIslandSpacing.minGapTexels,
+				uvIslandSpacing.chartCount,
+				uvIslandSpacing.rasterizedChartCount,
+				uvIslandSpacing.overlapTexelCount,
+				uvIslandSpacing.sourceChartsTouch,
+				innerWidth != baseInnerWidth || innerHeight != baseInnerHeight,
+				uvIslandGapLimitedByPageSize,
 				hadBinding
 			});
 		}
@@ -790,6 +1272,21 @@ namespace Editor::Lightmapping {
 			preview.uvScale = placement.uvScale;
 			preview.uvOffset = placement.uvOffset;
 			preview.message = "Allocated to " + placement.pageId + ".";
+			if (request.uvIslandChartCount > 1) {
+				if (request.uvIslandSourceGapIsZero) {
+					preview.message += " Source UV1 islands touch in the authored layout, so allocation kept the base size instead of scaling up to manufacture padding.";
+				} else if (request.uvIslandGapLimitedByPageSize) {
+					preview.message += " Final UV1 island gap reached " +
+						std::to_string(std::max(request.effectiveUvIslandGap, 0)) +
+						" px but could not meet the " +
+						std::to_string(std::max(settings.minUvIslandGap, 0)) +
+						" px target within the page size.";
+				} else if (request.expandedForUvIslandGap) {
+					preview.message += " Receiver size was expanded to preserve at least " +
+						std::to_string(std::max(settings.minUvIslandGap, 0)) +
+						" px of UV1 island spacing at bake resolution.";
+				}
+			}
 			result.report.entries.push_back({
 				request.entity,
 				request.entityName,

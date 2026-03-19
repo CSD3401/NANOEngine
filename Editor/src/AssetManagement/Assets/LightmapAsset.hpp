@@ -22,7 +22,7 @@ namespace Editor::Assets {
 		float previewExposure = 1.0f;
 		float texelsPerUnit = 16.0f;
 		uint32_t pageSize = 2048;
-		uint32_t padding = 4;
+		uint32_t padding = 8;
 
 		NE_REFLECT_BEGIN(LightmapAssetBakeSettings)
 			NE_REFLECT_FIELD(workerCount),

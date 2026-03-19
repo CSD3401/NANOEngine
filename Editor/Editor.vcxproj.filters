@@ -491,6 +491,9 @@
     <ClInclude Include="src\AssetManagement\Assets\ModelAsset\ModelAssetUvValidation.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Lighting\LightmapUvRasterizer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Editor.rc">

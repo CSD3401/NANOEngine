@@ -71,12 +71,14 @@ namespace Editor::Assets {
         TangentMode tangentMode = TangentMode::Import;
         bool swapUVs = false;
         bool generateLightmapUVs = false;
+        uint32_t lightmapUvPaddingTexels = 8;
 
         NE_REFLECT_BEGIN(MeshImportSettings)
             NE_REFLECT_FIELD(weldVertices),
             NE_REFLECT_FIELD(keepQuads),
             NE_REFLECT_FIELD(swapUVs),
             NE_REFLECT_FIELD(generateLightmapUVs),
+            NE_REFLECT_FIELD(lightmapUvPaddingTexels),
             NE_REFLECT_FIELD(generateColliders),
             NE_REFLECT_FIELD(generateMeshLODs),
             NE_REFLECT_FIELD(smoothingAngle),
