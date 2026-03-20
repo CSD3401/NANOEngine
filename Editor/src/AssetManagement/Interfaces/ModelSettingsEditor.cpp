@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "ModelSettingsEditor.hpp"
 
+#include <algorithm>
 #include <imgui/imgui.h>
 
 #include "../AssetManager.hpp"
@@ -116,6 +117,11 @@ namespace Editor {
 
 				Editor::DrawCheckbox("Swap UVs", settings.mesh.swapUVs);
 				Editor::DrawCheckbox("Generate Lightmap UVs (UV1)", settings.mesh.generateLightmapUVs);
+				if (settings.mesh.generateLightmapUVs) {
+					int lightmapUvPaddingTexels = static_cast<int>(settings.mesh.lightmapUvPaddingTexels);
+					ImGui::DragInt("Lightmap UV Padding", &lightmapUvPaddingTexels, 1.0f, 4, 64, "%d px");
+					settings.mesh.lightmapUvPaddingTexels = static_cast<uint32_t>(std::clamp(lightmapUvPaddingTexels, 4, 64));
+				}
 			}
 			break;
 		}

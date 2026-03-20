@@ -77,6 +77,8 @@ namespace NE {
 
 		template <NE::Core::Reflectable T>
 		inline size_t ToBinary(ByteBuffer& out, const T& obj);
+		inline size_t ToBinary(ByteBuffer& out, const NE::Math::Vec2& v);
+		inline size_t ToBinary(ByteBuffer& out, const NE::Math::Vec3& v);
 
 		// Primitives and std types
 		inline size_t ToBinary(ByteBuffer& out, const std::uint64_t& v) {
@@ -285,6 +287,8 @@ namespace NE {
 
 		template <NE::Core::Reflectable T>
 		inline bool FromBinary(const uint8_t*& it, const uint8_t* end, T& obj);
+		inline bool FromBinary(const uint8_t*& it, const uint8_t* end, NE::Math::Vec2& v);
+		inline bool FromBinary(const uint8_t*& it, const uint8_t* end, NE::Math::Vec3& v);
 
 		// primitives and std types
 		inline bool FromBinary(const uint8_t*& it, const uint8_t* end, std::uint64_t& v) {

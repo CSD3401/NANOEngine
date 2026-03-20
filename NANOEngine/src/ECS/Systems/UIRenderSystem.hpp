@@ -18,6 +18,7 @@
 #include <memory>
 #include <cstdint>
 #include <unordered_map>
+#include <optional>
 #include <cstring>
 
 // Forward declarations
@@ -39,7 +40,7 @@ namespace NE::ECS::Systems {
         bool isWorldSpace;
         bool enableDepthTest;
         std::optional<NE::Graphics::ScissorRect> scissorRect;
-        int sortingOrder;
+        float sortingOrder;
 
         bool operator<(const UIBatchKey& other) const {
             if (sortingOrder != other.sortingOrder) return sortingOrder < other.sortingOrder;
@@ -65,15 +66,15 @@ namespace NE::ECS::Systems {
         }
     };
 
-    // Batch key for WorldSpace sprites: groups by identical world matrix
-    // All WorldSpace sprites use unit quad [0,1]x[0,1] in local space, so elements
-    // sharing a worldMatrix can be merged into one draw call with that transform
+    // Batch key for WorldSpace sprites: groups by owning canvas entity.
+    // All sprites in the same world-space canvas share the same coordinate space,
+    // so they can be merged into one draw call per canvas. This avoids float
+    // matrix comparisons (memcmp) which broke batching on precision differences.
     struct WorldSpriteBatchKey {
-        float matBytes[16];  // world matrix as 64 bytes (float a[16])
+        Entity canvasEntity = NO_ENTITY;
 
         bool operator<(const WorldSpriteBatchKey& other) const {
-            int cmp = std::memcmp(matBytes, other.matBytes, sizeof(matBytes));
-            return cmp < 0;
+            return canvasEntity < other.canvasEntity;
         }
     };
 
@@ -173,6 +174,9 @@ namespace NE::ECS::Systems {
         struct CanvasChildren {
             std::vector<Entity> images;
             std::vector<Entity> texts;
+            // Pre-computed mask ancestors per entity (closest to farthest, for scissor intersection).
+            // Populated top-down during CollectChildrenInOrder.
+            std::unordered_map<Entity, std::vector<Entity>> maskAncestors;
         };
 
         // Built once per frame in Update(), keyed by canvas entity
@@ -180,7 +184,8 @@ namespace NE::ECS::Systems {
 
         // Build canvas children map by walking each canvas's hierarchy in sibling order
         void BuildCanvasChildrenMap();
-        void CollectChildrenInOrder(Entity canvasEntity, Entity node, CanvasChildren& out);
+        void CollectChildrenInOrder(Entity canvasEntity, Entity node, CanvasChildren& out,
+                                     std::vector<Entity> inheritedMasks = {});
 
         //=================================================================
         // Camera Utilities
@@ -216,6 +221,7 @@ namespace NE::ECS::Systems {
         ComponentManager* m_cm;
         EntityManager* m_em;
         UILayoutEngine* m_layoutEngine = nullptr;
+        bool m_canvasMapDirty = true;
 
         // Text render cache keyed by entity (moved off the UIText component)
         std::unordered_map<Entity, UITextCache> m_textCache;
@@ -239,6 +245,7 @@ namespace NE::ECS::Systems {
         // Geometry buffer pool (avoids per-frame VAO/VBO/EBO allocation + fixes GL object leak)
         std::vector<std::shared_ptr<NE::Graphics::IGeometryBuffer>> m_geometryPool;
         size_t m_geometryIndex = 0;
+        bool m_geometryPoolCapped = false; // set to true when pool reaches MAX_UI_GEOMETRY_POOL_SIZE
 
         std::shared_ptr<NE::Graphics::IGeometryBuffer> AcquireGeometryBuffer(
             const std::vector<NE::Graphics::UIVertex2>& vertices,
@@ -257,7 +264,8 @@ namespace NE::ECS::Systems {
         std::optional<NE::Graphics::ScissorRect> ComputeScissorRect(
             Entity entity,
             Entity canvasEntity,
-            const Component::UICanvas& canvas
+            const Component::UICanvas& canvas,
+            const CanvasChildren& canvasChildren
         );
     };
 

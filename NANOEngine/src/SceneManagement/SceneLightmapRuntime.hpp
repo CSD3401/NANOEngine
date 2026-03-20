@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "NANOEngineAPI.hpp"
-#include "Lighting/LightingAsset.hpp"
+#include "Lighting/LightmapResource.hpp"
 #include "Math/Vec2.hpp"
 
 namespace NE::Graphics::OpenGL {

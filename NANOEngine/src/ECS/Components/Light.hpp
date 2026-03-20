@@ -8,9 +8,6 @@
 #include "Core/Reflection.hpp"
 
 namespace NE::ECS::Component {
-
-    // Maybe add radius next time
-
 	struct Light {
         static constexpr int DIR_CASCADES = 4;
 
@@ -48,8 +45,8 @@ namespace NE::ECS::Component {
         struct AreaLightData {
             float intensity = 1.f;
             float range = 10.f;
-            float width = 20.f;
-            float height = 50.f;
+            float width = 1.f;
+            float height = 1.f;
 
             NE_REFLECT_BEGIN(AreaLightData)
                 NE_REFLECT_FIELD_NAMED(intensity, "Intensity"),
@@ -87,13 +84,15 @@ namespace NE::ECS::Component {
         
         // Internal (Set by transform component)
         Math::Vec3 position{ 0.f, 0.f, 0.f };
+        Math::Vec3 right{ 1.f, 0.f, 0.f };
+        Math::Vec3 up{ 0.f, 1.f, 0.f };
         Math::Vec3 direction{ 0.f, -1.f, 0.f };
 
         // Exposed Shared
         Math::Vec3 color{ 1.f,1.f,1.f };
+        LightTypeData data;
         uint64_t luid = 0;
         Type type = Type::Directional;
-        LightTypeData data;
         ShadowType shadowType = ShadowType::None;
         ShadowUpdateMode shadowUpdateMode = ShadowUpdateMode::NoneUpdate;
 

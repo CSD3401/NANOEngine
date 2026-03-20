@@ -22,6 +22,7 @@ namespace NE::Graphics {
 	class Material;
 	class RenderGraph;
 	class TexturePool;
+	class Model;
 }
 
 namespace NE::Renderer {
@@ -38,6 +39,7 @@ namespace NE::Renderer {
 
 	namespace Command {
 		NANOENGINE_API std::shared_ptr<NE::Graphics::Material> GetMaterial(const std::string& uuid);
+		NANOENGINE_API std::shared_ptr<NE::Graphics::Model> GetModel(const std::string& uuid);
 		NANOENGINE_API void AssignModel(uint32_t e, const std::string& uuid);
 		NANOENGINE_API void AssignModel(uint32_t e, const std::string& uuid, int32_t submeshIndex);
 		NANOENGINE_API void AssignMaterial(uint32_t e, const std::string& uuid);

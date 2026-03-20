@@ -906,6 +906,12 @@ namespace Editor {
                 "bias": 0.02500000037252903,
                 "intensity": 1.0,
                 "power": 1.5
+            },
+            "chromaticAberrationSettings": {
+                "enabled": 0,
+                "strengthPx": 1.0,
+                "startRadius": 0.6000000238418579,
+                "falloffExponent": 2.0
             }
         },
         "Entities": []

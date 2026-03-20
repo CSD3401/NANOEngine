@@ -14,7 +14,7 @@
 
 namespace NE::Resource {
 
-	class ResourceManager {
+	class NANOENGINE_API ResourceManager {
 	public:
 		static ResourceManager& GetInstance();
 
@@ -132,6 +132,7 @@ namespace NE::Resource {
 
 		unsigned int LoadCookedThumbnailGL(const std::string& uuid);
 		void DestroyGLTexture(unsigned int id);
+		void UnloadResource(const std::string& uuid);
 
 	private:
 		ResourceManager() = default;

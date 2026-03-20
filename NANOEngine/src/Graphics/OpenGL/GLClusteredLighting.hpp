@@ -70,8 +70,11 @@ namespace NE::Graphics::OpenGL {
         {
             float position[4];  // xyz + type
             float color[4];     // rgb + intensity
-            float params[4];    // inner, outer, radius, unused
-            float direction[4]; // xyz + (maybe) padding
+            float params[4];    // inner, outer, range, shadowIndex
+            float direction[4]; // xyz + packed shadow metadata
+            float areaRight[4]; // xyz + halfWidth
+            float areaUp[4];    // xyz + halfHeight
+            float boundsSphere[4]; // xyz + culling radius
         };
         struct ClusterParamsCPU
         {

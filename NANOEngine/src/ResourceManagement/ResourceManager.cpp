@@ -76,6 +76,15 @@ namespace NE::Resource {
 		if (id) glDeleteTextures(1, &id);
 	}
 
+	void ResourceManager::UnloadResource(const std::string& uuid) {
+		if (uuid.empty()) {
+			return;
+		}
+
+		std::scoped_lock lock(mtx);
+		cache.erase(uuid);
+	}
+
 	bool ResourceManager::ReadBinFile(const std::string& path, std::vector<uint8_t>& out) const {
 		std::ifstream ifs(path, std::ios::binary | std::ios::ate);
 		if (!ifs) {

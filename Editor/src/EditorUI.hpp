@@ -9,6 +9,7 @@
 namespace NE::Math {
     struct Vec2;
     struct Vec3;
+	struct Vec4;
 }
 
 namespace Editor {
@@ -97,4 +98,11 @@ namespace Editor {
         float drag_speed_per_pixel = 0.01f,
         float reset_value = 0.0f,
         int precision = 3);
+
+    bool DrawVec4Control(const char* label,
+        NE::Math::Vec4& v,
+        float label_width,
+        float drag_speed_per_pixel = 0.01f,
+        float reset_value = 0.0f,
+		int precision = 3);
 }

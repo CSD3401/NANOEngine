@@ -247,9 +247,11 @@ namespace NE::Graphics::OpenGL {
 
         auto pushLight = [&](const RenderLightRef& lightRef,
             float intensity,
-            float radius,
+            float range,
             float innerCos,
-            float outerCos)
+            float outerCos,
+            float halfWidth,
+            float halfHeight)
             {
                 const ECS::Component::Light* src = lightRef.light;
                 if (!src) {
@@ -271,14 +273,49 @@ namespace NE::Graphics::OpenGL {
 
                 dst.params[0] = innerCos;
                 dst.params[1] = outerCos;
-                dst.params[2] = radius; // range/radius
+                dst.params[2] = range;
                 dst.params[3] = runtime ? static_cast<float>(runtime->shadowIndex) : -1.0f;
 
+                auto right = src->right.Normalized();
+                auto up = src->up.Normalized();
                 auto dir = src->direction.Normalized();
+                if (dir.LengthSquared() < 1e-6f) {
+                    if (src->type == ECS::Component::Light::Type::Area) {
+                        dir = -right.Cross(up);
+                    } else {
+                        dir = src->direction;
+                    }
+                }
+                if (dir.LengthSquared() < 1e-6f) {
+                    dir = (src->type == ECS::Component::Light::Type::Area)
+                        ? NE::Math::Vec3{ 0.0f, 0.0f, -1.0f }
+                        : NE::Math::Vec3{ 0.0f, -1.0f, 0.0f };
+                }
+                dir.Normalize();
                 dst.direction[0] = dir.x;
                 dst.direction[1] = dir.y;
                 dst.direction[2] = dir.z;
-                dst.direction[3] = (float)src->shadowType;
+                const int packedShadowMetadata =
+                    static_cast<int>(src->shadowType) |
+                    (static_cast<int>(src->shadowUpdateMode) << 2);
+                dst.direction[3] = static_cast<float>(packedShadowMetadata);
+
+                dst.areaRight[0] = right.x;
+                dst.areaRight[1] = right.y;
+                dst.areaRight[2] = right.z;
+                dst.areaRight[3] = halfWidth;
+                dst.areaUp[0] = up.x;
+                dst.areaUp[1] = up.y;
+                dst.areaUp[2] = up.z;
+                dst.areaUp[3] = halfHeight;
+
+                dst.boundsSphere[0] = src->position.x;
+                dst.boundsSphere[1] = src->position.y;
+                dst.boundsSphere[2] = src->position.z;
+                const float rectExtent = std::sqrt(halfWidth * halfWidth + halfHeight * halfHeight);
+                dst.boundsSphere[3] = (src->type == ECS::Component::Light::Type::Area)
+                    ? std::max(range + rectExtent, rectExtent)
+                    : std::max(range, 0.0f);
 
                 m_gpuLightsCPU.push_back(dst);
         };
@@ -293,9 +330,11 @@ namespace NE::Graphics::OpenGL {
             bool keep = true;
 
             float intensity = 0.0f;
-            float radius = 0.0f;
+            float range = 0.0f;
             float innerCos = 0.0f;
             float outerCos = 0.0f;
+            float halfWidth = 0.0f;
+            float halfHeight = 0.0f;
 
             std::visit([&](const auto& d) {
                 using T = std::decay_t<decltype(d)>;
@@ -307,15 +346,16 @@ namespace NE::Graphics::OpenGL {
                     // Degrees -> radians -> cos
                     innerCos = std::cos(Radians(d.innerConeAngleDeg));
                     outerCos = std::cos(Radians(d.outerConeAngleDeg));
-                    radius = d.range;
+                    range = d.range;
                 } else if constexpr (std::is_same_v<T, ECS::Component::Light::PointLightData>) {
-                    radius = d.range;
+                    range = d.range;
                 } else if constexpr (std::is_same_v<T, ECS::Component::Light::AreaLightData>) {
-                    radius = d.range;
-                    // width/height not used in your current packed struct; see note below
+                    range = d.range;
+                    halfWidth = std::max(d.width * 0.5f, 0.0f);
+                    halfHeight = std::max(d.height * 0.5f, 0.0f);
                 } else if constexpr (std::is_same_v<T, ECS::Component::Light::DirectionalLightData>) {
                     // no range; keep params[2] = 0
-                    radius = 0.0f;
+                    range = 0.0f;
                 }
             }, src->data);
 
@@ -324,12 +364,16 @@ namespace NE::Graphics::OpenGL {
 
             // only apply radius rule to non-directional
             if (keep && src->type != ECS::Component::Light::Type::Directional) {
-                if (radius <= 0.0f) keep = false;
+                if (range <= 0.0f) keep = false;
+            }
+
+            if (keep && src->type == ECS::Component::Light::Type::Area) {
+                if (halfWidth <= 0.0f || halfHeight <= 0.0f) keep = false;
             }
 
             if (!keep) continue;
 
-            pushLight(lightRef, intensity, radius, innerCos, outerCos);
+            pushLight(lightRef, intensity, range, innerCos, outerCos, halfWidth, halfHeight);
 
             if (static_cast<int>(m_gpuLightsCPU.size()) >= maxLights)
                 break;

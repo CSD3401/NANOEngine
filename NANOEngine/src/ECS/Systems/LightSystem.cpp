@@ -17,28 +17,37 @@ namespace NE::ECS::Systems {
             float b = static_cast<float>((entity >> 16) & 0xFF) / 255.0f;
             return { r, g, b };
         }
+
+        inline NE::Math::Vec3 ComputeLightDirection(
+            const Component::Light& light,
+            const NE::Math::Vec3& right,
+            const NE::Math::Vec3& up,
+            const NE::Math::Vec3& forward) {
+            if (light.type == Component::Light::Type::Area) {
+                auto emitDirection = -right.Cross(up);
+                if (emitDirection.LengthSquared() > 1e-6f) {
+                    emitDirection.Normalize();
+                    return emitDirection;
+                }
+                return { 0.0f, 0.0f, -1.0f };
+            }
+
+            auto lightDirection = forward;
+            if (lightDirection.LengthSquared() > 1e-6f) {
+                lightDirection.Normalize();
+                return lightDirection;
+            }
+            return { 0.0f, -1.0f, 0.0f };
+        }
     }
 
     LightSystem::LightSystem(ComponentManager* cm, EntityManager* em)
         : m_componentManager(cm), m_entityManager(em) {}
 
     void LightSystem::OnEntityAdded(Entity /*entity*/) {
-        //auto& t = m_componentManager->GetComponent<Component::Transform>(entity);
-        //auto& sl = m_componentManager->GetComponent<Component::Light>(entity);
-        //sl.position = t.localPosition;
-        //Graphics::GraphicsManager::m_lights.push_back(&sl);
     }
 
     void LightSystem::OnEntityRemoved(Entity /*entity*/) {
-        //auto& sl = m_componentManager->GetComponent<Component::Light>(entity);
-
-        //Graphics::GraphicsManager::m_lights.erase(
-        //    std::remove_if(Graphics::GraphicsManager::m_lights.begin(), Graphics::GraphicsManager::m_lights.end(),
-        //        [&sl](Component::Light * lightPtr) {
-        //            return lightPtr == &sl;
-        //        }),
-        //    Graphics::GraphicsManager::m_lights.end()
-        //);
     }
 
     void LightSystem::OnEntityActive(Entity /*entity*/) {}
@@ -60,7 +69,9 @@ namespace NE::ECS::Systems {
                 auto& t = m_componentManager->GetComponent<Component::Transform>(entity);
                 auto& light = m_componentManager->GetComponent<Component::Light>(entity);
                 light.position = t.worldMatrix.GetTranslation();
-                light.direction = t.worldMatrix.Forward();
+                light.right = t.worldMatrix.Right();
+                light.up = t.worldMatrix.Up();
+                light.direction = ComputeLightDirection(light, light.right, light.up, t.worldMatrix.Forward());
                 Graphics::GraphicsManager::m_lights.push_back({ entity, &light });
 
 #ifndef PRODUCTION_BUILD

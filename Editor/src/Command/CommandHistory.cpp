@@ -85,6 +85,13 @@ namespace Editor {
             }
         );
 
+        NANOEngine::Events::EventBus::Get().Subscribe<Events::CreateAreaLightEvent>(
+            NANOEngine::Events::EventDomain::Editor,
+            [&](const Events::CreateAreaLightEvent& e) {
+                ExecuteCommand(std::make_unique<CreateAreaLightCommand>(e.parentEntity));
+            }
+        );
+
         // UI Creation Events (Unity-like workflow)
         NANOEngine::Events::EventBus::Get().Subscribe<Events::CreateUICanvasEvent>(
             NANOEngine::Events::EventDomain::Editor,

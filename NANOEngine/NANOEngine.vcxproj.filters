@@ -103,6 +103,7 @@
     <ClCompile Include="src\ECS\Systems\DecalProjectorSystem.cpp" />
     <ClCompile Include="src\pch.cpp" />
     <ClCompile Include="src\ECS\Core\SystemManager.cpp" />
+    <ClCompile Include="src\ECS\Systems\ParticleSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
@@ -300,6 +301,8 @@
     <ClInclude Include="src\Graphics\Core\DecalGizmoCommand.hpp" />
     <ClInclude Include="src\Graphics\Core\DecalCommand.hpp" />
     <ClInclude Include="src\pch.h" />
+    <ClInclude Include="src\ECS\Components\ParticleEmitter.hpp" />
+    <ClInclude Include="src\ECS\Systems\ParticleSystem.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">

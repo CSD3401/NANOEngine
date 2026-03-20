@@ -35,7 +35,8 @@ namespace NE::Graphics {
 			NE_REFLECT_FIELD(softKnee),
 			NE_REFLECT_FIELD(bloomRadius),
 			NE_REFLECT_FIELD(bloomIntensity),
-			NE_REFLECT_FIELD(exposure)
+			NE_REFLECT_FIELD(exposure),
+			NE_REFLECT_FIELD_HIDDEN(toneMapType)
 		NE_REFLECT_END()
 	};
 
@@ -142,6 +143,20 @@ namespace NE::Graphics {
 			NE_REFLECT_END()
 	};
 
+	struct ChromaticAberrationSettings {
+		bool enabled = false;
+		float strengthPx = 1.0f;
+		float startRadius = 0.6f;
+		float falloffExponent = 2.0f;
+
+		NE_REFLECT_BEGIN(ChromaticAberrationSettings)
+			NE_REFLECT_FIELD(enabled),
+			NE_REFLECT_FIELD(strengthPx),
+			NE_REFLECT_FIELD(startRadius),
+			NE_REFLECT_FIELD(falloffExponent)
+		NE_REFLECT_END()
+	};
+
 	struct PostProcessingSettings {
 		bool enabled = true;
 		BloomSettings bloomSettings;
@@ -149,6 +164,7 @@ namespace NE::Graphics {
 		TAASettings taaSettings;
 		SSRSettings ssrSettings;
 		VignetteSettings vignetteSettings;
+		ChromaticAberrationSettings chromaticAberrationSettings;
 
 		NE_REFLECT_BEGIN(PostProcessingSettings)
 			NE_REFLECT_FIELD(enabled),
@@ -156,7 +172,8 @@ namespace NE::Graphics {
 			NE_REFLECT_FIELD(ssaoSettings),
 			NE_REFLECT_FIELD(taaSettings),
 			NE_REFLECT_FIELD(ssrSettings),
-			NE_REFLECT_FIELD(vignetteSettings)
+			NE_REFLECT_FIELD(vignetteSettings),
+			NE_REFLECT_FIELD(chromaticAberrationSettings)
 		NE_REFLECT_END()
 	};
 

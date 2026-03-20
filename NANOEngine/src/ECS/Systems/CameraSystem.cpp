@@ -2,8 +2,8 @@
 #include "CameraSystem.hpp"
 #include "../Components/Camera.hpp"
 #include "../Components/Transform.hpp"
-#include "../../../src/Math/Vec3.hpp"
-#include "../../../src/Math/Mat4.hpp"
+#include "../../Math/Vec3.hpp"
+#include "../../Math/Mat4.hpp"
 #include "../../Graphics/Core/GraphicsManager.hpp"
 #include <Core/Profiler.hpp>
 #include <algorithm>
@@ -23,8 +23,13 @@ namespace NE::ECS::Systems {
 	{
 	}
 
-	void CameraSystem::OnEntityActive(Entity /*entity*/) {}
-	void CameraSystem::OnEntityInactive(Entity /*entity*/) {}
+	void CameraSystem::OnEntityActive(Entity) 
+	{
+	}
+
+	void CameraSystem::OnEntityInactive(Entity) 
+	{
+	}
 
 	void CameraSystem::Init() {
 		const auto& entities = GetEntities();

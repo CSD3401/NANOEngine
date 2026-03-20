@@ -188,6 +188,22 @@ namespace Editor {
 					Editor::DrawFloatField("Tonemap Exposure", postProcessingSettings.bloomSettings.exposure, 0.1f, true);
 				}
 
+				ImGui::PushID("ChromaticAberration");
+				if (ImGui::CollapsingHeader("Chromatic Aberration##Header", ImGuiTreeNodeFlags_DefaultOpen)) {
+					Editor::DrawCheckbox("Enabled", postProcessingSettings.chromaticAberrationSettings.enabled);
+					Editor::DrawFloatField("Strength (px)", postProcessingSettings.chromaticAberrationSettings.strengthPx, 0.05f, true);
+					Editor::ToolTip("(Default: 1.0) Maximum per-channel offset at the screen edge, measured in pixels so the effect stays stable across resolutions.");
+					Editor::DrawFloatField("Start Radius", postProcessingSettings.chromaticAberrationSettings.startRadius, 0.01f, true);
+					Editor::ToolTip("(Default: 0.6) Normalized distance from screen center where the fringe begins. Lower = earlier onset; higher = more edge-only.");
+					Editor::DrawFloatField("Falloff Exponent", postProcessingSettings.chromaticAberrationSettings.falloffExponent, 0.1f, true);
+					Editor::ToolTip("(Default: 2.0) Shapes how quickly the fringe ramps up from the start radius toward the edge.");
+
+					postProcessingSettings.chromaticAberrationSettings.strengthPx = std::max(0.0f, postProcessingSettings.chromaticAberrationSettings.strengthPx);
+					postProcessingSettings.chromaticAberrationSettings.startRadius = std::clamp(postProcessingSettings.chromaticAberrationSettings.startRadius, 0.0f, 0.9999f);
+					postProcessingSettings.chromaticAberrationSettings.falloffExponent = std::max(0.001f, postProcessingSettings.chromaticAberrationSettings.falloffExponent);
+				}
+				ImGui::PopID();
+
 				ImGui::PushID("SSAO");
 				if (ImGui::CollapsingHeader("Ambient Occlusion##Header", ImGuiTreeNodeFlags_DefaultOpen)) {
 					Editor::DrawCheckbox("Enabled", postProcessingSettings.ssaoSettings.enabled);
@@ -266,6 +282,10 @@ namespace Editor {
 				ImGui::Text("Padding");
 				ImGui::SameLine();
 				ImGui::TextDisabled("%d px", Editor::Lightmapping::kDefaultLightmapPadding);
+
+				ImGui::Text("Min UV1 Island Gap");
+				ImGui::SameLine();
+				ImGui::TextDisabled("%d px", Editor::Lightmapping::kDefaultLightmapMinUvIslandGap);
 
 				if (ImGui::Button("Run Allocation")) {
 					Editor::Lightmapping::LightmapAllocationSettings settings{};
@@ -490,7 +510,7 @@ namespace Editor {
 				ImGui::Separator();
 				ImGui::Spacing();
 
-				ImGui::TextWrapped("Direct light baking rasterizes UV1 triangles into atlas texels, reconstructs world-space samples from barycentrics, evaluates direct Lambert lighting for supported lights, and uses the bake BVH for any-hit shadow visibility.");
+				ImGui::TextWrapped("Direct light baking rasterizes UV1 triangles into atlas texels, reconstructs world-space samples from barycentrics, evaluates direct lighting for directional, point, spot, and area lights, and uses the bake BVH for any-hit shadow visibility.");
 				ImGui::Spacing();
 
 				ImGui::Text("Worker Count");
@@ -586,6 +606,39 @@ namespace Editor {
 					ImGui::TextDisabled("%s", directBakeState.activeStage.c_str());
 				}
 
+				const std::string suggestedLightmapPath = Editor::Lightmapping::BuildSuggestedLightmapAssetPath();
+				ImGui::Spacing();
+				ImGui::Text("Commit Target");
+				ImGui::SameLine();
+				if (suggestedLightmapPath.empty()) {
+					ImGui::TextDisabled("save the scene first");
+				} else {
+					ImGui::TextWrapped("%s", suggestedLightmapPath.c_str());
+				}
+
+				ImGui::BeginDisabled(!directBakeState.hasResult || suggestedLightmapPath.empty());
+				if (ImGui::Button("Commit Lightmap Asset")) {
+					std::string committedPath;
+					std::string errorMessage;
+					m_commitLightmapSucceeded =
+						Editor::Lightmapping::CommitPublishedLightmapAsset(committedPath, errorMessage);
+					if (m_commitLightmapSucceeded) {
+						m_commitLightmapStatus = "Committed canonical .nlight and cooked BC6H runtime data to " + committedPath;
+					} else {
+						m_commitLightmapStatus = errorMessage.empty()
+							? "Failed to commit the baked lightmap asset."
+							: errorMessage;
+					}
+				}
+				ImGui::EndDisabled();
+
+				if (!m_commitLightmapStatus.empty()) {
+					const ImVec4 statusColor = m_commitLightmapSucceeded
+						? ImVec4(0.35f, 0.85f, 0.45f, 1.0f)
+						: ImVec4(0.95f, 0.45f, 0.35f, 1.0f);
+					ImGui::TextColored(statusColor, "%s", m_commitLightmapStatus.c_str());
+				}
+
 				if (directBakeState.hasResult) {
 					const auto& bakeResult = *directBakeState.result;
 					const auto& stats = bakeResult.stats;
@@ -598,6 +651,10 @@ namespace Editor {
 					ImGui::Text("Supported Lights");
 					ImGui::SameLine();
 					ImGui::TextDisabled("%zu", stats.supportedLightCount);
+
+					ImGui::Text("Area Lights");
+					ImGui::SameLine();
+					ImGui::TextDisabled("%zu", stats.areaLightCount);
 
 					ImGui::Text("Raster Triangles");
 					ImGui::SameLine();
@@ -699,9 +756,13 @@ namespace Editor {
 					const auto& outputDiagnostics = textureOutput.diagnostics;
 
 					ImGui::Spacing();
-					ImGui::Text("Output Format");
+					ImGui::Text("Preview Format");
 					ImGui::SameLine();
 					ImGui::TextDisabled("RGBA16F linear");
+
+					ImGui::Text("Committed Runtime Format");
+					ImGui::SameLine();
+					ImGui::TextDisabled("BC6H");
 
 					ImGui::Text("Preview Exposure");
 					ImGui::SameLine();

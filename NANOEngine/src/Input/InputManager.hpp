@@ -60,7 +60,7 @@ namespace NE {
         static bool s_mouseLocked;
 
         // very small ring buffer for chars (UI/widgets that need text)
-        static constexpr int CharBufSize = 32;
+        static constexpr int CharBufSize = 256;
         static uint32_t s_charBuf[CharBufSize];
         static int s_charHead; // write
         static int s_charTail; // read

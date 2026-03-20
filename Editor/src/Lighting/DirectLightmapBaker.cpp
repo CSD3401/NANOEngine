@@ -4,29 +4,39 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <filesystem>
 #include <limits>
 #include <mutex>
+#include <sstream>
 #include <thread>
 #include <variant>
 
 #include "SceneBakeBVH.hpp"
 
+#include "../AssetManagement/AssetManager.hpp"
+#include "../AssetManagement/UUID.hpp"
+#include "../AssetManagement/Assets/LightmapAsset.hpp"
+#include "../EditorScene.hpp"
 #include <ECS/Components/EntityMeta.hpp>
 #include <ECS/Components/Light.hpp>
 #include <ECS/Components/Transform.hpp>
 #include <EditorInterface/ECSExports.hpp>
 #include <Engine.hpp>
+#include <ResourceManagement/ResourceManager.hpp>
+#include <Serialisation/BinaryReflection.hpp>
 #include <SceneManagement/SceneLightmapRuntime.hpp>
 
 namespace Editor::Lightmapping {
 	namespace {
 		constexpr float kFiniteEpsilon = 1e-6f;
 		constexpr size_t kMaxWarningExamples = 64;
+		constexpr int kAreaLightBakeSamples = 128;
 
 		enum class BakeLightKind : uint8_t {
 			Directional,
 			Point,
-			Spot
+			Spot,
+			Area
 		};
 
 		struct BakeLightSnapshot {
@@ -36,11 +46,15 @@ namespace Editor::Lightmapping {
 			BakeLightKind kind = BakeLightKind::Directional;
 			NE::Math::Vec3 position{ 0.0f, 0.0f, 0.0f };
 			NE::Math::Vec3 direction{ 0.0f, -1.0f, 0.0f };
+			NE::Math::Vec3 right{ 1.0f, 0.0f, 0.0f };
+			NE::Math::Vec3 up{ 0.0f, 1.0f, 0.0f };
 			NE::Math::Vec3 color{ 1.0f, 1.0f, 1.0f };
 			float intensity = 0.0f;
 			float range = 0.0f;
 			float innerCos = 0.0f;
 			float outerCos = 0.0f;
+			float halfWidth = 0.0f;
+			float halfHeight = 0.0f;
 			bool castsBakedShadow = false;
 		};
 
@@ -71,6 +85,216 @@ namespace Editor::Lightmapping {
 			return control;
 		}
 
+		void ReleaseDetachedBakeResults(
+			std::shared_ptr<DirectLightBakeResult>& pendingCpuResult,
+			std::shared_ptr<DirectLightBakeResult>& publishedResult,
+			std::shared_ptr<DirectLightBakeResult>& stateResult) {
+			std::shared_ptr<DirectLightBakeResult> detachedResults[3] = {
+				pendingCpuResult,
+				publishedResult,
+				stateResult
+			};
+
+			for (size_t i = 0; i < 3u; ++i) {
+				const std::shared_ptr<DirectLightBakeResult>& result = detachedResults[i];
+				if (!result) {
+					continue;
+				}
+
+				bool alreadyReleased = false;
+				for (size_t previousIndex = 0; previousIndex < i; ++previousIndex) {
+					if (detachedResults[previousIndex].get() == result.get()) {
+						alreadyReleased = true;
+						break;
+					}
+				}
+
+				if (!alreadyReleased) {
+					result->textureOutput.ReleasePreviewTextures();
+				}
+			}
+
+			pendingCpuResult.reset();
+			publishedResult.reset();
+			stateResult.reset();
+		}
+
+		uint64_t HashBytes(const void* data, size_t size) {
+			const auto* bytes = static_cast<const uint8_t*>(data);
+			uint64_t hash = 1469598103934665603ull;
+			for (size_t i = 0; i < size; ++i) {
+				hash ^= bytes[i];
+				hash *= 1099511628211ull;
+			}
+			return hash;
+		}
+
+		std::string ToHexString(uint64_t value) {
+			std::ostringstream stream;
+			stream << std::hex << value;
+			return stream.str();
+		}
+
+		std::string BuildStableLightmapRevisionId(const Assets::LightmapAssetBlob& blob) {
+			Assets::LightmapAssetBlob signatureBlob = blob;
+			signatureBlob.lightingRevisionId.clear();
+			signatureBlob.dependencySignature.clear();
+
+			std::vector<uint8_t> bytes;
+			NE::Serialization::ToBinary(bytes, signatureBlob);
+			return ToHexString(HashBytes(bytes.data(), bytes.size()));
+		}
+
+		std::vector<uint8_t> BuildDilationWriteMaskForPage(
+			const DirectLightBakePageBuffers& page,
+			const LightmapUvRasterResult& rasterResult) {
+			const size_t texelCount = static_cast<size_t>(page.width) * static_cast<size_t>(page.height);
+			std::vector<uint8_t> writeMask(texelCount, 0u);
+
+			for (const auto& receiver : rasterResult.receivers) {
+				if (receiver.pageIndex != page.pageIndex) {
+					continue;
+				}
+
+				const int startX = std::max(receiver.placement.outerX, 0);
+				const int startY = std::max(receiver.placement.outerY, 0);
+				const int endX = std::min(
+					receiver.placement.outerX + receiver.placement.outerWidth,
+					static_cast<int>(page.width));
+				const int endY = std::min(
+					receiver.placement.outerY + receiver.placement.outerHeight,
+					static_cast<int>(page.height));
+
+				for (int y = startY; y < endY; ++y) {
+					for (int x = startX; x < endX; ++x) {
+						const size_t linearIndex = static_cast<size_t>(y) * static_cast<size_t>(page.width) + static_cast<size_t>(x);
+						if (linearIndex < writeMask.size()) {
+							writeMask[linearIndex] = 1u;
+						}
+					}
+				}
+			}
+
+			return writeMask;
+		}
+
+		bool BuildCanonicalLightmapAssetBlob(
+			const DirectLightBakeResult& result,
+			const Assets::UUID& assetUuid,
+			Assets::LightmapAssetBlob& outBlob,
+			std::string& outErrorMessage) {
+			outBlob = {};
+			outErrorMessage.clear();
+
+			if (assetUuid.empty()) {
+				outErrorMessage = "missing lightmap asset UUID";
+				return false;
+			}
+
+			if (!result.rasterResult) {
+				outErrorMessage = "published bake result is missing raster metadata";
+				return false;
+			}
+
+			const auto& allocationState = GetLightmapAllocationPreviewState();
+			if (!allocationState.hasRun) {
+				outErrorMessage = "lightmap allocation must be available before publishing";
+				return false;
+			}
+
+			outBlob.formatVersionMajor = 1;
+			outBlob.formatVersionMinor = 0;
+			outBlob.lightmapAssetId = assetUuid;
+			outBlob.bakeSettings.workerCount = result.settings.workerCount;
+			outBlob.bakeSettings.dilationRadiusTexels = result.settings.dilationRadiusTexels;
+			outBlob.bakeSettings.rebuildBvhBeforeBake = result.settings.rebuildBvhBeforeBake;
+			outBlob.bakeSettings.generateDebugBuffers = result.settings.generateDebugBuffers;
+			outBlob.bakeSettings.rayOriginBias = result.settings.rayOriginBias;
+			outBlob.bakeSettings.rayMinDistance = result.settings.rayMinDistance;
+			outBlob.bakeSettings.finiteLightDistanceEpsilon = result.settings.finiteLightDistanceEpsilon;
+			outBlob.bakeSettings.previewExposure = result.settings.previewExposure;
+			outBlob.bakeSettings.texelsPerUnit = allocationState.settings.texelsPerUnit;
+			outBlob.bakeSettings.pageSize = static_cast<uint32_t>(std::max(allocationState.settings.pageSize, 0));
+			outBlob.bakeSettings.padding = static_cast<uint32_t>(std::max(allocationState.settings.padding, 0));
+
+			outBlob.bindings.reserve(result.rasterResult->receivers.size());
+			for (const auto& receiver : result.rasterResult->receivers) {
+				NE::Lighting::LightmapBindingRecord binding{};
+				binding.entityLuid = receiver.stableId;
+				binding.subMeshIndex = receiver.subMeshIndex;
+				binding.pageId = receiver.placement.pageId;
+				binding.uvScale = receiver.placement.uvScale;
+				binding.uvOffset = receiver.placement.uvOffset;
+				outBlob.bindings.push_back(std::move(binding));
+			}
+
+			outBlob.pages.reserve(result.pages.size());
+			for (const auto& page : result.pages) {
+				const uint64_t texelCount = static_cast<uint64_t>(page.width) * static_cast<uint64_t>(page.height);
+				if (page.pageId.empty() ||
+					page.width == 0u ||
+					page.height == 0u ||
+					page.lighting.size() != static_cast<size_t>(texelCount) ||
+					page.validMask.size() != static_cast<size_t>(texelCount)) {
+					outErrorMessage = "published bake contains invalid page buffers";
+					return false;
+				}
+
+				Assets::LightmapAssetPage assetPage{};
+				assetPage.pageIndex = page.pageIndex;
+				assetPage.pageId = page.pageId;
+				assetPage.width = page.width;
+				assetPage.height = page.height;
+				assetPage.validTexelCount = static_cast<uint64_t>(page.validTexelCount);
+				assetPage.lighting = page.lighting;
+				assetPage.validMask = page.validMask;
+				assetPage.dilationWriteMask = BuildDilationWriteMaskForPage(page, *result.rasterResult);
+
+				for (const auto& rasterPage : result.rasterResult->pageBuffers) {
+					if (rasterPage.pageIndex == page.pageIndex) {
+						assetPage.allocatedInnerTexelCount = static_cast<uint64_t>(rasterPage.allocatedInnerTexelCount);
+						assetPage.coverage01 = rasterPage.coverage01;
+						break;
+					}
+				}
+
+				outBlob.pages.push_back(std::move(assetPage));
+			}
+
+			std::sort(outBlob.bindings.begin(), outBlob.bindings.end(),
+				[](const NE::Lighting::LightmapBindingRecord& lhs, const NE::Lighting::LightmapBindingRecord& rhs) {
+					if (lhs.entityLuid != rhs.entityLuid) {
+						return lhs.entityLuid < rhs.entityLuid;
+					}
+					return lhs.subMeshIndex < rhs.subMeshIndex;
+				});
+
+			std::sort(outBlob.pages.begin(), outBlob.pages.end(),
+				[](const Assets::LightmapAssetPage& lhs, const Assets::LightmapAssetPage& rhs) {
+					return lhs.pageIndex < rhs.pageIndex;
+				});
+
+			const std::string signature = BuildStableLightmapRevisionId(outBlob);
+			outBlob.lightingRevisionId = signature;
+			outBlob.dependencySignature = signature;
+			return true;
+		}
+
+		std::string BuildSuggestedLightmapAssetPathInternal() {
+			if (EditorScene::s_currentScenePath.empty()) {
+				return {};
+			}
+
+			std::filesystem::path scenePath(EditorScene::s_currentScenePath);
+			if (scenePath.empty()) {
+				return {};
+			}
+
+			const std::filesystem::path directory = scenePath.parent_path();
+			const std::string fileName = scenePath.stem().string() + "_Lightmap.nlight";
+			return (directory / fileName).string();
+		}
+
 		std::vector<NE::SceneManagement::LightmapRuntimePreviewPageInput> BuildRuntimePreviewPages(
 			const LightmapBakeTextureOutput& textureOutput) {
 			std::vector<NE::SceneManagement::LightmapRuntimePreviewPageInput> pages;
@@ -98,6 +322,52 @@ namespace Editor::Lightmapping {
 
 		bool IsFiniteVec3(const NE::Math::Vec3& value) {
 			return IsFiniteFloat(value.x) && IsFiniteFloat(value.y) && IsFiniteFloat(value.z);
+		}
+
+		NE::Math::Vec3 SafeNormalize(const NE::Math::Vec3& value, const NE::Math::Vec3& fallback) {
+			if (!IsFiniteVec3(value) || value.LengthSquared() <= kFiniteEpsilon) {
+				return fallback;
+			}
+			return value.Normalized();
+		}
+
+		NE::Math::Vec3 BuildStablePerpendicular(const NE::Math::Vec3& normal) {
+			NE::Math::Vec3 reference = (std::abs(normal.y) < 0.99f)
+				? NE::Math::Vec3{ 0.0f, 1.0f, 0.0f }
+				: NE::Math::Vec3{ 1.0f, 0.0f, 0.0f };
+			NE::Math::Vec3 tangent = reference - normal * reference.Dot(normal);
+			if (!IsFiniteVec3(tangent) || tangent.LengthSquared() <= kFiniteEpsilon) {
+				reference = { 0.0f, 0.0f, 1.0f };
+				tangent = reference - normal * reference.Dot(normal);
+			}
+			return SafeNormalize(tangent, { 1.0f, 0.0f, 0.0f });
+		}
+
+		void BuildOrthonormalAreaFrame(
+			const NE::Math::Vec3& rawRight,
+			const NE::Math::Vec3& rawUp,
+			const NE::Math::Vec3& fallbackDirection,
+			NE::Math::Vec3& outRight,
+			NE::Math::Vec3& outUp,
+			NE::Math::Vec3& outDirection) {
+			NE::Math::Vec3 direction = -rawRight.Cross(rawUp);
+			if (!IsFiniteVec3(direction) || direction.LengthSquared() <= kFiniteEpsilon) {
+				direction = fallbackDirection;
+			}
+			outDirection = SafeNormalize(direction, { 0.0f, 0.0f, -1.0f });
+
+			NE::Math::Vec3 tangentSeed = rawRight;
+			NE::Math::Vec3 tangent = tangentSeed - outDirection * tangentSeed.Dot(outDirection);
+			if (!IsFiniteVec3(tangent) || tangent.LengthSquared() <= kFiniteEpsilon) {
+				tangentSeed = rawUp;
+				tangent = tangentSeed - outDirection * tangentSeed.Dot(outDirection);
+			}
+			if (!IsFiniteVec3(tangent) || tangent.LengthSquared() <= kFiniteEpsilon) {
+				tangent = BuildStablePerpendicular(outDirection);
+			}
+
+			outRight = SafeNormalize(tangent, BuildStablePerpendicular(outDirection));
+			outUp = SafeNormalize(outRight.Cross(outDirection), { 0.0f, 1.0f, 0.0f });
 		}
 
 		bool IsFiniteBounds(const BakeAABB& bounds) {
@@ -172,6 +442,9 @@ namespace Editor::Lightmapping {
 			}
 			if (warning.find("skipped light because its range is invalid") != std::string::npos) {
 				return "Invalid finite light range";
+			}
+			if (warning.find("area light because its size is invalid") != std::string::npos) {
+				return "Invalid area light size";
 			}
 			if (warning.find("no longer marked static") != std::string::npos) {
 				return "Receiver no longer static";
@@ -254,6 +527,9 @@ namespace Editor::Lightmapping {
 				}
 
 				const auto& light = NE::ECS::Query::GetEntityLight(entity);
+				if (light.shadowUpdateMode == NE::ECS::Component::Light::ShadowUpdateMode::Realtime) {
+					continue;
+				}
 				const auto& transform = NE::ECS::Query::GetEntityTransform(entity);
 				bool validMatrix = true;
 				for (float value : transform.worldMatrix.a) {
@@ -274,12 +550,16 @@ namespace Editor::Lightmapping {
 					: static_cast<uint64_t>(entity);
 				snapshot.entityName = GetEntityNameOrFallback(entity);
 				snapshot.position = transform.worldMatrix.GetTranslation();
-				snapshot.direction = transform.worldMatrix.Forward().Normalized();
-				if (!IsFiniteVec3(snapshot.direction) || snapshot.direction.LengthSquared() <= kFiniteEpsilon) {
-					snapshot.direction = { 0.0f, -1.0f, 0.0f };
-				}
+				const NE::Math::Vec3 rawRight = transform.worldMatrix.Right();
+				const NE::Math::Vec3 rawUp = transform.worldMatrix.Up();
+				const NE::Math::Vec3 rawForward = transform.worldMatrix.Forward();
+				snapshot.right = SafeNormalize(rawRight, { 1.0f, 0.0f, 0.0f });
+				snapshot.up = SafeNormalize(rawUp, { 0.0f, 1.0f, 0.0f });
+				snapshot.direction = SafeNormalize(light.direction, SafeNormalize(rawForward, { 0.0f, -1.0f, 0.0f }));
 				snapshot.color = light.color;
-				snapshot.castsBakedShadow = (light.shadowType != NE::ECS::Component::Light::ShadowType::None);
+				snapshot.castsBakedShadow =
+					light.shadowUpdateMode == NE::ECS::Component::Light::ShadowUpdateMode::StaticBake &&
+					light.shadowType != NE::ECS::Component::Light::ShadowType::None;
 
 				bool supported = true;
 				std::visit([&](const auto& lightData) {
@@ -306,6 +586,11 @@ namespace Editor::Lightmapping {
 						}
 						snapshot.innerCos = std::cos(lightData.innerConeAngleDeg * NE::Math::DEG_TO_RAD);
 						snapshot.outerCos = std::cos(lightData.outerConeAngleDeg * NE::Math::DEG_TO_RAD);
+					} else if constexpr (std::is_same_v<T, NE::ECS::Component::Light::AreaLightData>) {
+						snapshot.kind = BakeLightKind::Area;
+						snapshot.range = lightData.range;
+						snapshot.halfWidth = 0.5f * lightData.width;
+						snapshot.halfHeight = 0.5f * lightData.height;
 					} else {
 						supported = false;
 					}
@@ -315,13 +600,23 @@ namespace Editor::Lightmapping {
 					continue;
 				}
 
+				if (snapshot.kind == BakeLightKind::Area) {
+					BuildOrthonormalAreaFrame(rawRight, rawUp, snapshot.direction, snapshot.right, snapshot.up, snapshot.direction);
+				}
+
 				if (!IsFiniteVec3(snapshot.color) || snapshot.intensity <= 0.0f || !std::isfinite(snapshot.intensity)) {
 					continue;
 				}
 
-				if ((snapshot.kind == BakeLightKind::Point || snapshot.kind == BakeLightKind::Spot) &&
+				if ((snapshot.kind == BakeLightKind::Point || snapshot.kind == BakeLightKind::Spot || snapshot.kind == BakeLightKind::Area) &&
 					(!std::isfinite(snapshot.range) || snapshot.range <= 0.0f)) {
 					PushWarning(warnings, snapshot.entityName + ": skipped light because its range is invalid for baking.");
+					continue;
+				}
+				if (snapshot.kind == BakeLightKind::Area &&
+					(!std::isfinite(snapshot.halfWidth) || !std::isfinite(snapshot.halfHeight) ||
+					 snapshot.halfWidth <= 0.0f || snapshot.halfHeight <= 0.0f)) {
+					PushWarning(warnings, snapshot.entityName + ": skipped area light because its size is invalid for baking.");
 					continue;
 				}
 
@@ -393,11 +688,16 @@ namespace Editor::Lightmapping {
 			return attenuation * attenuation;
 		}
 
-		NE::Math::Vec3 SafeNormalize(const NE::Math::Vec3& value, const NE::Math::Vec3& fallback) {
-			if (!IsFiniteVec3(value) || value.LengthSquared() <= kFiniteEpsilon) {
-				return fallback;
+		float RectDistanceAttenuation(float distanceToCenter, float range, float rectExtent) {
+			if (range <= 0.0f) {
+				return 0.0f;
 			}
-			return value.Normalized();
+
+			if (distanceToCenter > range + rectExtent) {
+				return 0.0f;
+			}
+
+			return DistanceAttenuation(std::max(distanceToCenter - rectExtent, 0.0f), range);
 		}
 
 		void PublishProgress(const std::string& stage, size_t processedInstances, size_t totalInstances, const DirectLightBakeStats& liveStats) {
@@ -540,6 +840,8 @@ namespace Editor::Lightmapping {
 				[](const BakeLightSnapshot& light) { return light.kind == BakeLightKind::Point; });
 			result.stats.spotLightCount = std::count_if(input.lights.begin(), input.lights.end(),
 				[](const BakeLightSnapshot& light) { return light.kind == BakeLightKind::Spot; });
+			result.stats.areaLightCount = std::count_if(input.lights.begin(), input.lights.end(),
+				[](const BakeLightSnapshot& light) { return light.kind == BakeLightKind::Area; });
 			result.stats.collectedDiscardedTriangleCount = input.receiverCollectionStats.discardedTriangleCount;
 			result.stats.collectedOutOfRangeIndexTriangleCount = input.receiverCollectionStats.outOfRangeIndexTriangleCount;
 			result.stats.collectedNonFiniteUvTriangleCount = input.receiverCollectionStats.nonFiniteUvTriangleCount;
@@ -579,7 +881,12 @@ namespace Editor::Lightmapping {
 
 			result.pages.reserve(input.pages.size());
 			std::unordered_map<int, size_t> pageSlotsByIndex;
+			std::unordered_map<int, const LightmapUvRasterPageBuffers*> rasterPagesByIndex;
 			pageSlotsByIndex.reserve(input.pages.size());
+			rasterPagesByIndex.reserve(rasterResult->pageBuffers.size());
+			for (const auto& rasterPage : rasterResult->pageBuffers) {
+				rasterPagesByIndex.emplace(rasterPage.pageIndex, &rasterPage);
+			}
 			for (size_t pageIndex = 0; pageIndex < input.pages.size(); ++pageIndex) {
 				const auto& page = input.pages[pageIndex];
 				DirectLightBakePageBuffers pageBuffers{};
@@ -589,9 +896,10 @@ namespace Editor::Lightmapping {
 				pageBuffers.height = static_cast<uint32_t>(std::max(page.height, 0));
 				const size_t texelCount = static_cast<size_t>(pageBuffers.width) * static_cast<size_t>(pageBuffers.height);
 				pageBuffers.lighting.assign(texelCount, { 0.0f, 0.0f, 0.0f });
-				if (pageIndex < rasterResult->pageBuffers.size()) {
-					pageBuffers.validMask = rasterResult->pageBuffers[pageIndex].validMask;
-					pageBuffers.validTexelCount = rasterResult->pageBuffers[pageIndex].validTexelCount;
+				const auto rasterPageIt = rasterPagesByIndex.find(page.pageIndex);
+				if (rasterPageIt != rasterPagesByIndex.end()) {
+					pageBuffers.validMask = rasterPageIt->second->validMask;
+					pageBuffers.validTexelCount = rasterPageIt->second->validTexelCount;
 				} else {
 					pageBuffers.validMask.assign(texelCount, 0u);
 				}
@@ -615,16 +923,17 @@ namespace Editor::Lightmapping {
 				: std::max(1u, std::thread::hardware_concurrency() > 1u ? std::thread::hardware_concurrency() - 1u : 1u);
 			const uint32_t workerCount = std::max(1u, std::min<uint32_t>(requestedWorkerCount, static_cast<uint32_t>(input.receivers.size())));
 
-			auto processReceiver = [&](size_t receiverIndex, DirectLightBakeStats& localStats) {
+			auto processReceiver = [&](size_t receiverIndex, DirectLightBakeStats& localStats) -> bool {
 				const auto& receiver = input.receivers[receiverIndex];
 				const auto pageSlotIt = pageSlotsByIndex.find(receiver.pageIndex);
-				if (pageSlotIt == pageSlotsByIndex.end()) {
+				const auto rasterPageIt = rasterPagesByIndex.find(receiver.pageIndex);
+				if (pageSlotIt == pageSlotsByIndex.end() || rasterPageIt == rasterPagesByIndex.end()) {
 					++localStats.skippedTexelCount;
-					return;
+					return true;
 				}
 
 				auto& page = result.pages[pageSlotIt->second];
-				const auto& rasterPage = rasterResult->pageBuffers[pageSlotIt->second];
+				const auto& rasterPage = *rasterPageIt->second;
 				const int minX = receiver.placement.innerX;
 				const int minY = receiver.placement.innerY;
 				const int maxX = receiver.placement.innerX + receiver.placement.innerWidth - 1;
@@ -633,7 +942,7 @@ namespace Editor::Lightmapping {
 				for (int y = minY; y <= maxY; ++y) {
 					for (int x = minX; x <= maxX; ++x) {
 						if (control.cancelRequested.load()) {
-							return;
+							return false;
 						}
 
 						const size_t linearIndex = static_cast<size_t>(y) * static_cast<size_t>(page.width) + static_cast<size_t>(x);
@@ -655,6 +964,7 @@ namespace Editor::Lightmapping {
 							float lightDistance = input.directionalShadowDistance;
 							float attenuation = 1.0f;
 							float spotAttenuation = 1.0f;
+							bool handledByAreaLight = false;
 
 							switch (light.kind) {
 							case BakeLightKind::Directional:
@@ -686,6 +996,112 @@ namespace Editor::Lightmapping {
 								attenuation = DistanceAttenuation(lightDistance, light.range);
 								break;
 							}
+							case BakeLightKind::Area: {
+								const NE::Math::Vec3 emitterNormal = SafeNormalize(light.direction, { 0.0f, 0.0f, -1.0f });
+								const NE::Math::Vec3 toReceiverFromCenter = sample.worldPosition - light.position;
+								if (emitterNormal.Dot(toReceiverFromCenter) <= 0.0f) {
+									handledByAreaLight = true;
+									break;
+								}
+
+								const float centerDistance = toReceiverFromCenter.Length();
+								if (!std::isfinite(centerDistance) || centerDistance <= kFiniteEpsilon) {
+									handledByAreaLight = true;
+									break;
+								}
+
+								const float rectExtent = std::sqrt(light.halfWidth * light.halfWidth + light.halfHeight * light.halfHeight);
+								const float rectAttenuation = RectDistanceAttenuation(centerDistance, light.range, rectExtent);
+								//if (rectAttenuation <= 0.0f) {
+								//	handledByAreaLight = true;
+								//	break;
+								//}
+								if (centerDistance > light.range + rectExtent) {
+									handledByAreaLight = true;
+									break;
+								}
+
+								const NE::Math::Vec3 lightRight = SafeNormalize(light.right, { 1.0f, 0.0f, 0.0f });
+								const NE::Math::Vec3 lightUp = SafeNormalize(light.up, { 0.0f, 1.0f, 0.0f });
+								NE::Math::Vec3 sampleAccumulated{ 0.0f, 0.0f, 0.0f };
+								const uint64_t sampleSeedBase =
+									(static_cast<uint64_t>(linearIndex) * 1315423911ull) ^
+									(light.stableId * 2654435761ull);
+								for (int areaSampleIndex = 0; areaSampleIndex < kAreaLightBakeSamples; ++areaSampleIndex) {
+									const uint64_t sampleSeed = sampleSeedBase + static_cast<uint64_t>(areaSampleIndex);
+									const float jitterX = (static_cast<float>((sampleSeed * 48271ull) % 65521ull) + 0.5f) / 65521.0f;
+									const float jitterY = (static_cast<float>((sampleSeed * 69621ull + 17ull) % 65521ull) + 0.5f) / 65521.0f;
+									const int gridX = areaSampleIndex & 3;
+									const int gridY = areaSampleIndex >> 2;
+									const float u = (static_cast<float>(gridX) + jitterX) * 0.25f - 0.5f;
+									const float v = (static_cast<float>(gridY) + jitterY) * 0.25f - 0.5f;
+
+									const NE::Math::Vec3 emitterPoint =
+										light.position +
+										lightRight * (u * light.halfWidth * 2.0f) +
+										lightUp * (v * light.halfHeight * 2.0f);
+
+									const NE::Math::Vec3 lightVector = emitterPoint - sample.worldPosition;
+									const float sampleDistance = lightVector.Length();
+									if (!std::isfinite(sampleDistance) || sampleDistance <= kFiniteEpsilon) {
+										continue;
+									}
+
+									const NE::Math::Vec3 sampleLightDirection = lightVector / sampleDistance;
+									const float nDotL = sample.shadingNormal.Dot(sampleLightDirection);
+									if (!std::isfinite(nDotL) || nDotL <= 0.0f) {
+										continue;
+									}
+
+									const float lightFacing = emitterNormal.Dot(-sampleLightDirection);
+									if (!std::isfinite(lightFacing) || lightFacing <= 0.0f) {
+										continue;
+									}
+
+									bool occluded = false;
+									if (light.castsBakedShadow) {
+										NE::Math::Vec3 biasNormal = sample.geometricNormal;
+										if (biasNormal.Dot(sample.shadingNormal) < 0.0f) {
+											biasNormal = -biasNormal;
+										}
+										biasNormal = SafeNormalize(biasNormal, sample.shadingNormal);
+
+										BakeRay ray{};
+										ray.origin = sample.worldPosition + (biasNormal * input.settings.rayOriginBias);
+										ray.direction = sampleLightDirection;
+										ray.tMin = input.settings.rayMinDistance;
+										ray.tMax = std::max(sampleDistance - input.settings.finiteLightDistanceEpsilon, ray.tMin);
+
+										++localStats.raysCast;
+										occluded = SceneBakeBVHAnyHit(ray);
+										if (occluded) {
+											++localStats.occludedRayCount;
+										} else {
+											++localStats.visibleRayCount;
+										}
+									}
+
+									if (occluded) {
+										continue;
+									}
+
+									//sampleAccumulated += light.color * (light.intensity * rectAttenuation * lightFacing * nDotL);
+									const float sampleAttenuation = DistanceAttenuation(sampleDistance, light.range);
+									if (sampleAttenuation <= 0.0f) {
+										continue;
+									}
+
+									sampleAccumulated += light.color * (light.intensity * sampleAttenuation * lightFacing * nDotL);
+								}
+
+								accumulated += sampleAccumulated / static_cast<float>(kAreaLightBakeSamples);
+								handledByAreaLight = true;
+								break;
+							}
+							}
+
+							if (handledByAreaLight) {
+								continue;
 							}
 
 							const float nDotL = sample.shadingNormal.Dot(lightDirection);
@@ -733,6 +1149,7 @@ namespace Editor::Lightmapping {
 						}
 					}
 				}
+				return true;
 			};
 
 			auto workerFn = [&]() {
@@ -743,10 +1160,10 @@ namespace Editor::Lightmapping {
 					}
 
 					DirectLightBakeStats localStats{};
-					processReceiver(receiverIndex, localStats);
+					const bool completedReceiver = processReceiver(receiverIndex, localStats);
 
 					DirectLightBakeStats mergedStats{};
-					size_t processed = 0u;
+					size_t processed = processedReceivers.load();
 					{
 						std::scoped_lock statsLock(statsMutex);
 						liveStats.skippedTexelCount += localStats.skippedTexelCount;
@@ -754,7 +1171,11 @@ namespace Editor::Lightmapping {
 						liveStats.occludedRayCount += localStats.occludedRayCount;
 						liveStats.visibleRayCount += localStats.visibleRayCount;
 						mergedStats = liveStats;
-						processed = processedReceivers.fetch_add(1u) + 1u;
+						if (completedReceiver) {
+							processed = processedReceivers.fetch_add(1u) + 1u;
+						} else {
+							processed = processedReceivers.load();
+						}
 					}
 					PublishProgress("Evaluating direct lighting", processed, input.receivers.size(), mergedStats);
 				}
@@ -788,10 +1209,15 @@ namespace Editor::Lightmapping {
 
 			{
 				std::scoped_lock lock(control.mutex);
+				const size_t completedReceivers = processedReceivers.load();
+				const size_t totalReceivers = input.receivers.size();
+				const float progress01 = totalReceivers > 0u
+					? std::clamp(static_cast<float>(completedReceivers) / static_cast<float>(totalReceivers), 0.0f, 1.0f)
+					: 1.0f;
 				control.state.liveStats = result.stats;
-				control.state.processedInstanceCount = input.receivers.size();
-				control.state.queuedInstanceCount = input.receivers.size();
-				control.state.progress01 = 1.0f;
+				control.state.processedInstanceCount = completedReceivers;
+				control.state.queuedInstanceCount = totalReceivers;
+				control.state.progress01 = progress01;
 				control.state.cancelRequested = control.cancelRequested.load();
 				control.pendingCpuResult.reset();
 
@@ -862,19 +1288,31 @@ namespace Editor::Lightmapping {
 				NE::GetScene(),
 				BuildRuntimePreviewPages(pendingCpuResult->textureOutput));
 
-			std::scoped_lock lock(control.mutex);
-			// Publication is atomic from the editor's point of view. The previous
-			// published result stays alive through shared ownership until this swap.
-			control.pendingCpuResult.reset();
-			control.publishedResult = pendingCpuResult;
-			control.state.result = pendingCpuResult;
-			control.state.hasResult = true;
-			control.state.isRunning = false;
-			control.state.cancelRequested = false;
-			control.state.lastBakeSucceeded = true;
-			control.state.activeStage = "Complete";
-			control.state.statusMessage = "Direct light bake completed.";
-			control.state.settings.previewExposure = desiredPreviewExposure;
+			std::shared_ptr<DirectLightBakeResult> retiredPublishedResult;
+			std::shared_ptr<DirectLightBakeResult> retiredStateResult;
+			{
+				std::scoped_lock lock(control.mutex);
+				// Publication is atomic from the editor's point of view. The previous
+				// published result stays alive through shared ownership until this swap,
+				// then gets released after the lock is dropped so GL teardown does not
+				// happen while session state is locked.
+				control.pendingCpuResult.reset();
+				retiredPublishedResult = std::move(control.publishedResult);
+				std::shared_ptr<const DirectLightBakeResult> movedStateResult = std::move(control.state.result);
+				retiredStateResult = std::const_pointer_cast<DirectLightBakeResult>(movedStateResult);
+				control.publishedResult = pendingCpuResult;
+				control.state.result = pendingCpuResult;
+				control.state.hasResult = true;
+				control.state.isRunning = false;
+				control.state.cancelRequested = false;
+				control.state.lastBakeSucceeded = true;
+				control.state.activeStage = "Complete";
+				control.state.statusMessage = "Direct light bake completed.";
+				control.state.settings.previewExposure = desiredPreviewExposure;
+			}
+
+			std::shared_ptr<DirectLightBakeResult> retiredPendingResult;
+			ReleaseDetachedBakeResults(retiredPendingResult, retiredPublishedResult, retiredStateResult);
 			return;
 		}
 
@@ -969,6 +1407,77 @@ namespace Editor::Lightmapping {
 		control.state.settings.previewExposure = control.desiredPreviewExposure;
 	}
 
+	std::string BuildSuggestedLightmapAssetPath() {
+		return BuildSuggestedLightmapAssetPathInternal();
+	}
+
+	bool CommitPublishedLightmapAsset(std::string& outAssetPath, std::string& outErrorMessage) {
+		outAssetPath.clear();
+		outErrorMessage.clear();
+
+		if (EditorScene::s_currentScenePath.empty()) {
+			outErrorMessage = "Save the scene before committing a baked lightmap asset.";
+			return false;
+		}
+
+		std::shared_ptr<DirectLightBakeResult> publishedResult;
+		{
+			auto& control = Control();
+			std::scoped_lock lock(control.mutex);
+			publishedResult = control.publishedResult;
+		}
+
+		if (!publishedResult) {
+			outErrorMessage = "Run and complete a direct bake before committing a lightmap asset.";
+			return false;
+		}
+
+		const std::string assetPath = BuildSuggestedLightmapAssetPathInternal();
+		if (assetPath.empty()) {
+			outErrorMessage = "Unable to determine a target path for the baked lightmap asset.";
+			return false;
+		}
+
+		auto& assetManager = Assets::AssetManager::GetInstance();
+		Assets::UUID assetUuid = assetManager.RetrieveUUID(assetPath);
+		if (assetUuid.empty()) {
+			assetUuid = Assets::GenerateUUID();
+		}
+
+		Assets::LightmapAssetBlob blob{};
+		if (!BuildCanonicalLightmapAssetBlob(*publishedResult, assetUuid, blob, outErrorMessage)) {
+			return false;
+		}
+
+		if (!Assets::LightmapAsset::SaveBlob(assetPath, blob, outErrorMessage)) {
+			return false;
+		}
+
+		const std::filesystem::path metaPath = std::filesystem::path(assetPath).concat(".meta");
+		if (std::filesystem::exists(metaPath)) {
+			assetManager.ReimportAsset(assetPath);
+		} else {
+			assetManager.GenerateMetadata(assetPath, assetUuid);
+		}
+
+		auto& scene = NE::GetScene();
+		auto& lightingContainer = scene.GetLightingContainer();
+		lightingContainer.enabled = true;
+		lightingContainer.lightingAssetRef = assetUuid;
+		lightingContainer.lightingRevisionId = blob.lightingRevisionId;
+		lightingContainer.dependencySignature = blob.dependencySignature;
+		lightingContainer.resolvedAsset.reset();
+		lightingContainer.pageIdToSlot.clear();
+		lightingContainer.statusMessage.clear();
+
+		NE::Resource::ResourceManager::GetInstance().UnloadResource(assetUuid);
+		NE::SceneManagement::ResolveSceneLightmapRuntimeState(scene);
+
+		EditorScene::isDirty = true;
+		outAssetPath = assetPath;
+		return true;
+	}
+
 	void ShutdownDirectLightBakeSession() {
 		CancelSceneDirectLightBake();
 		auto& control = Control();
@@ -977,11 +1486,29 @@ namespace Editor::Lightmapping {
 			control.workerFinished.store(false);
 		}
 		NE::SceneManagement::ClearSceneLightmapPreviewState(NE::GetScene());
-		std::scoped_lock lock(control.mutex);
-		control.pendingCpuResult.reset();
-		control.publishedResult.reset();
-		control.state.result.reset();
-		control.state.hasResult = false;
-		control.state.isRunning = false;
+
+		std::shared_ptr<DirectLightBakeResult> detachedPendingResult;
+		std::shared_ptr<DirectLightBakeResult> detachedPublishedResult;
+		std::shared_ptr<DirectLightBakeResult> detachedStateResult;
+		{
+			std::scoped_lock lock(control.mutex);
+			detachedPendingResult = std::move(control.pendingCpuResult);
+			detachedPublishedResult = std::move(control.publishedResult);
+			std::shared_ptr<const DirectLightBakeResult> movedStateResult = std::move(control.state.result);
+			detachedStateResult = std::const_pointer_cast<DirectLightBakeResult>(movedStateResult);
+			control.state.hasResult = false;
+			control.state.isRunning = false;
+			control.state.cancelRequested = false;
+			control.state.lastBakeSucceeded = false;
+			control.state.progress01 = 0.0f;
+			control.state.queuedInstanceCount = 0u;
+			control.state.processedInstanceCount = 0u;
+			control.state.activeStage = "Idle";
+			control.state.statusMessage.clear();
+			control.state.liveStats = {};
+			control.desiredPreviewExposure = 1.0f;
+		}
+
+		ReleaseDetachedBakeResults(detachedPendingResult, detachedPublishedResult, detachedStateResult);
 	}
 }
