@@ -60,6 +60,11 @@ namespace Editor {
         if (ImGui::Checkbox("SSR Enabled", &ssrEnabled)) {
             ppSettings.ssrSettings.enabled = ssrEnabled;
         }
+        ImGui::SameLine();
+        bool chromaticAberrationEnabled = ppSettings.chromaticAberrationSettings.enabled;
+        if (ImGui::Checkbox("CA Enabled", &chromaticAberrationEnabled)) {
+            ppSettings.chromaticAberrationSettings.enabled = chromaticAberrationEnabled;
+        }
 
         auto& selectionSettings = NE::Renderer::Command::GetSelectionHighlightSettings();
         bool showSelectionMask = selectionSettings.debugShowMask;

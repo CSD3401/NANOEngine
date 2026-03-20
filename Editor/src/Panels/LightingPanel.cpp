@@ -188,6 +188,22 @@ namespace Editor {
 					Editor::DrawFloatField("Tonemap Exposure", postProcessingSettings.bloomSettings.exposure, 0.1f, true);
 				}
 
+				ImGui::PushID("ChromaticAberration");
+				if (ImGui::CollapsingHeader("Chromatic Aberration##Header", ImGuiTreeNodeFlags_DefaultOpen)) {
+					Editor::DrawCheckbox("Enabled", postProcessingSettings.chromaticAberrationSettings.enabled);
+					Editor::DrawFloatField("Strength (px)", postProcessingSettings.chromaticAberrationSettings.strengthPx, 0.05f, true);
+					Editor::ToolTip("(Default: 1.0) Maximum per-channel offset at the screen edge, measured in pixels so the effect stays stable across resolutions.");
+					Editor::DrawFloatField("Start Radius", postProcessingSettings.chromaticAberrationSettings.startRadius, 0.01f, true);
+					Editor::ToolTip("(Default: 0.6) Normalized distance from screen center where the fringe begins. Lower = earlier onset; higher = more edge-only.");
+					Editor::DrawFloatField("Falloff Exponent", postProcessingSettings.chromaticAberrationSettings.falloffExponent, 0.1f, true);
+					Editor::ToolTip("(Default: 2.0) Shapes how quickly the fringe ramps up from the start radius toward the edge.");
+
+					postProcessingSettings.chromaticAberrationSettings.strengthPx = std::max(0.0f, postProcessingSettings.chromaticAberrationSettings.strengthPx);
+					postProcessingSettings.chromaticAberrationSettings.startRadius = std::clamp(postProcessingSettings.chromaticAberrationSettings.startRadius, 0.0f, 0.9999f);
+					postProcessingSettings.chromaticAberrationSettings.falloffExponent = std::max(0.001f, postProcessingSettings.chromaticAberrationSettings.falloffExponent);
+				}
+				ImGui::PopID();
+
 				ImGui::PushID("SSAO");
 				if (ImGui::CollapsingHeader("Ambient Occlusion##Header", ImGuiTreeNodeFlags_DefaultOpen)) {
 					Editor::DrawCheckbox("Enabled", postProcessingSettings.ssaoSettings.enabled);

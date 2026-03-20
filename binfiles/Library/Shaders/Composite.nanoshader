@@ -37,6 +37,11 @@ uniform float u_VignetteSoftness;
 uniform vec3  u_VignetteTint;
 uniform float u_VignetteTintAmount;
 
+uniform int   u_UseChromaticAberration;
+uniform float u_CA_StrengthPx;
+uniform float u_CA_StartRadius;
+uniform float u_CA_FalloffExponent;
+
 vec3 ACESApprox(vec3 x)
 {
     float a = 2.51;
@@ -156,14 +161,14 @@ float ComputeVignetteMask(vec2 uv, float aspect, float radius, float softness)
     return 1.0 - smoothstep(inner, outer, r2);
 }
 
-void main()
+vec3 CompositeTonemapped(vec2 uv)
 {
-    vec3 scene  = texture(u_SceneHDR, vUV).rgb;
-    vec3 bloom  = texture(u_Bloom,    vUV).rgb;
+    vec3 scene  = texture(u_SceneHDR, uv).rgb;
+    vec3 bloom  = texture(u_Bloom,    uv).rgb;
 	
 	float ao = 1.0;
 	if (u_UseSSAO == 1) {
-		float aoTex = texture(u_SSAO, vUV).r;
+		float aoTex = texture(u_SSAO, uv).r;
 		float aoStrength = clamp(u_AOIntensity, 0.0, 1.0);
 		ao = mix(1.0, aoTex, aoStrength);
 	}
@@ -181,7 +186,7 @@ void main()
 
         float intensity = clamp(u_VignetteIntensity, 0.0, 1.0);
 
-        float mask = ComputeVignetteMask(vUV, aspect, u_VignetteRadius, u_VignetteSoftness);
+        float mask = ComputeVignetteMask(uv, aspect, u_VignetteRadius, u_VignetteSoftness);
 
         float localExposure = exposure * mix(1.0, mask, intensity);
         color *= localExposure;
@@ -204,8 +209,48 @@ void main()
     }
 	
     color = Tonemap(color, u_ToneMapType);
-	
+
+    return color;
+}
+
+vec3 ApplyChromaticAberration(vec2 uv)
+{
+    vec3 center = CompositeTonemapped(uv);
+    if (u_UseChromaticAberration == 0) {
+        return center;
+    }
+
+    float strengthPx = max(u_CA_StrengthPx, 0.0);
+    if (strengthPx <= 0.0) {
+        return center;
+    }
+
+    vec2 centered = uv * 2.0 - 1.0;
+    float radius = length(centered);
+    if (radius <= 1e-5) {
+        return center;
+    }
+
+    float startRadius = clamp(u_CA_StartRadius, 0.0, 0.9999);
+    float edgeMask = clamp((radius - startRadius) / max(1.0 - startRadius, 1e-4), 0.0, 1.0);
+    if (edgeMask <= 0.0) {
+        return center;
+    }
+
+    float falloff = pow(edgeMask, max(u_CA_FalloffExponent, 1e-4));
+    vec2 texelSize = 1.0 / vec2(textureSize(u_SceneHDR, 0));
+    vec2 dir = centered / radius;
+    vec2 offset = dir * texelSize * strengthPx * falloff;
+
+    vec3 outward = CompositeTonemapped(clamp(uv + offset, vec2(0.0), vec2(1.0)));
+    vec3 inward = CompositeTonemapped(clamp(uv - offset, vec2(0.0), vec2(1.0)));
+
+    return vec3(outward.r, center.g, inward.b);
+}
+
+void main()
+{
+    vec3 color = ApplyChromaticAberration(vUV);
     color = pow(color, vec3(1.0 / 2.2));
-	
     FragColor = vec4(color, 1.0);
 }

@@ -1775,6 +1775,10 @@ namespace NE::Graphics {
 				m_compositeShader->SetUniformFloat("u_VignetteSoftness", m_settings->vignetteSettings.softness);
 				m_compositeShader->SetUniformVec3("u_VignetteTint", m_settings->vignetteSettings.tint);
 				m_compositeShader->SetUniformFloat("u_VignetteTintAmount", m_settings->vignetteSettings.tintIntensity);
+				m_compositeShader->SetUniformInt("u_UseChromaticAberration", m_settings->chromaticAberrationSettings.enabled);
+				m_compositeShader->SetUniformFloat("u_CA_StrengthPx", m_settings->chromaticAberrationSettings.strengthPx);
+				m_compositeShader->SetUniformFloat("u_CA_StartRadius", m_settings->chromaticAberrationSettings.startRadius);
+				m_compositeShader->SetUniformFloat("u_CA_FalloffExponent", m_settings->chromaticAberrationSettings.falloffExponent);
 
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(sceneColor));
