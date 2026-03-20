@@ -30,7 +30,7 @@ namespace Editor::Lightmapping {
 	namespace {
 		constexpr float kFiniteEpsilon = 1e-6f;
 		constexpr size_t kMaxWarningExamples = 64;
-		constexpr int kAreaLightBakeSamples = 16;
+		constexpr int kAreaLightBakeSamples = 128;
 
 		enum class BakeLightKind : uint8_t {
 			Directional,
@@ -83,6 +83,40 @@ namespace Editor::Lightmapping {
 		WorkerControl& Control() {
 			static WorkerControl control;
 			return control;
+		}
+
+		void ReleaseDetachedBakeResults(
+			std::shared_ptr<DirectLightBakeResult>& pendingCpuResult,
+			std::shared_ptr<DirectLightBakeResult>& publishedResult,
+			std::shared_ptr<DirectLightBakeResult>& stateResult) {
+			std::shared_ptr<DirectLightBakeResult> detachedResults[3] = {
+				pendingCpuResult,
+				publishedResult,
+				stateResult
+			};
+
+			for (size_t i = 0; i < 3u; ++i) {
+				const std::shared_ptr<DirectLightBakeResult>& result = detachedResults[i];
+				if (!result) {
+					continue;
+				}
+
+				bool alreadyReleased = false;
+				for (size_t previousIndex = 0; previousIndex < i; ++previousIndex) {
+					if (detachedResults[previousIndex].get() == result.get()) {
+						alreadyReleased = true;
+						break;
+					}
+				}
+
+				if (!alreadyReleased) {
+					result->textureOutput.ReleasePreviewTextures();
+				}
+			}
+
+			pendingCpuResult.reset();
+			publishedResult.reset();
+			stateResult.reset();
 		}
 
 		uint64_t HashBytes(const void* data, size_t size) {
@@ -978,7 +1012,11 @@ namespace Editor::Lightmapping {
 
 								const float rectExtent = std::sqrt(light.halfWidth * light.halfWidth + light.halfHeight * light.halfHeight);
 								const float rectAttenuation = RectDistanceAttenuation(centerDistance, light.range, rectExtent);
-								if (rectAttenuation <= 0.0f) {
+								//if (rectAttenuation <= 0.0f) {
+								//	handledByAreaLight = true;
+								//	break;
+								//}
+								if (centerDistance > light.range + rectExtent) {
 									handledByAreaLight = true;
 									break;
 								}
@@ -1047,7 +1085,13 @@ namespace Editor::Lightmapping {
 										continue;
 									}
 
-									sampleAccumulated += light.color * (light.intensity * rectAttenuation * lightFacing * nDotL);
+									//sampleAccumulated += light.color * (light.intensity * rectAttenuation * lightFacing * nDotL);
+									const float sampleAttenuation = DistanceAttenuation(sampleDistance, light.range);
+									if (sampleAttenuation <= 0.0f) {
+										continue;
+									}
+
+									sampleAccumulated += light.color * (light.intensity * sampleAttenuation * lightFacing * nDotL);
 								}
 
 								accumulated += sampleAccumulated / static_cast<float>(kAreaLightBakeSamples);
@@ -1244,19 +1288,31 @@ namespace Editor::Lightmapping {
 				NE::GetScene(),
 				BuildRuntimePreviewPages(pendingCpuResult->textureOutput));
 
-			std::scoped_lock lock(control.mutex);
-			// Publication is atomic from the editor's point of view. The previous
-			// published result stays alive through shared ownership until this swap.
-			control.pendingCpuResult.reset();
-			control.publishedResult = pendingCpuResult;
-			control.state.result = pendingCpuResult;
-			control.state.hasResult = true;
-			control.state.isRunning = false;
-			control.state.cancelRequested = false;
-			control.state.lastBakeSucceeded = true;
-			control.state.activeStage = "Complete";
-			control.state.statusMessage = "Direct light bake completed.";
-			control.state.settings.previewExposure = desiredPreviewExposure;
+			std::shared_ptr<DirectLightBakeResult> retiredPublishedResult;
+			std::shared_ptr<DirectLightBakeResult> retiredStateResult;
+			{
+				std::scoped_lock lock(control.mutex);
+				// Publication is atomic from the editor's point of view. The previous
+				// published result stays alive through shared ownership until this swap,
+				// then gets released after the lock is dropped so GL teardown does not
+				// happen while session state is locked.
+				control.pendingCpuResult.reset();
+				retiredPublishedResult = std::move(control.publishedResult);
+				std::shared_ptr<const DirectLightBakeResult> movedStateResult = std::move(control.state.result);
+				retiredStateResult = std::const_pointer_cast<DirectLightBakeResult>(movedStateResult);
+				control.publishedResult = pendingCpuResult;
+				control.state.result = pendingCpuResult;
+				control.state.hasResult = true;
+				control.state.isRunning = false;
+				control.state.cancelRequested = false;
+				control.state.lastBakeSucceeded = true;
+				control.state.activeStage = "Complete";
+				control.state.statusMessage = "Direct light bake completed.";
+				control.state.settings.previewExposure = desiredPreviewExposure;
+			}
+
+			std::shared_ptr<DirectLightBakeResult> retiredPendingResult;
+			ReleaseDetachedBakeResults(retiredPendingResult, retiredPublishedResult, retiredStateResult);
 			return;
 		}
 
@@ -1430,11 +1486,29 @@ namespace Editor::Lightmapping {
 			control.workerFinished.store(false);
 		}
 		NE::SceneManagement::ClearSceneLightmapPreviewState(NE::GetScene());
-		std::scoped_lock lock(control.mutex);
-		control.pendingCpuResult.reset();
-		control.publishedResult.reset();
-		control.state.result.reset();
-		control.state.hasResult = false;
-		control.state.isRunning = false;
+
+		std::shared_ptr<DirectLightBakeResult> detachedPendingResult;
+		std::shared_ptr<DirectLightBakeResult> detachedPublishedResult;
+		std::shared_ptr<DirectLightBakeResult> detachedStateResult;
+		{
+			std::scoped_lock lock(control.mutex);
+			detachedPendingResult = std::move(control.pendingCpuResult);
+			detachedPublishedResult = std::move(control.publishedResult);
+			std::shared_ptr<const DirectLightBakeResult> movedStateResult = std::move(control.state.result);
+			detachedStateResult = std::const_pointer_cast<DirectLightBakeResult>(movedStateResult);
+			control.state.hasResult = false;
+			control.state.isRunning = false;
+			control.state.cancelRequested = false;
+			control.state.lastBakeSucceeded = false;
+			control.state.progress01 = 0.0f;
+			control.state.queuedInstanceCount = 0u;
+			control.state.processedInstanceCount = 0u;
+			control.state.activeStage = "Idle";
+			control.state.statusMessage.clear();
+			control.state.liveStats = {};
+			control.desiredPreviewExposure = 1.0f;
+		}
+
+		ReleaseDetachedBakeResults(detachedPendingResult, detachedPublishedResult, detachedStateResult);
 	}
 }

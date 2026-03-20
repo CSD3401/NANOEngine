@@ -8,6 +8,8 @@
 
 namespace NE::Graphics {
 	namespace {
+		constexpr float kLightmapUvInset = 0.125f;
+
 		NE::Math::Vec2 AtlasUv(const NE::Math::Vec2& uv, int column, int row, int columns, int rows) {
 			const float tileWidth = 1.0f / static_cast<float>(columns);
 			const float tileHeight = 1.0f / static_cast<float>(rows);
@@ -15,6 +17,43 @@ namespace NE::Graphics {
 				(static_cast<float>(column) + uv.x) * tileWidth,
 				(static_cast<float>(row) + uv.y) * tileHeight
 			};
+		}
+
+		NE::Math::Vec2 PaddedRectUv(
+			const NE::Math::Vec2& uv,
+			const NE::Math::Vec2& rectMin,
+			const NE::Math::Vec2& rectMax,
+			float inset = kLightmapUvInset) {
+			const float clampedInset = std::clamp(inset, 0.0f, 0.49f);
+			const NE::Math::Vec2 paddedUv{
+				clampedInset + uv.x * (1.0f - clampedInset * 2.0f),
+				clampedInset + uv.y * (1.0f - clampedInset * 2.0f)
+			};
+
+			return {
+				rectMin.x + (rectMax.x - rectMin.x) * paddedUv.x,
+				rectMin.y + (rectMax.y - rectMin.y) * paddedUv.y
+			};
+		}
+
+		NE::Math::Vec2 AtlasUvPadded(
+			const NE::Math::Vec2& uv,
+			int column,
+			int row,
+			int columns,
+			int rows,
+			float inset = kLightmapUvInset) {
+			const float tileWidth = 1.0f / static_cast<float>(columns);
+			const float tileHeight = 1.0f / static_cast<float>(rows);
+			const NE::Math::Vec2 rectMin{
+				static_cast<float>(column) * tileWidth,
+				static_cast<float>(row) * tileHeight
+			};
+			const NE::Math::Vec2 rectMax{
+				rectMin.x + tileWidth,
+				rectMin.y + tileHeight
+			};
+			return PaddedRectUv(uv, rectMin, rectMax, inset);
 		}
 
 		Vertex MakeVertex(const NE::Math::Vec3& position,
@@ -73,35 +112,35 @@ namespace NE::Graphics {
 
 		Vertex verts[] = {
 			// Front
-			MakeVertex({-hw, -hh,  hd}, {0.f, 0.f, 1.f}, {1.f, 0.f, 0.f}, {0.f, 0.f}, AtlasUv({0.f, 0.f}, 0, 1, 3, 2)),
-			MakeVertex({ hw, -hh,  hd}, {0.f, 0.f, 1.f}, {1.f, 0.f, 0.f}, {1.f, 0.f}, AtlasUv({1.f, 0.f}, 0, 1, 3, 2)),
-			MakeVertex({ hw,  hh,  hd}, {0.f, 0.f, 1.f}, {1.f, 0.f, 0.f}, {1.f, 1.f}, AtlasUv({1.f, 1.f}, 0, 1, 3, 2)),
-			MakeVertex({-hw,  hh,  hd}, {0.f, 0.f, 1.f}, {1.f, 0.f, 0.f}, {0.f, 1.f}, AtlasUv({0.f, 1.f}, 0, 1, 3, 2)),
+			MakeVertex({-hw, -hh,  hd}, {0.f, 0.f, 1.f}, {1.f, 0.f, 0.f}, {0.f, 0.f}, AtlasUvPadded({0.f, 0.f}, 0, 1, 3, 2)),
+			MakeVertex({ hw, -hh,  hd}, {0.f, 0.f, 1.f}, {1.f, 0.f, 0.f}, {1.f, 0.f}, AtlasUvPadded({1.f, 0.f}, 0, 1, 3, 2)),
+			MakeVertex({ hw,  hh,  hd}, {0.f, 0.f, 1.f}, {1.f, 0.f, 0.f}, {1.f, 1.f}, AtlasUvPadded({1.f, 1.f}, 0, 1, 3, 2)),
+			MakeVertex({-hw,  hh,  hd}, {0.f, 0.f, 1.f}, {1.f, 0.f, 0.f}, {0.f, 1.f}, AtlasUvPadded({0.f, 1.f}, 0, 1, 3, 2)),
 			// Back
-			MakeVertex({ hw, -hh, -hd}, {0.f, 0.f,-1.f}, {-1.f, 0.f, 0.f}, {0.f, 0.f}, AtlasUv({0.f, 0.f}, 1, 1, 3, 2)),
-			MakeVertex({-hw, -hh, -hd}, {0.f, 0.f,-1.f}, {-1.f, 0.f, 0.f}, {1.f, 0.f}, AtlasUv({1.f, 0.f}, 1, 1, 3, 2)),
-			MakeVertex({-hw,  hh, -hd}, {0.f, 0.f,-1.f}, {-1.f, 0.f, 0.f}, {1.f, 1.f}, AtlasUv({1.f, 1.f}, 1, 1, 3, 2)),
-			MakeVertex({ hw,  hh, -hd}, {0.f, 0.f,-1.f}, {-1.f, 0.f, 0.f}, {0.f, 1.f}, AtlasUv({0.f, 1.f}, 1, 1, 3, 2)),
+			MakeVertex({ hw, -hh, -hd}, {0.f, 0.f,-1.f}, {-1.f, 0.f, 0.f}, {0.f, 0.f}, AtlasUvPadded({0.f, 0.f}, 1, 1, 3, 2)),
+			MakeVertex({-hw, -hh, -hd}, {0.f, 0.f,-1.f}, {-1.f, 0.f, 0.f}, {1.f, 0.f}, AtlasUvPadded({1.f, 0.f}, 1, 1, 3, 2)),
+			MakeVertex({-hw,  hh, -hd}, {0.f, 0.f,-1.f}, {-1.f, 0.f, 0.f}, {1.f, 1.f}, AtlasUvPadded({1.f, 1.f}, 1, 1, 3, 2)),
+			MakeVertex({ hw,  hh, -hd}, {0.f, 0.f,-1.f}, {-1.f, 0.f, 0.f}, {0.f, 1.f}, AtlasUvPadded({0.f, 1.f}, 1, 1, 3, 2)),
 			// Left
-			MakeVertex({-hw, -hh, -hd}, {-1.f, 0.f, 0.f}, {0.f, 0.f, 1.f}, {0.f, 0.f}, AtlasUv({0.f, 0.f}, 2, 1, 3, 2)),
-			MakeVertex({-hw, -hh,  hd}, {-1.f, 0.f, 0.f}, {0.f, 0.f, 1.f}, {1.f, 0.f}, AtlasUv({1.f, 0.f}, 2, 1, 3, 2)),
-			MakeVertex({-hw,  hh,  hd}, {-1.f, 0.f, 0.f}, {0.f, 0.f, 1.f}, {1.f, 1.f}, AtlasUv({1.f, 1.f}, 2, 1, 3, 2)),
-			MakeVertex({-hw,  hh, -hd}, {-1.f, 0.f, 0.f}, {0.f, 0.f, 1.f}, {0.f, 1.f}, AtlasUv({0.f, 1.f}, 2, 1, 3, 2)),
+			MakeVertex({-hw, -hh, -hd}, {-1.f, 0.f, 0.f}, {0.f, 0.f, 1.f}, {0.f, 0.f}, AtlasUvPadded({0.f, 0.f}, 2, 1, 3, 2)),
+			MakeVertex({-hw, -hh,  hd}, {-1.f, 0.f, 0.f}, {0.f, 0.f, 1.f}, {1.f, 0.f}, AtlasUvPadded({1.f, 0.f}, 2, 1, 3, 2)),
+			MakeVertex({-hw,  hh,  hd}, {-1.f, 0.f, 0.f}, {0.f, 0.f, 1.f}, {1.f, 1.f}, AtlasUvPadded({1.f, 1.f}, 2, 1, 3, 2)),
+			MakeVertex({-hw,  hh, -hd}, {-1.f, 0.f, 0.f}, {0.f, 0.f, 1.f}, {0.f, 1.f}, AtlasUvPadded({0.f, 1.f}, 2, 1, 3, 2)),
 			// Right
-			MakeVertex({ hw, -hh,  hd}, {1.f, 0.f, 0.f}, {0.f, 0.f,-1.f}, {0.f, 0.f}, AtlasUv({0.f, 0.f}, 0, 0, 3, 2)),
-			MakeVertex({ hw, -hh, -hd}, {1.f, 0.f, 0.f}, {0.f, 0.f,-1.f}, {1.f, 0.f}, AtlasUv({1.f, 0.f}, 0, 0, 3, 2)),
-			MakeVertex({ hw,  hh, -hd}, {1.f, 0.f, 0.f}, {0.f, 0.f,-1.f}, {1.f, 1.f}, AtlasUv({1.f, 1.f}, 0, 0, 3, 2)),
-			MakeVertex({ hw,  hh,  hd}, {1.f, 0.f, 0.f}, {0.f, 0.f,-1.f}, {0.f, 1.f}, AtlasUv({0.f, 1.f}, 0, 0, 3, 2)),
+			MakeVertex({ hw, -hh,  hd}, {1.f, 0.f, 0.f}, {0.f, 0.f,-1.f}, {0.f, 0.f}, AtlasUvPadded({0.f, 0.f}, 0, 0, 3, 2)),
+			MakeVertex({ hw, -hh, -hd}, {1.f, 0.f, 0.f}, {0.f, 0.f,-1.f}, {1.f, 0.f}, AtlasUvPadded({1.f, 0.f}, 0, 0, 3, 2)),
+			MakeVertex({ hw,  hh, -hd}, {1.f, 0.f, 0.f}, {0.f, 0.f,-1.f}, {1.f, 1.f}, AtlasUvPadded({1.f, 1.f}, 0, 0, 3, 2)),
+			MakeVertex({ hw,  hh,  hd}, {1.f, 0.f, 0.f}, {0.f, 0.f,-1.f}, {0.f, 1.f}, AtlasUvPadded({0.f, 1.f}, 0, 0, 3, 2)),
 			// Top
-			MakeVertex({-hw,  hh,  hd}, {0.f, 1.f, 0.f}, {1.f, 0.f, 0.f}, {0.f, 0.f}, AtlasUv({0.f, 0.f}, 1, 0, 3, 2)),
-			MakeVertex({ hw,  hh,  hd}, {0.f, 1.f, 0.f}, {1.f, 0.f, 0.f}, {1.f, 0.f}, AtlasUv({1.f, 0.f}, 1, 0, 3, 2)),
-			MakeVertex({ hw,  hh, -hd}, {0.f, 1.f, 0.f}, {1.f, 0.f, 0.f}, {1.f, 1.f}, AtlasUv({1.f, 1.f}, 1, 0, 3, 2)),
-			MakeVertex({-hw,  hh, -hd}, {0.f, 1.f, 0.f}, {1.f, 0.f, 0.f}, {0.f, 1.f}, AtlasUv({0.f, 1.f}, 1, 0, 3, 2)),
+			MakeVertex({-hw,  hh,  hd}, {0.f, 1.f, 0.f}, {1.f, 0.f, 0.f}, {0.f, 0.f}, AtlasUvPadded({0.f, 0.f}, 1, 0, 3, 2)),
+			MakeVertex({ hw,  hh,  hd}, {0.f, 1.f, 0.f}, {1.f, 0.f, 0.f}, {1.f, 0.f}, AtlasUvPadded({1.f, 0.f}, 1, 0, 3, 2)),
+			MakeVertex({ hw,  hh, -hd}, {0.f, 1.f, 0.f}, {1.f, 0.f, 0.f}, {1.f, 1.f}, AtlasUvPadded({1.f, 1.f}, 1, 0, 3, 2)),
+			MakeVertex({-hw,  hh, -hd}, {0.f, 1.f, 0.f}, {1.f, 0.f, 0.f}, {0.f, 1.f}, AtlasUvPadded({0.f, 1.f}, 1, 0, 3, 2)),
 			// Bottom
-			MakeVertex({-hw, -hh, -hd}, {0.f,-1.f, 0.f}, {1.f, 0.f, 0.f}, {0.f, 0.f}, AtlasUv({0.f, 0.f}, 2, 0, 3, 2)),
-			MakeVertex({ hw, -hh, -hd}, {0.f,-1.f, 0.f}, {1.f, 0.f, 0.f}, {1.f, 0.f}, AtlasUv({1.f, 0.f}, 2, 0, 3, 2)),
-			MakeVertex({ hw, -hh,  hd}, {0.f,-1.f, 0.f}, {1.f, 0.f, 0.f}, {1.f, 1.f}, AtlasUv({1.f, 1.f}, 2, 0, 3, 2)),
-			MakeVertex({-hw, -hh,  hd}, {0.f,-1.f, 0.f}, {1.f, 0.f, 0.f}, {0.f, 1.f}, AtlasUv({0.f, 1.f}, 2, 0, 3, 2))
+			MakeVertex({-hw, -hh, -hd}, {0.f,-1.f, 0.f}, {1.f, 0.f, 0.f}, {0.f, 0.f}, AtlasUvPadded({0.f, 0.f}, 2, 0, 3, 2)),
+			MakeVertex({ hw, -hh, -hd}, {0.f,-1.f, 0.f}, {1.f, 0.f, 0.f}, {1.f, 0.f}, AtlasUvPadded({1.f, 0.f}, 2, 0, 3, 2)),
+			MakeVertex({ hw, -hh,  hd}, {0.f,-1.f, 0.f}, {1.f, 0.f, 0.f}, {1.f, 1.f}, AtlasUvPadded({1.f, 1.f}, 2, 0, 3, 2)),
+			MakeVertex({-hw, -hh,  hd}, {0.f,-1.f, 0.f}, {1.f, 0.f, 0.f}, {0.f, 1.f}, AtlasUvPadded({0.f, 1.f}, 2, 0, 3, 2))
 		};
 
 		uint32_t inds[] = {
@@ -179,8 +218,18 @@ namespace NE::Graphics {
 			float sa = std::sin(a);
 			float u = static_cast<float>(i) / segments;
 			NE::Math::Vec3 tangent(-sa, 0.f, ca);
-			verts.push_back(MakeVertex({ radius * ca, -hh, radius * sa }, { ca, 0.f, sa }, tangent, { u, 0.f }, { u, 0.5f }));
-			verts.push_back(MakeVertex({ radius * ca,  hh, radius * sa }, { ca, 0.f, sa }, tangent, { u, 1.f }, { u, 1.f }));
+			verts.push_back(MakeVertex(
+				{ radius * ca, -hh, radius * sa },
+				{ ca, 0.f, sa },
+				tangent,
+				{ u, 0.f },
+				PaddedRectUv({ u, 0.f }, { 0.0f, 0.5f }, { 1.0f, 1.0f })));
+			verts.push_back(MakeVertex(
+				{ radius * ca,  hh, radius * sa },
+				{ ca, 0.f, sa },
+				tangent,
+				{ u, 1.f },
+				PaddedRectUv({ u, 1.f }, { 0.0f, 0.5f }, { 1.0f, 1.0f })));
 		}
 
 		for (int i = 0; i < segments; ++i) {
@@ -195,7 +244,12 @@ namespace NE::Graphics {
 
 		// Top center
 		uint32_t topCenter = static_cast<uint32_t>(verts.size());
-		verts.push_back(MakeVertex({ 0.f, hh, 0.f }, { 0.f, 1.f, 0.f }, { 1.f, 0.f, 0.f }, { 0.5f, 0.5f }, { 0.25f, 0.25f }));
+		verts.push_back(MakeVertex(
+			{ 0.f, hh, 0.f },
+			{ 0.f, 1.f, 0.f },
+			{ 1.f, 0.f, 0.f },
+			{ 0.5f, 0.5f },
+			PaddedRectUv({ 0.5f, 0.5f }, { 0.0f, 0.0f }, { 0.5f, 0.5f })));
 		uint32_t topRingStart = static_cast<uint32_t>(verts.size());
 		for (int i = 0; i <= segments; ++i) {
 			float a = step * i;
@@ -203,7 +257,12 @@ namespace NE::Graphics {
 			float sa = std::sin(a);
 			float u = (ca + 1.f) * 0.5f;
 			float v = (sa + 1.f) * 0.5f;
-			verts.push_back(MakeVertex({ radius * ca, hh, radius * sa }, { 0.f, 1.f, 0.f }, { 1.f, 0.f, 0.f }, { u, v }, { u * 0.5f, v * 0.5f }));
+			verts.push_back(MakeVertex(
+				{ radius * ca, hh, radius * sa },
+				{ 0.f, 1.f, 0.f },
+				{ 1.f, 0.f, 0.f },
+				{ u, v },
+				PaddedRectUv({ u, v }, { 0.0f, 0.0f }, { 0.5f, 0.5f })));
 		}
 		for (int i = 0; i < segments; ++i) {
 			inds.push_back(topRingStart + i + 1);
@@ -213,7 +272,12 @@ namespace NE::Graphics {
 
 		// Bottom center
 		uint32_t bottomCenter = static_cast<uint32_t>(verts.size());
-		verts.push_back(MakeVertex({ 0.f, -hh, 0.f }, { 0.f, -1.f, 0.f }, { 1.f, 0.f, 0.f }, { 0.5f, 0.5f }, { 0.75f, 0.25f }));
+		verts.push_back(MakeVertex(
+			{ 0.f, -hh, 0.f },
+			{ 0.f, -1.f, 0.f },
+			{ 1.f, 0.f, 0.f },
+			{ 0.5f, 0.5f },
+			PaddedRectUv({ 0.5f, 0.5f }, { 0.5f, 0.0f }, { 1.0f, 0.5f })));
 		uint32_t bottomRingStart = static_cast<uint32_t>(verts.size());
 		for (int i = 0; i <= segments; ++i) {
 			float a = step * i;
@@ -221,7 +285,12 @@ namespace NE::Graphics {
 			float sa = std::sin(a);
 			float u = (ca + 1.f) * 0.5f;
 			float v = (sa + 1.f) * 0.5f;
-			verts.push_back(MakeVertex({ radius * ca, -hh, radius * sa }, { 0.f, -1.f, 0.f }, { 1.f, 0.f, 0.f }, { u, v }, { 0.5f + u * 0.5f, v * 0.5f }));
+			verts.push_back(MakeVertex(
+				{ radius * ca, -hh, radius * sa },
+				{ 0.f, -1.f, 0.f },
+				{ 1.f, 0.f, 0.f },
+				{ u, v },
+				PaddedRectUv({ u, v }, { 0.5f, 0.0f }, { 1.0f, 0.5f })));
 		}
 		for (int i = 0; i < segments; ++i) {
 			inds.push_back(bottomRingStart + i);

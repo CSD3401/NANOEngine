@@ -267,6 +267,10 @@ namespace Editor {
 				ImGui::SameLine();
 				ImGui::TextDisabled("%d px", Editor::Lightmapping::kDefaultLightmapPadding);
 
+				ImGui::Text("Min UV1 Island Gap");
+				ImGui::SameLine();
+				ImGui::TextDisabled("%d px", Editor::Lightmapping::kDefaultLightmapMinUvIslandGap);
+
 				if (ImGui::Button("Run Allocation")) {
 					Editor::Lightmapping::LightmapAllocationSettings settings{};
 					settings.texelsPerUnit = m_texelsPerUnit;

@@ -2,7 +2,6 @@
 #include "LightingAsset.hpp"
 
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -163,72 +162,22 @@ namespace Editor::Assets {
 				return;
 			}
 
-			static constexpr std::array<std::pair<int, int>, 8u> kNeighborOffsets{ {
-				{ -1, -1 }, { 0, -1 }, { 1, -1 },
-				{ -1,  0 },             { 1,  0 },
-				{ -1,  1 }, { 0,  1 }, { 1,  1 }
-			} };
-
-			std::vector<NE::Math::Vec3> currentLighting = ioLighting;
-			std::vector<NE::Math::Vec3> nextLighting = currentLighting;
-			std::vector<uint8_t> currentMask = ioValidMask;
-			std::vector<uint8_t> nextMask = currentMask;
-
-			for (uint32_t passIndex = 0; passIndex < radius; ++passIndex) {
-				size_t passFillCount = 0u;
-				nextLighting = currentLighting;
-				nextMask = currentMask;
-
-				for (uint32_t y = 0u; y < height; ++y) {
-					for (uint32_t x = 0u; x < width; ++x) {
-						const size_t linearIndex = static_cast<size_t>(y) * static_cast<size_t>(width) + static_cast<size_t>(x);
-						if (writeMask[linearIndex] == 0u || currentMask[linearIndex] != 0u) {
-							continue;
-						}
-
-						NE::Math::Vec3 accum{ 0.0f, 0.0f, 0.0f };
-						uint32_t neighborCount = 0u;
-						for (const auto& [offsetX, offsetY] : kNeighborOffsets) {
-							const int neighborX = static_cast<int>(x) + offsetX;
-							const int neighborY = static_cast<int>(y) + offsetY;
-							if (neighborX < 0 ||
-								neighborY < 0 ||
-								neighborX >= static_cast<int>(width) ||
-								neighborY >= static_cast<int>(height)) {
-								continue;
-							}
-
-							const size_t neighborIndex =
-								static_cast<size_t>(neighborY) * static_cast<size_t>(width) +
-								static_cast<size_t>(neighborX);
-							if (currentMask[neighborIndex] == 0u) {
-								continue;
-							}
-
-							accum += currentLighting[neighborIndex];
-							++neighborCount;
-						}
-
-						if (neighborCount == 0u) {
-							continue;
-						}
-
-						nextLighting[linearIndex] = accum / static_cast<float>(neighborCount);
-						nextMask[linearIndex] = 1u;
-						++passFillCount;
-					}
-				}
-
-				if (passFillCount == 0u) {
-					break;
-				}
-
-				currentLighting.swap(nextLighting);
-				currentMask.swap(nextMask);
+			std::vector<uint8_t> dilatedValidMask;
+			std::vector<uint8_t> filledValidMask;
+			if (!Lightmapping::RunMaskedLightmapDilation(
+				width,
+				height,
+				radius,
+				writeMask,
+				ioValidMask,
+				ioLighting,
+				dilatedValidMask,
+				filledValidMask,
+				nullptr)) {
+				return;
 			}
 
-			ioLighting.swap(currentLighting);
-			ioValidMask.swap(currentMask);
+			ioValidMask.swap(dilatedValidMask);
 		}
 
 		std::vector<NE::Math::Vec3> GenerateNextMip(
