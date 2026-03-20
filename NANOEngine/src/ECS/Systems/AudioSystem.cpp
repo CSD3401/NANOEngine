@@ -3,6 +3,7 @@
 // This version properly loads FMOD banks using the new ResourceManager system
 
 #include "AudioSystem.hpp"
+#include "CameraSystem.hpp"
 #include "../Components/AudioSource.hpp"
 #include "../Components/Transform.hpp"
 #include "../../Core/Profiler.hpp"
@@ -32,7 +33,7 @@ namespace NE::ECS::Systems {
 			AudioEngine()
 			{
 				FMOD::System_Create(&system);
-				system->init(512, FMOD_INIT_NORMAL, 0);
+				system->init(512, FMOD_INIT_NORMAL | FMOD_INIT_3D_RIGHTHANDED, nullptr);
 				SPD_INFO("AudioEngine constructor called");
 			}
 
@@ -52,25 +53,35 @@ namespace NE::ECS::Systems {
 				}
 			}
 
-			FMOD::Sound* LoadSound(const std::string& filepath, bool loop = false) {
-				if (loadedClips.find(filepath) != loadedClips.end()) {
-					return loadedClips[filepath];
+			FMOD::Sound* LoadSound(const std::string& filepath, bool loop = false, bool is3D = false) {
+				std::string cacheKey = filepath + (is3D ? "|3D" : "|2D");
+				if (loadedClips.find(cacheKey) != loadedClips.end()) {
+					return loadedClips[cacheKey];
 				}
 
 				FMOD::Sound* sound = nullptr;
-				FMOD_MODE mode = FMOD_DEFAULT;
+				FMOD_MODE mode = is3D ? FMOD_3D : FMOD_2D;
 				if (loop) {
 					mode |= FMOD_LOOP_NORMAL;
 				}
 
-				FMOD_RESULT result = system->createSound(filepath.c_str(), mode, 0, &sound);
+				FMOD_RESULT result = system->createSound(filepath.c_str(), mode, nullptr, &sound);
 
 				if (result == FMOD_OK) {
-					loadedClips[filepath] = sound;
+					loadedClips[cacheKey] = sound;
 					return sound;
 				}
 
 				return nullptr;
+			}
+
+			void Set3DListener(const NE::Math::Vec3& pos, const NE::Math::Vec3& forward, const NE::Math::Vec3& up) {
+				if (!system) return;
+				FMOD_VECTOR fpos     = { pos.x,     pos.y,     pos.z };
+				FMOD_VECTOR fvel     = { 0.f, 0.f, 0.f };
+				FMOD_VECTOR fforward = { forward.x, forward.y, forward.z };
+				FMOD_VECTOR fup      = { up.x,      up.y,      up.z };
+				system->set3DListenerAttributes(0, &fpos, &fvel, &fforward, &fup);
 			}
 
 		};
@@ -93,7 +104,7 @@ namespace NE::ECS::Systems {
 	{
 		// Load audio clip if needed
 		if (audioSource.m_sound == nullptr && !audioSource.audioClipPath.empty()) {
-			audioSource.m_sound = GetAudioEngine().LoadSound(audioSource.audioClipPath, audioSource.loop);
+			audioSource.m_sound = GetAudioEngine().LoadSound(audioSource.audioClipPath, audioSource.loop, audioSource.spatialBlend > 0.0f);
 		}
 
 		// Handle playOnAwake
@@ -110,7 +121,7 @@ namespace NE::ECS::Systems {
 
 	void AudioSystem::PlayAudio(
 		NE::ECS::Component::AudioSource& audioSource,
-		const NE::ECS::Component::Transform& /*transform*/,
+		const NE::ECS::Component::Transform& transform,
 		FMOD::System* system)
 	{
 
@@ -134,13 +145,15 @@ namespace NE::ECS::Systems {
 			channel->setVolume(audioSource.volume);
 			channel->setPitch(audioSource.pitch);
 
-			// Set 3D attributes if spatial audio
-			//if (audioSource.spatialBlend > 0.0f) {
-			//	FMOD_VECTOR pos = { transform.position.x, transform.position.y, transform.position.z };
-			//	FMOD_VECTOR vel = { 0, 0, 0 }; // Zero velocity for now
-			//	channel->set3DAttributes(&pos, &vel);
-			//	channel->set3DMinMaxDistance(audioSource.minDist, audioSource.maxDist);
-			//}
+			// Set 2D/3D blend (0=pure 2D, 1=pure 3D) and spatial attributes
+			channel->set3DLevel(audioSource.spatialBlend);
+			if (audioSource.spatialBlend > 0.0f) {
+				NE::Math::Vec3 worldPos = transform.worldMatrix.GetTranslation();
+				FMOD_VECTOR fpos = { worldPos.x, worldPos.y, worldPos.z };
+				FMOD_VECTOR fvel = { 0.f, 0.f, 0.f };
+				channel->set3DAttributes(&fpos, &fvel);
+				channel->set3DMinMaxDistance(audioSource.minDist, audioSource.maxDist);
+			}
 		}
 	}
 
@@ -158,7 +171,8 @@ namespace NE::ECS::Systems {
 
 		// Update 3D position for spatial audio
 		if (audioSource.spatialBlend != 0.0f) {
-			FMOD_VECTOR pos = { transform.localPosition.x, transform.localPosition.y, transform.localPosition.z };
+			NE::Math::Vec3 worldPos = transform.worldMatrix.GetTranslation();
+		FMOD_VECTOR pos = { worldPos.x, worldPos.y, worldPos.z };
 			FMOD_VECTOR vel = { 0, 0, 0 };
 			audioSource.m_channel->set3DAttributes(&pos, &vel);
 		}
@@ -189,7 +203,7 @@ namespace NE::ECS::Systems {
 		result = studioSystem->initialize(
 			1024, // max channels
 			FMOD_STUDIO_INIT_NORMAL,
-			FMOD_INIT_NORMAL,
+			FMOD_INIT_NORMAL | FMOD_INIT_3D_RIGHTHANDED,
 			nullptr
 		);
 		if (result != FMOD_OK)
@@ -376,8 +390,9 @@ namespace NE::ECS::Systems {
 	{
 	}
 
-	void AudioSystem::OnEntityRemoved(Entity)
+	void AudioSystem::OnEntityRemoved(Entity e)
 	{
+		StopEntitySound(e);
 	}
 
 	void AudioSystem::OnEntityActive(Entity /*entity*/) {}
@@ -459,34 +474,163 @@ namespace NE::ECS::Systems {
 			studioSystem->update();
 		}
 
-		// Legacy audio source processing (commented out for now)
-		// Uncomment if you want to support old AudioSource component system
-		/*
+		// Update FMOD listener from main camera
+		if (m_cameraSystem) {
+			auto mainCam = m_cameraSystem->GetMainCameraEntity();
+			if (mainCam.has_value() && m_componentManager->HasComponent<Component::Transform>(*mainCam)) {
+				const auto& camTransform = m_componentManager->GetComponent<Component::Transform>(*mainCam);
+				const NE::Math::Vec3 pos     = camTransform.worldMatrix.GetTranslation();
+				const NE::Math::Vec3 forward = camTransform.worldMatrix.Forward();
+				const NE::Math::Vec3 up      = camTransform.worldMatrix.Up();
+
+				GetAudioEngine().Set3DListener(pos, forward, up);
+
+				if (studioSystem) {
+					FMOD_3D_ATTRIBUTES attrs = {};
+					attrs.position = { pos.x,     pos.y,     pos.z };
+					attrs.velocity = { 0.f, 0.f, 0.f };
+					attrs.forward  = { forward.x, forward.y, forward.z };
+					attrs.up       = { up.x,      up.y,      up.z };
+					studioSystem->setListenerAttributes(0, &attrs, nullptr);
+				}
+			}
+		}
+
+		// Per-entity AudioSource processing
 		NE_PROFILE_FUNCTION();
 		const auto& entities = GetEntities();
 		auto& engine = GetAudioEngine();
 
 		for (Entity e : entities) {
-			if (m_componentManager->HasComponent<Component::AudioSource>(e) &&
-				m_componentManager->HasComponent<Component::Transform>(e)) {
+			auto& audioSource = m_componentManager->GetComponent<Component::AudioSource>(e);
+			const auto& transform = m_componentManager->GetComponent<Component::Transform>(e);
 
-				auto& audioSource = m_componentManager->GetComponent<Component::AudioSource>(e);
-				auto& transform = m_componentManager->GetComponent<Component::Transform>(e);
-
-				ProcessAudioSource(audioSource, transform, engine.system);
+			// Studio event path: audioClipPath starting with "event:" uses per-entity instance tracking
+			if (!audioSource.audioClipPath.empty() && audioSource.audioClipPath.rfind("event:", 0) == 0) {
+				if (audioSource.playOnAwake && !audioSource.m_hasPlayed) {
+					PlayEntitySound(e, audioSource.audioClipPath, transform);
+					audioSource.m_hasPlayed = true;
+				}
+				audioSource.isPlaying = IsEntitySoundPlaying(e);
+				continue;
 			}
+
+			// Legacy core path: raw audio file (.wav, .mp3, etc.)
+			ProcessAudioSource(audioSource, transform, engine.system);
 		}
 
 		if (engine.system) {
 			engine.system->update();
 		}
-		*/
+
+		// Update 3D attributes and clean up finished Studio entity instances
+		for (auto it = m_entityInstances.begin(); it != m_entityInstances.end(); ) {
+			FMOD::Studio::EventInstance* inst = it->second;
+			if (!inst) { it = m_entityInstances.erase(it); continue; }
+
+			FMOD_STUDIO_PLAYBACK_STATE state;
+			inst->getPlaybackState(&state);
+			if (state == FMOD_STUDIO_PLAYBACK_STOPPED) {
+				inst->release();
+				if (m_componentManager->HasComponent<Component::AudioSource>(it->first))
+					m_componentManager->GetComponent<Component::AudioSource>(it->first).isPlaying = false;
+				it = m_entityInstances.erase(it);
+				continue;
+			}
+
+			// Update 3D position each frame
+			if (m_componentManager->HasComponent<Component::Transform>(it->first)) {
+				const auto& t = m_componentManager->GetComponent<Component::Transform>(it->first);
+				const NE::Math::Vec3 pos = t.worldMatrix.GetTranslation();
+				const NE::Math::Vec3 fwd = t.worldMatrix.Forward();
+				const NE::Math::Vec3 up  = t.worldMatrix.Up();
+				FMOD_3D_ATTRIBUTES attrs = {};
+				attrs.position = { pos.x, pos.y, pos.z };
+				attrs.velocity = { 0.f, 0.f, 0.f };
+				attrs.forward  = { fwd.x, fwd.y, fwd.z };
+				attrs.up       = { up.x,  up.y,  up.z };
+				inst->set3DAttributes(&attrs);
+			}
+			++it;
+		}
 	}
 
 	void AudioSystem::Exit()
 	{
+		// Stop and release all per-entity Studio instances
+		for (auto& [e, inst] : m_entityInstances) {
+			if (inst) {
+				inst->stop(FMOD_STUDIO_STOP_IMMEDIATE);
+				inst->release();
+			}
+		}
+		m_entityInstances.clear();
+
 		CleanupStudioSystem();
 		SPD_INFO("AudioSystem shutdown");
+	}
+
+	void AudioSystem::PlayEntitySound(Entity e, const std::string& eventPath, const Component::Transform& transform)
+	{
+		if (!studioSystem) return;
+
+		StopEntitySound(e); // release any existing instance for this entity
+
+		FMOD::Studio::EventDescription* eventDesc = nullptr;
+		if (studioSystem->getEvent(eventPath.c_str(), &eventDesc) != FMOD_OK || !eventDesc) {
+			SPD_ERROR("[Audio] PlayEntitySound: event not found: " << eventPath);
+			return;
+		}
+
+		FMOD::Studio::EventInstance* instance = nullptr;
+		if (eventDesc->createInstance(&instance) != FMOD_OK || !instance) {
+			SPD_ERROR("[Audio] PlayEntitySound: failed to create instance for: " << eventPath);
+			return;
+		}
+
+		// Set initial 3D attributes before start to avoid a position pop on the first frame
+		bool is3D = false;
+		eventDesc->is3D(&is3D);
+		if (is3D) {
+			const NE::Math::Vec3 pos = transform.worldMatrix.GetTranslation();
+			const NE::Math::Vec3 fwd = transform.worldMatrix.Forward();
+			const NE::Math::Vec3 up  = transform.worldMatrix.Up();
+			FMOD_3D_ATTRIBUTES attrs = {};
+			attrs.position = { pos.x, pos.y, pos.z };
+			attrs.velocity = { 0.f, 0.f, 0.f };
+			attrs.forward  = { fwd.x, fwd.y, fwd.z };
+			attrs.up       = { up.x,  up.y,  up.z };
+			instance->set3DAttributes(&attrs);
+		}
+
+		if (instance->start() != FMOD_OK) {
+			SPD_ERROR("[Audio] PlayEntitySound: failed to start: " << eventPath);
+			instance->release();
+			return;
+		}
+
+		m_entityInstances[e] = instance;
+	}
+
+	void AudioSystem::StopEntitySound(Entity e)
+	{
+		auto it = m_entityInstances.find(e);
+		if (it != m_entityInstances.end()) {
+			if (it->second) {
+				it->second->stop(FMOD_STUDIO_STOP_ALLOWFADEOUT);
+				it->second->release();
+			}
+			m_entityInstances.erase(it);
+		}
+	}
+
+	bool AudioSystem::IsEntitySoundPlaying(Entity e) const
+	{
+		auto it = m_entityInstances.find(e);
+		if (it == m_entityInstances.end() || !it->second) return false;
+		FMOD_STUDIO_PLAYBACK_STATE state;
+		it->second->getPlaybackState(&state);
+		return state != FMOD_STUDIO_PLAYBACK_STOPPED;
 	}
 
 	std::unordered_map<std::string, NE::Asset::AudioBank::EventInfo> AudioSystem::GetAllEvents() const

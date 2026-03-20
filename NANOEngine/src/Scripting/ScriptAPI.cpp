@@ -4254,6 +4254,21 @@ namespace NE {
 			return NE::Audio::GetMasterVolumeLevel();
 		}
 
+		void PlayEntityAudio(uint32_t entity, const std::string& eventName)
+		{
+			NE::Audio::PlayEntityAudio(entity, eventName);
+		}
+
+		void StopEntityAudio(uint32_t entity)
+		{
+			NE::Audio::StopEntityAudio(entity);
+		}
+
+		bool IsEntityAudioPlaying(uint32_t entity)
+		{
+			return NE::Audio::IsEntityAudioPlaying(entity);
+		}
+
 
 	} // namespace Scripting
 } // namespace NE

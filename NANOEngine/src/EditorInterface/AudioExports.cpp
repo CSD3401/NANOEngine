@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "AudioExports.hpp"
 #include "../ECS/Systems/AudioSystem.hpp"
+#include "../ECS/Components/Transform.hpp"
 #include "../SceneManagement/Scene.hpp"
 #include "../Core/SpdLogger.hpp"
 #include <fmod/fmod_studio.hpp>
@@ -92,6 +93,28 @@ namespace NE::Audio {
 			return audioSystem->GetAmbienceVolume();
 		}
 		return 0.0f;
+	}
+
+	void PlayEntityAudio(uint32_t entity, const std::string& eventName) {
+		auto audioSystem = GetAudioSystem();
+		if (!audioSystem) return;
+		auto& coordinator = NE::GetScene().GetECSCoordinator();
+		if (!coordinator.HasComponent<NE::ECS::Component::Transform>(entity)) {
+			SPD_ERROR("[Audio] PlayEntityAudio: entity has no Transform");
+			return;
+		}
+		const auto& transform = coordinator.GetComponent<NE::ECS::Component::Transform>(entity);
+		audioSystem->PlayEntitySound(entity, eventName, transform);
+	}
+
+	void StopEntityAudio(uint32_t entity) {
+		auto audioSystem = GetAudioSystem();
+		if (audioSystem) audioSystem->StopEntitySound(entity);
+	}
+
+	bool IsEntityAudioPlaying(uint32_t entity) {
+		auto audioSystem = GetAudioSystem();
+		return audioSystem ? audioSystem->IsEntitySoundPlaying(entity) : false;
 	}
 
 	void PlayAudio(const std::string& eventName) {
