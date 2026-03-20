@@ -28,6 +28,7 @@
 #include "../ECS/Components/UIButton.hpp"
 #include "../ECS/Components/UISlider.hpp"
 #include "../ECS/Components/UIToggle.hpp"
+#include "../ECS/Components/ParticleEmitter.hpp"
 #include "../ECS/Systems/HierarchySystem.hpp"
 #include "../Physics/PhysicsManager.hpp"
 #include "../Physics/ForceMode.hpp"
@@ -66,6 +67,14 @@ namespace NE {
 
 		inline Vec3 ToSDKVec3(const Math::Vec3& v) {
 			return Vec3(v.x, v.y, v.z);
+		}
+
+		inline Math::Vec4 ToEngineVec4(const Vec4& v) {
+			return Math::Vec4(v.x, v.y, v.z, v.w);
+		}
+
+		inline Vec4 ToSDKVec4(const Math::Vec4& v) {
+			return Vec4(v.x, v.y, v.z, v.w);
 		}
 
 		//=========================================================================
@@ -1021,6 +1030,332 @@ namespace NE {
 			if (!HasAudioSource(targetEntity)) return;
 			auto& audio = m_context->componentManager->GetComponent<ECS::Component::AudioSource>(targetEntity);
 			audio.loop = loop;
+		}
+
+		//=========================================================================
+		// PARTICLE EMITTER OPERATIONS
+		//=========================================================================
+
+		bool IScript::HasParticleEmitter(Entity entity) const {
+			if (!m_context || !m_context->componentManager) return false;
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			return m_context->componentManager->HasComponent<ECS::Component::ParticleEmitter>(targetEntity);
+		}
+
+		// Playback control
+		void IScript::PlayParticles(Entity entity) {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return;
+			auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			emitter.Play();
+		}
+
+		void IScript::StopParticles(Entity entity) {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return;
+			auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			emitter.Stop();
+		}
+
+		void IScript::ResetParticles(Entity entity) {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return;
+			auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			emitter.Reset();
+		}
+
+		bool IScript::IsParticlePlaying(Entity entity) const {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return false;
+			const auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			return emitter.playing;
+		}
+
+		// Basic settings
+		bool IScript::GetParticleEnabled(Entity entity) const {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return false;
+			const auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			return emitter.enabled;
+		}
+
+		void IScript::SetParticleEnabled(bool enabled, Entity entity) {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return;
+			auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			emitter.enabled = enabled;
+		}
+
+		bool IScript::GetParticleLooping(Entity entity) const {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return false;
+			const auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			return emitter.looping;
+		}
+
+		void IScript::SetParticleLooping(bool looping, Entity entity) {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return;
+			auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			emitter.looping = looping;
+		}
+
+		int IScript::GetParticleMaxCount(Entity entity) const {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return 0;
+			const auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			return emitter.maxParticles;
+		}
+
+		void IScript::SetParticleMaxCount(int maxCount, Entity entity) {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return;
+			auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			emitter.maxParticles = maxCount;
+			emitter.isDirty = true;
+		}
+
+		float IScript::GetParticleSpawnRate(Entity entity) const {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return 0.0f;
+			const auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			return emitter.spawnRate;
+		}
+
+		void IScript::SetParticleSpawnRate(float spawnRate, Entity entity) {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return;
+			auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			emitter.spawnRate = spawnRate;
+		}
+
+		float IScript::GetParticleDuration(Entity entity) const {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return 0.0f;
+			const auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			return emitter.duration;
+		}
+
+		void IScript::SetParticleDuration(float duration, Entity entity) {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return;
+			auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			emitter.duration = duration;
+		}
+
+		// Lifetime
+		std::pair<float, float> IScript::GetParticleLifetime(Entity entity) const {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return { 0.0f, 0.0f };
+			const auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			return { emitter.lifetimeMin, emitter.lifetimeMax };
+		}
+
+		void IScript::SetParticleLifetime(float minLifetime, float maxLifetime, Entity entity) {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return;
+			auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			emitter.lifetimeMin = minLifetime;
+			emitter.lifetimeMax = maxLifetime;
+		}
+
+		// Speed
+		std::pair<float, float> IScript::GetParticleSpeed(Entity entity) const {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return { 0.0f, 0.0f };
+			const auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			return { emitter.speedMin, emitter.speedMax };
+		}
+
+		void IScript::SetParticleSpeed(float minSpeed, float maxSpeed, Entity entity) {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return;
+			auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			emitter.speedMin = minSpeed;
+			emitter.speedMax = maxSpeed;
+		}
+
+		// Size
+		std::pair<float, float> IScript::GetParticleSize(Entity entity) const {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return { 0.0f, 0.0f };
+			const auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			return { emitter.sizeMin, emitter.sizeMax };
+		}
+
+		void IScript::SetParticleSize(float minSize, float maxSize, Entity entity) {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return;
+			auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			emitter.sizeMin = minSize;
+			emitter.sizeMax = maxSize;
+		}
+
+		// Color
+		Vec4 IScript::GetParticleStartColor(Entity entity) const {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return Vec4{ 1.f, 1.f, 1.f, 1.f };
+			const auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			return ToSDKVec4(emitter.startColor);
+		}
+
+		void IScript::SetParticleStartColor(const Vec4& color, Entity entity) {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return;
+			auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			emitter.startColor = ToEngineVec4(color);
+		}
+
+		void IScript::SetParticleStartColor(float r, float g, float b, float a, Entity entity) {
+			SetParticleStartColor(Vec4{ r, g, b, a }, entity);
+		}
+
+		Vec4 IScript::GetParticleEndColor(Entity entity) const {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return Vec4{ 1.f, 1.f, 1.f, 0.f };
+			const auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			return ToSDKVec4(emitter.endColor);
+		}
+
+		void IScript::SetParticleEndColor(const Vec4& color, Entity entity) {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return;
+			auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			emitter.endColor = ToEngineVec4(color);
+		}
+
+		void IScript::SetParticleEndColor(float r, float g, float b, float a, Entity entity) {
+			SetParticleEndColor(Vec4{ r, g, b, a }, entity);
+		}
+
+		// Gravity
+		bool IScript::GetParticleGravityEnabled(Entity entity) const {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return false;
+			const auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			return emitter.enableGravity;
+		}
+
+		void IScript::SetParticleGravityEnabled(bool enable, Entity entity) {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return;
+			auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			emitter.enableGravity = enable;
+		}
+
+		Vec3 IScript::GetParticleGravity(Entity entity) const {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return Vec3{ 0.f, -9.81f, 0.f };
+			const auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			return ToSDKVec3(emitter.gravity);
+		}
+
+		void IScript::SetParticleGravity(const Vec3& gravity, Entity entity) {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return;
+			auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			emitter.gravity = ToEngineVec3(gravity);
+		}
+
+		void IScript::SetParticleGravity(float x, float y, float z, Entity entity) {
+			SetParticleGravity(Vec3{ x, y, z }, entity);
+		}
+
+		// Drag
+		bool IScript::GetParticleDragEnabled(Entity entity) const {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return false;
+			const auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			return emitter.enableDrag;
+		}
+
+		void IScript::SetParticleDragEnabled(bool enable, Entity entity) {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return;
+			auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			emitter.enableDrag = enable;
+		}
+
+		float IScript::GetParticleDrag(Entity entity) const {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return 0.0f;
+			const auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			return emitter.drag;
+		}
+
+		void IScript::SetParticleDrag(float drag, Entity entity) {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return;
+			auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			emitter.drag = drag;
+		}
+
+		// Shape
+		IScript::ParticleShape IScript::GetParticleShape(Entity entity) const {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return ParticleShape::Point;
+			const auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			return static_cast<ParticleShape>(emitter.shape);
+		}
+
+		void IScript::SetParticleShape(ParticleShape shape, Entity entity) {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return;
+			auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			emitter.shape = static_cast<ECS::Component::ParticleEmitter::ShapeType>(shape);
+		}
+
+		float IScript::GetParticleSphereRadius(Entity entity) const {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return 0.0f;
+			const auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			return emitter.sphereRadius;
+		}
+
+		void IScript::SetParticleSphereRadius(float radius, Entity entity) {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return;
+			auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			emitter.sphereRadius = radius;
+		}
+
+		float IScript::GetParticleConeAngle(Entity entity) const {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return 0.0f;
+			const auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			return emitter.coneAngle;
+		}
+
+		void IScript::SetParticleConeAngle(float angle, Entity entity) {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return;
+			auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			emitter.coneAngle = angle;
+		}
+
+		Vec3 IScript::GetParticleBoxExtents(Entity entity) const {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return Vec3{ 1.f, 1.f, 1.f };
+			const auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			return ToSDKVec3(emitter.boxExtents);
+		}
+
+		void IScript::SetParticleBoxExtents(const Vec3& extents, Entity entity) {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return;
+			auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			emitter.boxExtents = ToEngineVec3(extents);
+		}
+
+		void IScript::SetParticleBoxExtents(float x, float y, float z, Entity entity) {
+			SetParticleBoxExtents(Vec3{ x, y, z }, entity);
+		}
+
+		int IScript::GetParticleCount(Entity entity) const {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (!HasParticleEmitter(targetEntity)) return 0;
+			const auto& emitter = m_context->componentManager->GetComponent<ECS::Component::ParticleEmitter>(targetEntity);
+			return static_cast<int>(emitter.aliveCount);
 		}
 
 		//=========================================================================
