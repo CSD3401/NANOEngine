@@ -12,6 +12,7 @@
 #include "ECS/Components/UIInputField.hpp"
 #include "ECS/Components/UIDropdown.hpp"
 #include "UILayoutEngine.hpp"
+#include "UILayoutSystem.hpp"
 #include "Math/Vec3.hpp"
 #include "Math/Vec4.hpp"
 #include "Math/Mat4.hpp"
@@ -30,6 +31,7 @@ namespace NE::ECS::Systems {
         explicit UIEventSystem(ComponentManager* cm, EntityManager* em);
 
         void SetLayoutEngine(UILayoutEngine* engine) { m_layoutEngine = engine; }
+        void SetLayoutSystem(UILayoutSystem* system) { m_layoutSystem = system; }
 
         void Init() override;
         void Update(double deltaTime) override;
@@ -57,6 +59,7 @@ namespace NE::ECS::Systems {
         ComponentManager* m_cm = nullptr;
         EntityManager* m_em = nullptr;
         UILayoutEngine* m_layoutEngine = nullptr;
+        UILayoutSystem* m_layoutSystem = nullptr;
 
         Entity m_hoveredEntity = NO_ENTITY;
         Entity m_pressedEntity = NO_ENTITY;

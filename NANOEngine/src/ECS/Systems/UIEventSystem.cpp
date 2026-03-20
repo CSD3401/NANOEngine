@@ -84,7 +84,11 @@ namespace NE::ECS::Systems {
     }
 
     void UIEventSystem::OnEntityActive(Entity /*entity*/) {}
-    void UIEventSystem::OnEntityInactive(Entity /*entity*/) {}
+    void UIEventSystem::OnEntityInactive(Entity e) {
+        if (e == m_focusedEntity) {
+            ClearFocus();
+        }
+    }
 
     void UIEventSystem::Exit() {}
 
@@ -312,18 +316,7 @@ namespace NE::ECS::Systems {
                 auto& rect = m_cm->GetComponent<UIRectTransform>(e);
 
                 // Check if this entity belongs to this canvas
-                Entity root = e;
-                Entity current = m_cm->HasComponent<Hierarchy>(e) ? m_cm->GetComponent<Hierarchy>(e).parent : NO_ENTITY;
-                while (current != NO_ENTITY) {
-                    root = current;
-                    if (!m_cm->HasComponent<UIRectTransform>(current)) break;
-                    current = m_cm->HasComponent<Hierarchy>(current) ? m_cm->GetComponent<Hierarchy>(current).parent : NO_ENTITY;
-                }
-
-                Entity parentEnt = m_cm->HasComponent<Hierarchy>(e) ? m_cm->GetComponent<Hierarchy>(e).parent : NO_ENTITY;
-                if (root != canvasEntity && parentEnt != canvasEntity) {
-                    continue;
-                }
+                if (FindOwningCanvas(e) != canvasEntity) continue;
 
                 // Calculate world rect
                 float worldX, worldY, worldWidth, worldHeight;
@@ -545,31 +538,33 @@ namespace NE::ECS::Systems {
             float handleNormalized = fillNormalized;
 
             // Update fill rect based on direction.
-            // In the layout engine, child x=0 is at the parent's CENTER (anchor=0.5).
-            // To place a child's left edge at the parent's left edge: x = -parentWidth + childWidth*0.5
-            // To place a child's right edge at the parent's right edge: x = -childWidth*0.5
+            // Position formulas account for rect.scaleX/scaleY because the layout engine
+            // uses the accumulated scale (including the slider's own scale) when computing
+            // the child's pivot offset. Without this, fill/handle misalign when slider is scaled.
             if (slider.fillRect != UINT32_MAX && m_cm->HasComponent<UIRectTransform>(slider.fillRect)) {
                 auto& fillRect = m_cm->GetComponent<UIRectTransform>(slider.fillRect);
 
                 if (slider.IsHorizontal()) {
                     fillRect.width = rect.width * fillNormalized;
-                    fillRect.y = -rect.height * 0.5f;  // Center fill vertically on parent
+                    fillRect.height = rect.height;
+                    fillRect.y = fillRect.height * (rect.scaleY - 1.0f) * 0.5f - rect.height * 0.5f;
                     if (!slider.IsReversed()) {
                         // LEFT_TO_RIGHT: fill grows from left edge
-                        fillRect.x = -rect.width + fillRect.width * 0.5f;
+                        fillRect.x = -rect.width + fillRect.width * rect.scaleX * 0.5f;
                     } else {
                         // RIGHT_TO_LEFT: fill grows from right edge
-                        fillRect.x = -fillRect.width * 0.5f;
+                        fillRect.x = fillRect.width * (rect.scaleX * 0.5f - 1.0f);
                     }
                 } else {
                     fillRect.height = rect.height * fillNormalized;
-                    fillRect.x = -rect.width * 0.5f;  // Center fill horizontally on parent
+                    fillRect.width = rect.width;
+                    fillRect.x = fillRect.width * (rect.scaleX - 1.0f) * 0.5f - rect.width * 0.5f;
                     if (!slider.IsReversed()) {
-                        // BOTTOM_TO_TOP: fill grows from bottom edge (y increases downward, bottom = +height/2)
-                        fillRect.y = -fillRect.height * 0.5f;
+                        // BOTTOM_TO_TOP: fill grows from bottom edge
+                        fillRect.y = fillRect.height * (rect.scaleY * 0.5f - 1.0f);
                     } else {
                         // TOP_TO_BOTTOM: fill grows from top edge
-                        fillRect.y = -rect.height + fillRect.height * 0.5f;
+                        fillRect.y = -rect.height + fillRect.height * rect.scaleY * 0.5f;
                     }
                 }
             }
@@ -582,23 +577,23 @@ namespace NE::ECS::Systems {
 
                 if (slider.IsHorizontal()) {
                     float trackWidth = rect.width - handleRect.width;
-                    handleRect.y = -rect.height * 0.5f;  // Center handle vertically on parent
+                    handleRect.y = handleRect.height * (rect.scaleY - 1.0f) * 0.5f - rect.height * 0.5f;
                     if (!slider.IsReversed()) {
                         // LEFT_TO_RIGHT: handle moves left→right
-                        handleRect.x = -rect.width + handleRect.width * 0.5f + trackWidth * handleNormalized;
+                        handleRect.x = -rect.width + handleRect.width * rect.scaleX * 0.5f + trackWidth * handleNormalized;
                     } else {
                         // RIGHT_TO_LEFT: handle moves right→left
-                        handleRect.x = -handleRect.width * 0.5f - trackWidth * handleNormalized;
+                        handleRect.x = handleRect.width * (rect.scaleX * 0.5f - 1.0f) - trackWidth * handleNormalized;
                     }
                 } else {
                     float trackHeight = rect.height - handleRect.height;
-                    handleRect.x = -rect.width * 0.5f;  // Center handle horizontally on parent
+                    handleRect.x = handleRect.width * (rect.scaleX - 1.0f) * 0.5f - rect.width * 0.5f;
                     if (!slider.IsReversed()) {
-                        // BOTTOM_TO_TOP: handle moves bottom→top (more negative y = higher)
-                        handleRect.y = -handleRect.height * 0.5f - trackHeight * handleNormalized;
+                        // BOTTOM_TO_TOP: handle moves bottom→top
+                        handleRect.y = handleRect.height * (rect.scaleY * 0.5f - 1.0f) - trackHeight * handleNormalized;
                     } else {
                         // TOP_TO_BOTTOM: handle moves top→bottom
-                        handleRect.y = -rect.height + handleRect.height * 0.5f + trackHeight * handleNormalized;
+                        handleRect.y = -rect.height + handleRect.height * rect.scaleY * 0.5f + trackHeight * handleNormalized;
                     }
                 }
             }
@@ -947,7 +942,8 @@ namespace NE::ECS::Systems {
         for (Entity e : allEntities) {
             if (m_cm->HasComponent<UICanvas>(e)) {
                 auto& canvas = m_cm->GetComponent<UICanvas>(e);
-                if (canvas.isActive && canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
+                bool metaActive = m_em->GetActive(e);
+                if (canvas.isActive && metaActive && canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
                     worldCanvases.push_back({ e, &canvas });
                 }
             }
@@ -990,21 +986,9 @@ namespace NE::ECS::Systems {
 
                 if (!isInteractable) continue;
 
+                if (FindOwningCanvas(e) != canvasEntity) continue;
+
                 auto& rect = m_cm->GetComponent<UIRectTransform>(e);
-
-                // Check if this entity belongs to this canvas
-                Entity root = e;
-                Entity current = m_cm->HasComponent<Hierarchy>(e) ? m_cm->GetComponent<Hierarchy>(e).parent : NO_ENTITY;
-                while (current != NO_ENTITY) {
-                    root = current;
-                    if (!m_cm->HasComponent<UIRectTransform>(current)) break;
-                    current = m_cm->HasComponent<Hierarchy>(current) ? m_cm->GetComponent<Hierarchy>(current).parent : NO_ENTITY;
-                }
-
-                Entity parentEnt = m_cm->HasComponent<Hierarchy>(e) ? m_cm->GetComponent<Hierarchy>(e).parent : NO_ENTITY;
-                if (root != canvasEntity && parentEnt != canvasEntity) {
-                    continue;
-                }
 
                 // Build model matrix for this element
                 Math::Mat4 modelMatrix = BuildWorldSpaceModelMatrix(e, canvasEntity, rect);
@@ -1071,6 +1055,10 @@ namespace NE::ECS::Systems {
         float closestT = std::numeric_limits<float>::max();
 
         for (const auto& elem : worldElements) {
+            // Back-face rejection: skip if ray hits the back of the canvas plane
+            float nDotR = elem.worldNormal.Dot(rayDir);
+            if (nDotR >= 0.f) continue;
+
             float t;
             Math::Vec3 hitPoint;
 
@@ -1273,6 +1261,40 @@ namespace NE::ECS::Systems {
                 m_draggingScrollRect = NO_ENTITY;
                 if (!scroll.inertia) {
                     scroll.velocity = Math::Vec2(0.f, 0.f);
+                }
+            }
+
+            // Handle mouse wheel scrolling
+            if (!scroll.isDragging && mouseInViewport) {
+                auto [wheelX, wheelY] = NE::InputManager::ScrollDelta();
+                if (std::abs(wheelX) > 0.0 || std::abs(wheelY) > 0.0) {
+                    float maxScrollX = std::max(0.f, scroll.contentWidth - scroll.viewportWidth);
+                    float maxScrollY = std::max(0.f, scroll.contentHeight - scroll.viewportHeight);
+                    float halfVpW = scroll.viewportWidth * 0.5f;
+                    float halfVpH = scroll.viewportHeight * 0.5f;
+                    float minX = -maxScrollX + halfVpW - scroll.contentWidth * contentRect.pivotX;
+                    float maxX = halfVpW - scroll.contentWidth * contentRect.pivotX;
+                    float minY = -maxScrollY + halfVpH - scroll.contentHeight * contentRect.pivotY;
+                    float maxY = halfVpH - scroll.contentHeight * contentRect.pivotY;
+
+                    if (scroll.horizontal && std::abs(wheelX) > 0.0) {
+                        contentRect.x += static_cast<float>(wheelX) * scroll.scrollSensitivity * 10.f;
+                        if (scroll.movementType == UIScrollRect::MovementType::Clamped) {
+                            contentRect.x = std::max(minX, std::min(maxX, contentRect.x));
+                        }
+                    }
+                    if (scroll.vertical && std::abs(wheelY) > 0.0) {
+                        contentRect.y += static_cast<float>(wheelY) * scroll.scrollSensitivity * 10.f;
+                        if (scroll.movementType == UIScrollRect::MovementType::Clamped) {
+                            contentRect.y = std::max(minY, std::min(maxY, contentRect.y));
+                        }
+                    }
+
+                    // Zero velocity so wheel input doesn't combine with inertia
+                    scroll.velocity = Math::Vec2(0.f, 0.f);
+
+                    contentRect.worldMatrixDirty = true;
+                    contentRect.worldRectCached = false;
                 }
             }
 
@@ -1942,6 +1964,12 @@ namespace NE::ECS::Systems {
 
         // Sync option text to panel children
         SyncDropdownOptionsToPanel(dropdownEntity);
+
+        // Force an immediate layout pass on the panel so its children are positioned
+        // correctly on the same frame it opens, avoiding a one-frame flicker.
+        if (m_layoutSystem) {
+            m_layoutSystem->ForceLayout(panelEntity);
+        }
     }
 
     void UIEventSystem::CollapseDropdown() {

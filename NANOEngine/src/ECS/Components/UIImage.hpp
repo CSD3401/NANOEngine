@@ -47,7 +47,6 @@ namespace NE::ECS::Component {
         std::string textureUUID;
         std::string materialUUID;
         NE::Math::Vec4 color{ 1.f, 1.f, 1.f, 1.f }; // tint
-        //int renderMode = 0;
 
         ImageType imageType = ImageType::SIMPLE;
         FillMethod fillMethod = FillMethod::HORIZONTAL;
@@ -86,7 +85,6 @@ namespace NE::ECS::Component {
             NE_REFLECT_FIELD(textureUUID),
             NE_REFLECT_FIELD(materialUUID),
             NE_REFLECT_FIELD(color),
-            //NE_REFLECT_FIELD(renderMode),
             NE_REFLECT_FIELD(imageType),
             NE_REFLECT_FIELD(fillMethod),
             NE_REFLECT_FIELD(fillOrigin),
@@ -100,8 +98,6 @@ namespace NE::ECS::Component {
             NE_REFLECT_FIELD(pixelsPerUnitMultiplier),
             NE_REFLECT_FIELD(raycastTarget)
         NE_REFLECT_END()
-
-            int renderMode = 0;
 
             // helper functions
             // check if image needs special rendering

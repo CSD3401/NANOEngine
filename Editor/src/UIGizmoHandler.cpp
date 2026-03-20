@@ -190,7 +190,6 @@ namespace Editor {
         ImVec2 panelSize)
     {
         // Set up ImGuizmo for this panel
-        ImGuizmo::BeginFrame();
         ImGuizmo::SetOrthographic(false);
         ImGuizmo::SetDrawlist();
         ImGuizmo::SetRect(panelPos.x, panelPos.y, panelSize.x, panelSize.y);
@@ -348,6 +347,10 @@ namespace Editor {
         if (!s_gizmoActive || s_gizmoType != 1 || s_gizmoEntityId != uiEntityId) return;
 
         auto& rectTransform = NE::ECS::Command::GetUIRectTransform(uiEntityId);
+
+        // If the world rect hasn't been computed by UIRenderSystem yet this frame
+        // (e.g. entity was just created), skip drawing to avoid showing at (0,0).
+        if (!rectTransform.worldRectCached) return;
 
         float panelScaleX = panelSize.x / fbWidth;
         float panelScaleY = panelSize.y / fbHeight;

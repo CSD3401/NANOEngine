@@ -20,6 +20,11 @@ namespace NE::ECS::Systems {
 
         void OnEntityActive(Entity entity) override;
         void OnEntityInactive(Entity entity) override;
+
+        // Force an immediate layout pass on a single entity and its subtree.
+        // Used by UIEventSystem to avoid one-frame layout lag (e.g. after dropdown expand).
+        void ForceLayout(Entity entity);
+
     private:
         void ProcessAutoSize();
         void ProcessLinearLayout(Entity entity, bool isHorizontal);

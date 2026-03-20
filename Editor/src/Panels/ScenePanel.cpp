@@ -26,6 +26,7 @@
 #include "../EditorEvents.hpp"
 
 #include "../Util/HierarchyUtils.hpp"
+#include "../EditorState.hpp"
 
 #define NOMINMAX
 #include <Windows.h>
@@ -902,7 +903,7 @@ namespace Editor {
 				}
 			} else {
 				// UI element selected - use UIGizmoHandler for interactive handles
-				if (NE::ECS::Query::HasUIRectTransform(last)) {
+				if (g_EditorState == EditorState::Edit && NE::ECS::Query::HasUIRectTransform(last)) {
 					// Find the canvas this UI element belongs to
 					uint32_t canvasEntity = NE::ECS::NO_ENTITY;
 					uint32_t current = last;
