@@ -70,15 +70,16 @@ namespace NE::Graphics {
         for (const auto& line : lines) {
             // Calculate starting X position based on horizontal alignment
             float startX = x;
+            float scaledLineWidth = line.width * scaleFactor;
             switch (horizontalAlign) {
                 case NE::ECS::Component::UIText::Alignment::LEFT:
                     startX = x;
                     break;
                 case NE::ECS::Component::UIText::Alignment::CENTER:
-                    startX = x + (maxWidth - line.width) * 0.5f;
+                    startX = x + (maxWidth - scaledLineWidth) * 0.5f;
                     break;
                 case NE::ECS::Component::UIText::Alignment::RIGHT:
-                    startX = x + maxWidth - line.width;
+                    startX = x + maxWidth - scaledLineWidth;
                     break;
             }
 
