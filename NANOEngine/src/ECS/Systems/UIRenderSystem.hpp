@@ -89,7 +89,8 @@ namespace NE::ECS::Systems {
         uint64_t fontAtlasHandle = 0;
         std::vector<NE::Graphics::UIVertex2> cachedVertices;
         std::string cachedText;
-        float cachedFontSize = 0.0f;
+        float cachedFontSize    = 0.0f;
+        float cachedLineSpacing = 1.0f;
         NE::Math::Vec3 cachedPos{};
         NE::Math::Vec2 cachedSize{};
         float cachedRotZ = 0.0f;

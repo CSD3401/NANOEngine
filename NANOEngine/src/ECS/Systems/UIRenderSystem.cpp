@@ -1039,6 +1039,7 @@ namespace NE::ECS::Systems {
             bool needsRegen = text.isDirty ||
                 cache.cachedText != text.text ||
                 std::abs(cache.cachedFontSize - effectiveFontSize) > 0.1f ||
+                std::abs(cache.cachedLineSpacing - text.lineSpacing) > 0.001f ||
                 cache.fontAtlasHandle != fontAtlas->GetBindlessHandle() ||
                 transformChanged;
 
@@ -1050,15 +1051,29 @@ namespace NE::ECS::Systems {
                 float textW = isWorldSpace ? rect.width : worldTransform.width;
                 float textH = isWorldSpace ? rect.height : worldTransform.height;
 
+                // Parse rich text if enabled
+                std::string strippedText;
+                std::vector<NE::Graphics::UITextMeshGenerator::CharStyle> richStyles;
+                const std::vector<NE::Graphics::UITextMeshGenerator::CharStyle>* stylesPtr = nullptr;
+                const std::string* renderText = &text.text;
+                if (text.richText) {
+                    NE::Graphics::UITextMeshGenerator::ParseRichText(
+                        text.text, text.color, text.fontSize, strippedText, richStyles);
+                    renderText = &strippedText;
+                    stylesPtr  = &richStyles;
+                }
+
                 auto result = NE::Graphics::UITextMeshGenerator::GenerateVertices(
-                    text.text, *fontAtlas,
+                    *renderText, *fontAtlas,
                     textX, textY, textZ, textW, textH,
                     text.color,
                     text.horizontalAlign,
                     text.verticalAlign,
                     text.wordWrap,
                     effectiveFontSize,
-                    fontAtlas->GetBindlessHandle()
+                    fontAtlas->GetBindlessHandle(),
+                    text.lineSpacing,
+                    stylesPtr
                 );
                 verticesV2 = result.vertices;
 
@@ -1077,16 +1092,17 @@ namespace NE::ECS::Systems {
                     }
                 }
 
-                cache.cachedVertices = verticesV2;
-                cache.cachedText = text.text;
-                cache.cachedFontSize = effectiveFontSize;
-                cache.fontAtlasHandle = fontAtlas->GetBindlessHandle();
-                text.isDirty = false;
-                cache.cachedPos = curPos;
-                cache.cachedSize = curSize;
-                cache.cachedRotZ = worldTransform.accumulatedRotationZ;
+                cache.cachedVertices    = verticesV2;
+                cache.cachedText        = text.text;
+                cache.cachedFontSize    = effectiveFontSize;
+                cache.cachedLineSpacing = text.lineSpacing;
+                cache.fontAtlasHandle   = fontAtlas->GetBindlessHandle();
+                text.isDirty            = false;
+                cache.cachedPos         = curPos;
+                cache.cachedSize        = curSize;
+                cache.cachedRotZ        = worldTransform.accumulatedRotationZ;
                 cache.hasCachedTransform = true;
-                text.cachedSize = curSize;
+                text.cachedSize         = curSize;
             } else {
                 verticesV2 = cache.cachedVertices;
             }
@@ -1357,24 +1373,35 @@ namespace NE::ECS::Systems {
         bool needsRegen = text.isDirty ||
             cache.cachedText != text.text ||
             std::abs(cache.cachedFontSize - effectiveFontSize) > 0.1f ||
+            std::abs(cache.cachedLineSpacing - text.lineSpacing) > 0.001f ||
             cache.fontAtlasHandle != fontAtlas->GetBindlessHandle() ||
             transformChanged;
 
         if (needsRegen) {
+            // Parse rich text if enabled
+            std::string strippedText;
+            std::vector<NE::Graphics::UITextMeshGenerator::CharStyle> richStyles;
+            const std::vector<NE::Graphics::UITextMeshGenerator::CharStyle>* stylesPtr = nullptr;
+            const std::string* renderText = &text.text;
+            if (text.richText) {
+                NE::Graphics::UITextMeshGenerator::ParseRichText(
+                    text.text, text.color, text.fontSize, strippedText, richStyles);
+                renderText = &strippedText;
+                stylesPtr  = &richStyles;
+            }
+
             auto result = NE::Graphics::UITextMeshGenerator::GenerateVertices(
-                text.text,
+                *renderText,
                 *fontAtlas,
-                textX,
-                textY,
-                textZ,
-                textW,
-                textH,
+                textX, textY, textZ, textW, textH,
                 text.color,
                 text.horizontalAlign,
                 text.verticalAlign,
                 text.wordWrap,
                 effectiveFontSize,
-                fontAtlas->GetBindlessHandle()  // Embed font atlas handle in vertices
+                fontAtlas->GetBindlessHandle(),
+                text.lineSpacing,
+                stylesPtr
             );
 
             cache.cachedVertices = result.vertices;
@@ -1400,15 +1427,16 @@ namespace NE::ECS::Systems {
                 }
             }
 
-            cache.cachedText = text.text;
-            cache.cachedFontSize = effectiveFontSize;
-            cache.fontAtlasHandle = fontAtlas->GetBindlessHandle();
-            text.isDirty = false;
-            cache.cachedPos = curPos;
-            cache.cachedSize = curSize;
-            cache.cachedRotZ = worldTransform.accumulatedRotationZ;
+            cache.cachedText        = text.text;
+            cache.cachedFontSize    = effectiveFontSize;
+            cache.cachedLineSpacing = text.lineSpacing;
+            cache.fontAtlasHandle   = fontAtlas->GetBindlessHandle();
+            text.isDirty            = false;
+            cache.cachedPos         = curPos;
+            cache.cachedSize        = curSize;
+            cache.cachedRotZ        = worldTransform.accumulatedRotationZ;
             cache.hasCachedTransform = true;
-            text.cachedSize = curSize;
+            text.cachedSize         = curSize;
         }
 
         // Skip scissor for WorldSpace (screen-space operation)
