@@ -2126,17 +2126,17 @@ namespace Audio {
      * @param entity  The entity whose Transform drives the 3D position
      * @param eventName  e.g. "event:/SFX/Footstep"
      */
-    inline void PlayEntityAudio(Entity entity, const std::string& eventName) {
+    inline void PlayEntityAudio(NE::Scripting::Entity entity, const std::string& eventName) {
         NE::Scripting::PlayEntityAudio(entity, eventName);
     }
 
     /** @brief Stop the Studio event currently playing on the entity (fade out). */
-    inline void StopEntityAudio(Entity entity) {
+    inline void StopEntityAudio(NE::Scripting::Entity entity) {
         NE::Scripting::StopEntityAudio(entity);
     }
 
     /** @brief Returns true if the entity has an active Studio event instance playing. */
-    inline bool IsEntityAudioPlaying(Entity entity) {
+    inline bool IsEntityAudioPlaying(NE::Scripting::Entity entity) {
         return NE::Scripting::IsEntityAudioPlaying(entity);
     }
 } // namespace Audio
