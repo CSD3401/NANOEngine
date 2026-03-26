@@ -262,6 +262,8 @@ namespace Component {
         Alignment horizontalAlign = Alignment::LEFT;
         VerticalAlignment verticalAlign = VerticalAlignment::TOP;
         bool wordWrap = false;
+        float lineSpacing = 1.0f;  // Line height multiplier (1.0 = normal)
+        bool richText = false;     // Enable <color>, <size>, <b>, <i> tag parsing
         bool autoScale = false;
         float minFontSize = 10.0f;
         float maxFontSize = 100.0f;

@@ -4006,6 +4006,31 @@ namespace Editor {
 			}
 		}
 
+		// Line Spacing
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Line Spacing");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::DragFloat("##LineSpacing", &comp.lineSpacing, 0.01f, 0.1f, 10.0f)) {
+				comp.isDirty = true;
+			}
+		}
+
+		// Rich Text
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Rich Text");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::Checkbox("##RichText", &comp.richText)) {
+				comp.isDirty = true;
+			}
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Enable tags: <color=#RRGGBB>, <size=N>, <b>, <i>");
+			}
+		}
+
 		// Auto Scale (Best Fit)
 		{
 			ImGui::AlignTextToFramePadding();
