@@ -22,8 +22,8 @@
 #include <cstdint>
 #include <utility>  // For std::pair in polymorphic lookups
 
-// Forward declaration of engine Math::Vec3 for implicit conversion
-namespace NE { namespace Math { struct Vec3; } }
+// Forward declaration of engine Math types for implicit conversion
+namespace NE { namespace Math { struct Vec3; struct Vec4; } }
 
 namespace NE {
 namespace Scripting {
@@ -98,6 +98,48 @@ namespace Scripting {
         static Vec3 Back() { return Vec3(0, 0, -1); }
         static Vec3 Right() { return Vec3(1, 0, 0); }
         static Vec3 Left() { return Vec3(-1, 0, 0); }
+    };
+
+    /// 4D vector for colors (RGBA) and homogeneous coordinates
+    struct SCRIPT_API Vec4 {
+        union {
+            struct { float x, y, z, w; };
+            struct { float r, g, b, a; };
+        };
+
+        Vec4() : x(0), y(0), z(0), w(0) {}
+        Vec4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
+        Vec4(float scalar) : x(scalar), y(scalar), z(scalar), w(scalar) {}
+
+        // Implicit conversion from engine Math::Vec4
+        Vec4(const NE::Math::Vec4& other);
+
+        // Implicit conversion to engine Math::Vec4
+        operator NE::Math::Vec4() const;
+
+        // Assignment operator for engine Math::Vec4
+        Vec4& operator=(const NE::Math::Vec4& other);
+
+        // Basic operators
+        Vec4 operator+(const Vec4& other) const { return Vec4(x + other.x, y + other.y, z + other.z, w + other.w); }
+        Vec4 operator-(const Vec4& other) const { return Vec4(x - other.x, y - other.y, z - other.z, w - other.w); }
+        Vec4 operator*(float scalar) const { return Vec4(x * scalar, y * scalar, z * scalar, w * scalar); }
+        Vec4 operator/(float scalar) const { return Vec4(x / scalar, y / scalar, z / scalar, w / scalar); }
+
+        Vec4& operator+=(const Vec4& other) { x += other.x; y += other.y; z += other.z; w += other.w; return *this; }
+        Vec4& operator-=(const Vec4& other) { x -= other.x; y -= other.y; z -= other.z; w -= other.w; return *this; }
+        Vec4& operator*=(float scalar) { x *= scalar; y *= scalar; z *= scalar; w *= scalar; return *this; }
+
+        // Static constants
+        static Vec4 Zero() { return Vec4(0, 0, 0, 0); }
+        static Vec4 One() { return Vec4(1, 1, 1, 1); }
+        // Common color constants
+        static Vec4 White() { return Vec4(1, 1, 1, 1); }
+        static Vec4 Black() { return Vec4(0, 0, 0, 1); }
+        static Vec4 Red() { return Vec4(1, 0, 0, 1); }
+        static Vec4 Green() { return Vec4(0, 1, 0, 1); }
+        static Vec4 Blue() { return Vec4(0, 0, 1, 1); }
+        static Vec4 Transparent() { return Vec4(0, 0, 0, 0); }
     };
 
     //=========================================================================

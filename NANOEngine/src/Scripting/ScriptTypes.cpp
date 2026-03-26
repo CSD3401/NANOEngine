@@ -6,6 +6,7 @@
 
 #include "../../include/ScriptSDK/ScriptTypes.h"
 #include "../Math/Vec3.hpp"
+#include "../Math/Vec4.hpp"
 #include <cmath>
 
 namespace NE {
@@ -54,6 +55,27 @@ namespace Scripting {
             z * other.x - x * other.z,
             x * other.y - y * other.x
         );
+    }
+
+    //=========================================================================
+    // Vec4 Implementation
+    //=========================================================================
+
+    // Conversion from engine Math::Vec4
+    Vec4::Vec4(const NE::Math::Vec4& other) : x(other.x), y(other.y), z(other.z), w(other.w) {}
+
+    // Conversion to engine Math::Vec4
+    Vec4::operator NE::Math::Vec4() const {
+        return NE::Math::Vec4(x, y, z, w);
+    }
+
+    // Assignment operator for Math::Vec4
+    Vec4& Vec4::operator=(const NE::Math::Vec4& other) {
+        x = other.x;
+        y = other.y;
+        z = other.z;
+        w = other.w;
+        return *this;
     }
 
 } // namespace Scripting
