@@ -1233,6 +1233,16 @@ namespace Scripting {
      */
     SCRIPT_API int GetMasterVolumeLevel();
 
+    //=========================================================================
+    // ENTITY AUDIO (3D spatial, per-entity Studio event tracking)
+    //=========================================================================
+    /** @brief Play a FMOD Studio event bound to an entity (3D position follows the entity) */
+    SCRIPT_API void PlayEntityAudio(uint32_t entity, const std::string& eventName);
+    /** @brief Stop the Studio event currently playing on an entity */
+    SCRIPT_API void StopEntityAudio(uint32_t entity);
+    /** @brief Returns true if the entity has an active Studio event instance */
+    SCRIPT_API bool IsEntityAudioPlaying(uint32_t entity);
+
 
     //=========================================================================
     // SCENE API (SDK-level Scene Management functions)
@@ -2099,7 +2109,7 @@ namespace RenderSettings {
     }
 }
 
-/// Audio system namespace - global controls (master volume)
+/// Audio system namespace - global controls and entity-bound 3D audio
 namespace Audio {
     inline void SetMasterVolumeLevel(int level) {
         NE::Scripting::SetMasterVolumeLevel(level);
@@ -2107,6 +2117,27 @@ namespace Audio {
 
     inline int GetMasterVolumeLevel() {
         return NE::Scripting::GetMasterVolumeLevel();
+    }
+
+    /**
+     * @brief Play a FMOD Studio event bound to an entity.
+     *        If the event is configured as 3D in FMOD Studio, its position will
+     *        follow the entity's world transform every frame automatically.
+     * @param entity  The entity whose Transform drives the 3D position
+     * @param eventName  e.g. "event:/SFX/Footstep"
+     */
+    inline void PlayEntityAudio(Entity entity, const std::string& eventName) {
+        NE::Scripting::PlayEntityAudio(entity, eventName);
+    }
+
+    /** @brief Stop the Studio event currently playing on the entity (fade out). */
+    inline void StopEntityAudio(Entity entity) {
+        NE::Scripting::StopEntityAudio(entity);
+    }
+
+    /** @brief Returns true if the entity has an active Studio event instance playing. */
+    inline bool IsEntityAudioPlaying(Entity entity) {
+        return NE::Scripting::IsEntityAudioPlaying(entity);
     }
 } // namespace Audio
 

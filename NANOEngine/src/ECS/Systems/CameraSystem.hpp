@@ -35,10 +35,12 @@ namespace NE::ECS::Systems {
 		void Update(double deltaTime) override; // override in concrete systems
 		void Exit() override;
 
+		std::optional<Entity> GetMainCameraEntity() const { return m_mainCameraEntity; }
+
 	private:
 		// Helper functions for camera management
 		void BuildProjection(Camera& cam);
-		void BuildView(Camera& cam, Transform& transform);		
+		void BuildView(Camera& cam, Transform& transform);
 
 		std::optional<Entity> m_mainCameraEntity; // Track main camera entity
 		

@@ -13,6 +13,7 @@
 
 namespace NE::ECS::Systems
 {
+	class CameraSystem;
 
 	class AudioSystem final : public System {
 	public:
@@ -63,12 +64,20 @@ namespace NE::ECS::Systems
 		void SetMasterVolumeLevel(int level);
 		int  GetMasterVolumeLevel() const { return m_masterVolumeLevel; }
 
+		void SetCameraSystem(CameraSystem* cs) { m_cameraSystem = cs; }
+
+		// Per-entity FMOD Studio instance tracking
+		void PlayEntitySound(Entity e, const std::string& eventPath, const Component::Transform& transform);
+		void StopEntitySound(Entity e);
+		bool IsEntitySoundPlaying(Entity e) const;
 
 	private:
 		int m_masterVolumeLevel = 5; // 0..5 -> razi dun use this
 		void ApplyMasterVolume();  // razi -> dun use this
 
 		ComponentManager* m_componentManager;
+		CameraSystem* m_cameraSystem = nullptr;
+		std::unordered_map<Entity, FMOD::Studio::EventInstance*> m_entityInstances;
 
 		// Cached bus pointers
 		FMOD::Studio::Bus* m_masterBus = nullptr;
