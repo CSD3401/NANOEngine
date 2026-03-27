@@ -192,6 +192,7 @@ namespace NE::ECS {
             sig.set(GetComponentType<Component::Camera>());
             SetSystemSignature<Systems::CameraSystem>(sig);
 		}
+        m_audioSystem->SetCameraSystem(m_cameraSystem.get());
 
         m_hierarchySystem = m_systemManager->RegisterSystem<Systems::HierarchySystem>(m_componentManager.get(), this, m_luidRegistry.get());
         {
