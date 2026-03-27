@@ -70,6 +70,13 @@ namespace NE::Graphics {
         return m_vsync;
     }
 
+    void Window::SetGamma(float gamma) {
+        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+        if (monitor) {
+            glfwSetGamma(monitor, gamma);
+        }
+    }
+
     void* Window::GetNativeWindow() const {
         return static_cast<void*>(m_windowHandle);
     }
