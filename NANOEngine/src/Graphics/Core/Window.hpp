@@ -23,6 +23,7 @@ namespace NE::Graphics {
         void SwapBuffers();
         void SetVSync(bool enabled);
         bool IsVSync() const;
+        void SetGamma(float gamma);
         void* GetNativeWindow() const; // return GLFWwindow*
         bool ShouldClose();
 

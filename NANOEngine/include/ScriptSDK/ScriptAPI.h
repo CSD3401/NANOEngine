@@ -1588,6 +1588,9 @@ namespace Scripting {
     SCRIPT_API float GetFogDensity();
     SCRIPT_API void SetFogDensity(float density);
 
+    // Display Settings
+    SCRIPT_API void SetGamma(float gamma);
+
     //=========================================================================
     // UI TEXT API
     //=========================================================================
@@ -2106,6 +2109,14 @@ namespace RenderSettings {
      */
     inline void SetFogDensity(float density) {
         NE::Scripting::SetFogDensity(density);
+    }
+
+    /**
+     * @brief Set the display gamma correction value
+     * @param gamma Gamma value (1.0 = default, higher = brighter, lower = darker)
+     */
+    inline void SetGamma(float gamma) {
+        NE::Scripting::SetGamma(gamma);
     }
 }
 

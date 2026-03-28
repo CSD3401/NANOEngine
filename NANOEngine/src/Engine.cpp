@@ -145,6 +145,10 @@ namespace NE {
 		glfwSetWindowShouldClose(static_cast<GLFWwindow*>(s_window->GetNativeWindow()), GLFW_TRUE);
 	}
 
+	void SetGamma(float gamma) {
+		s_window->SetGamma(gamma);
+	}
+
 	uint32_t GetSceneColorAttachment() {
 		return Graphics::GraphicsManager::GetSceneColorAttachment();
 	}
