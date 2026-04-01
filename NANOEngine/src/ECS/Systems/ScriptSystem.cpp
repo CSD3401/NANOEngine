@@ -120,21 +120,10 @@ namespace NE::ECS::Systems {
 	void ScriptSystem::Exit() {
 		SPD_INFO("ScriptSystem::Exit() - Starting cleanup");
 
-		// CRITICAL: Clear these FIRST before ANY cleanup
-		// Prevents dangling function pointers to script code
-		NANOEngine::Events::ClearScriptEventListeners();
-		Engine_ClearAllCoroutines();
 
-		auto& entities = GetEntities();
+		//auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
 
-		for (NE::ECS::Entity entity : entities) {
-			if (!m_componentManager->HasComponent<Component::NativeScript>(entity)) {
-				continue;
-			}
-
-			// Destroy script instances via ScriptEngine
-			Scripting::ScriptingEngine::GetInstance().DestroyScriptInstances(entity);
-		}
+		Scripting::ScriptingEngine::GetInstance().DestroyAllScriptInstances();
 
 		SPD_INFO("ScriptSystem::Exit() - Completed");
 	}

@@ -109,6 +109,7 @@ namespace NE::SceneManagement {
 	}
 
 	void Scene::ExitEdit() {
+		m_ecsCoordinator.m_scriptSystem->Exit();
 		m_ecsCoordinator.m_transformSystem->Exit();
 		m_ecsCoordinator.m_lightSystem->Exit();
 		m_ecsCoordinator.m_cameraSystem->Exit();
@@ -116,7 +117,6 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_renderSystem->Exit();
         m_ecsCoordinator.m_decalProjectorSystem->Exit();
 		m_ecsCoordinator.m_audioSystem->Exit();
-		m_ecsCoordinator.m_scriptSystem->Exit();
 		m_ecsCoordinator.m_uiLayoutSystem->Exit();
 		m_ecsCoordinator.m_uiEventSystem->Exit();
 		m_ecsCoordinator.m_uiRenderSystem->Exit();
@@ -125,6 +125,7 @@ namespace NE::SceneManagement {
 	}
 
 	void Scene::ExitRuntime() {
+		m_ecsCoordinator.m_scriptSystem->Exit();
 		m_ecsCoordinator.m_rigidbodySystem->Exit();
 		m_ecsCoordinator.m_transformSystem->Exit();
 		m_ecsCoordinator.m_lightSystem->Exit();
@@ -133,7 +134,6 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_renderSystem->Exit();
         m_ecsCoordinator.m_decalProjectorSystem->Exit();
 		m_ecsCoordinator.m_audioSystem->Exit();
-		m_ecsCoordinator.m_scriptSystem->Exit();
 		m_ecsCoordinator.m_uiLayoutSystem->Exit();
 		m_ecsCoordinator.m_uiEventSystem->Exit();
 		m_ecsCoordinator.m_uiRenderSystem->Exit();
