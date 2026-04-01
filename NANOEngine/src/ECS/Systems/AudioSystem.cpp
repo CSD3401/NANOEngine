@@ -39,18 +39,22 @@ namespace NE::ECS::Systems {
 
 			~AudioEngine()
 			{
-				SPD_INFO("AudioEngine destructor called");
-				// Cleanup all loaded sounds
+				// Shutdown() should be called explicitly from AudioSystem::Exit().
+				// Calling close() during static destruction can deadlock FMOD -- do nothing.
+				SPD_INFO("AudioEngine destructor (already shut down: " << (system == nullptr) << ")");
+			}
+
+			void Shutdown()
+			{
+				if (!system) return;
+				SPD_INFO("AudioEngine::Shutdown - releasing sounds and closing FMOD core");
 				for (auto& [path, sound] : loadedClips) {
 					sound->release();
 				}
 				loadedClips.clear();
-
-				// Cleanup FMOD system
-				if (system) {
-					system->close();
-					system->release();
-				}
+				system->close();
+				system->release();
+				system = nullptr;
 			}
 
 			FMOD::Sound* LoadSound(const std::string& filepath, bool loop = false, bool is3D = false) {
@@ -566,6 +570,7 @@ namespace NE::ECS::Systems {
 		}
 		m_entityInstances.clear();
 
+		GetAudioEngine().Shutdown();
 		CleanupStudioSystem();
 		SPD_INFO("AudioSystem shutdown");
 	}
