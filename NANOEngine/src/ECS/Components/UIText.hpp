@@ -25,6 +25,8 @@ namespace NE::ECS::Component {
         VerticalAlignment verticalAlign = VerticalAlignment::TOP;
 
         bool wordWrap = false;
+        float lineSpacing = 1.0f;    // Line height multiplier (1.0 = normal, like Unity lineSpacing)
+        bool richText = false;       // Enable <color>, <size>, <b>, <i> tag parsing
 
         // Auto-scaling (like Unity's "Best Fit")
         bool autoScale = false;
@@ -45,6 +47,8 @@ namespace NE::ECS::Component {
             NE_REFLECT_FIELD(horizontalAlign),
             NE_REFLECT_FIELD(verticalAlign),
             NE_REFLECT_FIELD(wordWrap),
+            NE_REFLECT_FIELD(lineSpacing),
+            NE_REFLECT_FIELD(richText),
             NE_REFLECT_FIELD(autoScale),
             NE_REFLECT_FIELD(minFontSize),
             NE_REFLECT_FIELD(maxFontSize)

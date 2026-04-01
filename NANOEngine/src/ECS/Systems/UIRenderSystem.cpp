@@ -41,6 +41,9 @@ namespace NE::ECS::Systems {
     // Default world space canvas scale (so 100x100 UI = 10x10 world units)
     static constexpr float DEFAULT_WORLD_SPACE_SCALE = 0.1f;
 
+    // Maximum number of pooled geometry buffers; prevents unbounded GPU memory growth
+    static constexpr size_t MAX_UI_GEOMETRY_POOL_SIZE = 512;
+
     //=========================================================================
     // Lifecycle
     //=========================================================================
@@ -60,6 +63,8 @@ namespace NE::ECS::Systems {
     {
         if (m_cm->HasComponent<UIText>(e))
             m_textCache.emplace(e, UITextCache{});
+
+        m_canvasMapDirty = true;
 
         if (!m_cm->HasComponent<UIImage>(e)) return;
 
@@ -84,10 +89,11 @@ namespace NE::ECS::Systems {
     void UIRenderSystem::OnEntityRemoved(Entity e)
     {
         m_textCache.erase(e);
+        m_canvasMapDirty = true;
     }
 
-    void UIRenderSystem::OnEntityActive(Entity /*entity*/) {}
-    void UIRenderSystem::OnEntityInactive(Entity /*entity*/) {}
+    void UIRenderSystem::OnEntityActive(Entity /*entity*/) { m_canvasMapDirty = true; }
+    void UIRenderSystem::OnEntityInactive(Entity /*entity*/) { m_canvasMapDirty = true; }
 
     void UIRenderSystem::Init()
     {
@@ -217,7 +223,18 @@ namespace NE::ECS::Systems {
     )
     {
         if (m_geometryIndex >= m_geometryPool.size()) {
-            m_geometryPool.push_back(std::make_shared<NE::Graphics::UIGeometryBuffer>());
+            if (m_geometryPool.size() < MAX_UI_GEOMETRY_POOL_SIZE) {
+                m_geometryPool.push_back(std::make_shared<NE::Graphics::UIGeometryBuffer>());
+            } else {
+                // Pool is at capacity — wrap around (ring buffer) to avoid unbounded growth
+                if (!m_geometryPoolCapped) {
+                    m_geometryPoolCapped = true;
+                    std::cout << "[UIRenderSystem] Geometry pool reached MAX_UI_GEOMETRY_POOL_SIZE ("
+                              << MAX_UI_GEOMETRY_POOL_SIZE
+                              << "). Wrapping to ring buffer. Consider increasing the cap if UI is complex.\n";
+                }
+                m_geometryIndex = 0;
+            }
         }
         auto buf = std::static_pointer_cast<NE::Graphics::UIGeometryBuffer>(m_geometryPool[m_geometryIndex++]);
         buf->Upload(vertices, indices);
@@ -292,6 +309,11 @@ namespace NE::ECS::Systems {
 
         // Single O(N) pass: bucket all UI entities by their owning canvas
         BuildCanvasChildrenMap();
+
+        // Count UI elements from (possibly cached) map for diagnostics
+        for (auto& [canvasEnt, cc] : m_canvasChildrenMap) {
+            m_frameUIElements += static_cast<int>(cc.images.size()) + static_cast<int>(cc.texts.size());
+        }
 
         std::vector<std::pair<int, Entity>> canvases;
 
@@ -664,6 +686,8 @@ namespace NE::ECS::Systems {
 
     void UIRenderSystem::BuildCanvasChildrenMap()
     {
+        if (!m_canvasMapDirty) return;
+        m_canvasMapDirty = false;
         m_canvasChildrenMap.clear();
 
         const auto& entities = GetEntities();
@@ -674,7 +698,8 @@ namespace NE::ECS::Systems {
         }
     }
 
-    void UIRenderSystem::CollectChildrenInOrder(Entity canvasEntity, Entity node, CanvasChildren& out)
+    void UIRenderSystem::CollectChildrenInOrder(Entity canvasEntity, Entity node, CanvasChildren& out,
+                                                 std::vector<Entity> inheritedMasks)
     {
         if (!m_cm->HasComponent<Hierarchy>(node)) return;
 
@@ -684,11 +709,19 @@ namespace NE::ECS::Systems {
 
             // Not a UI rect — skip this node but still recurse into its children
             if (!m_cm->HasComponent<UIRectTransform>(child)) {
-                CollectChildrenInOrder(canvasEntity, child, out);
+                CollectChildrenInOrder(canvasEntity, child, out, inheritedMasks);
                 continue;
             }
 
             if (!IsActiveForUI(child, canvasEntity)) continue;
+
+            // Build this child's mask ancestor list
+            std::vector<Entity> childMasks = inheritedMasks;
+            auto& childRect = m_cm->GetComponent<UIRectTransform>(child);
+            if (childRect.enableMask) {
+                childMasks.push_back(child);
+            }
+            out.maskAncestors[child] = childMasks;
 
             bool hasImage = m_cm->HasComponent<UIImage>(child);
             bool hasText  = m_cm->HasComponent<UIText>(child);
@@ -696,7 +729,7 @@ namespace NE::ECS::Systems {
             if (hasImage) { out.images.push_back(child); m_frameUIElements++; }
             if (hasText)  { out.texts.push_back(child);  m_frameUIElements++; }
 
-            CollectChildrenInOrder(canvasEntity, child, out);
+            CollectChildrenInOrder(canvasEntity, child, out, childMasks);
         }
     }
 
@@ -737,9 +770,12 @@ namespace NE::ECS::Systems {
 
         bool isWorldSpace = (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE);
 
-        // WorldSpace: batch sprites by identical world matrix to reduce draw calls
+        // WorldSpace: batch all sprites in the canvas into one draw call.
+        // Vertices are pre-transformed into world space so a single identity
+        // model matrix can be shared, avoiding per-element draw calls and
+        // float matrix comparison (memcmp) precision issues.
         if (isWorldSpace) {
-            std::map<WorldSpriteBatchKey, UIBatch> worldBatchMap;
+            UIBatch worldBatch;
 
             for (Entity e : canvasChildren) {
                 auto& img = m_cm->GetComponent<UIImage>(e);
@@ -767,60 +803,56 @@ namespace NE::ECS::Systems {
 
                 if (verts.empty()) continue;
 
-                // Group sprites by identical world matrix
-                WorldSpriteBatchKey key;
-                std::memcpy(key.matBytes, rect.worldMatrix.a, sizeof(key.matBytes));
-
-                UIBatch& batch = worldBatchMap[key];
-                uint32_t base = static_cast<uint32_t>(batch.vertices.size());
+                // Pre-transform vertices into world space using the element's world matrix,
+                // so all sprites in the canvas can share a single draw call with identity model.
+                uint32_t base = static_cast<uint32_t>(worldBatch.vertices.size());
                 for (auto v : verts) {
+                    Math::Vec4 worldPos = rect.worldMatrix * Math::Vec4(v.Position.x, v.Position.y, v.Position.z, 1.0f);
+                    v.Position = Math::Vec3(worldPos.x, worldPos.y, worldPos.z);
                     v.Color.w *= canvas.alpha;
-                    batch.vertices.push_back(v);
+                    worldBatch.vertices.push_back(v);
                 }
 
-                // verts.size() is always 4 (simple quad)
                 uint32_t quadCount = static_cast<uint32_t>(verts.size()) / 4;
                 for (uint32_t q = 0; q < quadCount; ++q) {
                     uint32_t b = base + q * 4;
-                    batch.indices.push_back(b + 0);
-                    batch.indices.push_back(b + 1);
-                    batch.indices.push_back(b + 2);
-                    batch.indices.push_back(b + 2);
-                    batch.indices.push_back(b + 3);
-                    batch.indices.push_back(b + 0);
+                    worldBatch.indices.push_back(b + 0);
+                    worldBatch.indices.push_back(b + 1);
+                    worldBatch.indices.push_back(b + 2);
+                    worldBatch.indices.push_back(b + 2);
+                    worldBatch.indices.push_back(b + 3);
+                    worldBatch.indices.push_back(b + 0);
                 }
             }
 
-            // Submit one draw call per unique world matrix
-            for (auto& [key, batch] : worldBatchMap) {
-                if (batch.vertices.empty()) continue;
+            // Submit one draw call for the entire world-space canvas
+            if (!worldBatch.vertices.empty() && m_sharedWorldSpriteMaterial) {
                 m_frameDrawCalls++;
 
-                Math::Mat4 worldMat;
-                std::memcpy(worldMat.a, key.matBytes, sizeof(worldMat.a));
+                Math::Mat4 identityMat;
+                identityMat.SetToIdentity();
 
-                auto geomBuffer = AcquireGeometryBuffer(batch.vertices, batch.indices);
-                if (!geomBuffer) continue;
-                if (!m_sharedWorldSpriteMaterial) continue;
+                auto geomBuffer = AcquireGeometryBuffer(worldBatch.vertices, worldBatch.indices);
+                if (geomBuffer) {
+                    m_sharedWorldSpriteMaterial->SetUniformMat4("uView", m_currentView);
+                    m_sharedWorldSpriteMaterial->SetUniformMat4("uProj", m_currentProj);
+                    m_sharedWorldSpriteMaterial->SetUniformMat4("uModel", identityMat);
+                    m_sharedWorldSpriteMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
+                    m_sharedWorldSpriteMaterial->SetQueueOffset(canvas.sortingOrder);
 
-                m_sharedWorldSpriteMaterial->SetUniformMat4("uView", m_currentView);
-                m_sharedWorldSpriteMaterial->SetUniformMat4("uProj", m_currentProj);
-                m_sharedWorldSpriteMaterial->SetUniformMat4("uModel", worldMat);
-                m_sharedWorldSpriteMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
-                m_sharedWorldSpriteMaterial->SetQueueOffset(canvas.sortingOrder);
+                    NE::Graphics::DrawCommand cmd;
+                    cmd.transform = identityMat;
+                    cmd.mesh = geomBuffer;
+                    cmd.material = m_sharedWorldSpriteMaterial;
+                    cmd.castsShadow = false;
+                    cmd.receivesShadow = false;
+                    cmd.boundsCenterWS = Math::Vec3(0.0f, 0.0f, 0.0f);
+                    cmd.boundsRadiusWs = 999999.0f;
+                    cmd.scissorRect = std::nullopt;
+                    cmd.enableDepthTest = true;
 
-                NE::Graphics::DrawCommand cmd;
-                cmd.transform = worldMat;
-                cmd.mesh = geomBuffer;
-                cmd.material = m_sharedWorldSpriteMaterial;
-                cmd.castsShadow = false;
-                cmd.receivesShadow = false;
-                cmd.boundsCenterWS = Math::Vec3(0.0f, 0.0f, 0.0f);
-                cmd.boundsRadiusWs = 999999.0f;
-                cmd.scissorRect = std::nullopt;
-                cmd.enableDepthTest = true;
-
-                NE::Graphics::GraphicsManager::Submit(cmd);
+                    NE::Graphics::GraphicsManager::Submit(cmd);
+                }
             }
             return;
         }
@@ -856,7 +888,8 @@ namespace NE::ECS::Systems {
                 );
 
             if (!verticesV2.empty()) {
-                std::optional<NE::Graphics::ScissorRect> scissor = ComputeScissorRect(e, canvasEntity, canvas);
+                const CanvasChildren& cc = m_canvasChildrenMap.at(canvasEntity);
+                std::optional<NE::Graphics::ScissorRect> scissor = ComputeScissorRect(e, canvasEntity, canvas, cc);
 
                 UIBatchKey key;
                 key.isText = false;
@@ -1006,6 +1039,7 @@ namespace NE::ECS::Systems {
             bool needsRegen = text.isDirty ||
                 cache.cachedText != text.text ||
                 std::abs(cache.cachedFontSize - effectiveFontSize) > 0.1f ||
+                std::abs(cache.cachedLineSpacing - text.lineSpacing) > 0.001f ||
                 cache.fontAtlasHandle != fontAtlas->GetBindlessHandle() ||
                 transformChanged;
 
@@ -1017,15 +1051,29 @@ namespace NE::ECS::Systems {
                 float textW = isWorldSpace ? rect.width : worldTransform.width;
                 float textH = isWorldSpace ? rect.height : worldTransform.height;
 
+                // Parse rich text if enabled
+                std::string strippedText;
+                std::vector<NE::Graphics::UITextMeshGenerator::CharStyle> richStyles;
+                const std::vector<NE::Graphics::UITextMeshGenerator::CharStyle>* stylesPtr = nullptr;
+                const std::string* renderText = &text.text;
+                if (text.richText) {
+                    NE::Graphics::UITextMeshGenerator::ParseRichText(
+                        text.text, text.color, text.fontSize, strippedText, richStyles);
+                    renderText = &strippedText;
+                    stylesPtr  = &richStyles;
+                }
+
                 auto result = NE::Graphics::UITextMeshGenerator::GenerateVertices(
-                    text.text, *fontAtlas,
+                    *renderText, *fontAtlas,
                     textX, textY, textZ, textW, textH,
                     text.color,
                     text.horizontalAlign,
                     text.verticalAlign,
                     text.wordWrap,
                     effectiveFontSize,
-                    fontAtlas->GetBindlessHandle()
+                    fontAtlas->GetBindlessHandle(),
+                    text.lineSpacing,
+                    stylesPtr
                 );
                 verticesV2 = result.vertices;
 
@@ -1044,16 +1092,17 @@ namespace NE::ECS::Systems {
                     }
                 }
 
-                cache.cachedVertices = verticesV2;
-                cache.cachedText = text.text;
-                cache.cachedFontSize = effectiveFontSize;
-                cache.fontAtlasHandle = fontAtlas->GetBindlessHandle();
-                text.isDirty = false;
-                cache.cachedPos = curPos;
-                cache.cachedSize = curSize;
-                cache.cachedRotZ = worldTransform.accumulatedRotationZ;
+                cache.cachedVertices    = verticesV2;
+                cache.cachedText        = text.text;
+                cache.cachedFontSize    = effectiveFontSize;
+                cache.cachedLineSpacing = text.lineSpacing;
+                cache.fontAtlasHandle   = fontAtlas->GetBindlessHandle();
+                text.isDirty            = false;
+                cache.cachedPos         = curPos;
+                cache.cachedSize        = curSize;
+                cache.cachedRotZ        = worldTransform.accumulatedRotationZ;
                 cache.hasCachedTransform = true;
-                text.cachedSize = curSize;
+                text.cachedSize         = curSize;
             } else {
                 verticesV2 = cache.cachedVertices;
             }
@@ -1119,7 +1168,8 @@ namespace NE::ECS::Systems {
             std::vector<NE::Graphics::UIVertex2> verticesV2 = GenerateTextVertices(entity);
             if (verticesV2.empty()) continue;
 
-            std::optional<NE::Graphics::ScissorRect> scissor = ComputeScissorRect(entity, canvasEntity, canvas);
+            const CanvasChildren& cc = m_canvasChildrenMap.at(canvasEntity);
+            std::optional<NE::Graphics::ScissorRect> scissor = ComputeScissorRect(entity, canvasEntity, canvas, cc);
 
             UIBatchKey key;
             key.isText = true;
@@ -1323,24 +1373,35 @@ namespace NE::ECS::Systems {
         bool needsRegen = text.isDirty ||
             cache.cachedText != text.text ||
             std::abs(cache.cachedFontSize - effectiveFontSize) > 0.1f ||
+            std::abs(cache.cachedLineSpacing - text.lineSpacing) > 0.001f ||
             cache.fontAtlasHandle != fontAtlas->GetBindlessHandle() ||
             transformChanged;
 
         if (needsRegen) {
+            // Parse rich text if enabled
+            std::string strippedText;
+            std::vector<NE::Graphics::UITextMeshGenerator::CharStyle> richStyles;
+            const std::vector<NE::Graphics::UITextMeshGenerator::CharStyle>* stylesPtr = nullptr;
+            const std::string* renderText = &text.text;
+            if (text.richText) {
+                NE::Graphics::UITextMeshGenerator::ParseRichText(
+                    text.text, text.color, text.fontSize, strippedText, richStyles);
+                renderText = &strippedText;
+                stylesPtr  = &richStyles;
+            }
+
             auto result = NE::Graphics::UITextMeshGenerator::GenerateVertices(
-                text.text,
+                *renderText,
                 *fontAtlas,
-                textX,
-                textY,
-                textZ,
-                textW,
-                textH,
+                textX, textY, textZ, textW, textH,
                 text.color,
                 text.horizontalAlign,
                 text.verticalAlign,
                 text.wordWrap,
                 effectiveFontSize,
-                fontAtlas->GetBindlessHandle()  // Embed font atlas handle in vertices
+                fontAtlas->GetBindlessHandle(),
+                text.lineSpacing,
+                stylesPtr
             );
 
             cache.cachedVertices = result.vertices;
@@ -1366,21 +1427,25 @@ namespace NE::ECS::Systems {
                 }
             }
 
-            cache.cachedText = text.text;
-            cache.cachedFontSize = effectiveFontSize;
-            cache.fontAtlasHandle = fontAtlas->GetBindlessHandle();
-            text.isDirty = false;
-            cache.cachedPos = curPos;
-            cache.cachedSize = curSize;
-            cache.cachedRotZ = worldTransform.accumulatedRotationZ;
+            cache.cachedText        = text.text;
+            cache.cachedFontSize    = effectiveFontSize;
+            cache.cachedLineSpacing = text.lineSpacing;
+            cache.fontAtlasHandle   = fontAtlas->GetBindlessHandle();
+            text.isDirty            = false;
+            cache.cachedPos         = curPos;
+            cache.cachedSize        = curSize;
+            cache.cachedRotZ        = worldTransform.accumulatedRotationZ;
             cache.hasCachedTransform = true;
-            text.cachedSize = curSize;
+            text.cachedSize         = curSize;
         }
 
         // Skip scissor for WorldSpace (screen-space operation)
         std::optional<NE::Graphics::ScissorRect> scissor;
         if (!isWorldSpace) {
-            scissor = ComputeScissorRect(entity, canvasEntity, canvas);
+            auto ccIt = m_canvasChildrenMap.find(canvasEntity);
+            if (ccIt != m_canvasChildrenMap.end()) {
+                scissor = ComputeScissorRect(entity, canvasEntity, canvas, ccIt->second);
+            }
         }
         if (canvas.alpha < 1.0f) {
             std::vector<NE::Graphics::UIVertex2> alphaVerts = cache.cachedVertices;
@@ -1398,59 +1463,48 @@ namespace NE::ECS::Systems {
     std::optional<NE::Graphics::ScissorRect> UIRenderSystem::ComputeScissorRect(
         Entity entity,
         Entity canvasEntity,
-        const UICanvas& canvas
+        const UICanvas& canvas,
+        const CanvasChildren& canvasChildren
     )
     {
-        // Walk parent chain looking for UIRectTransform with enableMask
-        Entity current = m_cm->HasComponent<Hierarchy>(entity)
-            ? m_cm->GetComponent<Hierarchy>(entity).parent
-            : NO_ENTITY;
+        auto it = canvasChildren.maskAncestors.find(entity);
+        if (it == canvasChildren.maskAncestors.end() || it->second.empty())
+            return std::nullopt;
 
         std::optional<NE::Graphics::ScissorRect> result;
+        int screenHeight = static_cast<int>(NE::Graphics::GraphicsManager::GetScreenHeight());
 
-        while (current != NO_ENTITY && current != canvasEntity) {
-            if (m_cm->HasComponent<UIRectTransform>(current)) {
-                auto& maskRect = m_cm->GetComponent<UIRectTransform>(current);
-                if (maskRect.enableMask) {
-                    auto wr = m_layoutEngine->GetWorldRect(current, canvasEntity, canvas);
+        for (Entity maskEnt : it->second) {
+            if (!m_cm->HasComponent<UIRectTransform>(maskEnt)) continue;
+            auto& maskRect = m_cm->GetComponent<UIRectTransform>(maskEnt);
 
-                    // Apply mask padding (shrinks inward)
-                    float maskX = wr.x + maskRect.maskPaddingLeft;
-                    float maskY = wr.y + maskRect.maskPaddingTop;
-                    float maskW = wr.width - maskRect.maskPaddingLeft - maskRect.maskPaddingRight;
-                    float maskH = wr.height - maskRect.maskPaddingTop - maskRect.maskPaddingBottom;
+            auto wr = m_layoutEngine->GetWorldRect(maskEnt, canvasEntity, canvas);
 
-                    if (maskW < 0.f) maskW = 0.f;
-                    if (maskH < 0.f) maskH = 0.f;
+            float maskX = wr.x + maskRect.maskPaddingLeft;
+            float maskY = wr.y + maskRect.maskPaddingTop;
+            float maskW = wr.width  - maskRect.maskPaddingLeft - maskRect.maskPaddingRight;
+            float maskH = wr.height - maskRect.maskPaddingTop  - maskRect.maskPaddingBottom;
+            if (maskW < 0.f) maskW = 0.f;
+            if (maskH < 0.f) maskH = 0.f;
 
-                    // Convert from UI coords (top-left origin) to GL scissor coords (bottom-left origin)
-                    int screenHeight = static_cast<int>(NE::Graphics::GraphicsManager::GetScreenHeight());
-                    NE::Graphics::ScissorRect sr;
-                    sr.x = static_cast<int>(maskX);
-                    sr.y = screenHeight - static_cast<int>(maskY + maskH);
-                    sr.width = static_cast<int>(maskW);
-                    sr.height = static_cast<int>(maskH);
+            NE::Graphics::ScissorRect sr;
+            sr.x      = static_cast<int>(maskX);
+            sr.y      = screenHeight - static_cast<int>(maskY + maskH);
+            sr.width  = static_cast<int>(maskW);
+            sr.height = static_cast<int>(maskH);
 
-                    // Intersect with existing result (nested masks)
-                    if (result.has_value()) {
-                        int x1 = std::max(result->x, sr.x);
-                        int y1 = std::max(result->y, sr.y);
-                        int x2 = std::min(result->x + result->width, sr.x + sr.width);
-                        int y2 = std::min(result->y + result->height, sr.y + sr.height);
-                        result->x = x1;
-                        result->y = y1;
-                        result->width = std::max(0, x2 - x1);
-                        result->height = std::max(0, y2 - y1);
-                    } else {
-                        result = sr;
-                    }
-                }
+            if (result.has_value()) {
+                int x1 = std::max(result->x, sr.x);
+                int y1 = std::max(result->y, sr.y);
+                int x2 = std::min(result->x + result->width,  sr.x + sr.width);
+                int y2 = std::min(result->y + result->height, sr.y + sr.height);
+                result->x = x1; result->y = y1;
+                result->width  = std::max(0, x2 - x1);
+                result->height = std::max(0, y2 - y1);
+            } else {
+                result = sr;
             }
-
-            if (!m_cm->HasComponent<Hierarchy>(current)) break;
-            current = m_cm->GetComponent<Hierarchy>(current).parent;
         }
-
         return result;
     }
 

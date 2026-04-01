@@ -176,6 +176,7 @@ namespace NE::ECS {
             SetSystemSignature<Systems::UILayoutSystem>(sig);
         }
         m_uiLayoutSystem->SetLayoutEngine(m_uiLayoutEngine.get());
+        m_uiEventSystem->SetLayoutSystem(m_uiLayoutSystem.get());
 
         m_animatorSystem = m_systemManager->RegisterSystem<Systems::AnimatorSystem>(m_componentManager.get(), m_entityManager.get(), m_luidRegistry.get());
         {

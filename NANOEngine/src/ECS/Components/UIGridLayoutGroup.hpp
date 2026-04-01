@@ -31,6 +31,9 @@ namespace NE::ECS::Component {
         Constraint    constraint      = Constraint::Flexible;
         int           constraintCount = 2;
 
+        // When true, cell size is computed to fill available space evenly (ignores cellWidth/cellHeight)
+        bool stretchCells = false;
+
         NE_REFLECT_BEGIN(UIGridLayoutGroup)
             NE_REFLECT_FIELD(paddingLeft),
             NE_REFLECT_FIELD(paddingRight),
@@ -44,7 +47,8 @@ namespace NE::ECS::Component {
             NE_REFLECT_FIELD(startAxis),
             NE_REFLECT_FIELD(childAlignment),
             NE_REFLECT_FIELD(constraint),
-            NE_REFLECT_FIELD(constraintCount)
+            NE_REFLECT_FIELD(constraintCount),
+            NE_REFLECT_FIELD(stretchCells)
         NE_REFLECT_END()
     };
 

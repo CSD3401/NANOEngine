@@ -441,6 +441,362 @@ namespace Scripting {
         // Loop control
         void SetAudioLoop(bool loop, Entity entity = DEFAULT_ENTITY_PARAM);
 
+     //=====================================================================
+     // PARTICLE EMITTER OPERATIONS
+     //=====================================================================
+
+        /**
+         * Check if the entity has a particle emitter component.
+         * @param entity Target entity (default: this entity)
+         * @return true if the entity has a particle emitter component, false otherwise
+         */
+        bool HasParticleEmitter(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        // Playback control
+        /**
+         * Start or resume the particle emitter.
+         * @param entity Target entity (default: this entity)
+         */
+        void PlayParticles(Entity entity = DEFAULT_ENTITY_PARAM);
+
+        /**
+         * Stop the particle emitter from spawning new particles.
+         * Existing particles will continue to live out their lifetime.
+         * @param entity Target entity (default: this entity)
+         */
+        void StopParticles(Entity entity = DEFAULT_ENTITY_PARAM);
+
+        /**
+         * Stop and immediately clear all particles.
+         * @param entity Target entity (default: this entity)
+         */
+        void ResetParticles(Entity entity = DEFAULT_ENTITY_PARAM);
+
+        /**
+         * Check if the particle emitter is currently playing.
+         * @param entity Target entity (default: this entity)
+         * @return true if the emitter is playing
+         */
+        bool IsParticlePlaying(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        // Basic settings
+        /**
+         * Check if the particle emitter is enabled.
+         * @param entity Target entity (default: this entity)
+         * @return true if enabled
+         */
+        bool GetParticleEnabled(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        /**
+         * Enable or disable the particle emitter.
+         * @param enabled New enabled state
+         * @param entity Target entity (default: this entity)
+         */
+        void SetParticleEnabled(bool enabled, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        /**
+         * Check if the particle emitter loops.
+         * @param entity Target entity (default: this entity)
+         * @return true if looping
+         */
+        bool GetParticleLooping(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        /**
+         * Set whether the particle emitter loops.
+         * @param looping New looping state
+         * @param entity Target entity (default: this entity)
+         */
+        void SetParticleLooping(bool looping, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        /**
+         * Get the maximum number of particles.
+         * @param entity Target entity (default: this entity)
+         * @return Maximum particle count
+         */
+        int GetParticleMaxCount(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        /**
+         * Set the maximum number of particles.
+         * @param maxCount Maximum particle count
+         * @param entity Target entity (default: this entity)
+         */
+        void SetParticleMaxCount(int maxCount, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        /**
+         * Get the spawn rate (particles per second).
+         * @param entity Target entity (default: this entity)
+         * @return Spawn rate
+         */
+        float GetParticleSpawnRate(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        /**
+         * Set the spawn rate (particles per second).
+         * @param spawnRate Particles per second
+         * @param entity Target entity (default: this entity)
+         */
+        void SetParticleSpawnRate(float spawnRate, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        /**
+         * Get the duration of the emitter (0 = infinite).
+         * @param entity Target entity (default: this entity)
+         * @return Duration in seconds
+         */
+        float GetParticleDuration(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        /**
+         * Set the duration of the emitter (0 = infinite).
+         * @param duration Duration in seconds (0 for infinite)
+         * @param entity Target entity (default: this entity)
+         */
+        void SetParticleDuration(float duration, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        // Lifetime
+        /**
+         * Get the particle lifetime range.
+         * @param entity Target entity (default: this entity)
+         * @return Pair of (minLifetime, maxLifetime)
+         */
+        std::pair<float, float> GetParticleLifetime(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        /**
+         * Set the particle lifetime range.
+         * @param minLifetime Minimum lifetime in seconds
+         * @param maxLifetime Maximum lifetime in seconds
+         * @param entity Target entity (default: this entity)
+         */
+        void SetParticleLifetime(float minLifetime, float maxLifetime, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        // Speed
+        /**
+         * Get the particle speed range.
+         * @param entity Target entity (default: this entity)
+         * @return Pair of (minSpeed, maxSpeed)
+         */
+        std::pair<float, float> GetParticleSpeed(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        /**
+         * Set the particle speed range.
+         * @param minSpeed Minimum speed
+         * @param maxSpeed Maximum speed
+         * @param entity Target entity (default: this entity)
+         */
+        void SetParticleSpeed(float minSpeed, float maxSpeed, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        // Size
+        /**
+         * Get the particle size range.
+         * @param entity Target entity (default: this entity)
+         * @return Pair of (minSize, maxSize)
+         */
+        std::pair<float, float> GetParticleSize(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        /**
+         * Set the particle size range.
+         * @param minSize Minimum size
+         * @param maxSize Maximum size
+         * @param entity Target entity (default: this entity)
+         */
+        void SetParticleSize(float minSize, float maxSize, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        // Color
+        /**
+         * Get the start color of particles.
+         * @param entity Target entity (default: this entity)
+         * @return Start color (RGBA)
+         */
+        Vec4 GetParticleStartColor(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        /**
+         * Set the start color of particles.
+         * @param color Start color (RGBA)
+         * @param entity Target entity (default: this entity)
+         */
+        void SetParticleStartColor(const Vec4& color, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        /**
+         * Set the start color of particles using RGBA components.
+         * @param r Red (0.0 to 1.0)
+         * @param g Green (0.0 to 1.0)
+         * @param b Blue (0.0 to 1.0)
+         * @param a Alpha (0.0 to 1.0)
+         * @param entity Target entity (default: this entity)
+         */
+        void SetParticleStartColor(float r, float g, float b, float a, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        /**
+         * Get the end color of particles.
+         * @param entity Target entity (default: this entity)
+         * @return End color (RGBA)
+         */
+        Vec4 GetParticleEndColor(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        /**
+         * Set the end color of particles.
+         * @param color End color (RGBA)
+         * @param entity Target entity (default: this entity)
+         */
+        void SetParticleEndColor(const Vec4& color, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        /**
+         * Set the end color of particles using RGBA components.
+         * @param r Red (0.0 to 1.0)
+         * @param g Green (0.0 to 1.0)
+         * @param b Blue (0.0 to 1.0)
+         * @param a Alpha (0.0 to 1.0)
+         * @param entity Target entity (default: this entity)
+         */
+        void SetParticleEndColor(float r, float g, float b, float a, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        // Gravity
+        /**
+         * Check if gravity is enabled for particles.
+         * @param entity Target entity (default: this entity)
+         * @return true if gravity is enabled
+         */
+        bool GetParticleGravityEnabled(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        /**
+         * Enable or disable gravity for particles.
+         * @param enable Gravity enable state
+         * @param entity Target entity (default: this entity)
+         */
+        void SetParticleGravityEnabled(bool enable, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        /**
+         * Get the gravity vector for particles.
+         * @param entity Target entity (default: this entity)
+         * @return Gravity vector
+         */
+        Vec3 GetParticleGravity(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        /**
+         * Set the gravity vector for particles.
+         * @param gravity Gravity vector (default: {0, -9.81, 0})
+         * @param entity Target entity (default: this entity)
+         */
+        void SetParticleGravity(const Vec3& gravity, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        /**
+         * Set the gravity vector using XYZ components.
+         * @param x X component
+         * @param y Y component
+         * @param z Z component
+         * @param entity Target entity (default: this entity)
+         */
+        void SetParticleGravity(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        // Drag
+        /**
+         * Check if drag is enabled for particles.
+         * @param entity Target entity (default: this entity)
+         * @return true if drag is enabled
+         */
+        bool GetParticleDragEnabled(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        /**
+         * Enable or disable drag for particles.
+         * @param enable Drag enable state
+         * @param entity Target entity (default: this entity)
+         */
+        void SetParticleDragEnabled(bool enable, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        /**
+         * Get the drag coefficient for particles.
+         * @param entity Target entity (default: this entity)
+         * @return Drag coefficient
+         */
+        float GetParticleDrag(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        /**
+         * Set the drag coefficient for particles.
+         * @param drag Drag coefficient (0 = no drag, higher = more drag)
+         * @param entity Target entity (default: this entity)
+         */
+        void SetParticleDrag(float drag, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        // Shape
+        /**
+         * Particle emitter shape types.
+         */
+        enum class ParticleShape : int {
+            Point = 0,
+            Sphere = 1,
+            Cone = 2,
+            Box = 3
+        };
+
+        /**
+         * Get the particle emitter shape.
+         * @param entity Target entity (default: this entity)
+         * @return Current shape
+         */
+        ParticleShape GetParticleShape(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        /**
+         * Set the particle emitter shape.
+         * @param shape New shape type
+         * @param entity Target entity (default: this entity)
+         */
+        void SetParticleShape(ParticleShape shape, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        /**
+         * Get the sphere radius (for Sphere shape).
+         * @param entity Target entity (default: this entity)
+         * @return Sphere radius
+         */
+        float GetParticleSphereRadius(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        /**
+         * Set the sphere radius (for Sphere shape).
+         * @param radius Sphere radius
+         * @param entity Target entity (default: this entity)
+         */
+        void SetParticleSphereRadius(float radius, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        /**
+         * Get the cone angle (for Cone shape).
+         * @param entity Target entity (default: this entity)
+         * @return Cone angle in degrees
+         */
+        float GetParticleConeAngle(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        /**
+         * Set the cone angle (for Cone shape).
+         * @param angle Cone angle in degrees
+         * @param entity Target entity (default: this entity)
+         */
+        void SetParticleConeAngle(float angle, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        /**
+         * Get the box extents (for Box shape).
+         * @param entity Target entity (default: this entity)
+         * @return Box extents
+         */
+        Vec3 GetParticleBoxExtents(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        /**
+         * Set the box extents (for Box shape).
+         * @param extents Box extents
+         * @param entity Target entity (default: this entity)
+         */
+        void SetParticleBoxExtents(const Vec3& extents, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        /**
+         * Set the box extents using XYZ components.
+         * @param x X extent
+         * @param y Y extent
+         * @param z Z extent
+         * @param entity Target entity (default: this entity)
+         */
+        void SetParticleBoxExtents(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        /**
+         * Get the current number of alive particles.
+         * @param entity Target entity (default: this entity)
+         * @return Current particle count
+         */
+        int GetParticleCount(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
 
      //=====================================================================
      // CAMERA OPERATIONS
@@ -1232,6 +1588,9 @@ namespace Scripting {
     SCRIPT_API float GetFogDensity();
     SCRIPT_API void SetFogDensity(float density);
 
+    // Display Settings
+    SCRIPT_API void SetGamma(float gamma);
+
     //=========================================================================
     // UI TEXT API
     //=========================================================================
@@ -1751,6 +2110,14 @@ namespace RenderSettings {
     inline void SetFogDensity(float density) {
         NE::Scripting::SetFogDensity(density);
     }
+
+    /**
+     * @brief Set the display gamma correction value
+     * @param gamma Gamma value (1.0 = default, higher = brighter, lower = darker)
+     */
+    inline void SetGamma(float gamma) {
+        NE::Scripting::SetGamma(gamma);
+    }
 }
 
 /// Audio system namespace - global controls and entity-bound 3D audio
@@ -1770,17 +2137,17 @@ namespace Audio {
      * @param entity  The entity whose Transform drives the 3D position
      * @param eventName  e.g. "event:/SFX/Footstep"
      */
-    inline void PlayEntityAudio(uint32_t entity, const std::string& eventName) {
+    inline void PlayEntityAudio(NE::Scripting::Entity entity, const std::string& eventName) {
         NE::Scripting::PlayEntityAudio(entity, eventName);
     }
 
     /** @brief Stop the Studio event currently playing on the entity (fade out). */
-    inline void StopEntityAudio(uint32_t entity) {
+    inline void StopEntityAudio(NE::Scripting::Entity entity) {
         NE::Scripting::StopEntityAudio(entity);
     }
 
     /** @brief Returns true if the entity has an active Studio event instance playing. */
-    inline bool IsEntityAudioPlaying(uint32_t entity) {
+    inline bool IsEntityAudioPlaying(NE::Scripting::Entity entity) {
         return NE::Scripting::IsEntityAudioPlaying(entity);
     }
 } // namespace Audio
