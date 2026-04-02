@@ -44,6 +44,7 @@
 #include "../EditorInterface/RendererExports.hpp"  // For RenderSettings access
 #include "../EditorInterface/AudioExports.hpp"  
 #include "../Graphics/Core/RenderSettings.hpp"  // For RenderSettings struct
+#include "Graphics/Core/PostProcessingSettings.hpp"
 
 #include <sstream>
 #include <unordered_map>
@@ -4216,6 +4217,27 @@ namespace NE {
 		void SetAmbientIntensity(float intensity) {
 			auto& settings = Renderer::Command::GetRenderSettings();
 			settings.ambientIntensity = intensity;
+		}
+
+		// Chromatic Aberration Settings
+		void ToggleChromaticAberration(bool _enabled) {
+			auto& settings = Renderer::Command::GetPostProcessingSettings();
+			settings.chromaticAberrationSettings.enabled = _enabled;
+		}
+
+		void SetChromaticAberrationStrength(float _strength) {
+			auto& settings = Renderer::Command::GetPostProcessingSettings();
+			settings.chromaticAberrationSettings.strengthPx = _strength;
+		}
+
+		void SetChromaticAberrationRadius(float _radius) {
+			auto& settings = Renderer::Command::GetPostProcessingSettings();
+			settings.chromaticAberrationSettings.startRadius = _radius;
+		}
+
+		void SetChromaticAberrationFalloff(float _falloff) {
+			auto& settings = Renderer::Command::GetPostProcessingSettings();
+			settings.chromaticAberrationSettings.falloffExponent = _falloff;
 		}
 
 		// Fog Settings
