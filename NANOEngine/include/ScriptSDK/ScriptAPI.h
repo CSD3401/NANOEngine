@@ -1573,6 +1573,15 @@ namespace Scripting {
     SCRIPT_API float GetAmbientIntensity();
     SCRIPT_API void SetAmbientIntensity(float intensity);
 
+    // Chromatic Aberration Settings
+	SCRIPT_API void ToggleChromaticAberration(bool _enabled);
+    // Default Value (1.0f)
+	SCRIPT_API void SetChromaticAberrationStrength(float _strength);
+    // Default Value (0.6f)
+	SCRIPT_API void SetChromaticAberrationRadius(float _radius);
+    // Default Value (2.0f)
+	SCRIPT_API void SetChromaticAberrationFalloff(float _falloff);
+
     // Fog Settings
     SCRIPT_API bool IsFogEnabled();
     SCRIPT_API void SetFogEnabled(bool enabled);
