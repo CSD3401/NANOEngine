@@ -546,9 +546,28 @@ namespace NE::Scripting {
             entities.push_back(pair.first);
         }
 
-        for (NE::ECS::Entity entity : entities) {
+        for (auto& entity : entities) {
             OnScriptComponentDestroyed(entity);
         }
+
+        for (auto& entity : entities) {
+            auto it = m_scriptInstances.find(entity);
+            if (it == m_scriptInstances.end()) {
+                continue;
+            }
+
+            for (IScript* instance : it->second) {
+                // Clean up the instance
+                delete instance;
+            }
+
+            m_scriptInstances.erase(it);
+
+            SPD_INFO("Destroyed script instances for entity " << (int)entity);
+
+        }
+
+
     }
 
     bool ScriptingEngine::SwapDLLs(const std::string& oldDllPath, const std::string& newDllPath) {
@@ -775,13 +794,9 @@ namespace NE::Scripting {
                 if (instance->_HasStarted()) {
                     instance->OnDestroy();
                 }
-
-                // Always clean up the instance itself
-                delete instance;
             }
-            m_scriptInstances.erase(it);
 
-            SPD_INFO("Destroyed all scripts for entity " << (int)entity);
+            SPD_INFO("Called OnDestroy on all scripts for entity " << (int)entity);
         }
     }
 
@@ -850,18 +865,17 @@ namespace NE::Scripting {
     void ScriptingEngine::DestroyScriptInstances(NE::ECS::Entity entity) {
         auto it = m_scriptInstances.find(entity);
         if (it == m_scriptInstances.end()) {
-            return; // No instances to destroy
+            return;
         }
 
         for (IScript* instance : it->second) {
-            // Only call OnDestroy if the script was started
             if (instance && instance->_HasStarted()) {
                 instance->OnDestroy();
             }
 
-            // Clean up the instance
             delete instance;
         }
+
         m_scriptInstances.erase(it);
 
         SPD_INFO("Destroyed script instances for entity " << (int)entity);
