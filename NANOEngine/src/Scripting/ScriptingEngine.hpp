@@ -159,10 +159,13 @@ namespace NE::Scripting {
         NANOENGINE_API void RestoreSerializedFields(NE::ECS::Entity entity, NE::ECS::Component::NativeScript& nsc);
 
         /**
-         * Destroy script instance and call cleanup (used before hot-reload).
+         * Call OnDestroy on Scripts.
          */
         void OnScriptComponentDestroyed(NE::ECS::Entity entity);
 
+        /**
+         * Destroy all script instances for all entities.
+         */
         void DestroyAllScriptInstances();
 
         // === Instance Management (ECS Refactor) ===
@@ -182,6 +185,7 @@ namespace NE::Scripting {
          * @return true if at least one instance was created successfully, false otherwise
          */
         NANOENGINE_API bool CreateScriptInstances(NE::ECS::Entity entity, NE::ECS::Component::NativeScript& nsc);
+
 
         /**
          * Destroy all script instances for an entity.

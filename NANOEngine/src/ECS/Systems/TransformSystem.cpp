@@ -96,6 +96,8 @@ namespace NE::ECS::Systems {
 		const Math::Mat4& parentWorld,
 		bool parentWorldDirty)
 	{
+		if (!m_componentManager->HasComponent<Component::Transform>(e)) return;
+
 		auto& t = m_componentManager->GetComponent<Component::Transform>(e);
 		auto& h = m_componentManager->GetComponent<Component::Hierarchy>(e);
 
