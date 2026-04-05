@@ -33,7 +33,8 @@ public:
             bgmEventPath = "event:/BGM_NIGHTSHIFT_HIGH";
         }
         if (ambienceEventPath.empty()) {
-            ambienceEventPath = "event:/BGM_RABBIT";
+            //ambienceEventPath = "event:/BGM_RABBIT";
+            ambienceEventPath = "event:/FOG_AMBIENCE";
         }
 
         // Initialize state
@@ -144,7 +145,7 @@ public:
 private:
     // === Inspector Fields ===
     std::string bgmEventPath;
-    std::string ambienceEventPath;
+    std::string ambienceEventPath = "event:/FOG_AMBIENCE";;
     bool playOnStart = true;
     float bgmVolume = 1.0f;
     float ambienceVolume = 1.0f;

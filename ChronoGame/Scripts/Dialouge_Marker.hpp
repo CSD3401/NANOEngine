@@ -52,17 +52,24 @@ public:
 
         triggered = false;
         dismissing = false;
-        ignoreNextClick = false;
+        waitingForMouseRelease = false;
     }
 
     void Update(double) override {
         if (!dismissing) return;
 
-        if (Input::WasKeyPressed('0')) {
-            if (ignoreNextClick) {
-                ignoreNextClick = false;
-                return;
+        // Wait for mouse to be fully released after the trigger opened the dialogue.
+        // This prevents the same click that walked into the trigger from
+        // immediately closing the dialogue -- mirrors UI_Notes pattern.
+        if (waitingForMouseRelease) {
+            if (!Input::IsMouseDown(GLFW_MOUSE_BUTTON_LEFT)) {
+                waitingForMouseRelease = false;
             }
+            return;
+        }
+
+        // Any new left click closes the dialogue
+        if (Input::WasMousePressed(GLFW_MOUSE_BUTTON_LEFT)) {
             HideDialogue();
             dismissing = false;
         }
@@ -80,7 +87,7 @@ public:
 
         triggered = true;
         dismissing = true;
-        ignoreNextClick = true;
+        waitingForMouseRelease = true;
         ShowDialogue();
     }
 
@@ -97,7 +104,7 @@ private:
     // Runtime
     bool triggered = false;
     bool dismissing = false;
-    bool ignoreNextClick = false;
+    bool waitingForMouseRelease = false;  // renamed from ignoreNextClick for clarity
 
     // Static: tracks whichever marker is currently playing audio
     static DialogueMarker* s_activeMarker;

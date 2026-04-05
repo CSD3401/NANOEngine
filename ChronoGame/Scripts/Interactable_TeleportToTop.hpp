@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <algorithm>
 #include <cmath>
 #include "EngineAPI.hpp"
@@ -14,7 +14,16 @@
 *
 * By default, this script auto-finds the player by looking for an entity with
 * Player_Controller. You can also assign the player manually via the inspector.
+*
+* Interaction:
+*  - Default: Player_Raycast + **left click** on the object (Interact()).
+*  - Optional: enable `useSpaceKeyInsteadOfMouse` — press **Space** when within
+*    `spaceKeyMaxDistance` (raycast click is ignored for this object).
 */
+
+#ifndef GLFW_KEY_SPACE
+#define GLFW_KEY_SPACE 32
+#endif
 
 class Interactable_TeleportToTop : public Interactable_ {
 public:
@@ -26,7 +35,6 @@ public:
         , useCharacterControllerMove(true)
         , isLifting(false)
         , targetY(0.0f)
-        , cachedPlayerController(nullptr)
         , cachedPlayerControllerWasEnabled(true)
     {
         SCRIPT_GAMEOBJECT_REF(player);
@@ -35,12 +43,23 @@ public:
         SCRIPT_FIELD(snapXZToObject, Bool);
         SCRIPT_FIELD(liftSpeedY, Float);
         SCRIPT_FIELD(useCharacterControllerMove, Bool);
+        SCRIPT_FIELD(climbAudioName, String);
+        SCRIPT_FIELD(useSpaceKeyInsteadOfMouse, Bool);
+        SCRIPT_FIELD(spaceKeyMaxDistance, Float);
     }
 
     ~Interactable_TeleportToTop() override = default;
 
     // === Interactable_ ===
     void Interact() override
+    {
+        if (useSpaceKeyInsteadOfMouse)
+            return;
+
+        TryStartLift();
+    }
+
+    void TryStartLift()
     {
         // If we're already in the middle of a lift, ignore additional clicks.
         if (isLifting)
@@ -91,8 +110,26 @@ public:
         targetY = topY + playerLift + extraClearanceY;
         isLifting = true;
 
+        // Play climb audio
+        if (!climbAudioName.empty())
+            PlayAudio("event:/" + climbAudioName);
+
         // Temporarily disable the player controller so it doesn't fight us (CC_Move / gravity / input).
         CacheAndDisablePlayerController();
+    }
+
+    bool IsPlayerWithinInteractRange() const
+    {
+        if (!player.IsValid())
+            return false;
+        const Vec3 p = TF_GetPosition(player.GetEntity());
+        const Vec3 o = TF_GetPosition(GetEntity());
+        const float dx = p.x - o.x;
+        const float dy = p.y - o.y;
+        const float dz = p.z - o.z;
+        const float distSq = dx * dx + dy * dy + dz * dz;
+        const float r = spaceKeyMaxDistance > 0.0f ? spaceKeyMaxDistance : 3.0f;
+        return distSq <= r * r;
     }
 
     // === Lifecycle ===
@@ -101,6 +138,13 @@ public:
     void Start() override {}
     void Update(double deltaTime) override
     {
+        if (useSpaceKeyInsteadOfMouse && !isLifting && Input::WasKeyPressed(GLFW_KEY_SPACE))
+        {
+            ResolvePlayerRef();
+            if (player.IsValid() && IsPlayerWithinInteractRange())
+                TryStartLift();
+        }
+
         if (!isLifting)
             return;
 
@@ -121,6 +165,10 @@ public:
             currentPos.y = targetY;
             TF_SetPosition(currentPos, playerEntity);
             isLifting = false;
+
+            // Stop climb audio
+            if (!climbAudioName.empty())
+                StopAudio("event:/" + climbAudioName);
 
             RestorePlayerController();
             return;
@@ -149,7 +197,15 @@ public:
         ResolvePlayerRef();
     }
 
-    void OnDisable() override {}
+    void OnDisable() override
+    {
+        if (!isLifting)
+            return;
+        isLifting = false;
+        if (!climbAudioName.empty())
+            StopAudio("event:/" + climbAudioName);
+        RestorePlayerController();
+    }
     void OnValidate() override {}
     const char* GetTypeName() const override { return "Interactable_TeleportToTop"; }
 
@@ -162,39 +218,47 @@ private:
     float liftSpeedY;
     bool useCharacterControllerMove;
 
+    // === Inspector Fields (audio) ===
+    std::string climbAudioName = "CLIMB_METAL";
+
+    bool useSpaceKeyInsteadOfMouse = false;
+    float spaceKeyMaxDistance = 3.0f;
+
     // === Runtime State ===
     bool isLifting;
     float targetY;
-    Player_Controller* cachedPlayerController;
     bool cachedPlayerControllerWasEnabled;
 
     void CacheAndDisablePlayerController()
     {
-        cachedPlayerController = nullptr;
         cachedPlayerControllerWasEnabled = true;
 
         GameObject playerGO(player.GetEntity());
         if (!playerGO.IsValid())
             return;
 
-        cachedPlayerController = playerGO.GetComponent<Player_Controller>();
-        if (!cachedPlayerController)
+        Player_Controller* pc = playerGO.GetComponent<Player_Controller>();
+        if (!pc)
             return;
 
-        cachedPlayerControllerWasEnabled = cachedPlayerController->IsEnabled();
-        cachedPlayerController->Reset();
-        cachedPlayerController->SetEnabled(false);
+        cachedPlayerControllerWasEnabled = pc->IsEnabled();
+        pc->ResetMovementOnly();
+        pc->SetEnabled(false);
     }
 
     void RestorePlayerController()
     {
-        if (cachedPlayerController)
+        if (!player.IsValid())
+            return;
+        GameObject playerGO(player.GetEntity());
+        if (!playerGO.IsValid())
+            return;
+        Player_Controller* pc = playerGO.GetComponent<Player_Controller>();
+        if (pc)
         {
-            cachedPlayerController->Reset();
-            cachedPlayerController->SetEnabled(cachedPlayerControllerWasEnabled);
+            pc->ResetMovementOnly();
+            pc->SetEnabled(cachedPlayerControllerWasEnabled);
         }
-
-        cachedPlayerController = nullptr;
     }
 
     // === Helpers ===

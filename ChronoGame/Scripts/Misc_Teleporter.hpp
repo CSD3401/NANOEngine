@@ -10,6 +10,7 @@ public:
         SCRIPT_COMPONENT_REF(targetTransformRef, TransformRef);
         SCRIPT_FIELD(eventBased, Bool);
         SCRIPT_FIELD(eventName, String);
+        SCRIPT_FIELD(impactAudioName, String);
     }
 
     ~Misc_Teleporter() override = default;
@@ -50,6 +51,8 @@ public:
     void OnTriggerEnter(Entity other) override {
         if (!eventBased) {
             // Original behaviour - teleport immediately on trigger
+            if (!impactAudioName.empty())
+                PlayAudio("event:/" + impactAudioName);
             CC_SetPosition(GetPosition(targetTransformRef), player.GetEntity());
         }
         else {
@@ -76,10 +79,13 @@ private:
 
     bool playerInZone = false;
     bool msgReceived = false;
+    std::string impactAudioName = "PLAYER_IMPACT";
 
     void TryTeleport() {
         if (playerInZone && msgReceived) {
             LOG_DEBUG("[Misc_Teleporter] Both conditions met - teleporting.");
+            if (!impactAudioName.empty())
+                PlayAudio("event:/" + impactAudioName);
             CC_SetPosition(GetPosition(targetTransformRef), player.GetEntity());
             // Reset so it can't fire again
             playerInZone = false;

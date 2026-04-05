@@ -102,6 +102,7 @@ public:
 
         // Debug
         SCRIPT_FIELD(debugMode, Bool);
+        SCRIPT_FIELD(allowKeyboardInput, Bool);
     }
 
     void Awake() override {
@@ -168,48 +169,25 @@ public:
     }
 
     void Update(double deltaTime) override {
+        (void)deltaTime;
         if (puzzleSolved) return;
 
-        //if (!targetTransform.IsValid() || !mirrorTargetTransform.IsValid()) {
-        //    LOG_DEBUG("ERROR: Navigator transforms not assigned!");
-        //    return;
-        //}
-
-        // Handle WASD input (commented out for now)
-        
-        if (Input::WasKeyPressed('I')) {
-            PlayAudio("event:/COLOR_CLICK"); // REPLACE THIS - RF
-            TryMoveUp();
-        }
-        if (Input::WasKeyPressed('K')) {
-            PlayAudio("event:/COLOR_CLICK"); // REPLACE THIS - RF
-            TryMoveDown();
-        }
-        if (Input::WasKeyPressed('J')) {
-            PlayAudio("event:/COLOR_CLICK"); // REPLACE THIS - RF
-            TryMoveLeft();
-        }
-        if (Input::WasKeyPressed('L')) {
-            PlayAudio("event:/COLOR_CLICK"); // REPLACE THIS - RF
-            TryMoveRight();
-        }
-        
-
-        // Check win condition
-        if (HasReachedEnd() && HasMirrorReachedEnd()) {
-            if (!puzzleSolved) {
-                puzzleSolved = true;
-                LOG_DEBUG("=== PUZZLE SOLVED! ===");
-
-                // Send event
-                if (!eventName.empty()) {
-                    Events::Send(eventName.c_str(), nullptr);
-                    PlayAudio("event:/DOOR_OPEN"); // REPLACE THIS - RF
-                }
-
-                SetActive(true, mazeServerDoor.GetEntity());
+        if (allowKeyboardInput) {
+            if (Input::WasKeyPressed('I')) {
+                RequestMove(UP);
+            }
+            if (Input::WasKeyPressed('K')) {
+                RequestMove(DOWN);
+            }
+            if (Input::WasKeyPressed('J')) {
+                RequestMove(LEFT);
+            }
+            if (Input::WasKeyPressed('L')) {
+                RequestMove(RIGHT);
             }
         }
+
+        CheckSolvedState();
 
         // Debug: Reset puzzle
         if (debugMode && Input::WasKeyPressed('R')) {
@@ -219,6 +197,18 @@ public:
 
     const char* GetTypeName() const override {
         return "MirrorPuzzle";
+    }
+
+    bool HandleTileClick(int clickedRow, int clickedCol, bool clickedMirrorGrid) {
+        if (puzzleSolved) {
+            return false;
+        }
+
+        if (clickedMirrorGrid) {
+            return HandleMirrorTileClick(clickedRow, clickedCol);
+        }
+
+        return HandleOriginalTileClick(clickedRow, clickedCol);
     }
 
     // Required collision/trigger callbacks (not used but must be implemented)
@@ -481,13 +471,9 @@ private:
     //}
 
     void HighlightTiles() {
-        // Unhighlight previous tiles (set back to white)
-        if (lastOriginalTile != 0 && originalMaterial.IsValid()) {
-            NE::Renderer::Command::AssignMaterial(lastOriginalTile, originalMaterial);
-        }
-        if (lastMirrorTile != 0 && originalMaterial.IsValid()) {
-            NE::Renderer::Command::AssignMaterial(lastMirrorTile, originalMaterial);
-        }
+        // Unhighlight previous tiles
+        RestoreTileMaterial(lastOriginalTile, false);
+        RestoreTileMaterial(lastMirrorTile, true);
 
         // Highlight current original tile (set to green)
         int tileIndex = currentRow * 4 + currentCol;
@@ -519,125 +505,124 @@ private:
 
     // ========== Movement Functions ==========
 
-    void TryMoveUp() {
-        if (debugMode) LOG_DEBUG("--- Attempting UP ---");
+    bool HandleOriginalTileClick(int clickedRow, int clickedCol) {
+        int rowDelta = clickedRow - currentRow;
+        int colDelta = clickedCol - currentCol;
 
-        bool originalMoved = TryMoveOriginal(UP, -1, 0);
-        bool mirrorMoved = TryMoveMirror(UP, -1, 0);
-
-        if (originalMoved || mirrorMoved) {
-            HighlightTiles();
-            LogCurrentState();
-        }
-    }
-
-    void TryMoveDown() {
-        if (debugMode) LOG_DEBUG("--- Attempting DOWN ---");
-
-        bool originalMoved = TryMoveOriginal(DOWN, 1, 0);
-        bool mirrorMoved = TryMoveMirror(DOWN, 1, 0);
-
-        if (originalMoved || mirrorMoved) {
-            HighlightTiles();
-            LogCurrentState();
-        }
-    }
-
-    void TryMoveLeft() {
-        if (debugMode) LOG_DEBUG("--- Attempting LEFT ---");
-
-        // Left on original = Right on mirror (X-axis flip)
-        bool originalMoved = TryMoveOriginal(LEFT, 0, -1);
-        bool mirrorMoved = TryMoveMirror(RIGHT, 0, 1);
-
-        if (originalMoved || mirrorMoved) {
-            HighlightTiles();
-            LogCurrentState();
-        }
-    }
-
-    void TryMoveRight() {
-        if (debugMode) LOG_DEBUG("--- Attempting RIGHT ---");
-
-        // Right on original = Left on mirror (X-axis flip)
-        bool originalMoved = TryMoveOriginal(RIGHT, 0, 1);
-        bool mirrorMoved = TryMoveMirror(LEFT, 0, -1);
-
-        if (originalMoved || mirrorMoved) {
-            HighlightTiles();
-            LogCurrentState();
-        }
-    }
-
-    /**
-     * Try to move on the original grid
-     */
-    bool TryMoveOriginal(Direction dir, int rowDelta, int colDelta) {
-        // Check if current tile allows movement in this direction
-        if (!CanMoveInDirection(grid[currentRow][currentCol], dir)) {
-            if (debugMode) LOG_DEBUG("Original: Cannot move - current tile doesn't allow it");
+        Direction dir = DirectionFromDelta(rowDelta, colDelta);
+        if (dir == NONE) {
+            if (debugMode) {
+                LOG_DEBUG("Original tile click ignored: ({}, {}) is not adjacent to current tile ({}, {})",
+                    clickedRow, clickedCol, currentRow, currentCol);
+            }
             return false;
         }
 
-        // Calculate new position
-        int newRow = currentRow + rowDelta;
-        int newCol = currentCol + colDelta;
+        return RequestMove(dir);
+    }
 
-        // Check bounds
-        if (newRow < 0 || newRow > 2 || newCol < 0 || newCol > 3) {
-            if (debugMode) LOG_DEBUG("Original: Cannot move - would go out of bounds");
+    bool HandleMirrorTileClick(int clickedRow, int clickedCol) {
+        int rowDelta = clickedRow - mirrorRow;
+        int colDelta = clickedCol - mirrorCol;
+
+        Direction mirrorDir = DirectionFromDelta(rowDelta, colDelta);
+        if (mirrorDir == NONE) {
+            if (debugMode) {
+                LOG_DEBUG("Mirror tile click ignored: ({}, {}) is not adjacent to current mirror tile ({}, {})",
+                    clickedRow, clickedCol, mirrorRow, mirrorCol);
+            }
             return false;
         }
 
-        // Check if destination tile allows entry from opposite direction
-        Direction oppositeDir = GetOppositeDirection(dir);
-        if (!CanMoveInDirection(grid[newRow][newCol], oppositeDir)) {
-            if (debugMode) LOG_DEBUG("Original: Cannot move - destination doesn't allow entry");
+        return RequestMove(OriginalDirectionFromMirrorClick(mirrorDir));
+    }
+
+    bool RequestMove(Direction originalDir) {
+        if (debugMode) {
+            LOG_DEBUG("--- Attempting {} ---", DirectionToString(originalDir));
+        }
+
+        int originalRowDelta = 0;
+        int originalColDelta = 0;
+        int mirrorRowDelta = 0;
+        int mirrorColDelta = 0;
+        Direction mirrorDir = NONE;
+
+        switch (originalDir) {
+        case UP:
+            originalRowDelta = -1;
+            mirrorRowDelta = -1;
+            mirrorDir = UP;
+            break;
+        case DOWN:
+            originalRowDelta = 1;
+            mirrorRowDelta = 1;
+            mirrorDir = DOWN;
+            break;
+        case LEFT:
+            originalColDelta = -1;
+            mirrorColDelta = 1;
+            mirrorDir = RIGHT;
+            break;
+        case RIGHT:
+            originalColDelta = 1;
+            mirrorColDelta = -1;
+            mirrorDir = LEFT;
+            break;
+        default:
             return false;
         }
 
-        // Valid move!
-        currentRow = newRow;
-        currentCol = newCol;
-        //MoveOriginalTargetToTile(currentRow * 4 + currentCol);
+        if (!CanMoveOnGrid(grid, currentRow, currentCol, originalDir, originalRowDelta, originalColDelta, "Original")) {
+            return false;
+        }
 
-        if (debugMode) LOG_DEBUG("Original moved to ({}, {})", currentRow, currentCol);
+        if (!CanMoveOnGrid(mirrorGrid, mirrorRow, mirrorCol, mirrorDir, mirrorRowDelta, mirrorColDelta, "Mirror")) {
+            return false;
+        }
+
+        currentRow += originalRowDelta;
+        currentCol += originalColDelta;
+        mirrorRow += mirrorRowDelta;
+        mirrorCol += mirrorColDelta;
+
+        if (debugMode) {
+            LOG_DEBUG("Original moved to ({}, {})", currentRow, currentCol);
+            LOG_DEBUG("Mirror moved to ({}, {})", mirrorRow, mirrorCol);
+        }
+
+        PlayAudio("event:/COLOR_CLICK");
+        HighlightTiles();
+        LogCurrentState();
+        CheckSolvedState();
         return true;
     }
 
-    /**
-     * Try to move on the mirror grid
-     */
-    bool TryMoveMirror(Direction dir, int rowDelta, int colDelta) {
-        // Check if current tile allows movement in this direction
-        if (!CanMoveInDirection(mirrorGrid[mirrorRow][mirrorCol], dir)) {
-            if (debugMode) LOG_DEBUG("Mirror: Cannot move - current tile doesn't allow it");
+    bool CanMoveOnGrid(const std::array<std::array<Direction, 4>, 3>& targetGrid,
+        int row, int col,
+        Direction dir,
+        int rowDelta, int colDelta,
+        const char* gridName) const {
+
+        if (!CanMoveInDirection(targetGrid[row][col], dir)) {
+            if (debugMode) LOG_DEBUG("{}: Cannot move - current tile doesn't allow it", gridName);
             return false;
         }
 
-        // Calculate new position
-        int newRow = mirrorRow + rowDelta;
-        int newCol = mirrorCol + colDelta;
+        int newRow = row + rowDelta;
+        int newCol = col + colDelta;
 
-        // Check bounds
         if (newRow < 0 || newRow > 2 || newCol < 0 || newCol > 3) {
-            if (debugMode) LOG_DEBUG("Mirror: Cannot move - would go out of bounds");
+            if (debugMode) LOG_DEBUG("{}: Cannot move - would go out of bounds", gridName);
             return false;
         }
 
-        // Check if destination tile allows entry from opposite direction
         Direction oppositeDir = GetOppositeDirection(dir);
-        if (!CanMoveInDirection(mirrorGrid[newRow][newCol], oppositeDir)) {
-            if (debugMode) LOG_DEBUG("Mirror: Cannot move - destination doesn't allow entry");
+        if (!CanMoveInDirection(targetGrid[newRow][newCol], oppositeDir)) {
+            if (debugMode) LOG_DEBUG("{}: Cannot move - destination doesn't allow entry", gridName);
             return false;
         }
 
-        // Valid move!
-        mirrorRow = newRow;
-        mirrorCol = newCol;
-        //MoveMirrorTargetToTile(mirrorRow * 4 + mirrorCol);
-
-        if (debugMode) LOG_DEBUG("Mirror moved to ({}, {})", mirrorRow, mirrorCol);
         return true;
     }
 
@@ -646,6 +631,34 @@ private:
      */
     bool CanMoveInDirection(Direction tile, Direction dir) const {
         return (static_cast<uint8_t>(tile) & static_cast<uint8_t>(dir)) != 0;
+    }
+
+    Direction DirectionFromDelta(int rowDelta, int colDelta) const {
+        if (rowDelta == -1 && colDelta == 0) return UP;
+        if (rowDelta == 1 && colDelta == 0) return DOWN;
+        if (rowDelta == 0 && colDelta == -1) return LEFT;
+        if (rowDelta == 0 && colDelta == 1) return RIGHT;
+        return NONE;
+    }
+
+    Direction OriginalDirectionFromMirrorClick(Direction mirrorDir) const {
+        switch (mirrorDir) {
+        case LEFT:  return RIGHT;
+        case RIGHT: return LEFT;
+        case UP:    return UP;
+        case DOWN:  return DOWN;
+        default:    return NONE;
+        }
+    }
+
+    const char* DirectionToString(Direction dir) const {
+        switch (dir) {
+        case UP:    return "UP";
+        case DOWN:  return "DOWN";
+        case LEFT:  return "LEFT";
+        case RIGHT: return "RIGHT";
+        default:    return "NONE";
+        }
     }
 
     /**
@@ -708,9 +721,65 @@ private:
         puzzleSolved = false;
 
         HighlightTiles();
+
+        if (destinationMaterial.IsValid()) {
+            int goalIndex = endRow * 4 + endCol;
+            if (tileTransforms[goalIndex].IsValid()) {
+                NE::Renderer::Command::AssignMaterial(tileTransforms[goalIndex].GetEntity(), destinationMaterial);
+            }
+
+            int mirrorGoalIndex = mirrorEndRow * 4 + mirrorEndCol;
+            if (mirrorTileTransforms[mirrorGoalIndex].IsValid()) {
+                NE::Renderer::Command::AssignMaterial(mirrorTileTransforms[mirrorGoalIndex].GetEntity(), destinationMaterial);
+            }
+        }
+
         LogCurrentState();
 
         LOG_DEBUG("Puzzle reset!");
+    }
+
+    void CheckSolvedState() {
+        if (!HasReachedEnd() || !HasMirrorReachedEnd() || puzzleSolved) {
+            return;
+        }
+
+        puzzleSolved = true;
+        LOG_DEBUG("=== PUZZLE SOLVED! ===");
+
+        if (!eventName.empty()) {
+            Events::Send(eventName.c_str(), nullptr);
+            PlayAudio("event:/DOOR_OPEN");
+        }
+
+        if (mazeServerDoor.IsValid()) {
+            SetActive(true, mazeServerDoor.GetEntity());
+        }
+    }
+
+    bool IsGoalTileEntity(Entity tileEntity, bool isMirror) const {
+        if (tileEntity == 0) {
+            return false;
+        }
+
+        int goalIndex = isMirror ? (mirrorEndRow * 4 + mirrorEndCol) : (endRow * 4 + endCol);
+        const auto& tiles = isMirror ? mirrorTileTransforms : tileTransforms;
+        return tiles[goalIndex].IsValid() && tiles[goalIndex].GetEntity() == tileEntity;
+    }
+
+    void RestoreTileMaterial(Entity tileEntity, bool isMirror) {
+        if (tileEntity == 0) {
+            return;
+        }
+
+        if (IsGoalTileEntity(tileEntity, isMirror) && destinationMaterial.IsValid()) {
+            NE::Renderer::Command::AssignMaterial(tileEntity, destinationMaterial);
+            return;
+        }
+
+        if (originalMaterial.IsValid()) {
+            NE::Renderer::Command::AssignMaterial(tileEntity, originalMaterial);
+        }
     }
 
     /**
@@ -756,6 +825,7 @@ private:
     float zOffset = 0.2f;
     std::string eventName = "MirrorPuzzleSolved";
     bool debugMode = true;
+    bool allowKeyboardInput = false;
 
     // Runtime state
     int mirrorStartRow = 0;

@@ -235,6 +235,14 @@ public:
 
             // if true turn on the wire connecting them
             SetActive(true, connectedWires[currentSelectedRightIndex]);
+
+            std::string buttonSolvedMessage = "ButtonSolved" + std::to_string(wirePuzzleIndex);
+            std::string buttonData1 = "1" + std::to_string(currentSelectedRightIndex);
+
+            std::string buttonData2 = "0" + std::to_string(currentSelectedLeftIndex);
+            Events::Send(buttonSolvedMessage.c_str(), &buttonData1);
+            Events::Send(buttonSolvedMessage.c_str(), &buttonData2);
+
             // then reset
             currentSelectedLeftIndex = 9999;
             currentSelectedRightIndex = 9999;
@@ -247,8 +255,8 @@ public:
             }
         }
         // fail then reset pair
-        currentSelectedLeftIndex = 9999;
-        currentSelectedRightIndex = 9999;
+        //currentSelectedLeftIndex = 9999;
+        //currentSelectedRightIndex = 9999;
         return false;
     }
 

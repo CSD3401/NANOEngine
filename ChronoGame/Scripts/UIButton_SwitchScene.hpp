@@ -4,7 +4,7 @@
 class UIButton_SwitchScene : public IScript {
 public:
     UIButton_SwitchScene() {
-       // SCRIPT_FIELD(scenePath, String);
+        SCRIPT_FIELD(switchDelaySeconds, Float);
     }
 
     ~UIButton_SwitchScene() override = default;
@@ -15,17 +15,32 @@ public:
         //if (scenePath.empty()) scenePath = "23817f87-176c-4c6d-84a9-1999ac689ce9";
     }
     void Start() override {
-       //scenePath = "23817f87-176c-4c6d-84a9-1999ac689ce9";
+        //scenePath = "23817f87-176c-4c6d-84a9-1999ac689ce9";
         scenePath = "81587700-1f12-4eeb-95dd-719f3e9c750a";
     }
 
-    void Update(double /*dt*/) override {
+    void Update(double deltaTime) override {
         if (m_sent) return;
+
+        if (m_pendingDelay) {
+            m_delayElapsed += static_cast<float>(deltaTime);
+            if (m_delayElapsed >= switchDelaySeconds) {
+                m_sent = true;
+                NE::Scripting::SwitchScene(scenePath);
+            }
+            return;
+        }
 
         if (NE::Scripting::WasButtonClicked(m_Button) &&
             NE::Scripting::IsButtonInteractable(m_Button)) {
-            m_sent = true;
-            NE::Scripting::SwitchScene(scenePath); // now queues safely
+            if (switchDelaySeconds <= 0.0f) {
+                m_sent = true;
+                NE::Scripting::SwitchScene(scenePath);
+            }
+            else {
+                m_pendingDelay = true;
+                m_delayElapsed = 0.0f;
+            }
         }
     }
 
@@ -46,5 +61,8 @@ public:
 private:
     Entity m_Button{};
     std::string scenePath{}; /*= "23817f87-176c-4c6d-84a9-1999ac689ce9";*/
+    float switchDelaySeconds = 0.0f;
     bool m_sent = false;
+    bool m_pendingDelay = false;
+    float m_delayElapsed = 0.0f;
 };

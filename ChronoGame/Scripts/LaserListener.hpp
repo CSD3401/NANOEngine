@@ -2,16 +2,11 @@
 #include "EngineAPI.hpp"
 
 /**
- * Interactable_Gate
+ * LaserListener
  *
- * Gate that smoothly moves along Z axis when player presses E nearby.
+ * Listens for puzzle solve events, then plays laser “open” anims and turns laser rigidbodies into triggers.
  *
- * Setup:
- * 1. Add this script to your gate entity
- * 2. Assign playerRef (drag Player entity)
- * 3. Set moveDistance (how far gate moves on Z axis)
- * 4. Set interactionDistance and tweenDuration
- * 5. Press E when near gate to open it
+ * Opens when `eventName` is received.
  */
 class LaserListener : public IScript {
 public:
@@ -34,7 +29,7 @@ public:
         SCRIPT_GAMEOBJECT_REF(rightLaser6);
         SCRIPT_GAMEOBJECT_REF(rightLaser7);
         SCRIPT_GAMEOBJECT_REF(rightLaser8);
-        
+        SCRIPT_FIELD(eventName, String);
     }
 
     ~LaserListener() override = default;
@@ -46,9 +41,9 @@ public:
         if (!eventName.empty()) {
             Events::Listen(eventName.c_str(), [this](void* data) {
                 (void)data;
-                DisableLaser();
+                OnSolveEvent();
                 });
-            LOG_DEBUG("Laser Listener'{}'", eventName);
+            LOG_DEBUG("LaserListener listening: " + eventName);
         }
     }
 
@@ -73,9 +68,22 @@ public:
     void OnTriggerStay(Entity other) override { (void)other; }
 
 private:
-    
+    std::string eventName = "PuzzleSolved1";
+
+    bool m_laserDisabled = false;
+
+    void OnSolveEvent() {
+        if (m_laserDisabled)
+            return;
+        DisableLaser();
+    }
+
     void DisableLaser()
     {
+        if (m_laserDisabled)
+            return;
+        m_laserDisabled = true;
+
         Entity leftLaserEntity = leftLaser.GetEntity();
         Entity rightLaserEntity = rightLaser.GetEntity();
         //SetActive(false, leftLaserEntity);
@@ -122,7 +130,4 @@ private:
     GameObjectRef rightLaser6;
     GameObjectRef rightLaser7;
     GameObjectRef rightLaser8;
-
-    // Exposed fields
-    std::string eventName = "PuzzleSolved1"; // PuzzleSolved1 - for puzzle wire
 };

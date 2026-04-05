@@ -41,6 +41,7 @@
 #include "Scripts/LaserListener.hpp"
 #include "Scripts/IntersectionListerner.hpp"
 #include "Scripts/Misc_Teleporter.hpp"
+#include "Scripts/Misc_TransitionTeleporter.hpp"
 #include "Scripts/UIButton_SwitchSceneThree.hpp"
 #include "Scripts/UIButton_SwitchSceneTwo.hpp"
 #include "Scripts/UIButton_SwitchScene.hpp"
@@ -59,10 +60,40 @@
 #include "Scripts/Camera_ExplosionShake.hpp"
 #include "Scripts/UI_MainMenu.hpp"
 #include "Scripts/UI_BGMVolumeButtons.hpp"
+#include "Scripts/UI_GammaSlider.hpp"
 #include "Scripts/UI_SFXVolumeButtons.hpp"
 #include "Scripts/UI_AmbienceVolumeButtons.hpp"
-
-
+#include "Scripts/Interactable_MirrorTile.hpp"
+#include "Scripts/Misc_StopAnimationOnEvent.hpp"
+#include "Scripts/Misc_SolvedMaterialOverride.hpp"
+#include "Scripts/Puzzle_FinalBomb.hpp"
+#include "Scripts/Puzzle_Bomb.hpp"
+#include "Scripts/UIButton_Quit.hpp"
+#include "Scripts/Credits_Controller.hpp"
+#include "Scripts/Credits_ReturnToMainMenu.hpp"
+#include "Scripts/UIButton_SwitchToCredits.hpp"
+#include "Scripts/UIButton_ResetVolumes.hpp"
+#include "Scripts/SplashScreen_Controller.hpp"
+#include "Scripts/SplashScreen_ReturnToMainMenu.hpp"
+#include "Scripts/Misc_WireBlinking.hpp"
+#include "Scripts/Misc_ForcePastOnCollision.hpp"
+#include "Scripts/Misc_ObjectUI.hpp"
+#include "Scripts/Interactable_RotateLock.hpp"
+#include "Scripts/Puzzle_RotateLock.hpp"
+#include "Scripts/Tasks/TaskManager.hpp"
+#include "Scripts/Tasks/TaskCheckpoint.hpp"
+#include "Scripts/UI_HoverTextColor.hpp"
+#include "Scripts/UI_OverlayFadeIn.hpp"
+#include "Scripts/UI_ApplySavedSettings.hpp"
+#include "Scripts/UI_RestorePauseSettings.hpp"
+#include "Scripts/UI_Settings.hpp"
+#include "Scripts/Misc_PauseMenuHotkey.hpp"
+#include "Scripts/TriggerParentSwitcher.hpp"
+#include "Scripts/TriggerMaterialVectorSwitcher.hpp"
+#include "Scripts/UIButton_PauseResume.hpp"
+#include "Scripts/UIButton_CanvasSwitcher.hpp"
+#include "Scripts/UI_SaveSettings.hpp"
+#include "Scripts/FinalAreaManager.hpp"
 
 // extern "C" ensures C linkage so the Engine DLL can find this function
 extern "C" {
@@ -181,6 +212,9 @@ extern "C" {
         registrar->RegisterScript("Misc_Teleporter", []() -> NE::Scripting::IScript* {
             return new Misc_Teleporter();
             });
+        registrar->RegisterScript("Misc_TransitionTeleporter", []() -> NE::Scripting::IScript* {
+            return new Misc_TransitionTeleporter();
+            });
         registrar->RegisterScript("UIButton_SwitchSceneThree", []() -> NE::Scripting::IScript* {
             return new UIButton_SwitchSceneThree();
             });
@@ -241,8 +275,20 @@ extern "C" {
         registrar->RegisterScript("UI_MainMenu", []() -> NE::Scripting::IScript* {
             return new UI_MainMenu();
             });
+        registrar->RegisterScript("UI_Settings", []() -> NE::Scripting::IScript* {
+            return new UI_MainMenu();
+            });
+        registrar->RegisterScript("UI_ApplySavedSettings", []() -> NE::Scripting::IScript* {
+            return new UI_ApplySavedSettings();
+            });
+        registrar->RegisterScript("UI_RestorePauseSettings", []() -> NE::Scripting::IScript* {
+            return new UI_RestorePauseSettings();
+            });
         registrar->RegisterScript("UI_BGMVolumeButtons", []() -> NE::Scripting::IScript* {
             return new UI_BGMVolumeButtons();
+            });
+        registrar->RegisterScript("UI_GammaSlider", []() -> NE::Scripting::IScript* {
+            return new UI_GammaSlider();
             });
         registrar->RegisterScript("UI_SFXVolumeButtons", []() -> NE::Scripting::IScript* {
             return new UI_SFXVolumeButtons();
@@ -250,5 +296,95 @@ extern "C" {
         registrar->RegisterScript("UI_AmbienceVolumeButtons", []() -> NE::Scripting::IScript* {
             return new UI_AmbienceVolumeButtons();
             });
-        }
+        registrar->RegisterScript("Interactable_MirrorTile", []() -> NE::Scripting::IScript* {
+            return new Interactable_MirrorTile();
+            });
+        registrar->RegisterScript("Misc_StopAnimationOnEvent", []() -> NE::Scripting::IScript* {
+            return new Misc_StopAnimationOnEvent();
+            });
+        registrar->RegisterScript("Misc_SolvedMaterialOverride", []() -> NE::Scripting::IScript* {
+            return new Misc_SolvedMaterialOverride();
+            });
+        //registrar->RegisterScript("Puzzle_FinalBomb", []() -> NE::Scripting::IScript* {
+        //    return new Puzzle_FinalBomb();
+        //    });
+        registrar->RegisterScript("Puzzle_Bomb", []() -> NE::Scripting::IScript* {
+            return new Puzzle_Bomb();
+            });
+        registrar->RegisterScript("UIButton_Quit", []() -> NE::Scripting::IScript* {
+            return new UIButton_Quit();
+            });
+        registrar->RegisterScript("Credits_Controller", []() -> NE::Scripting::IScript* {
+            return new Credits_Controller();
+            });
+        registrar->RegisterScript("Credits_ReturnToMainMenu", []() -> NE::Scripting::IScript* {
+            return new Credits_ReturnToMainMenu();
+            });
+        registrar->RegisterScript("UIButton_SwitchToCredits", []() -> NE::Scripting::IScript* {
+            return new UIButton_SwitchToCredits();
+            });
+        registrar->RegisterScript("UIButton_ResetVolumes", []() -> NE::Scripting::IScript* {
+            return new UIButton_ResetVolumes();
+            });
+        registrar->RegisterScript("SplashScreen_Controller", []() -> NE::Scripting::IScript* {
+            return new SplashScreen_Controller();
+            });
+        registrar->RegisterScript("SplashScreen_ReturnToMainMenu", []() -> NE::Scripting::IScript* {
+            return new SplashScreen_ReturnToMainMenu();
+            });
+        registrar->RegisterScript("Misc_WireBlinking", []() -> NE::Scripting::IScript* {
+            return new Misc_WireBlinking();
+            });
+        registrar->RegisterScript("Misc_ForcePastOnCollision", []() -> NE::Scripting::IScript* {
+            return new Misc_ForcePastOnCollision();
+            });
+        registrar->RegisterScript("Misc_ObjectUI", []() -> NE::Scripting::IScript* {
+            return new Misc_ObjectUI();
+            });
+        registrar->RegisterScript("Interactable_RotateLock", []() -> NE::Scripting::IScript* {
+            return new Interactable_RotateLock();
+            });
+        registrar->RegisterScript("Puzzle_RotateLock", []() -> NE::Scripting::IScript* {
+            return new Puzzle_RotateLock();
+            });
+
+
+        registrar->RegisterScript("UI_HoverTextColor", []() -> NE::Scripting::IScript* {
+            return new UI_HoverTextColor();
+            });
+        registrar->RegisterScript("UI_OverlayFadeIn", []() -> NE::Scripting::IScript* {
+            return new UI_OverlayFadeIn();
+            });
+        registrar->RegisterScript("Misc_PauseMenuHotkey", []() -> NE::Scripting::IScript* {
+            return new Misc_PauseMenuHotkey();
+            });
+        registrar->RegisterScript("UIButton_PauseResume", []() -> NE::Scripting::IScript* {
+            return new UIButton_PauseResume();
+            });
+        registrar->RegisterScript("UIButton_CanvasSwitcher", []() -> NE::Scripting::IScript* {
+            return new UIButton_CanvasSwitcher();
+            });
+
+
+        registrar->RegisterScript("TaskManager", []() -> NE::Scripting::IScript* {
+            return new TaskManager();
+            });
+        registrar->RegisterScript("TaskCheckpoint", []() -> NE::Scripting::IScript* {
+            return new TaskCheckpoint();
+            });
+        registrar->RegisterScript("TriggerParentSwitcher", []() -> NE::Scripting::IScript* {
+            return new TriggerParentSwitcher();
+            });
+        registrar->RegisterScript("TriggerMaterialVectorSwitcher", []() -> NE::Scripting::IScript* {
+            return new TriggerMaterialVectorSwitcher();
+            });
+        registrar->RegisterScript("UI_SaveSettings", []() -> NE::Scripting::IScript* {
+            return new UI_SaveSettings();
+            });
+        registrar->RegisterScript("FinalAreaManager", []() -> NE::Scripting::IScript* {
+            return new FinalAreaManager();
+            });
+        
+
+    }
 }

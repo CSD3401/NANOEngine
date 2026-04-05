@@ -114,7 +114,6 @@ namespace ScriptFieldType {
     struct Bool {};
     struct String {};
     struct Vec3 {};
-    struct Vec4 {};
 }
 
 // Convenience aliases at global scope (for backward compatibility)
@@ -339,7 +338,6 @@ namespace Command {
 
 // Core scripting types
 using Vec3 = NE::Scripting::Vec3;
-using Vec4 = NE::Scripting::Vec4;
 using Entity = NE::Scripting::Entity;
 using IScript = NE::Scripting::IScript;
 using RaycastHit = NE::Scripting::RaycastHit;
@@ -366,7 +364,6 @@ namespace Component = NE::ECS::Component;
 namespace ChronoGame {
     // Alias the SDK types into ChronoGame namespace for easier use
     using Vec3 = NE::Scripting::Vec3;
-    using Vec4 = NE::Scripting::Vec4;
     using Entity = NE::Scripting::Entity;
     using IScript = NE::Scripting::IScript;
     using RaycastHit = NE::Scripting::RaycastHit;

@@ -1,24 +1,21 @@
 #pragma once
 #include "EngineAPI.hpp"
+#include "UI_SaveSettings.hpp"
 
 /**
- * UI_MasterVolumeButtons
- * ----------------------
- * Attach this script to ANY entity (can be an empty "manager" object).
+ * UI_MasterVolumeButtons (slider version)
+ * ---------------------------------------
+ * Attach this script to ANY entity (e.g. an empty "manager" object).
  *
  * In the editor, assign:
- *   - volumeUpButton   : entity with UIButton (Volume +)
- *   - volumeDownButton : entity with UIButton (Volume -)
+ *   - volumeSlider : entity with UISlider component
  *
- * Clicking the buttons will step the master volume level between 0 and 5.
- * Level 0 = mute, Level 5 = full volume.
+ * Slider normalized 0-1 maps directly to master volume 0.0-1.0 (same as BGM/SFX/Ambience).
  */
 class UI_MasterVolumeButtons : public IScript {
 public:
     UI_MasterVolumeButtons() {
-        SCRIPT_FIELD(volumeUpButton, GameObjectRef);
-        SCRIPT_FIELD(volumeDownButton, GameObjectRef);
-        SCRIPT_FIELD(step, Int);
+        SCRIPT_GAMEOBJECT_REF(volumeSlider);
     }
 
     ~UI_MasterVolumeButtons() override = default;
@@ -27,27 +24,22 @@ public:
     void Initialize(Entity /*entity*/) override {}
 
     void Start() override {
-        if (step <= 0) step = 1;
-        m_up = volumeUpButton.IsValid() ? volumeUpButton.GetEntity() : 0;
-        m_down = volumeDownButton.IsValid() ? volumeDownButton.GetEntity() : 0;
+        m_slider = volumeSlider.IsValid() ? volumeSlider.GetEntity() : 0;
 
-        // Ensure engine volume is clamped to 0..5 on start.
-        const int current = Audio::GetMasterVolumeLevel();
-        Audio::SetMasterVolumeLevel(Clamp(current));
+        // Restore saved volume if it was previously saved
+        if (SavedSettings::hasBeenSaved && m_slider != 0) {
+            UI::SetSliderNormalizedValue(m_slider, SavedSettings::masterVolume);
+            SetMasterVolume(SavedSettings::masterVolume);
+        }
     }
 
     void Update(double /*dt*/) override {
-        if (m_up != 0 && UI::WasButtonClicked(m_up) && UI::IsButtonInteractable(m_up)) {
-            const int next = Clamp(Audio::GetMasterVolumeLevel() + step);
-            Audio::SetMasterVolumeLevel(next);
-            LOG_DEBUG("[Audio] Master volume level: {}", Audio::GetMasterVolumeLevel());
-        }
+        if (m_slider == 0) return;
 
-        if (m_down != 0 && UI::WasButtonClicked(m_down) && UI::IsButtonInteractable(m_down)) {
-            const int next = Clamp(Audio::GetMasterVolumeLevel() - step);
-            Audio::SetMasterVolumeLevel(next);
-            LOG_DEBUG("[Audio] Master volume level: {}", Audio::GetMasterVolumeLevel());
-        }
+        float norm = UI::GetSliderNormalizedValue(m_slider);
+        if (norm < 0.0f) norm = 0.0f;
+        if (norm > 1.0f) norm = 1.0f;
+        SetMasterVolume(norm);
     }
 
     void OnDestroy() override {}
@@ -65,17 +57,6 @@ public:
     void OnTriggerStay(Entity other) override { (void)other; }
 
 private:
-    static int Clamp(int v) {
-        if (v < 0) return 0;
-        if (v > 5) return 5;
-        return v;
-    }
-
-private:
-    GameObjectRef volumeUpButton;
-    GameObjectRef volumeDownButton;
-    int step = 1;
-
-    Entity m_up = 0;
-    Entity m_down = 0;
+    GameObjectRef volumeSlider;
+    Entity m_slider = 0;
 };

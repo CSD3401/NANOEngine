@@ -33,6 +33,14 @@ public:
 		walkSoundTimer = 0.0f;
     }
 
+    /** Clears movement state only — does not touch lookRotation (use when freezing/unfreezing for transitions). */
+    void ResetMovementOnly()
+    {
+        velocity = Vec3::Zero();
+        explosionCameraOffset = Vec3::Zero();
+        walkSoundTimer = 0.0f;
+    }
+
     void SetExplosionCameraOffset(const Vec3& offset)
     {
         explosionCameraOffset = offset;

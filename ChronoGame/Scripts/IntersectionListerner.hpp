@@ -17,6 +17,15 @@ class IntersectionListener : public IScript {
 public:
     IntersectionListener() {
         SCRIPT_GAMEOBJECT_REF(laser);
+        SCRIPT_GAMEOBJECT_REF(animTarget1);
+        SCRIPT_GAMEOBJECT_REF(animTarget2);
+        SCRIPT_GAMEOBJECT_REF(animTarget3);
+        SCRIPT_GAMEOBJECT_REF(animTarget4);
+        SCRIPT_GAMEOBJECT_REF(animTarget5);
+        SCRIPT_GAMEOBJECT_REF(animTarget6);
+        SCRIPT_GAMEOBJECT_REF(animTarget7);
+        SCRIPT_GAMEOBJECT_REF(animTarget8);
+        SCRIPT_FIELD(disableAfterSolve, Bool);
     }
 
     ~IntersectionListener() override = default;
@@ -76,9 +85,34 @@ private:
     void DisableLaser()
     {
         LOG_DEBUG("IntersectionListener - DisableLaser");
-        Entity LaserEntity = laser.GetEntity();
-        SetActive(false, LaserEntity);
-        RB_SetIsTrigger(true, LaserEntity);
+        // Play assigned laser open animations first.
+        AnimPlayIfValid(animTarget1);
+        AnimPlayIfValid(animTarget2);
+        AnimPlayIfValid(animTarget3);
+        AnimPlayIfValid(animTarget4);
+        AnimPlayIfValid(animTarget5);
+        AnimPlayIfValid(animTarget6);
+        AnimPlayIfValid(animTarget7);
+        AnimPlayIfValid(animTarget8);
+
+        if (!laser.IsValid()) {
+            LOG_WARNING("IntersectionListener: `laser` is not assigned.");
+            return;
+        }
+
+        Entity laserEntity = laser.GetEntity();
+        RB_SetIsTrigger(true, laserEntity);
+
+        if (disableAfterSolve) {
+            SetActive(false, laserEntity);
+        }
+    }
+
+    void AnimPlayIfValid(const GameObjectRef& ref)
+    {
+        if (ref.IsValid()) {
+            Anim_Play(ref.GetEntity());
+        }
     }
 
     bool receivedPuzzleSolved2 = false;
@@ -86,6 +120,15 @@ private:
     bool doOnce = false;
 
     GameObjectRef laser;
+    GameObjectRef animTarget1;
+    GameObjectRef animTarget2;
+    GameObjectRef animTarget3;
+    GameObjectRef animTarget4;
+    GameObjectRef animTarget5;
+    GameObjectRef animTarget6;
+    GameObjectRef animTarget7;
+    GameObjectRef animTarget8;
+    bool disableAfterSolve = false;
 
     // Exposed fields
 

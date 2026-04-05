@@ -1,6 +1,10 @@
 #pragma once
 #include "EngineAPI.hpp"
 
+#ifndef GLFW_MOUSE_BUTTON_LEFT
+#define GLFW_MOUSE_BUTTON_LEFT 0
+#endif
+
 /*
 * By Chan Kuan Fu Ryan (c.kuanfuryan)
 * Interactable_ is the parent class for all interactable objects in the game.

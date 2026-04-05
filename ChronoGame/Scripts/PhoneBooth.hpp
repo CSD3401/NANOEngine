@@ -1,25 +1,33 @@
 #pragma once
 #include "EngineAPI.hpp"
 
-/**
+/*
  * PhoneBooth
  *
- * Plays sequential voiceover audio when player is nearby.
- * First interaction plays VOICEOVER1, subsequent E presses play VOICEOVER2-5.
+ * - PRESENT: when player enters range, plays a looping static noise.
+ *            When player leaves range, stops the static.
+ * - PAST:    when player enters range for the first time, plays a
+ *            unique voice audio once (set via inspector field voiceAudioName).
+ *
+ * Listens to ChronoActivated (-> past) / ChronoDeactivated (-> present)
+ * to know which timeline is active, same convention as Misc_TimeFogLighting.
  *
  * Setup:
- * 1. Add this script to your phone booth entity
- * 2. Assign playerRef (drag Player entity)
- * 3. Add a trigger collider to the phone booth
- * 4. Set interactionDistance
- * 5. Walk near phone booth to trigger first voiceover
- * 6. Press E to play next voiceovers
+ *   1. Attach this script to the phone booth entity
+ *   2. Assign playerRef (drag Player entity)
+ *   3. Set interactionDistance
+ *   4. Set voiceAudioName  -- FMOD event name WITHOUT "event:/" prefix
+ *                             e.g. "PHONEBOOTH_01_VOICE"
+ *   5. Set staticAudioName -- FMOD looping static event name (default provided)
+ *   6. Add a trigger collider OR rely on distance check in Update
  */
 class PhoneBooth : public IScript {
 public:
     PhoneBooth() {
         SCRIPT_GAMEOBJECT_REF(playerRef);
         SCRIPT_FIELD(interactionDistance, Float);
+        SCRIPT_FIELD(voiceAudioName, String);   // unique per booth, played once in past
+        SCRIPT_FIELD(staticAudioName, String);   // looping static, played in present
     }
 
     ~PhoneBooth() override = default;
@@ -28,82 +36,152 @@ public:
     void Initialize(Entity entity) override {}
 
     void Start() override {
-        currentVoiceoverIndex = 1;  // Start with VOICEOVER1
-        hasPlayedInitial = false;
         playerInRange = false;
+        voicePlayed = false;
+        isInPast = false;   // start assuming present
+        staticPlaying = false;
 
-        if (!playerRef.IsValid()) {
-            LOG_ERROR("Interactable_Gate: playerRef not assigned!");
-        }
+        if (!playerRef.IsValid())
+            LOG_ERROR("PhoneBooth: playerRef not assigned!");
 
-        if (interactionDistance <= 0.0f) {
-            interactionDistance = 3.0f; // Default 3 units
-        }
+        if (interactionDistance <= 0.0f)
+            interactionDistance = 3.0f;
 
-        if (playerRef.IsValid()) {
+        if (voiceAudioName.empty())
+            LOG_WARNING("PhoneBooth: voiceAudioName is empty - no voice will play in past.");
+
+        if (staticAudioName.empty())
+            staticAudioName = "PHONEBOOTH_STATIC"; // sensible default
+
+        if (playerRef.IsValid())
             playerEntity = playerRef.GetEntity();
-        }
+
+        // Listen to timeline events - same convention as Misc_TimeFogLighting
+        Events::Listen("ChronoActivated", [this](void*) {
+            OnEnterPresent();
+            });
+        Events::Listen("ChronoDeactivated", [this](void*) {
+            OnEnterPast();
+            });
     }
 
     void Update(double deltaTime) override {
         (void)deltaTime;
 
-        // Check distance to player
+        if (!playerRef.IsValid()) return;
+
+        // Distance check
         Vec3 boothPos = TF_GetPosition();
         Vec3 playerPos = TF_GetPosition(playerEntity);
-
-        // Calculate distance
-        Vec3 delta = playerPos - boothPos;
-        float distance = delta.Length();
+        Vec3 diff = playerPos - boothPos;
+        float distance = diff.Length();
 
         bool wasInRange = playerInRange;
-        playerInRange = distance <= interactionDistance;
+        playerInRange = (distance <= interactionDistance);
 
-        // Just entered range - play first voiceover automatically
-        if (playerInRange && !wasInRange && !hasPlayedInitial) {
-            PlayCurrentVoiceover();
-            hasPlayedInitial = true;
+        // Player just entered range
+        if (playerInRange && !wasInRange) {
+            OnPlayerEnter();
         }
+        // Player just left range
+        else if (!playerInRange && wasInRange) {
+            OnPlayerExit();
+        }
+    }
 
-        // Press E to play next voiceover
-        if (playerInRange && hasPlayedInitial && Input::WasKeyPressed('E')) {
-            if (currentVoiceoverIndex < 5) {
-                currentVoiceoverIndex++;
-                PlayCurrentVoiceover();
-            } else {
-                LOG_DEBUG("PhoneBooth: All voiceovers played");
+    void OnDestroy() override {
+        StopStatic();
+    }
+
+    void OnEnable()   override {}
+    void OnDisable()  override { StopStatic(); }
+    void OnValidate() override {}
+
+    const char* GetTypeName() const override { return "PhoneBooth"; }
+
+    void OnCollisionEnter(Entity o) override { (void)o; }
+    void OnCollisionExit(Entity o)  override { (void)o; }
+    void OnCollisionStay(Entity o)  override { (void)o; }
+    void OnTriggerEnter(Entity o)   override { (void)o; }
+    void OnTriggerExit(Entity o)    override { (void)o; }
+    void OnTriggerStay(Entity o)    override { (void)o; }
+
+private:
+    // Inspector
+    GameObjectRef playerRef;
+    float         interactionDistance = 3.0f;
+    std::string   voiceAudioName = "";    // e.g. "PHONEBOOTH_01_VOICE"
+    std::string   staticAudioName = "PHONEBOOTH_STATIC";
+
+    // Runtime
+    Entity playerEntity;
+    bool   playerInRange = false;
+    bool   voicePlayed = false;
+    bool   isInPast = false;
+    bool   staticPlaying = false;
+
+    // ----------------------------------------------------------
+
+    void OnPlayerEnter() {
+        if (isInPast) {
+            // Past: play voice once per visit to this timeline
+            if (!voicePlayed && !voiceAudioName.empty()) {
+                PlayAudio("event:/" + voiceAudioName);
+                voicePlayed = true;
+                LOG_DEBUG("PhoneBooth: Playing voice: " + voiceAudioName);
+            }
+        }
+        else {
+            // Present: start looping static
+            StartStatic();
+        }
+    }
+
+    void OnPlayerExit() {
+        if (!isInPast) {
+            StopStatic();
+        }
+        // Voice in past just plays once and ends naturally - no stop needed
+    }
+
+    void OnEnterPast() {
+        isInPast = true;
+        // If player is already inside the booth range when timeline switches, stop static
+        if (playerInRange) {
+            StopStatic();
+            // Play voice if not yet played this past-visit
+            if (!voicePlayed && !voiceAudioName.empty()) {
+                PlayAudio("event:/" + voiceAudioName);
+                voicePlayed = true;
+                LOG_DEBUG("PhoneBooth: Timeline switched to past - playing voice: " + voiceAudioName);
             }
         }
     }
 
-    void OnDestroy() override {}
-    void OnEnable() override {}
-    void OnDisable() override {}
-    void OnValidate() override {}
-    const char* GetTypeName() const override { return "PhoneBooth"; }
-
-    // === Collision Callbacks ===
-    void OnCollisionEnter(Entity other) override { (void)other; }
-    void OnCollisionExit(Entity other) override { (void)other; }
-    void OnCollisionStay(Entity other) override { (void)other; }
-    void OnTriggerEnter(Entity other) override { (void)other; }
-    void OnTriggerExit(Entity other) override { (void)other; }
-    void OnTriggerStay(Entity other) override { (void)other; }
-
-private:
-    void PlayCurrentVoiceover() {
-        std::string eventPath = "event:/VOICEOVER" + std::to_string(currentVoiceoverIndex);
-        PlayAudio(eventPath);
-        LOG_INFO("PhoneBooth: Playing " << eventPath);
+    void OnEnterPresent() {
+        // Stop voice if it is still playing when switching back to present
+        if (!voiceAudioName.empty())
+            StopAudio("event:/" + voiceAudioName);
+        isInPast = false;
+        // If player is inside range when switching back to present, start static
+        if (playerInRange) {
+            StartStatic();
+        }
     }
 
-    // Inspector fields
-    GameObjectRef playerRef;
-    float interactionDistance = 3.0f;
+    void StartStatic() {
+        if (!staticPlaying) {
+            PlayAudio("event:/" + staticAudioName);
+            staticPlaying = true;
+            LOG_DEBUG("PhoneBooth: Static started.");
+        }
+    }
 
-    // Private state
-    Entity playerEntity;
-    int currentVoiceoverIndex;
-    bool hasPlayedInitial;
-    bool playerInRange;
+    void StopStatic() {
+        if (staticPlaying) {
+            StopAudio("event:/" + staticAudioName);
+            staticPlaying = false;
+            LOG_DEBUG("PhoneBooth: Static stopped.");
+        }
+    }
 };

@@ -26,6 +26,7 @@ public:
         SCRIPT_FIELD(useTriggerToo, Bool);
         SCRIPT_FIELD(useTransformFallback, Bool);
         SCRIPT_FIELD(debugLogs, Bool);
+        SCRIPT_FIELD(pushAudioName, String);  // e.g. "TROLLEY_PUSH" (without event:/)
     }
 
     ~Misc_TrolleyPush() override = default;
@@ -36,9 +37,11 @@ public:
     void Start() override {
         CacheReferences();
 
-        if (moveSpeed <= 0.0f) moveSpeed = 2.75f;
+        if (moveSpeed <= 0.0f)    moveSpeed = 2.75f;
         if (pushDistance <= 0.0f) pushDistance = 1.6f;
-        if (stopDamping <= 0.0f) stopDamping = 10.0f;
+        if (stopDamping <= 0.0f)  stopDamping = 10.0f;
+
+        isPushAudioPlaying = false;
 
         if (debugLogs) {
             LOG_DEBUG("Misc_TrolleyPush start - self={}, playerValid={}, cameraValid={}, hasRB={}",
@@ -58,6 +61,7 @@ public:
 
         if (!touchingPlayer || !hasInput) {
             DampHorizontalMotion(static_cast<float>(deltaTime));
+            StopPushAudio();
             return;
         }
 
@@ -69,27 +73,29 @@ public:
                 toTrolley.Normalize();
                 if (moveDir.Dot(toTrolley) < 0.1f) {
                     DampHorizontalMotion(static_cast<float>(deltaTime));
+                    StopPushAudio();
                     return;
                 }
             }
         }
 
         PushTrolley(moveDir, static_cast<float>(deltaTime));
+        StartPushAudio();
     }
 
-    void OnDestroy() override {}
-    void OnEnable() override {}
-    void OnDisable() override {}
+    void OnDestroy() override { StopPushAudio(); }
+    void OnEnable()  override {}
+    void OnDisable() override { StopPushAudio(); }
     void OnValidate() override {}
     const char* GetTypeName() const override { return "Misc_TrolleyPush"; }
 
     void OnCollisionEnter(Entity other) override { if (IsPlayer(other)) isPlayerColliding = true; }
-    void OnCollisionExit(Entity other) override { if (IsPlayer(other)) isPlayerColliding = false; }
-    void OnCollisionStay(Entity other) override { if (IsPlayer(other)) isPlayerColliding = true; }
+    void OnCollisionExit(Entity other)  override { if (IsPlayer(other)) isPlayerColliding = false; }
+    void OnCollisionStay(Entity other)  override { if (IsPlayer(other)) isPlayerColliding = true; }
 
     void OnTriggerEnter(Entity other) override { if (useTriggerToo && IsPlayer(other)) isPlayerColliding = true; }
-    void OnTriggerExit(Entity other) override { if (useTriggerToo && IsPlayer(other)) isPlayerColliding = false; }
-    void OnTriggerStay(Entity other) override { if (useTriggerToo && IsPlayer(other)) isPlayerColliding = true; }
+    void OnTriggerExit(Entity other)  override { if (useTriggerToo && IsPlayer(other)) isPlayerColliding = false; }
+    void OnTriggerStay(Entity other)  override { if (useTriggerToo && IsPlayer(other)) isPlayerColliding = true; }
 
 private:
     void CacheReferences() {
@@ -121,9 +127,7 @@ private:
         if (Input::IsKeyDown('A')) inputDirection.x -= 1.0f;
         if (Input::IsKeyDown('D')) inputDirection.x += 1.0f;
 
-        if (inputDirection.LengthSquared() <= 0.0001f) {
-            return Vec3::Zero();
-        }
+        if (inputDirection.LengthSquared() <= 0.0001f) return Vec3::Zero();
         inputDirection.Normalize();
 
         Entity basis = playerCameraRef.IsValid() ? playerCameraRef.GetEntity() : GetEntity();
@@ -136,18 +140,14 @@ private:
         if (cameraRight.LengthSquared() > 0.0001f) cameraRight.Normalize();
 
         Vec3 moveDirection = (cameraRight * inputDirection.x) + (cameraForward * inputDirection.z);
-        if (moveDirection.LengthSquared() <= 0.0001f) {
-            return Vec3::Zero();
-        }
+        if (moveDirection.LengthSquared() <= 0.0001f) return Vec3::Zero();
 
         moveDirection.Normalize();
         return moveDirection;
     }
 
     bool IsPlayerWithinPushDistance(const Vec3& moveDir, bool hasInput) const {
-        if (!playerRef.IsValid() || !hasInput) {
-            return false;
-        }
+        if (!playerRef.IsValid() || !hasInput) return false;
 
         Vec3 playerPos = TF_GetPosition(playerRef.GetEntity());
         Vec3 trolleyPos = TF_GetPosition(GetEntity());
@@ -157,9 +157,7 @@ private:
         float horizontalDistance = horizontalDelta.Length();
         float verticalDistance = std::fabs(trolleyPos.y - playerPos.y);
 
-        if (horizontalDistance > pushDistance || verticalDistance > 2.0f) {
-            return false;
-        }
+        if (horizontalDistance > pushDistance || verticalDistance > 2.0f) return false;
 
         if (horizontalDistance > 0.0001f) {
             Vec3 towardTrolley = horizontalDelta.Normalized();
@@ -195,15 +193,29 @@ private:
         }
     }
 
+    void StartPushAudio() {
+        if (isPushAudioPlaying || pushAudioName.empty()) return;
+        PlayAudio("event:/" + pushAudioName);
+        isPushAudioPlaying = true;
+    }
+
+    void StopPushAudio() {
+        if (!isPushAudioPlaying || pushAudioName.empty()) return;
+        StopAudio("event:/" + pushAudioName);
+        isPushAudioPlaying = false;
+    }
+
 private:
     GameObjectRef playerRef;
     GameObjectRef playerCameraRef;
     float moveSpeed = 2.75f;
     float pushDistance = 1.6f;
     float stopDamping = 10.0f;
-    bool useTriggerToo = true;
-    bool useTransformFallback = true;
-    bool debugLogs = false;
+    bool  useTriggerToo = true;
+    bool  useTransformFallback = true;
+    bool  debugLogs = false;
+    std::string pushAudioName = "";   // FMOD event name without "event:/"
 
     bool isPlayerColliding = false;
+    bool isPushAudioPlaying = false;
 };

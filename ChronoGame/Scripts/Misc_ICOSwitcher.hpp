@@ -37,8 +37,8 @@ public:
         if (!CheckObjectsValid()) return;
 
         // Start in present state
-        SetActive(true, presentObj.GetEntity());
-        SetActive(false, pastObj.GetEntity());
+        //SetActive(true, presentObj.GetEntity());
+        //SetActive(false, pastObj.GetEntity());
 
         // Delay so everyone can register listeners first
         Coroutines::Handle h = Coroutines::Create();

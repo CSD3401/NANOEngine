@@ -191,7 +191,7 @@ public:
         GREEN,
         YELLOW,
         WHITE,
-        BLACK,// Finished
+        BLACK,
         ORANGE,
         PURPLE,
         PINK

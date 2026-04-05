@@ -1,23 +1,21 @@
 #pragma once
 #include "EngineAPI.hpp"
+#include "UI_SaveSettings.hpp"
 
 /**
- * UI_SFXVolumeButtons
- * -------------------
- * Attach this script to ANY entity (can be an empty "manager" object).
+ * UI_SFXVolumeButtons (slider version)
+ * ------------------------------------
+ * Attach this script to ANY entity (e.g. an empty "manager" object).
  *
  * In the editor, assign:
- *   - volumeUpButton   : entity with UIButton (Volume +)
- *   - volumeDownButton : entity with UIButton (Volume -)
+ *   - volumeSlider : entity with UISlider component
  *
- * Clicking the buttons steps SFX volume in increments of 0.2 (5 steps, 0.0 to 1.0).
+ * Slider normalized 0-1 maps directly to SFX volume (0 = mute, 1 = full).
  */
 class UI_SFXVolumeButtons : public IScript {
 public:
     UI_SFXVolumeButtons() {
-        SCRIPT_FIELD(volumeUpButton, GameObjectRef);
-        SCRIPT_FIELD(volumeDownButton, GameObjectRef);
-        SCRIPT_FIELD(step, Float);
+        SCRIPT_GAMEOBJECT_REF(volumeSlider);
     }
 
     ~UI_SFXVolumeButtons() override = default;
@@ -26,27 +24,20 @@ public:
     void Initialize(Entity /*entity*/) override {}
 
     void Start() override {
-        if (step <= 0.0f) step = 0.2f;
-        m_up   = volumeUpButton.IsValid()   ? volumeUpButton.GetEntity()   : 0;
-        m_down = volumeDownButton.IsValid() ? volumeDownButton.GetEntity() : 0;
-
-        float current = GetSFXVolume();
-        if (current < 0.0f) current = 1.0f; // invalid bus fallback
-        SetSFXVolume(Clamp(current));
+        m_slider = volumeSlider.IsValid() ? volumeSlider.GetEntity() : 0;
+        if (SavedSettings::hasBeenSaved && m_slider != 0) {
+            UI::SetSliderNormalizedValue(m_slider, SavedSettings::sfxVolume);
+            SetSFXVolume(SavedSettings::sfxVolume);
+        }
     }
 
     void Update(double /*dt*/) override {
-        if (m_up != 0 && UI::WasButtonClicked(m_up) && UI::IsButtonInteractable(m_up)) {
-            float next = Clamp(GetSFXVolume() + step);
-            SetSFXVolume(next);
-            LOG_DEBUG("[Audio] SFX volume: {}", next);
-        }
+        if (m_slider == 0) return;
 
-        if (m_down != 0 && UI::WasButtonClicked(m_down) && UI::IsButtonInteractable(m_down)) {
-            float next = Clamp(GetSFXVolume() - step);
-            SetSFXVolume(next);
-            LOG_DEBUG("[Audio] SFX volume: {}", next);
-        }
+        float norm = UI::GetSliderNormalizedValue(m_slider);
+        if (norm < 0.0f) norm = 0.0f;
+        if (norm > 1.0f) norm = 1.0f;
+        SetSFXVolume(norm);
     }
 
     void OnDestroy() override {}
@@ -64,16 +55,6 @@ public:
     void OnTriggerStay(Entity other) override { (void)other; }
 
 private:
-    static float Clamp(float v) {
-        if (v < 0.0f) return 0.0f;
-        if (v > 1.0f) return 1.0f;
-        return v;
-    }
-
-    GameObjectRef volumeUpButton;
-    GameObjectRef volumeDownButton;
-    float step = 0.2f;
-
-    Entity m_up   = 0;
-    Entity m_down = 0;
+    GameObjectRef volumeSlider;
+    Entity m_slider = 0;
 };
