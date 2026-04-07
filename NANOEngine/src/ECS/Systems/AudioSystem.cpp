@@ -44,20 +44,31 @@ namespace NE::ECS::Systems {
 				SPD_INFO("AudioEngine destructor (already shut down: " << (system == nullptr) << ")");
 			}
 
-			void Shutdown()
+			// Call during scene transitions: stops all sounds and clears cache but keeps
+			// the Core system alive so subsequent AudioSystem instances can reuse it.
+			void StopAndClearSounds()
 			{
 				if (!system) return;
-				SPD_INFO("AudioEngine::Shutdown - releasing sounds and closing FMOD core");
+				SPD_INFO("AudioEngine::StopAndClearSounds - releasing sounds (core stays alive)");
 				for (auto& [path, sound] : loadedClips) {
 					sound->release();
 				}
 				loadedClips.clear();
+			}
+
+			// Full teardown - only call once at true process exit (not on scene transitions).
+			void Shutdown()
+			{
+				if (!system) return;
+				SPD_INFO("AudioEngine::Shutdown - closing FMOD core");
+				StopAndClearSounds();
 				system->close();
 				system->release();
 				system = nullptr;
 			}
 
 			FMOD::Sound* LoadSound(const std::string& filepath, bool loop = false, bool is3D = false) {
+				if (!system) return nullptr;
 				std::string cacheKey = filepath + (is3D ? "|3D" : "|2D");
 				if (loadedClips.find(cacheKey) != loadedClips.end()) {
 					return loadedClips[cacheKey];
@@ -570,7 +581,10 @@ namespace NE::ECS::Systems {
 		}
 		m_entityInstances.clear();
 
-		GetAudioEngine().Shutdown();
+		// Release sounds but keep the Core alive — the Core is process-wide and must
+		// survive scene transitions. Calling Shutdown() here would null the Core and
+		// crash any subsequent AudioSystem that tries to load legacy audio files.
+		GetAudioEngine().StopAndClearSounds();
 		CleanupStudioSystem();
 		SPD_INFO("AudioSystem shutdown");
 	}
